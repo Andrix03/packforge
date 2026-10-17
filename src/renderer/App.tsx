@@ -23,6 +23,18 @@ export function App(): React.JSX.Element {
       .catch(() => setInfo(null))
   }, [])
 
+  // External edits to pack.mcmeta / pack.png refresh the overview.
+  useEffect(
+    () =>
+      window.api.on('pack:filesChanged', ({ paths }) => {
+        if (!paths.some((path) => path === 'pack.mcmeta' || path === 'pack.png')) return
+        void window.api.invoke('pack:refreshSummary').then((result) => {
+          if (result.ok) setPack(result.pack)
+        })
+      }),
+    []
+  )
+
   async function openPack(path: string): Promise<void> {
     setOpening(true)
     setOpenError(null)

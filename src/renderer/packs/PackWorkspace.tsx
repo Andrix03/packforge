@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, findFolder, parentPath } from '../../shared/fileTree'
-import { encodePackPath, type PackSummary, type VanillaVersionInfo } from '../../shared/ipc'
+import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../shared/ipc'
 import { compatibleReleases } from '../../shared/mcmeta'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
@@ -39,6 +39,26 @@ export function PackWorkspace({ pack }: { pack: PackSummary }): React.JSX.Elemen
   const [packFiles, setPackFiles] = useState<Loadable<SourceFiles>>({ status: 'loading' })
   const [vanilla, setVanilla] = useState<Loadable<VanillaState>>({ status: 'loading' })
   const [jar, setJar] = useState<Loadable<VanillaJar>>({ status: 'idle' })
+  /** Bumped per pack file changed on disk, appended to its URL to bypass caches. */
+  const [fileVersions, setFileVersions] = useState<Readonly<Record<string, number>>>({})
+
+  // Live updates from the folder watcher in main.
+  useEffect(
+    () =>
+      window.api.on('pack:filesChanged', ({ paths, structureChanged }) => {
+        setFileVersions((current) => {
+          const next = { ...current }
+          for (const path of paths) next[path] = (next[path] ?? 0) + 1
+          return next
+        })
+        if (structureChanged) {
+          void window.api.invoke('pack:listFiles').then((result) => {
+            if (result.ok) setPackFiles({ status: 'ready', value: result })
+          })
+        }
+      }),
+    []
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -84,6 +104,7 @@ export function PackWorkspace({ pack }: { pack: PackSummary }): React.JSX.Elemen
   return (
     <Workspace
       packFiles={packFiles.value}
+      fileVersions={fileVersions}
       vanilla={vanilla}
       jar={jar}
       onSelectVersion={(id) => void loadJar(id)}
@@ -93,11 +114,13 @@ export function PackWorkspace({ pack }: { pack: PackSummary }): React.JSX.Elemen
 
 function Workspace({
   packFiles,
+  fileVersions,
   vanilla,
   jar,
   onSelectVersion
 }: {
   packFiles: SourceFiles
+  fileVersions: Readonly<Record<string, number>>
   vanilla: Loadable<VanillaState>
   jar: Loadable<VanillaJar>
   onSelectVersion: (versionId: string) => void
@@ -116,7 +139,19 @@ function Workspace({
   const [selectedFolder, setSelectedFolder] = useState(initialFolder)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null)
+  const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null)
+  const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
+  // The URL carries the file version, so the 3D preview reloads on external edits.
+  const previewTarget = useMemo<PreviewTarget | null>(
+    () =>
+      previewSelection && {
+        key: previewSelection.key,
+        url: assetUrl(previewSelection.base, previewSelection.albedo, previewVersion),
+        name: previewSelection.name,
+        sourceLabel: previewSelection.sourceLabel
+      },
+    [previewSelection, previewVersion]
+  )
 
   const vanillaReady = jar.status === 'ready'
   const activeMode: Mode = mode === 'vanilla' && vanillaReady ? 'vanilla' : 'pack'
@@ -165,15 +200,17 @@ function Workspace({
             activeMode === 'vanilla' && jar.status === 'ready' ? `v:${jar.value.assetBase}` : 'pack'
           }
           selectedKey={
-            previewTarget?.key.startsWith(`${source.assetBase}|`)
-              ? previewTarget.key.slice(source.assetBase.length + 1)
-              : null
+            previewSelection?.base === source.assetBase ? previewSelection.textureKey : null
           }
+          versionOf={activeMode === 'pack' ? (path) => fileVersions[path] ?? 0 : undefined}
           onSelectTexture={(texture) =>
-            setPreviewTarget({
+            setPreviewSelection({
               key: `${source.assetBase}|${texture.key}`,
-              url: source.assetBase + encodePackPath(texture.albedo),
+              base: source.assetBase,
+              textureKey: texture.key,
+              albedo: texture.albedo,
               name: texture.name,
+              isPack: activeMode === 'pack',
               sourceLabel:
                 activeMode === 'vanilla' && jar.status === 'ready'
                   ? `Vanilla ${jar.value.versionId}`
@@ -263,6 +300,8 @@ interface TextureBrowserProps {
   onQuery: (query: string) => void
   selectedKey: string | null
   onSelectTexture: (texture: TextureEntry) => void
+  /** Pack only: file version for cache-busting URLs. */
+  versionOf: ((path: string) => number) | undefined
 }
 
 function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
@@ -354,6 +393,7 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
             marker={props.marker}
             selectedKey={props.selectedKey}
             onSelect={props.onSelectTexture}
+            versionOf={props.versionOf}
           />
         ) : (
           <p className="muted">
@@ -363,6 +403,16 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
       </div>
     </div>
   )
+}
+
+interface PreviewSelection {
+  key: string
+  base: string
+  textureKey: string
+  albedo: string
+  name: string
+  isPack: boolean
+  sourceLabel: string
 }
 
 /** Newest installed release compatible with the pack, else newest release, else newest. */

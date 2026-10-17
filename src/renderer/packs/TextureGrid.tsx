@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { encodePackPath } from '../../shared/ipc'
+import { assetUrl } from '../../shared/ipc'
 import type { TextureEntry } from '../../shared/textures'
 
 interface TextureGridProps {
@@ -13,6 +13,8 @@ interface TextureGridProps {
   /** Key of the texture shown in the 3D preview. */
   selectedKey?: string | null
   onSelect?: (texture: TextureEntry) => void
+  /** File version for cache-busting (bumped when the file changes on disk). */
+  versionOf?: ((path: string) => number) | undefined
 }
 
 export interface TextureMarker {
@@ -28,7 +30,8 @@ export function TextureGrid({
   showFolder,
   marker,
   selectedKey = null,
-  onSelect
+  onSelect,
+  versionOf
 }: TextureGridProps): React.JSX.Element {
   const highlightRef = useRef<HTMLLIElement>(null)
 
@@ -52,7 +55,7 @@ export function TextureGrid({
               onClick={() => onSelect?.(texture)}
             >
               <img
-                src={assetBase + encodePackPath(texture.albedo)}
+                src={assetUrl(assetBase, texture.albedo, versionOf?.(texture.albedo) ?? 0)}
                 alt={texture.name}
                 loading="lazy"
                 decoding="async"

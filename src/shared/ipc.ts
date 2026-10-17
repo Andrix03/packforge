@@ -75,6 +75,11 @@ export type PickImageResult =
 
 export type SettingsUpdateResult = { ok: true; view: SettingsView } | { ok: false; error: string }
 
+/** Asset URL; a non-zero version is appended so changed files bypass caches. */
+export function assetUrl(assetBase: string, path: string, version = 0): string {
+  return assetBase + encodePackPath(path) + (version > 0 ? `?v=${version}` : '')
+}
+
 /** Encodes a pack-relative path for use after `assetBase`. */
 export function encodePackPath(path: string): string {
   return path.split('/').map(encodeURIComponent).join('/')
@@ -93,6 +98,8 @@ export interface IpcContract {
   /** Lists files of the pack opened with `pack:open`. */
   'pack:listFiles': { args: []; result: ListPackFilesResult }
   'pack:close': { args: []; result: void }
+  /** Re-reads pack.mcmeta/pack.png of the open pack (after external edits). */
+  'pack:refreshSummary': { args: []; result: OpenPackResult }
   /** Folder packs only: rewrites pack.description, returns the refreshed summary. */
   'pack:updateDescription': { args: [description: string]; result: OpenPackResult }
   /** Folder packs only: rewrites format fields and root overlays, creates overlay folders. */
@@ -129,6 +136,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:open': true,
   'pack:listFiles': true,
   'pack:close': true,
+  'pack:refreshSummary': true,
   'pack:updateDescription': true,
   'pack:updateVersions': true,
   'pack:pickIconSource': true,
@@ -159,9 +167,68 @@ export type IpcInvoke = <C extends IpcChannel>(
   ...args: IpcArgs<C>
 ) => Promise<IpcResult<C>>
 
+// ---------------------------------------------------------------------------
+// Events: main → renderer
+// ---------------------------------------------------------------------------
+
+export interface PackFilesChanged {
+  /** Pack-relative posix paths that were added, changed or removed. */
+  paths: string[]
+  /** True when files/folders were added or removed (the file list must reload). */
+  structureChanged: boolean
+}
+
+export interface IpcEvents {
+  /** Files of the open folder pack changed on disk. */
+  'pack:filesChanged': PackFilesChanged
+}
+
+export type IpcEventChannel = keyof IpcEvents
+
+const eventRegistry: Record<IpcEventChannel, true> = {
+  'pack:filesChanged': true
+}
+
+export const IPC_EVENT_CHANNELS: readonly IpcEventChannel[] = Object.freeze(
+  Object.keys(eventRegistry) as IpcEventChannel[]
+)
+
+export function isIpcEventChannel(value: unknown): value is IpcEventChannel {
+  return typeof value === 'string' && Object.hasOwn(eventRegistry, value)
+}
+
+/** Subscribes to a main → renderer event; returns the unsubscribe function. */
+export type IpcSubscribe = <C extends IpcEventChannel>(
+  channel: C,
+  listener: (payload: IpcEvents[C]) => void
+) => () => void
+
 /** API exposed to the renderer as `window.api`. */
 export interface PackForgeApi {
   invoke: IpcInvoke
+  on: IpcSubscribe
+}
+
+/** Minimal shape of `ipcRenderer` needed to receive events. */
+export interface EventTransport {
+  on(channel: string, listener: (event: unknown, ...args: unknown[]) => void): unknown
+  removeListener(channel: string, listener: (event: unknown, ...args: unknown[]) => void): unknown
+}
+
+/** Builds the renderer-side subscribe, rejecting channels outside the contract. */
+export function createSubscribe(transport: EventTransport): IpcSubscribe {
+  return (channel, listener) => {
+    if (!isIpcEventChannel(channel)) {
+      throw new Error(`Evento IPC non consentito: ${String(channel)}`)
+    }
+    // The Electron event object is not passed on (it exposes sender internals).
+    const wrapped = (_event: unknown, payload: unknown): void =>
+      listener(payload as IpcEvents[typeof channel])
+    transport.on(channel, wrapped)
+    return () => {
+      transport.removeListener(channel, wrapped)
+    }
+  }
 }
 
 /** Minimal shape of `ipcRenderer` needed by the bridge. */

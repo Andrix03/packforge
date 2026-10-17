@@ -1,6 +1,6 @@
 import { strToU8, zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
-import { encodePackPath } from '../shared/ipc'
+import { assetUrl, encodePackPath } from '../shared/ipc'
 import { assetBase, handlePackRequest } from './packProtocol'
 import type { PackSource } from './packSource'
 import type { OpenedSource, SourceRole } from './session'
@@ -27,6 +27,17 @@ const get = (url: string, method = 'GET') =>
   handlePackRequest(new Request(url, { method }), (role) => opened[role])
 const bytesOf = async (response: Response) => new Uint8Array(await response.arrayBuffer())
 const STONE = encodePackPath('my textures/stone #1.png')
+
+describe('assetUrl', () => {
+  it('appends the version only when non-zero, and the protocol ignores it', async () => {
+    expect(assetUrl(assetBase('pack', 7), 'my textures/stone #1.png')).toBe(
+      assetBase('pack', 7) + STONE
+    )
+    const versioned = assetUrl(assetBase('pack', 7), 'my textures/stone #1.png', 3)
+    expect(versioned.endsWith('?v=3')).toBe(true)
+    expect((await get(versioned)).status).toBe(200)
+  })
+})
 
 describe('handlePackRequest', () => {
   it('serves PNGs of the current pack generation with encoded paths', async () => {

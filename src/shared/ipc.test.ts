@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   createInvoke,
+  createSubscribe,
+  isIpcEventChannel,
   IPC_CHANNELS,
   isIpcChannel,
   registerHandlers,
@@ -79,6 +81,7 @@ describe('registerHandlers', () => {
       'settings:setMinecraftDir': () => ({ ok: false, error: 'unused' }),
       'settings:setExternalEditor': () => ({ ok: false, error: 'unused' }),
       'pack:updateDescription': () => ({ ok: false, error: 'unused' }),
+      'pack:refreshSummary': () => ({ ok: false, error: 'unused' }),
       'pack:updateVersions': () => ({ ok: false, error: 'unused' }),
       'pack:pickIconSource': () => null,
       'pack:setIcon': () => ({ ok: false, error: 'unused' }),
@@ -92,5 +95,39 @@ describe('registerHandlers', () => {
     const result = await listeners.get('app:getInfo')?.({ sender: 'fake-event' })
     expect(result).toEqual(sampleInfo)
     expect(getInfo).toHaveBeenCalledWith()
+  })
+})
+
+describe('createSubscribe', () => {
+  it('forwards payloads without the event object and unsubscribes', () => {
+    const listeners = new Map<string, (event: unknown, ...args: unknown[]) => void>()
+    const transport = {
+      on: vi.fn((channel: string, l: (event: unknown, ...args: unknown[]) => void) => {
+        listeners.set(channel, l)
+      }),
+      removeListener: vi.fn((channel: string) => {
+        listeners.delete(channel)
+      })
+    }
+    const listener = vi.fn()
+    const unsubscribe = createSubscribe(transport)('pack:filesChanged', listener)
+
+    listeners.get('pack:filesChanged')?.(
+      { sender: 'internals' },
+      { paths: ['a.png'], structureChanged: false }
+    )
+    expect(listener).toHaveBeenCalledExactlyOnceWith({ paths: ['a.png'], structureChanged: false })
+
+    unsubscribe()
+    expect(transport.removeListener).toHaveBeenCalledWith('pack:filesChanged', expect.any(Function))
+    expect(listeners.size).toBe(0)
+  })
+
+  it('rejects channels outside the event contract', () => {
+    const subscribe = createSubscribe({ on: vi.fn(), removeListener: vi.fn() })
+    const untyped = subscribe as unknown as (channel: string, l: () => void) => () => void
+    expect(() => untyped('fs:watch', () => undefined)).toThrow('fs:watch')
+    expect(isIpcEventChannel('pack:filesChanged')).toBe(true)
+    expect(isIpcEventChannel('__proto__')).toBe(false)
   })
 })

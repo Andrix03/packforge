@@ -1,8 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { createInvoke, type PackForgeApi } from '../shared/ipc'
+import { createInvoke, createSubscribe, type PackForgeApi } from '../shared/ipc'
 
 const api: PackForgeApi = {
-  invoke: createInvoke(ipcRenderer)
+  invoke: createInvoke(ipcRenderer),
+  on: createSubscribe(ipcRenderer)
 }
 
 contextBridge.exposeInMainWorld('api', api)

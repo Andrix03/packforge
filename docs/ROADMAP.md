@@ -24,7 +24,7 @@
 
 - [x] Three.js viewer with a textured cube (nearest filtering)
 - [x] Orbit camera, directional light, day/night cycle
-- [ ] Live update when a texture file changes
+- [x] Live update when a texture file changes
 - [ ] Render real block models from model JSON (`cube_all`, `cube_column`, slabs, stairs…), including biome tint for grass/leaves
 - [ ] Animated textures (`.png.mcmeta` animation: frametime, interpolation)
 - [x] 3×3 tiling view to spot seams on repeating textures
@@ -80,7 +80,7 @@ So I can draw textures from start to finish inside PackForge, seeing them on the
 
 ## Phase 8 — Hot reload and in-game testing
 
-- [ ] Watch the pack folder
+- [x] Watch the pack folder (done with the Phase 2 live update)
 - [ ] Automatic sync into `resourcepacks` (copy or link)
 - [ ] "Open in external editor" (Aseprite / Photoshop)
 - [ ] Reminder / shortcut panel for testing in game (F3+T, Iris shader reload)

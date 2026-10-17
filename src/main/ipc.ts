@@ -4,6 +4,8 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import {
   registerHandlers,
   type DirectoryPurpose,
+  type IpcEventChannel,
+  type IpcEvents,
   type IpcHandlers,
   type SettingsUpdateResult
 } from '../shared/ipc'
@@ -27,7 +29,9 @@ import { ICON_IMAGE_EXTENSIONS, readIconSource, writePackIcon } from './packIcon
 import { createPack } from './pack'
 import { assetBase } from './packProtocol'
 import { listPackFiles } from './packSource'
+import { PackWatcher } from './packWatcher'
 import { closeSource, getSource, setSource } from './session'
+import type { PackSource } from './packSource'
 import {
   detectEditors,
   fileExists,
@@ -64,6 +68,22 @@ async function pathExists(path: string): Promise<boolean> {
     return true
   } catch {
     return false
+  }
+}
+
+let packWatcher: PackWatcher | null = null
+
+function sendEvent<C extends IpcEventChannel>(channel: C, payload: IpcEvents[C]): void {
+  for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, payload)
+}
+
+/** Watches folder packs for live updates; zip packs are read-only snapshots. */
+async function watchPack(source: PackSource | null): Promise<void> {
+  const previous = packWatcher
+  packWatcher = null
+  await previous?.close()
+  if (source?.kind === 'folder') {
+    packWatcher = new PackWatcher(source.root, (batch) => sendEvent('pack:filesChanged', batch))
   }
 }
 
@@ -169,6 +189,7 @@ const handlers: IpcHandlers = {
     const result = await openPack(path)
     if (!result.ok) return result
     setSource('pack', result.source)
+    await watchPack(result.source)
     const { path: packPath, name, kind } = result.pack
     try {
       await settings().modify((current) => ({
@@ -205,7 +226,19 @@ const handlers: IpcHandlers = {
     }
   },
 
-  'pack:close': () => closeSource('pack'),
+  'pack:close': async () => {
+    closeSource('pack')
+    await watchPack(null)
+  },
+
+  'pack:refreshSummary': async () => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (current.source.kind !== 'folder') return { ok: false, error: 'Solo i pack in cartella.' }
+    // The session source is unchanged, so thumbnail URLs stay valid.
+    const reopened = await openPack(current.source.root)
+    return reopened.ok ? { ok: true, pack: reopened.pack } : reopened
+  },
 
   'pack:updateDescription': async (description) => {
     const current = getSource('pack')

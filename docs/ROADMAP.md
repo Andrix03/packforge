@@ -1,63 +1,98 @@
-# Roadmap — PackForge
+# PackForge Roadmap
 
-## Fase 0 — Setup
+This is my plan for PackForge, a desktop studio for making Minecraft Java Edition resource
+packs with live LabPBR preview. I work on one phase at a time and tick items off as they land.
 
-- [x] Scaffold Electron + electron-vite + React + TS (strict)
-- [x] ESLint, Prettier, Vitest, script `typecheck` / `test`
-- [x] Bridge IPC tipizzato in preload
-- [x] Repo Git + primo commit
-- [x] Push su GitHub (manuale, da Andrea)
+## Phase 0 — Setup
 
-## Fase 1 — Gestione pack
+- [x] Scaffold Electron + electron-vite + React + TypeScript (strict)
+- [x] ESLint, Prettier, Vitest, `typecheck` / `test` scripts
+- [x] Typed IPC bridge in the preload script
+- [x] Git repo and first commit
+- [x] Push to GitHub
 
-- [x] Crea nuovo pack (nome, descrizione, versione target → pack_format) — versioni 1.20 → 26.3
-- [ ] Apri pack esistente (cartella o zip)
-- [ ] Albero file + griglia miniature texture
-- [ ] Import texture vanilla dal jar del client (solo riferimento)
-- [ ] Impostazioni: percorso `.minecraft`, editor esterno
+## Phase 1 — Pack management
 
-## Fase 2 — Anteprima 3D base
+- [x] Create a new pack (name, description, target version → pack format), versions 1.20 → 26.3
+- [ ] Open an existing pack (folder or zip) and validate its `pack.mcmeta`
+- [ ] File tree and texture thumbnail grid
+- [ ] Import vanilla textures from my own client jar (reference only, never exported)
+- [ ] Settings: `.minecraft` path, external editor
+- [ ] Recent packs list on the start screen
+- [ ] Pack icon (`pack.png`): pick, crop and preview
+- [ ] Multi-version support: version ranges and overlay folders in `pack.mcmeta`
+- [ ] Description editor with Minecraft color/formatting codes and live preview
 
-- [ ] Viewer Three.js con cubo texturizzato (filtro nearest)
-- [ ] Camera orbitale, luce direzionale, ciclo giorno/notte
-- [ ] Aggiornamento live quando il file cambia
+## Phase 2 — Basic 3D preview
 
-## Fase 3 — Shader LabPBR
+- [ ] Three.js viewer with a textured cube (nearest filtering)
+- [ ] Orbit camera, directional light, day/night cycle
+- [ ] Live update when a texture file changes
+- [ ] Render real block models from model JSON (`cube_all`, `cube_column`, slabs, stairs…)
+- [ ] Animated textures (`.png.mcmeta` animation: frametime, interpolation)
+- [ ] 3×3 tiling view to spot seams on repeating textures
+- [ ] Preview scenes: single block, small wall, flat floor
 
-- [ ] Decodifica `_n` (normal, AO, height) e `_s` (smoothness, F0/metalli, porosity/SSS, emissive)
-- [ ] Illuminazione PBR (GGX), metalli predefiniti
-- [ ] Vista singolo canale + debug
-- [ ] Test unitari encode/decode in `shared/labpbr.ts`
+## Phase 3 — LabPBR shader
 
-## Fase 4 — POM
+- [ ] Decode `_n` (normal, AO, height) and `_s` (smoothness, F0/metals, porosity/SSS, emission)
+- [ ] PBR lighting (GGX) and predefined metals
+- [ ] Single-channel view and debug modes
+- [ ] Unit tests for encode/decode in `shared/labpbr.ts`
+- [ ] Tone mapping and exposure controls
+- [ ] Emission bloom
+- [ ] Environment lighting presets (overworld noon, sunset, cave, nether)
 
-- [ ] Parallax occlusion mapping con height da `_n.a`
-- [ ] Slider profondità/campioni, self-shadowing
-- [ ] Confronto affiancato con/senza POM
+## Phase 4 — POM
 
-## Fase 5 — Strumenti PBR
+- [ ] Parallax occlusion mapping using height from `_n.a`
+- [ ] Depth/sample count sliders, self-shadowing
+- [ ] Side-by-side comparison with and without POM
 
-- [ ] Generatore height e normal da albedo (intensità, blur, inversione)
-- [ ] Preset materiali → `_s` (pietra, legno, metallo, minerale, vetro, emissivo)
-- [ ] Pittura/maschera canali
-- [ ] Validatore (dimensioni, alfa emissive, file orfani)
+## Phase 5 — PBR tools
 
-## Fase 6 — Hot reload e test in gioco
+- [ ] Height and normal generator from albedo (strength, blur, invert)
+- [ ] Material presets → `_s` (stone, wood, metal, ore, glass, emissive)
+- [ ] Channel painting and masks
+- [ ] Validator (sizes, emissive alpha, orphan files)
+- [ ] Batch apply a preset or generator to many textures at once
+- [ ] Coverage report: which textures still miss `_n` / `_s` maps
+- [ ] Compare my texture against the vanilla one (side by side, diff)
+- [ ] Nearest-neighbour resize for different resolutions (16×, 32×, 64×…)
 
-- [ ] Watcher cartella pack
-- [ ] Sync automatico in `resourcepacks` (copia o link)
-- [ ] "Apri in editor esterno" (Aseprite/Photoshop)
+## Phase 6 — Hot reload and in-game testing
 
-## Fase 7 — Export Patreon
+- [ ] Watch the pack folder
+- [ ] Automatic sync into `resourcepacks` (copy or link)
+- [ ] "Open in external editor" (Aseprite / Photoshop)
+- [ ] Reminder / shortcut panel for testing in game (F3+T, Iris shader reload)
+- [ ] Undo history and automatic backups before destructive operations
 
-- [ ] Zip versionato
-- [ ] Varianti free/premium (es. base vs PBR, risoluzioni)
-- [ ] Screenshot renderizzati dall'anteprima
+## Phase 7 — Patreon export
+
+- [ ] Versioned zip
+- [ ] Free/premium variants (e.g. base vs PBR, different resolutions)
+- [ ] Screenshots rendered from the preview
 - [ ] Changelog
-- [ ] Verifica Minecraft Usage Guidelines per la monetizzazione
+- [ ] Check the Minecraft Usage Guidelines for monetization
+- [ ] License and credits file included in every export
+- [ ] Export checklist: no vanilla files, valid `pack.mcmeta`, no stray files (e.g. `.psd`, `Thumbs.db`)
+- [ ] Optional builds for Modrinth / CurseForge
 
-## Fase 8 — Rifinitura
+## Phase 8 — Polish
 
-- [ ] UI/UX, scorciatoie
-- [ ] Installer Windows
-- [ ] Bugfix
+- [ ] UI/UX pass, keyboard shortcuts
+- [ ] Windows installer
+- [ ] Bug fixing
+- [ ] GitHub Actions CI (typecheck, lint, tests on every push)
+- [ ] End-to-end tests of the Electron app (Playwright)
+- [ ] Auto-update for new releases
+
+## Ideas for later
+
+- Connected textures (CTM) preview for OptiFine/Continuity-style packs
+- Custom item models and item model definitions
+- Font and GUI texture editing
+- Sound replacement with an in-app player
+- Multiple language files (`lang/*.json`) editor
+- English UI option

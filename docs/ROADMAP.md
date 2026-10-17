@@ -30,7 +30,28 @@
 - [ ] 3×3 tiling view to spot seams on repeating textures
 - [ ] Preview scenes: single block, small wall, flat floor
 
-## Phase 3 — LabPBR shader
+## Phase 3 — Texture editor (basics)
+
+So I can draw textures from start to finish inside PackForge, seeing them on the 3D block while I paint.
+
+- [ ] Pixel canvas with zoom, pan and pixel grid
+- [ ] Tools: pencil, eraser, fill bucket, color picker
+- [ ] Color palette: swatches, recent colors, hex/RGB/HSV input, alpha
+- [ ] Undo/redo history
+- [ ] New texture (size 16×/32×/64×…) and open/save PNGs in the pack
+- [ ] Vanilla texture as a side-by-side or traced reference (never copied into the pack)
+- [ ] Live 3D preview of the texture being edited
+
+## Phase 4 — Texture editor (advanced)
+
+- [ ] Layers (add, reorder, hide, opacity), flattened on save
+- [ ] Selections: rectangle, magic wand; move, copy, paste, flip, rotate
+- [ ] Lines, rectangles, ellipses; mirror (symmetry) drawing
+- [ ] Seamless tiling mode: paint across the edges of a repeating texture
+- [ ] Animation frames editor that writes the strip and `.png.mcmeta`
+- [ ] Keyboard shortcuts for every tool
+
+## Phase 5 — LabPBR shader
 
 - [ ] Decode `_n` (normal, AO, height) and `_s` (smoothness, F0/metals, porosity/SSS, emission)
 - [ ] PBR lighting (GGX) and predefined metals
@@ -40,24 +61,24 @@
 - [ ] Emission bloom
 - [ ] Environment lighting presets (overworld noon, sunset, cave, nether)
 
-## Phase 4 — POM
+## Phase 6 — POM
 
 - [ ] Parallax occlusion mapping using height from `_n.a`
 - [ ] Depth/sample count sliders, self-shadowing
 - [ ] Side-by-side comparison with and without POM
 
-## Phase 5 — PBR tools
+## Phase 7 — PBR tools
 
 - [ ] Height and normal generator from albedo (strength, blur, invert)
 - [ ] Material presets → `_s` (stone, wood, metal, ore, glass, emissive)
-- [ ] Channel painting and masks
+- [ ] Channel painting and masks with the editor brushes (`_n` / `_s` channels)
 - [ ] Validator (sizes, emissive alpha, orphan files)
 - [ ] Batch apply a preset or generator to many textures at once
 - [ ] Coverage report: which textures still miss `_n` / `_s` maps
 - [ ] Compare my texture against the vanilla one (side by side, diff)
 - [ ] Nearest-neighbour resize for different resolutions (16×, 32×, 64×…)
 
-## Phase 6 — Hot reload and in-game testing
+## Phase 8 — Hot reload and in-game testing
 
 - [ ] Watch the pack folder
 - [ ] Automatic sync into `resourcepacks` (copy or link)
@@ -65,7 +86,7 @@
 - [ ] Reminder / shortcut panel for testing in game (F3+T, Iris shader reload)
 - [ ] Undo history and automatic backups before destructive operations
 
-## Phase 7 — Patreon export
+## Phase 9 — Patreon export
 
 - [ ] Versioned zip
 - [ ] Free/premium variants (e.g. base vs PBR, different resolutions)
@@ -76,7 +97,7 @@
 - [ ] Export checklist: no vanilla files, valid `pack.mcmeta`, no stray files (e.g. `.psd`, `Thumbs.db`)
 - [ ] Optional builds for Modrinth / CurseForge
 
-## Phase 8 — Polish
+## Phase 10 — Polish
 
 - [ ] UI/UX pass, keyboard shortcuts
 - [ ] Windows installer

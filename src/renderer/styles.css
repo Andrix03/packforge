@@ -756,3 +756,41 @@ h3 {
   margin: 0;
   color: var(--warning);
 }
+
+.row.wrap {
+  flex-wrap: wrap;
+}
+
+.align-start {
+  align-self: flex-start;
+}
+
+.version-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.version-editor select,
+.version-editor input {
+  background: var(--surface);
+}
+
+.overlay-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.overlay-list h3 {
+  margin: 0;
+}
+
+.overlay-row input {
+  width: 180px;
+  font-family: Consolas, monospace;
+}

@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { mkdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import {
@@ -15,6 +15,12 @@ import {
   type SettingsView
 } from '../shared/settings'
 import { validatePackDescription } from '../shared/validate'
+import {
+  applyFormatFields,
+  buildOverlayEntries,
+  formatFieldsForRange,
+  parseVersionRangeRequest
+} from '../shared/versionRange'
 import { editPackObject } from './editMcmeta'
 import { openPack } from './openPack'
 import { createPack } from './pack'
@@ -213,6 +219,43 @@ const handlers: IpcHandlers = {
     if (!edited.ok) return edited
     // Re-read for a fresh summary; the session source (a folder) is unchanged,
     // so thumbnail URLs stay valid.
+    const reopened = await openPack(current.source.root)
+    return reopened.ok ? { ok: true, pack: reopened.pack } : reopened
+  },
+
+  'pack:updateVersions': async (request) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    const parsed = parseVersionRangeRequest(request)
+    if (!parsed.ok) return parsed
+    const { min, max, overlays } = parsed.value
+
+    const edited = await editPackObject(current.source, (pack, root) => {
+      applyFormatFields(pack, formatFieldsForRange(min.resourceFormat, max.resourceFormat))
+      if (overlays.length > 0) {
+        const section = typeof root['overlays'] === 'object' && root['overlays'] !== null
+        root['overlays'] = {
+          ...(section ? (root['overlays'] as Record<string, unknown>) : {}),
+          entries: buildOverlayEntries(overlays)
+        }
+      } else {
+        delete root['overlays']
+      }
+    })
+    if (!edited.ok) return edited
+
+    try {
+      // Names are validated (a-z0-9_.-), so they stay inside the pack folder.
+      for (const overlay of overlays) {
+        await mkdir(join(current.source.root, overlay.directory), { recursive: true })
+      }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      return {
+        ok: false,
+        error: `pack.mcmeta salvato, ma non è stato possibile creare le cartelle overlay: ${detail}`
+      }
+    }
     const reopened = await openPack(current.source.root)
     return reopened.ok ? { ok: true, pack: reopened.pack } : reopened
   },

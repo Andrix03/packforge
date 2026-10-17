@@ -10,12 +10,13 @@ export type EditResult = { ok: true } | { ok: false; error: string }
 type PackObject = Record<string, unknown>
 
 /**
- * Applies `change` to the `pack` object of a folder pack's pack.mcmeta and
- * writes the file atomically. Zip packs are read-only.
+ * Applies `change` to a folder pack's pack.mcmeta and writes it atomically.
+ * `change` gets the `pack` object and the root object (for root sections
+ * such as `overlays`). Zip packs are read-only.
  */
 export async function editPackObject(
   source: PackSource,
-  change: (pack: PackObject) => void
+  change: (pack: PackObject, root: PackObject) => void
 ): Promise<EditResult> {
   if (source.kind !== 'folder') {
     return { ok: false, error: 'I pack zip sono in sola lettura: estrai il pack in una cartella.' }
@@ -36,7 +37,7 @@ export async function editPackObject(
     return { ok: false, error: 'Manca la sezione "pack" in pack.mcmeta.' }
   }
 
-  change(pack)
+  change(pack, root)
 
   try {
     const temp = `${file}.tmp`

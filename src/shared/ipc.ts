@@ -11,6 +11,7 @@ import type { McmetaAnalysis } from './mcmeta'
 import type { PackVersion } from './packFormat'
 import type { RecentPackStatus, SettingsView } from './settings'
 import type { CreatePackRequest } from './validate'
+import type { VersionRangeRequest } from './versionRange'
 
 export interface AppInfo {
   name: string
@@ -90,6 +91,8 @@ export interface IpcContract {
   'pack:close': { args: []; result: void }
   /** Folder packs only: rewrites pack.description, returns the refreshed summary. */
   'pack:updateDescription': { args: [description: string]; result: OpenPackResult }
+  /** Folder packs only: rewrites format fields and root overlays, creates overlay folders. */
+  'pack:updateVersions': { args: [request: VersionRangeRequest]; result: OpenPackResult }
   /** Installed game versions with a client jar (reference textures). */
   'vanilla:listVersions': { args: []; result: ListVanillaVersionsResult }
   /** Loads a jar in memory, read-only; textures are never copied anywhere. */
@@ -119,6 +122,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:listFiles': true,
   'pack:close': true,
   'pack:updateDescription': true,
+  'pack:updateVersions': true,
   'vanilla:listVersions': true,
   'vanilla:load': true,
   'settings:get': true,

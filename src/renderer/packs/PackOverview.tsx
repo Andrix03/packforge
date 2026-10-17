@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import type { PackSummary } from '../../shared/ipc'
-import { compatibleReleases, type PackFormats } from '../../shared/mcmeta'
-import { formatPackVersion, summarizeReleaseSpans } from '../../shared/packFormat'
+import { compatibleReleases, isOverlayActive, type PackFormats } from '../../shared/mcmeta'
+import { formatPackVersion, GAME_RELEASES, summarizeReleaseSpans } from '../../shared/packFormat'
 import { validatePackDescription } from '../../shared/validate'
 import { DescriptionEditor, McText } from './DescriptionEditor'
+import { VersionEditor } from './VersionEditor'
 
 interface PackOverviewProps {
   pack: PackSummary
@@ -13,8 +14,9 @@ interface PackOverviewProps {
 }
 
 export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): React.JSX.Element {
-  const { description, descriptionKind, formats, issues } = pack.mcmeta
+  const { description, descriptionKind, formats, overlays, issues } = pack.mcmeta
   const [editing, setEditing] = useState(false)
+  const [editingVersions, setEditingVersions] = useState(false)
   const spans = summarizeReleaseSpans(compatibleReleases(formats))
   const errorCount = issues.filter((issue) => issue.severity === 'error').length
 
@@ -78,7 +80,45 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
           <dt>Compatibile con</dt>
           <dd>{spans.length > 0 ? spans.join(', ') : 'nessuna versione gestita'}</dd>
         </div>
+        {overlays.length > 0 && (
+          <div>
+            <dt>Overlay</dt>
+            <dd>
+              {overlays.map((overlay) => {
+                const active = summarizeReleaseSpans(
+                  GAME_RELEASES.filter((r) => isOverlayActive(overlay, r))
+                )
+                return (
+                  <div key={overlay.directory}>
+                    {overlay.directory} → {active.length > 0 ? active.join(', ') : 'mai attivo'}
+                  </div>
+                )
+              })}
+            </dd>
+          </div>
+        )}
       </dl>
+
+      {editingVersions ? (
+        <VersionEditor
+          pack={pack}
+          onCancel={() => setEditingVersions(false)}
+          onSaved={(updated) => {
+            setEditingVersions(false)
+            onUpdated(updated)
+          }}
+        />
+      ) : (
+        pack.kind === 'folder' && (
+          <button
+            type="button"
+            className="link-button align-start"
+            onClick={() => setEditingVersions(true)}
+          >
+            Modifica versioni e overlay
+          </button>
+        )
+      )}
 
       {issues.length === 0 ? (
         <p className="success">pack.mcmeta è valido.</p>

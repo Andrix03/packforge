@@ -4,6 +4,7 @@ import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../share
 import { compatibleReleases } from '../../shared/mcmeta'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
+import type { AssetSources } from '../preview/modelSource'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { FileTree } from './FileTree'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
@@ -150,6 +151,7 @@ function Workspace({
     () =>
       previewSelection && {
         key: previewSelection.key,
+        textureKey: previewSelection.textureKey,
         url: assetUrl(previewSelection.base, previewSelection.albedo, previewVersion),
         mcmetaUrl: previewSelection.mcmeta
           ? assetUrl(previewSelection.base, previewSelection.mcmeta, previewMcmetaVersion)
@@ -158,6 +160,18 @@ function Workspace({
         sourceLabel: previewSelection.sourceLabel
       },
     [previewSelection, previewVersion, previewMcmetaVersion]
+  )
+
+  // Models and textures for the 3D preview: the pack first, then vanilla.
+  const packFileSet = useMemo(() => new Set(packFiles.files), [packFiles.files])
+  const jarFileSet = useMemo(() => (jarFiles ? new Set(jarFiles) : null), [jarFiles])
+  const jarBase = jar.status === 'ready' ? jar.value.assetBase : null
+  const previewSources = useMemo<AssetSources>(
+    () => ({
+      pack: { base: packFiles.assetBase, files: packFileSet, versions: fileVersions },
+      vanilla: jarBase && jarFileSet ? { base: jarBase, files: jarFileSet } : null
+    }),
+    [packFiles.assetBase, packFileSet, fileVersions, jarBase, jarFileSet]
   )
 
   const vanillaReady = jar.status === 'ready'
@@ -237,7 +251,7 @@ function Workspace({
           onQuery={setQuery}
         />
         {/* Outside the browser so it survives Pack/Vanilla switches. */}
-        <PreviewPanel target={previewTarget} />
+        <PreviewPanel target={previewTarget} sources={previewSources} />
       </div>
     </section>
   )

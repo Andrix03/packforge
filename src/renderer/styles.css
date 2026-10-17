@@ -959,3 +959,21 @@ h3 {
   border-color: #7aa7e8;
   box-shadow: 0 0 0 1px #7aa7e8;
 }
+
+.block-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.block-picker input {
+  font-family: Consolas, monospace;
+}
+
+.block-picker input[aria-invalid='true'] {
+  border-color: var(--warning);
+}
+
+.block-picker select {
+  font-size: 0.8rem;
+}

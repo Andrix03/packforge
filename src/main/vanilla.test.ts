@@ -8,7 +8,7 @@ import {
   listInstalledVersions,
   loadVanillaJar,
   readJarFormat,
-  VANILLA_TEXTURES_PREFIX
+  VANILLA_ASSET_PREFIXES
 } from './vanilla'
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
@@ -22,6 +22,7 @@ function jar(versionJson: unknown): Uint8Array {
     assets: {
       minecraft: {
         textures: { block: { 'stone.png': PNG } },
+        models: { block: { 'stone.json': strToU8('{}') } },
         lang: { 'en_us.json': strToU8('{}') }
       }
     }
@@ -77,8 +78,12 @@ describe('loadVanillaJar', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.resourceFormat).toEqual({ major: 97, minor: 1 })
-    const { files } = await listPackFiles(result.source, VANILLA_TEXTURES_PREFIX)
-    expect(files).toEqual(['assets/minecraft/textures/block/stone.png'])
+    const { files } = await listPackFiles(result.source, VANILLA_ASSET_PREFIXES)
+    // Textures, models and states only: no classes, no lang files.
+    expect(files).toEqual([
+      'assets/minecraft/models/block/stone.json',
+      'assets/minecraft/textures/block/stone.png'
+    ])
   })
 
   it.each(['fabric-loader-26.3', '../evil', '..\\evil', '', 42, null])(

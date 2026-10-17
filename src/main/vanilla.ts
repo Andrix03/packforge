@@ -9,7 +9,12 @@ import type { PackSource } from './packSource'
 // Vanilla textures are read from the user's own client jar, in memory, for
 // reference only. Nothing from the jar is ever written to disk or a pack.
 
-export const VANILLA_TEXTURES_PREFIX = 'assets/minecraft/textures/'
+/** Jar folders exposed as reference: textures plus the models/states that use them. */
+export const VANILLA_ASSET_PREFIXES = [
+  'assets/minecraft/textures/',
+  'assets/minecraft/models/',
+  'assets/minecraft/blockstates/'
+] as const
 const MAX_JAR_BYTES = 512 * 1024 * 1024
 
 /** Default `.minecraft` location for the official launcher. */

@@ -10,7 +10,9 @@ export const MAX_LISTED_FILES = 50_000
 /** Files the renderer may read, with their type and size cap. */
 const SERVED_TYPES: Array<{ suffix: string; contentType: string; maxBytes: number }> = [
   { suffix: '.png', contentType: 'image/png', maxBytes: 16 * 1024 * 1024 },
-  { suffix: '.mcmeta', contentType: 'application/json', maxBytes: 1024 * 1024 }
+  { suffix: '.mcmeta', contentType: 'application/json', maxBytes: 1024 * 1024 },
+  // Block models and block states for the 3D preview.
+  { suffix: '.json', contentType: 'application/json', maxBytes: 1024 * 1024 }
 ]
 
 export interface PackAsset {
@@ -33,8 +35,12 @@ export function isSafePackPath(path: string): boolean {
   return path.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..')
 }
 
-/** Lists files; `prefix` keeps only paths starting with it (e.g. `assets/minecraft/textures/`). */
-export async function listPackFiles(source: PackSource, prefix = ''): Promise<PackFileList> {
+/** Lists files; with `prefixes`, only paths starting with one of them. */
+export async function listPackFiles(
+  source: PackSource,
+  prefixes: readonly string[] = ['']
+): Promise<PackFileList> {
+  const wanted = (path: string): boolean => prefixes.some((prefix) => path.startsWith(prefix))
   const files: string[] = []
   let truncated = false
 
@@ -42,7 +48,7 @@ export async function listPackFiles(source: PackSource, prefix = ''): Promise<Pa
     // filter returns false for everything: only the central directory is read.
     unzipSync(source.data, {
       filter: (file) => {
-        if (file.name.endsWith('/') || !file.name.startsWith(prefix)) return false
+        if (file.name.endsWith('/') || !wanted(file.name)) return false
         if (!isSafePackPath(file.name)) return false
         if (files.length < MAX_LISTED_FILES) files.push(file.name)
         else truncated = true
@@ -58,7 +64,7 @@ export async function listPackFiles(source: PackSource, prefix = ''): Promise<Pa
         // Symlinks are skipped so listing never leaves the pack folder.
         const path = dir === '' ? entry.name : `${dir}/${entry.name}`
         if (entry.isDirectory()) pending.push(path)
-        else if (entry.isFile() && path.startsWith(prefix)) {
+        else if (entry.isFile() && wanted(path)) {
           if (files.length >= MAX_LISTED_FILES) {
             truncated = true
             break

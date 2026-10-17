@@ -44,7 +44,7 @@ import {
   defaultMinecraftDir,
   listInstalledVersions,
   loadVanillaJar,
-  VANILLA_TEXTURES_PREFIX
+  VANILLA_ASSET_PREFIXES
 } from './vanilla'
 
 const DIRECTORY_TITLES: Record<DirectoryPurpose, string> = {
@@ -320,7 +320,7 @@ const handlers: IpcHandlers = {
   'vanilla:load': async (versionId) => {
     const loaded = await loadVanillaJar(await minecraftDir(), versionId)
     if (!loaded.ok) return loaded
-    const { files } = await listPackFiles(loaded.source, VANILLA_TEXTURES_PREFIX)
+    const { files } = await listPackFiles(loaded.source, VANILLA_ASSET_PREFIXES)
     const opened = setSource('vanilla', loaded.source)
     return {
       ok: true,

@@ -63,7 +63,7 @@ export type LoadVanillaResult =
       versionId: string
       /** From the jar's version.json; null if unreadable. */
       resourceFormat: PackVersion | null
-      /** Vanilla texture files (`assets/minecraft/textures/…`). */
+      /** Vanilla textures, models and block states (`assets/minecraft/…`). */
       files: string[]
       assetBase: string
     }

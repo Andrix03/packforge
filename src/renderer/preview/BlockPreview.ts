@@ -262,7 +262,9 @@ function buildGeometry(quads: MeshPart['quads']): THREE.BufferGeometry {
       positions.push(p[0] / 16 - 0.5, p[1] / 16 - 0.5, p[2] / 16 - 0.5)
       normals.push(...quad.normal)
       uvs.push(uv[0] / 16, 1 - uv[1] / 16)
-      tints.push(...tint)
+      // Albedo is decoded to linear on sampling; the game multiplies tint and
+      // texture in sRGB, which matches linear(albedo) × linear(tint) here.
+      tints.push(srgbToLinear(tint[0]), srgbToLinear(tint[1]), srgbToLinear(tint[2]))
     }
   }
   const geometry = new THREE.BufferGeometry()
@@ -295,6 +297,10 @@ function setAnimatedFrame(part: LoadedPart, ticks: number): void {
   toUniform(current.index, part.material.uniforms['frameA']!.value as THREE.Vector4)
   toUniform(next.index, part.material.uniforms['frameB']!.value as THREE.Vector4)
   part.material.uniforms['frameBlend']!.value = blend
+}
+
+function srgbToLinear(c: number): number {
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
 }
 
 /** Minecraft's magenta/black missing-texture checkerboard. */

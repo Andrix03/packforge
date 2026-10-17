@@ -106,13 +106,14 @@ export interface BlockMesh {
 
 /**
  * Loads a block state and its models (pack first, then vanilla) and groups
- * the quads by texture. `tintOf` gives the color of faces with a tintindex.
+ * the quads by texture. `tintOf` colors faces with a tintindex; null means
+ * the tint is not simulated (drawn white, with a warning).
  */
 export async function loadBlockMesh(
   sources: AssetSources,
   block: string,
   variantKey: string | null,
-  tintOf: (block: string, tintIndex: number) => Rgb = () => WHITE
+  tintOf: (tintIndex: number) => Rgb | null = () => null
 ): Promise<BlockMesh> {
   const state = await loadJson(sources, blockstatePath(block))
   const variants = blockstateVariants(state)
@@ -142,10 +143,17 @@ export async function loadBlockMesh(
     for (const quad of buildQuads(model, ref)) {
       const key = quad.texture ? `${quad.texture.id}|${quad.texture.translucent}` : 'missing'
       const group = groups.get(key) ?? { texture: quad.texture, quads: [] }
-      group.quads.push({
-        quad: quad as Quad,
-        tint: quad.tintIndex >= 0 ? tintOf(block, quad.tintIndex) : WHITE
-      })
+      let tint = WHITE
+      if (quad.tintIndex >= 0) {
+        const color = tintOf(quad.tintIndex)
+        if (color) tint = color
+        else {
+          warnings.push(
+            `La tinta di "${block}" non è simulata: alcune facce sono mostrate senza colore.`
+          )
+        }
+      }
+      group.quads.push({ quad: quad as Quad, tint })
       groups.set(key, group)
     }
   }

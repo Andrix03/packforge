@@ -977,3 +977,14 @@ h3 {
 .block-picker select {
   font-size: 0.8rem;
 }
+
+.inline-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-select select {
+  flex: 1;
+  font-size: 0.85rem;
+}

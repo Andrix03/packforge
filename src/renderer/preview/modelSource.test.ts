@@ -99,6 +99,9 @@ describe('loadBlockMesh', () => {
     const mesh = await loadBlockMesh(sources(), 'oak_log', null, () => [0.5, 1, 0.5])
     expect(mesh.warnings).toEqual([])
     expect(mesh.variant?.key).toBe('axis=y')
+    // Without a tint function the tinted face is white and reported.
+    const untinted = await loadBlockMesh(sources(), 'oak_log', null)
+    expect(untinted.warnings[0]).toContain('non è simulata')
     expect(mesh.parts.map((p) => [p.url, p.quads.length])).toEqual([
       [`pack://v2/${V}/textures/block/oak_log_top.png`, 2],
       [`pack://v2/${V}/textures/block/oak_log.png`, 1]

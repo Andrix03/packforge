@@ -1,6 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { BIOMES, DEFAULT_BIOME } from '../../shared/biomeTint'
 import type { BlockstateVariant } from '../../shared/blockModel'
 import { BlockPreview, type PartReport, type PreviewScene } from './BlockPreview'
+import { loadColormaps, tintFor, type ColormapPixels } from './colormaps'
 import { normalizeHour } from './dayNight'
 import {
   cubeMesh,
@@ -57,6 +59,12 @@ export function PreviewPanel({
   const [variantKey, setVariantKey] = useState<string | null>(null)
   const [variants, setVariants] = useState<BlockstateVariant[]>([])
   const [status, setStatus] = useState<Status | null>(null)
+  const [biomeId, setBiomeId] = useState(DEFAULT_BIOME.id)
+  const biome = BIOMES.find((b) => b.id === biomeId) ?? DEFAULT_BIOME
+  /** Colormaps read for the current sources (re-read when the pack changes). */
+  const colormapsRef = useRef<{ sources: AssetSources; pixels: Promise<ColormapPixels> } | null>(
+    null
+  )
 
   const blocks = useMemo(() => (sources ? listBlocks(sources) : []), [sources])
   const blockSet = useMemo(() => new Set(blocks), [blocks])
@@ -113,7 +121,12 @@ export function PreviewPanel({
         }
         return
       }
-      const mesh = await loadBlockMesh(sources, block, variantKey)
+      if (colormapsRef.current?.sources !== sources) {
+        colormapsRef.current = { sources, pixels: loadColormaps(sources) }
+      }
+      const colormaps = await colormapsRef.current.pixels
+      if (!current) return
+      const mesh = await loadBlockMesh(sources, block, variantKey, tintFor(block, biome, colormaps))
       if (!current) return
       const reports = await view.setMesh(mesh.parts)
       if (!current) return
@@ -137,7 +150,7 @@ export function PreviewPanel({
     return () => {
       current = false
     }
-  }, [shape, target, sources, block, variantKey])
+  }, [shape, target, sources, block, variantKey, biome])
 
   // Day/night cycle: advance the hour on animation frames while playing.
   useEffect(() => {
@@ -211,6 +224,16 @@ export function PreviewPanel({
               <option key={name} value={name} />
             ))}
           </datalist>
+          <label className="inline-select">
+            <span className="muted small">Bioma (erba, foglie)</span>
+            <select value={biomeId} onChange={(event) => setBiomeId(event.target.value)}>
+              {BIOMES.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.label}
+                </option>
+              ))}
+            </select>
+          </label>
           {variants.length > 1 && (
             <select
               value={variantKey ?? ''}

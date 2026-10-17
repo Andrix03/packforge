@@ -1,0 +1,92 @@
+import { readdir, readFile, realpath, stat } from 'node:fs/promises'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { unzipSync } from 'fflate'
+
+/** Where an opened pack lives. Zip packs keep their bytes in memory. */
+export type PackSource =
+  { kind: 'folder'; root: string } | { kind: 'zip'; root: string; data: Uint8Array }
+
+export const MAX_LISTED_FILES = 50_000
+const MAX_ASSET_BYTES = 16 * 1024 * 1024
+
+export interface PackFileList {
+  /** Posix-style paths relative to the pack root, sorted. */
+  files: string[]
+  truncated: boolean
+}
+
+/**
+ * A pack-relative path that is safe to resolve: posix separators, no empty,
+ * `.` or `..` segments, not absolute, no NUL or backslash.
+ */
+export function isSafePackPath(path: string): boolean {
+  if (path.length === 0 || path.startsWith('/') || /[\\\0]/.test(path)) return false
+  return path.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..')
+}
+
+export async function listPackFiles(source: PackSource): Promise<PackFileList> {
+  const files: string[] = []
+  let truncated = false
+
+  if (source.kind === 'zip') {
+    // filter returns false for everything: only the central directory is read.
+    unzipSync(source.data, {
+      filter: (file) => {
+        if (file.name.endsWith('/') || !isSafePackPath(file.name)) return false
+        if (files.length < MAX_LISTED_FILES) files.push(file.name)
+        else truncated = true
+        return false
+      }
+    })
+  } else {
+    const pending = ['']
+    while (pending.length > 0 && !truncated) {
+      const dir = pending.pop() as string
+      const entries = await readdir(join(source.root, dir), { withFileTypes: true })
+      for (const entry of entries) {
+        // Symlinks are skipped so listing never leaves the pack folder.
+        const path = dir === '' ? entry.name : `${dir}/${entry.name}`
+        if (entry.isDirectory()) pending.push(path)
+        else if (entry.isFile()) {
+          if (files.length >= MAX_LISTED_FILES) {
+            truncated = true
+            break
+          }
+          files.push(path)
+        }
+      }
+    }
+  }
+
+  files.sort()
+  return { files, truncated }
+}
+
+/** Reads a PNG inside the pack, or null if the path is unsafe, missing or too big. */
+export async function readPackPng(source: PackSource, path: string): Promise<Uint8Array | null> {
+  if (!isSafePackPath(path) || !path.toLowerCase().endsWith('.png')) return null
+
+  if (source.kind === 'zip') {
+    try {
+      const entries = unzipSync(source.data, {
+        filter: (file) => file.name === path && file.originalSize <= MAX_ASSET_BYTES
+      })
+      return entries[path] ?? null
+    } catch {
+      return null
+    }
+  }
+
+  try {
+    // realpath resolves symlinks, so a link pointing outside the pack is refused.
+    const root = await realpath(source.root)
+    const full = await realpath(resolve(root, ...path.split('/')))
+    const rel = relative(root, full)
+    // On another drive, relative() returns an absolute path.
+    if (rel === '' || isAbsolute(rel) || rel.split(sep)[0] === '..') return null
+    if ((await stat(full)).size > MAX_ASSET_BYTES) return null
+    return await readFile(full)
+  } catch {
+    return null
+  }
+}

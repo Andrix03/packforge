@@ -1,8 +1,9 @@
 import { readFile, stat } from 'node:fs/promises'
 import { basename, extname, isAbsolute, join } from 'node:path'
 import { unzipSync } from 'fflate'
-import type { OpenPackResult, PackSummary } from '../shared/ipc'
+import type { PackSummary } from '../shared/ipc'
 import { analyzePackMcmeta } from '../shared/mcmeta'
+import type { PackSource } from './packSource'
 
 const MAX_ZIP_BYTES = 1024 ** 3
 const MAX_MCMETA_BYTES = 1024 * 1024
@@ -12,10 +13,15 @@ const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 interface PackFiles {
   mcmeta: Uint8Array
   icon: Uint8Array | null
+  source: PackSource
 }
 
+/** Summary for the renderer plus the source main keeps for later reads. */
+export type LoadedPackResult =
+  { ok: true; pack: PackSummary; source: PackSource } | { ok: false; error: string }
+
 /** Opens a pack folder or zip and analyzes its pack.mcmeta. Read-only. */
-export async function openPack(input: unknown): Promise<OpenPackResult> {
+export async function openPack(input: unknown): Promise<LoadedPackResult> {
   if (typeof input !== 'string' || !isAbsolute(input)) {
     return { ok: false, error: 'Percorso del pack non valido.' }
   }
@@ -47,7 +53,7 @@ export async function openPack(input: unknown): Promise<OpenPackResult> {
     mcmeta: analyzePackMcmeta(new TextDecoder().decode(files.mcmeta)),
     iconDataUrl: files.icon && isPng(files.icon) ? toPngDataUrl(files.icon) : null
   }
-  return { ok: true, pack }
+  return { ok: true, pack, source: files.source }
 }
 
 async function readFolderPack(dir: string): Promise<PackFiles | string> {
@@ -68,7 +74,7 @@ async function readFolderPack(dir: string): Promise<PackFiles | string> {
   } catch {
     // No icon: fine.
   }
-  return { mcmeta, icon }
+  return { mcmeta, icon, source: { kind: 'folder', root: dir } }
 }
 
 async function readZipPack(path: string): Promise<PackFiles | string> {
@@ -76,8 +82,9 @@ async function readZipPack(path: string): Promise<PackFiles | string> {
 
   const names: string[] = []
   let entries: Record<string, Uint8Array>
+  let data: Uint8Array
   try {
-    const data = await readFile(path)
+    data = await readFile(path)
     // Only small root files are decompressed; declared sizes cap the output buffer.
     entries = unzipSync(data, {
       filter: (file) => {
@@ -101,7 +108,7 @@ async function readZipPack(path: string): Promise<PackFiles | string> {
     }
     return 'Non è un resource pack: manca pack.mcmeta nello zip.'
   }
-  return { mcmeta, icon: entries['pack.png'] ?? null }
+  return { mcmeta, icon: entries['pack.png'] ?? null, source: { kind: 'zip', root: path, data } }
 }
 
 function isPng(bytes: Uint8Array): boolean {

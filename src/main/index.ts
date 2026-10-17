@@ -1,6 +1,13 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, protocol, shell } from 'electron'
 import { registerIpcHandlers } from './ipc'
+import { handlePackRequest, PACK_SCHEME } from './packProtocol'
+import { getCurrentPack } from './session'
+
+// Must run before `ready`. `standard` gives pack:// URLs a host and normal path parsing.
+protocol.registerSchemesAsPrivileged([
+  { scheme: PACK_SCHEME, privileges: { standard: true, secure: true } }
+])
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -40,6 +47,7 @@ function createWindow(): void {
 
 void app.whenReady().then(() => {
   registerIpcHandlers()
+  protocol.handle(PACK_SCHEME, (request) => handlePackRequest(request, getCurrentPack()))
   createWindow()
 
   app.on('activate', () => {

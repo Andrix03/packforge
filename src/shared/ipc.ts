@@ -32,6 +32,23 @@ export interface PackSummary {
 
 export type OpenPackResult = { ok: true; pack: PackSummary } | { ok: false; error: string }
 
+export type ListPackFilesResult =
+  | {
+      ok: true
+      /** Posix paths relative to the pack root, sorted. */
+      files: string[]
+      /** True when the pack has more files than PackForge lists. */
+      truncated: boolean
+      /** Prefix for PNG URLs: `${assetBase}${encodePackPath(path)}`. */
+      assetBase: string
+    }
+  | { ok: false; error: string }
+
+/** Encodes a pack-relative path for use after `assetBase`. */
+export function encodePackPath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/')
+}
+
 /** Why a folder is being picked; main maps it to the dialog title. */
 export type DirectoryPurpose = 'packDestination' | 'openPack'
 
@@ -41,6 +58,9 @@ export interface IpcContract {
   'dialog:pickPackZip': { args: []; result: string | null }
   'pack:create': { args: [request: CreatePackRequest]; result: CreatePackResult }
   'pack:open': { args: [path: string]; result: OpenPackResult }
+  /** Lists files of the pack opened with `pack:open`. */
+  'pack:listFiles': { args: []; result: ListPackFilesResult }
+  'pack:close': { args: []; result: void }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -53,7 +73,9 @@ const channelRegistry: Record<IpcChannel, true> = {
   'dialog:pickDirectory': true,
   'dialog:pickPackZip': true,
   'pack:create': true,
-  'pack:open': true
+  'pack:open': true,
+  'pack:listFiles': true,
+  'pack:close': true
 }
 
 export const IPC_CHANNELS: readonly IpcChannel[] = Object.freeze(

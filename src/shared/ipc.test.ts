@@ -67,7 +67,9 @@ describe('registerHandlers', () => {
       'dialog:pickDirectory': () => null,
       'dialog:pickPackZip': () => null,
       'pack:create': () => ({ ok: false, error: 'unused' }),
-      'pack:open': () => ({ ok: false, error: 'unused' })
+      'pack:open': () => ({ ok: false, error: 'unused' }),
+      'pack:listFiles': () => ({ ok: false, error: 'unused' }),
+      'pack:close': () => undefined
     }
 
     registerHandlers(transport, handlers)

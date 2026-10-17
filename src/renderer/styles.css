@@ -270,3 +270,179 @@ h3 {
 .issues li.error .issue-tag {
   color: var(--error);
 }
+
+/* Pack open: fill the window; only the tree and grid panels scroll. */
+.app.wide {
+  max-width: none;
+  height: 100vh;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.app.wide header p {
+  margin-bottom: 12px;
+}
+
+.app.wide > .stack {
+  flex: 1;
+  min-height: 0;
+}
+
+.app.wide footer {
+  margin-top: 8px;
+}
+
+.small {
+  font-size: 0.8rem;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 16px;
+  flex: 1;
+  min-height: 320px;
+}
+
+.tree-panel,
+.grid-panel {
+  overflow: auto;
+  min-width: 0;
+}
+
+.tree-panel {
+  padding: 8px;
+}
+
+.tree,
+.tree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 6px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  text-align: left;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.tree-row:hover {
+  background: var(--bg);
+}
+
+.tree-row.selected {
+  background: var(--border);
+}
+
+.tree-row.file {
+  color: var(--muted);
+}
+
+.tree-row .caret {
+  width: 10px;
+  color: var(--muted);
+}
+
+.tree-row .count {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.grid-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grid-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: -16px;
+  margin: -16px -20px 0;
+  padding: 16px 20px 8px;
+  background: var(--surface);
+  z-index: 1;
+}
+
+.grid-toolbar input {
+  width: min(320px, 50%);
+}
+
+.texture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.texture-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: var(--bg);
+  min-width: 0;
+}
+
+.texture-tile.highlighted {
+  border-color: var(--accent);
+}
+
+.texture-tile img {
+  width: 100%;
+  aspect-ratio: 1;
+  /* Animated strips are tall: show the first frame. */
+  object-fit: cover;
+  object-position: top;
+  image-rendering: pixelated;
+  background: repeating-conic-gradient(#2a2d35 0% 25%, #22252c 0% 50%) 0 0 / 12px 12px;
+}
+
+.texture-name,
+.texture-folder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.texture-folder {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.texture-badges {
+  display: flex;
+  gap: 4px;
+}
+
+.map-badge {
+  padding: 0 5px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--border);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.map-badge.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}

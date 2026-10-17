@@ -207,3 +207,14 @@ describe('textComponentToPlain', () => {
     expect(textComponentToPlain(null)).toBe('')
   })
 })
+
+describe('descriptionKind', () => {
+  it('tells strings, components and missing descriptions apart', () => {
+    const kind = (pack: unknown) => analyzePackMcmeta(JSON.stringify({ pack })).descriptionKind
+    expect(kind({ description: 'x', pack_format: 15 })).toBe('string')
+    expect(kind({ description: { text: 'x' }, pack_format: 15 })).toBe('component')
+    expect(kind({ description: ['x'], pack_format: 15 })).toBe('component')
+    expect(kind({ pack_format: 15 })).toBe('missing')
+    expect(analyzePackMcmeta('nope').descriptionKind).toBe('missing')
+  })
+})

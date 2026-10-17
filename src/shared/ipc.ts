@@ -88,6 +88,8 @@ export interface IpcContract {
   /** Lists files of the pack opened with `pack:open`. */
   'pack:listFiles': { args: []; result: ListPackFilesResult }
   'pack:close': { args: []; result: void }
+  /** Folder packs only: rewrites pack.description, returns the refreshed summary. */
+  'pack:updateDescription': { args: [description: string]; result: OpenPackResult }
   /** Installed game versions with a client jar (reference textures). */
   'vanilla:listVersions': { args: []; result: ListVanillaVersionsResult }
   /** Loads a jar in memory, read-only; textures are never copied anywhere. */
@@ -116,6 +118,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:open': true,
   'pack:listFiles': true,
   'pack:close': true,
+  'pack:updateDescription': true,
   'vanilla:listVersions': true,
   'vanilla:load': true,
   'settings:get': true,

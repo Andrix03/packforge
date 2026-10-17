@@ -14,6 +14,8 @@ import {
   type RecentPackStatus,
   type SettingsView
 } from '../shared/settings'
+import { validatePackDescription } from '../shared/validate'
+import { editPackObject } from './editMcmeta'
 import { openPack } from './openPack'
 import { createPack } from './pack'
 import { assetBase } from './packProtocol'
@@ -197,6 +199,23 @@ const handlers: IpcHandlers = {
   },
 
   'pack:close': () => closeSource('pack'),
+
+  'pack:updateDescription': async (description) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (typeof description !== 'string') return { ok: false, error: 'Descrizione non valida.' }
+    const invalid = validatePackDescription(description)
+    if (invalid) return { ok: false, error: invalid }
+
+    const edited = await editPackObject(current.source, (pack) => {
+      pack['description'] = description
+    })
+    if (!edited.ok) return edited
+    // Re-read for a fresh summary; the session source (a folder) is unchanged,
+    // so thumbnail URLs stay valid.
+    const reopened = await openPack(current.source.root)
+    return reopened.ok ? { ok: true, pack: reopened.pack } : reopened
+  },
 
   'vanilla:listVersions': async () => {
     const dir = await minecraftDir()

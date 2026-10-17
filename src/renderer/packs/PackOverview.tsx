@@ -1,14 +1,20 @@
+import { useState } from 'react'
 import type { PackSummary } from '../../shared/ipc'
 import { compatibleReleases, type PackFormats } from '../../shared/mcmeta'
 import { formatPackVersion, summarizeReleaseSpans } from '../../shared/packFormat'
+import { validatePackDescription } from '../../shared/validate'
+import { DescriptionEditor, McText } from './DescriptionEditor'
 
 interface PackOverviewProps {
   pack: PackSummary
   onClose: () => void
+  /** Called with the refreshed summary after pack.mcmeta was edited. */
+  onUpdated: (pack: PackSummary) => void
 }
 
-export function PackOverview({ pack, onClose }: PackOverviewProps): React.JSX.Element {
-  const { description, formats, issues } = pack.mcmeta
+export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): React.JSX.Element {
+  const { description, descriptionKind, formats, issues } = pack.mcmeta
+  const [editing, setEditing] = useState(false)
   const spans = summarizeReleaseSpans(compatibleReleases(formats))
   const errorCount = issues.filter((issue) => issue.severity === 'error').length
 
@@ -26,9 +32,32 @@ export function PackOverview({ pack, onClose }: PackOverviewProps): React.JSX.El
           <h2>
             {pack.name} <span className="badge">{pack.kind === 'zip' ? 'zip' : 'cartella'}</span>
           </h2>
-          <p className="description">
-            {description || <em className="muted">Nessuna descrizione</em>}
-          </p>
+          {editing ? (
+            <DescriptionForm
+              initial={description}
+              wasComponent={descriptionKind === 'component'}
+              onCancel={() => setEditing(false)}
+              onSaved={(updated) => {
+                setEditing(false)
+                onUpdated(updated)
+              }}
+            />
+          ) : (
+            <div className="description-row">
+              <p className="description">
+                {description ? (
+                  <McText text={description} />
+                ) : (
+                  <em className="muted">Nessuna descrizione</em>
+                )}
+              </p>
+              {pack.kind === 'folder' && (
+                <button type="button" className="link-button" onClick={() => setEditing(true)}>
+                  Modifica
+                </button>
+              )}
+            </div>
+          )}
           <code className="path" title={pack.path}>
             {pack.path}
           </code>
@@ -73,6 +102,57 @@ export function PackOverview({ pack, onClose }: PackOverviewProps): React.JSX.El
         </div>
       )}
     </section>
+  )
+}
+
+function DescriptionForm({
+  initial,
+  wasComponent,
+  onCancel,
+  onSaved
+}: {
+  initial: string
+  wasComponent: boolean
+  onCancel: () => void
+  onSaved: (pack: PackSummary) => void
+}): React.JSX.Element {
+  const [value, setValue] = useState(initial)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const invalid = validatePackDescription(value)
+
+  async function save(): Promise<void> {
+    setSaving(true)
+    setError(null)
+    const result = await window.api.invoke('pack:updateDescription', value)
+    setSaving(false)
+    if (result.ok) onSaved(result.pack)
+    else setError(result.error)
+  }
+
+  return (
+    <div className="description-form">
+      {wasComponent && (
+        <p className="warning-text small">
+          La descrizione attuale è in formato JSON: salvando diventerà testo con codici §.
+        </p>
+      )}
+      <DescriptionEditor value={value} onChange={setValue} invalid={invalid !== null} autoFocus />
+      {(invalid ?? error) && <span className="field-error">{invalid ?? error}</span>}
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          onClick={() => void save()}
+          disabled={saving || invalid !== null || value === initial}
+        >
+          {saving ? 'Salvataggio…' : 'Salva in pack.mcmeta'}
+        </button>
+        <button type="button" onClick={onCancel} disabled={saving}>
+          Annulla
+        </button>
+      </div>
+    </div>
   )
 }
 

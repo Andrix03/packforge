@@ -18,7 +18,7 @@
 - [x] Recent packs list on the start screen
 - [ ] Pack icon (`pack.png`): pick, crop and preview
 - [ ] Multi-version support: version ranges and overlay folders in `pack.mcmeta`
-- [ ] Description editor with Minecraft color/formatting codes and live preview
+- [x] Description editor with Minecraft color/formatting codes and live preview
 
 ## Phase 2 — Basic 3D preview
 

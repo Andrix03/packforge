@@ -57,8 +57,12 @@ export interface PackFormats {
 }
 
 export interface McmetaAnalysis {
-  /** Plain text of the description text component ('' when missing). */
+  /**
+   * Description text. For a plain string this is the string itself (with any
+   * `§` codes); for a JSON text component it is the flattened plain text.
+   */
   description: string
+  descriptionKind: 'string' | 'component' | 'missing'
   formats: PackFormats
   issues: PackIssue[]
 }
@@ -77,18 +81,22 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause)
     error(`pack.mcmeta non è un JSON valido: ${detail}`)
-    return { description: '', formats: NO_FORMATS, issues }
+    return { description: '', descriptionKind: 'missing', formats: NO_FORMATS, issues }
   }
 
   const pack = isRecord(root) ? root['pack'] : undefined
   if (!isRecord(pack)) {
     error('Manca la sezione "pack" in pack.mcmeta.')
-    return { description: '', formats: NO_FORMATS, issues }
+    return { description: '', descriptionKind: 'missing', formats: NO_FORMATS, issues }
   }
 
   let description = ''
+  let descriptionKind: McmetaAnalysis['descriptionKind'] = 'missing'
   if (pack['description'] === undefined) warning('Manca la descrizione ("description").')
-  else description = textComponentToPlain(pack['description'])
+  else {
+    description = textComponentToPlain(pack['description'])
+    descriptionKind = typeof pack['description'] === 'string' ? 'string' : 'component'
+  }
 
   // pack_format
   let packFormat: number | null = null
@@ -162,7 +170,7 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
   ) {
     warning('Nessuna versione di Minecraft gestita da PackForge (1.20 → 26.3) è compatibile.')
   }
-  return { description, formats, issues }
+  return { description, descriptionKind, formats, issues }
 }
 
 /**

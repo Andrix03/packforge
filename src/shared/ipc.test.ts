@@ -78,6 +78,7 @@ describe('registerHandlers', () => {
       },
       'settings:setMinecraftDir': () => ({ ok: false, error: 'unused' }),
       'settings:setExternalEditor': () => ({ ok: false, error: 'unused' }),
+      'pack:updateDescription': () => ({ ok: false, error: 'unused' }),
       'recent:list': () => [],
       'recent:remove': () => []
     }

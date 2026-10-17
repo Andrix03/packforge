@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { buildPackMcmeta, serializeMcmeta } from '../../shared/mcmeta'
 import { formatPackVersion, GAME_RELEASES, LATEST_RELEASE } from '../../shared/packFormat'
 import { validatePackDescription, validatePackName } from '../../shared/validate'
+import { DescriptionEditor } from './DescriptionEditor'
 
 type SubmitState =
   | { status: 'idle' }
@@ -80,16 +81,15 @@ export function NewPackForm({ onCreated }: NewPackFormProps): React.JSX.Element 
         {nameError && <span className="field-error">{nameError}</span>}
       </label>
 
-      <label>
-        Descrizione
-        <input
+      <div className="field">
+        <span>Descrizione</span>
+        <DescriptionEditor
           value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder="Texture LabPBR 16x"
-          aria-invalid={descriptionError !== null}
+          onChange={setDescription}
+          invalid={descriptionError !== null}
         />
         {descriptionError && <span className="field-error">{descriptionError}</span>}
-      </label>
+      </div>
 
       <label>
         Versione di Minecraft

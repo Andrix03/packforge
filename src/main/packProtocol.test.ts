@@ -33,6 +33,7 @@ describe('handlePackRequest', () => {
     const response = await get(assetBase('pack', 7) + STONE)
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toBe('image/png')
+    expect(response.headers.get('access-control-allow-origin')).toBe('*')
     expect(await bytesOf(response)).toEqual(PNG)
   })
 

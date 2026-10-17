@@ -22,13 +22,13 @@
 
 ## Phase 2 — Basic 3D preview
 
-- [ ] Three.js viewer with a textured cube (nearest filtering)
-- [ ] Orbit camera, directional light, day/night cycle
+- [x] Three.js viewer with a textured cube (nearest filtering)
+- [x] Orbit camera, directional light, day/night cycle
 - [ ] Live update when a texture file changes
-- [ ] Render real block models from model JSON (`cube_all`, `cube_column`, slabs, stairs…)
+- [ ] Render real block models from model JSON (`cube_all`, `cube_column`, slabs, stairs…), including biome tint for grass/leaves
 - [ ] Animated textures (`.png.mcmeta` animation: frametime, interpolation)
-- [ ] 3×3 tiling view to spot seams on repeating textures
-- [ ] Preview scenes: single block, small wall, flat floor
+- [x] 3×3 tiling view to spot seams on repeating textures
+- [x] Preview scenes: single block, small wall, flat floor
 
 ## Phase 3 — Texture editor (basics)
 

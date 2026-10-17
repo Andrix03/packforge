@@ -873,3 +873,89 @@ h3 {
   background: repeating-conic-gradient(#2a2d35 0% 25%, #22252c 0% 50%) 0 0 / 8px 8px;
   border-radius: 3px;
 }
+
+.workspace-row {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 340px);
+  gap: 16px;
+  min-height: 320px;
+}
+
+.workspace-row > .workspace {
+  min-width: 0;
+}
+
+.preview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.preview-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 2.6em;
+}
+
+.preview-header strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-canvas {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  cursor: grab;
+  touch-action: none;
+  background: var(--bg);
+}
+
+.preview-canvas:active {
+  cursor: grabbing;
+}
+
+.small-tabs {
+  align-self: flex-start;
+}
+
+.small-tabs .tab {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.preview-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.texture-tile {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.texture-tile:hover {
+  border-color: var(--border);
+}
+
+.texture-tile.selected {
+  border-color: #7aa7e8;
+  box-shadow: 0 0 0 1px #7aa7e8;
+}

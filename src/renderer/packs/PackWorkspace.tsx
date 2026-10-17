@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, findFolder, parentPath } from '../../shared/fileTree'
-import type { PackSummary, VanillaVersionInfo } from '../../shared/ipc'
+import { encodePackPath, type PackSummary, type VanillaVersionInfo } from '../../shared/ipc'
 import { compatibleReleases } from '../../shared/mcmeta'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
+import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { FileTree } from './FileTree'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
 
@@ -115,6 +116,7 @@ function Workspace({
   const [selectedFolder, setSelectedFolder] = useState(initialFolder)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null)
 
   const vanillaReady = jar.status === 'ready'
   const activeMode: Mode = mode === 'vanilla' && vanillaReady ? 'vanilla' : 'pack'
@@ -156,22 +158,42 @@ function Workspace({
         <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
       </div>
 
-      <TextureBrowser
-        // Remount per source: tree expansion is rebuilt around the shared folder.
-        key={
-          activeMode === 'vanilla' && jar.status === 'ready' ? `v:${jar.value.assetBase}` : 'pack'
-        }
-        source={source}
-        textures={textures}
-        marker={marker}
-        coverageKeys={activeMode === 'vanilla' ? packKeys : null}
-        selectedFolder={selectedFolder}
-        onSelectFolder={setSelectedFolder}
-        selectedFile={selectedFile}
-        onSelectFile={setSelectedFile}
-        query={query}
-        onQuery={setQuery}
-      />
+      <div className="workspace-row">
+        <TextureBrowser
+          // Remount per source: tree expansion is rebuilt around the shared folder.
+          key={
+            activeMode === 'vanilla' && jar.status === 'ready' ? `v:${jar.value.assetBase}` : 'pack'
+          }
+          selectedKey={
+            previewTarget?.key.startsWith(`${source.assetBase}|`)
+              ? previewTarget.key.slice(source.assetBase.length + 1)
+              : null
+          }
+          onSelectTexture={(texture) =>
+            setPreviewTarget({
+              key: `${source.assetBase}|${texture.key}`,
+              url: source.assetBase + encodePackPath(texture.albedo),
+              name: texture.name,
+              sourceLabel:
+                activeMode === 'vanilla' && jar.status === 'ready'
+                  ? `Vanilla ${jar.value.versionId}`
+                  : 'Pack'
+            })
+          }
+          source={source}
+          textures={textures}
+          marker={marker}
+          coverageKeys={activeMode === 'vanilla' ? packKeys : null}
+          selectedFolder={selectedFolder}
+          onSelectFolder={setSelectedFolder}
+          selectedFile={selectedFile}
+          onSelectFile={setSelectedFile}
+          query={query}
+          onQuery={setQuery}
+        />
+        {/* Outside the browser so it survives Pack/Vanilla switches. */}
+        <PreviewPanel target={previewTarget} />
+      </div>
     </section>
   )
 }
@@ -239,6 +261,8 @@ interface TextureBrowserProps {
   onSelectFile: (path: string | null) => void
   query: string
   onQuery: (query: string) => void
+  selectedKey: string | null
+  onSelectTexture: (texture: TextureEntry) => void
 }
 
 function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
@@ -328,6 +352,8 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
             highlight={selectedFile}
             showFolder={trimmedQuery !== ''}
             marker={props.marker}
+            selectedKey={props.selectedKey}
+            onSelect={props.onSelectTexture}
           />
         ) : (
           <p className="muted">

@@ -43,7 +43,13 @@ export async function handlePackRequest(
   const bytes = await readPackPng(current.source, path)
   if (!bytes) return notFound()
   return new Response(bytes as Uint8Array<ArrayBuffer>, {
-    headers: { 'content-type': 'image/png', 'cache-control': 'no-cache' }
+    headers: {
+      'content-type': 'image/png',
+      'cache-control': 'no-cache',
+      // WebGL needs CORS to upload images from another origin as textures.
+      // Safe: read-only, PNGs of the open pack/jar only, URLs change per open.
+      'access-control-allow-origin': '*'
+    }
   })
 }
 

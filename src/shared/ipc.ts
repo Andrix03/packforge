@@ -9,7 +9,7 @@
 
 import type { McmetaAnalysis } from './mcmeta'
 import type { PackVersion } from './packFormat'
-import type { SettingsView } from './settings'
+import type { RecentPackStatus, SettingsView } from './settings'
 import type { CreatePackRequest } from './validate'
 
 export interface AppInfo {
@@ -97,6 +97,9 @@ export interface IpcContract {
   'settings:setMinecraftDir': { args: [path: string | null]; result: SettingsUpdateResult }
   /** null removes the editor. */
   'settings:setExternalEditor': { args: [path: string | null]; result: SettingsUpdateResult }
+  /** Recently opened packs, newest first; `pack:open` adds to it. */
+  'recent:list': { args: []; result: RecentPackStatus[] }
+  'recent:remove': { args: [path: string]; result: RecentPackStatus[] }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -117,7 +120,9 @@ const channelRegistry: Record<IpcChannel, true> = {
   'vanilla:load': true,
   'settings:get': true,
   'settings:setMinecraftDir': true,
-  'settings:setExternalEditor': true
+  'settings:setExternalEditor': true,
+  'recent:list': true,
+  'recent:remove': true
 }
 
 export const IPC_CHANNELS: readonly IpcChannel[] = Object.freeze(

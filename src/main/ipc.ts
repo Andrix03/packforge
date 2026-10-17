@@ -1,3 +1,4 @@
+import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import {
@@ -6,7 +7,13 @@ import {
   type IpcHandlers,
   type SettingsUpdateResult
 } from '../shared/ipc'
-import type { SettingsView } from '../shared/settings'
+import {
+  addRecentPack,
+  removeRecentPack,
+  type RecentPack,
+  type RecentPackStatus,
+  type SettingsView
+} from '../shared/settings'
 import { openPack } from './openPack'
 import { createPack } from './pack'
 import { assetBase } from './packProtocol'
@@ -31,6 +38,24 @@ const DIRECTORY_TITLES: Record<DirectoryPurpose, string> = {
   packDestination: 'Scegli la cartella di destinazione',
   openPack: 'Apri la cartella di un resource pack',
   minecraftDir: 'Scegli la cartella .minecraft'
+}
+
+const CASE_INSENSITIVE_PATHS = process.platform === 'win32'
+
+/** Adds an `exists` flag so the start screen can grey out moved/deleted packs. */
+async function recentStatuses(list: RecentPack[]): Promise<RecentPackStatus[]> {
+  return Promise.all(
+    list.map(async (entry) => ({ ...entry, exists: await pathExists(entry.path) }))
+  )
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
 }
 
 let settingsStore: SettingsStore | null = null
@@ -135,7 +160,28 @@ const handlers: IpcHandlers = {
     const result = await openPack(path)
     if (!result.ok) return result
     setSource('pack', result.source)
+    const { path: packPath, name, kind } = result.pack
+    try {
+      await settings().modify((current) => ({
+        recentPacks: addRecentPack(
+          current.recentPacks,
+          { path: packPath, name, kind, openedAt: new Date().toISOString() },
+          CASE_INSENSITIVE_PATHS
+        )
+      }))
+    } catch {
+      // Failing to remember a recent pack must not block opening it.
+    }
     return { ok: true, pack: result.pack }
+  },
+
+  'recent:list': async () => recentStatuses((await settings().get()).recentPacks),
+
+  'recent:remove': async (path) => {
+    const next = await settings().modify((current) => ({
+      recentPacks: removeRecentPack(current.recentPacks, String(path), CASE_INSENSITIVE_PATHS)
+    }))
+    return recentStatuses(next.recentPacks)
   },
 
   'pack:listFiles': async () => {

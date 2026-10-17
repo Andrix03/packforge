@@ -27,11 +27,17 @@ export class SettingsStore {
     return this.cache
   }
 
-  async update(patch: Partial<Settings>): Promise<Settings> {
+  update(patch: Partial<Settings>): Promise<Settings> {
+    return this.modify(() => patch)
+  }
+
+  /** Read-modify-write: `change` receives the latest saved state. */
+  async modify(change: (current: Settings) => Partial<Settings>): Promise<Settings> {
     // The next state is computed inside the queue, so concurrent updates
     // each start from the previous one instead of overwriting it.
     const run = this.writing.then(async () => {
-      const next = { ...(await this.get()), ...patch }
+      const current = await this.get()
+      const next = { ...current, ...change(current) }
       const temp = `${this.file}.tmp`
       await writeFile(temp, `${JSON.stringify(next, null, 2)}\n`, 'utf8')
       await rename(temp, this.file)

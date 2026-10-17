@@ -5,11 +5,29 @@ export interface Settings {
   minecraftDir: string | null
   /** Executable used for "open in external editor"; null when not set. */
   externalEditor: string | null
+  /** Most recently opened packs, newest first. */
+  recentPacks: RecentPack[]
 }
+
+export interface RecentPack {
+  path: string
+  name: string
+  kind: 'folder' | 'zip'
+  /** ISO timestamp of the last open. */
+  openedAt: string
+}
+
+export interface RecentPackStatus extends RecentPack {
+  /** False when the folder/zip was moved or deleted. */
+  exists: boolean
+}
+
+export const MAX_RECENT_PACKS = 10
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
   minecraftDir: null,
-  externalEditor: null
+  externalEditor: null,
+  recentPacks: []
 })
 
 /**
@@ -21,8 +39,47 @@ export function parseSettings(value: unknown): Settings {
     typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
   return {
     minecraftDir: nonEmptyString(record['minecraftDir']),
-    externalEditor: nonEmptyString(record['externalEditor'])
+    externalEditor: nonEmptyString(record['externalEditor']),
+    recentPacks: Array.isArray(record['recentPacks'])
+      ? record['recentPacks'].filter(isRecentPack).slice(0, MAX_RECENT_PACKS)
+      : []
   }
+}
+
+function isRecentPack(value: unknown): value is RecentPack {
+  if (typeof value !== 'object' || value === null) return false
+  const { path, name, kind, openedAt } = value as Record<string, unknown>
+  return (
+    nonEmptyString(path) !== null &&
+    typeof name === 'string' &&
+    (kind === 'folder' || kind === 'zip') &&
+    typeof openedAt === 'string'
+  )
+}
+
+/** Same pack path? Windows paths are case-insensitive. */
+export function samePackPath(a: string, b: string, caseInsensitive: boolean): boolean {
+  return caseInsensitive ? a.toLowerCase() === b.toLowerCase() : a === b
+}
+
+/** Puts `entry` first, removing older entries for the same path, capped at the max. */
+export function addRecentPack(
+  list: readonly RecentPack[],
+  entry: RecentPack,
+  caseInsensitive: boolean
+): RecentPack[] {
+  return [entry, ...list.filter((p) => !samePackPath(p.path, entry.path, caseInsensitive))].slice(
+    0,
+    MAX_RECENT_PACKS
+  )
+}
+
+export function removeRecentPack(
+  list: readonly RecentPack[],
+  path: string,
+  caseInsensitive: boolean
+): RecentPack[] {
+  return list.filter((p) => !samePackPath(p.path, path, caseInsensitive))
 }
 
 function nonEmptyString(value: unknown): string | null {

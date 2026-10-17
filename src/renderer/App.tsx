@@ -4,6 +4,7 @@ import { NewPackForm } from './packs/NewPackForm'
 import { OpenPackCard } from './packs/OpenPackCard'
 import { PackOverview } from './packs/PackOverview'
 import { PackWorkspace } from './packs/PackWorkspace'
+import { RecentPacksCard } from './packs/RecentPacksCard'
 import { SettingsPanel } from './settings/SettingsPanel'
 
 export function App(): React.JSX.Element {
@@ -74,6 +75,12 @@ export function App(): React.JSX.Element {
           </>
         ) : (
           <>
+            <RecentPacksCard
+              // Remount when returning home so the list reflects the last open.
+              key={workspaceKey}
+              onOpen={(path) => void openPack(path)}
+              busy={opening}
+            />
             <OpenPackCard onPick={(path) => void openPack(path)} busy={opening} error={openError} />
             <NewPackForm onCreated={(path) => void openPack(path)} />
           </>

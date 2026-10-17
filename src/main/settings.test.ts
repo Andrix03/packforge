@@ -31,18 +31,24 @@ describe('SettingsStore', () => {
   it('starts from defaults and persists updates', async () => {
     const file = join(root, 'settings.json')
     const store = new SettingsStore(file)
-    expect(await store.get()).toEqual({ minecraftDir: null, externalEditor: null })
+    expect(await store.get()).toEqual({
+      minecraftDir: null,
+      externalEditor: null,
+      recentPacks: []
+    })
 
     await store.update({ minecraftDir: 'D:\\mc' })
     await store.update({ externalEditor: 'C:\\a.exe' })
 
     expect(JSON.parse(await readFile(file, 'utf8'))).toEqual({
       minecraftDir: 'D:\\mc',
-      externalEditor: 'C:\\a.exe'
+      externalEditor: 'C:\\a.exe',
+      recentPacks: []
     })
     expect(await new SettingsStore(file).get()).toEqual({
       minecraftDir: 'D:\\mc',
-      externalEditor: 'C:\\a.exe'
+      externalEditor: 'C:\\a.exe',
+      recentPacks: []
     })
   })
 
@@ -55,8 +61,24 @@ describe('SettingsStore', () => {
     ])
     expect(await new SettingsStore(file).get()).toEqual({
       minecraftDir: 'D:\\mc',
-      externalEditor: 'C:\\a.exe'
+      externalEditor: 'C:\\a.exe',
+      recentPacks: []
     })
+  })
+
+  it('modify() sees the latest state, so concurrent list edits are not lost', async () => {
+    const file = join(root, 'settings.json')
+    const store = new SettingsStore(file)
+    const open = (path: string) =>
+      store.modify((current) => ({
+        recentPacks: [
+          { path, name: path, kind: 'folder' as const, openedAt: '2026-10-18T10:00:00Z' },
+          ...current.recentPacks
+        ]
+      }))
+    await Promise.all([open('A'), open('B'), open('C')])
+    const saved = await new SettingsStore(file).get()
+    expect(saved.recentPacks.map((p) => p.path)).toEqual(['C', 'B', 'A'])
   })
 
   it('recovers from a corrupt file', async () => {
@@ -64,7 +86,8 @@ describe('SettingsStore', () => {
     await writeFile(file, '{ not json')
     expect(await new SettingsStore(file).get()).toEqual({
       minecraftDir: null,
-      externalEditor: null
+      externalEditor: null,
+      recentPacks: []
     })
   })
 })

@@ -77,7 +77,9 @@ describe('registerHandlers', () => {
         throw new Error('unused')
       },
       'settings:setMinecraftDir': () => ({ ok: false, error: 'unused' }),
-      'settings:setExternalEditor': () => ({ ok: false, error: 'unused' })
+      'settings:setExternalEditor': () => ({ ok: false, error: 'unused' }),
+      'recent:list': () => [],
+      'recent:remove': () => []
     }
 
     registerHandlers(transport, handlers)

@@ -15,7 +15,7 @@
 - [x] File tree and texture thumbnail grid
 - [x] Import vanilla textures from my own client jar (reference only, never exported)
 - [x] Settings: `.minecraft` path, external editor
-- [ ] Recent packs list on the start screen
+- [x] Recent packs list on the start screen
 - [ ] Pack icon (`pack.png`): pick, crop and preview
 - [ ] Multi-version support: version ranges and overlay folders in `pack.mcmeta`
 - [ ] Description editor with Minecraft color/formatting codes and live preview

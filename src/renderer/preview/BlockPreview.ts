@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import fragmentShader from '../shaders/block.frag.glsl?raw'
 import vertexShader from '../shaders/block.vert.glsl?raw'
+import { frameAt, frameRect, TICKS_PER_SECOND, type TextureAnimation } from '../../shared/animation'
 import { lightingAt } from './dayNight'
 
 export type PreviewScene = 'block' | 'wall' | 'floor'
@@ -30,6 +31,9 @@ export class BlockPreview {
   private readonly resizeObserver: ResizeObserver
   private readonly loader = new THREE.TextureLoader()
   private texture: THREE.Texture | null = null
+  private imageSize = { width: 1, height: 1 }
+  private animation: TextureAnimation | null = null
+  private animationStart = 0
   private textureRequest = 0
   private frame = 0
   private disposed = false
@@ -46,7 +50,9 @@ export class BlockPreview {
       fragmentShader,
       uniforms: {
         albedoMap: { value: null },
-        frameScale: { value: 1 },
+        frameA: { value: new THREE.Vector4(0, 0, 1, 1) },
+        frameB: { value: new THREE.Vector4(0, 0, 1, 1) },
+        frameBlend: { value: 0 },
         sunDirection: { value: new THREE.Vector3() },
         sunColor: { value: new THREE.Color() },
         moonDirection: { value: new THREE.Vector3() },
@@ -92,8 +98,9 @@ export class BlockPreview {
           texture.generateMipmaps = false
           texture.colorSpace = THREE.SRGBColorSpace
           const image = texture.image as HTMLImageElement
-          this.material.uniforms['frameScale']!.value =
-            image.height > image.width ? image.width / image.height : 1
+          this.imageSize = { width: image.width, height: image.height }
+          this.animation = null
+          this.showStaticFrame()
           this.replaceTexture(texture)
           resolve({ width: image.width, height: image.height })
         },
@@ -104,6 +111,13 @@ export class BlockPreview {
         }
       )
     })
+  }
+
+  /** Plays an animation for the current texture (null: first square frame). */
+  setAnimation(animation: TextureAnimation | null): void {
+    this.animation = animation
+    this.animationStart = performance.now()
+    if (!animation) this.showStaticFrame()
   }
 
   setScene(kind: PreviewScene): void {
@@ -162,8 +176,34 @@ export class BlockPreview {
     this.camera.updateProjectionMatrix()
   }
 
-  private loop = (): void => {
+  /** Top-left square of the smaller side, like the game's default frame. */
+  private showStaticFrame(): void {
+    const { width, height } = this.imageSize
+    const side = Math.min(width, height)
+    const frame = [0, 0, side / width, side / height] as const
+    ;(this.material.uniforms['frameA']!.value as THREE.Vector4).set(...frame)
+    ;(this.material.uniforms['frameB']!.value as THREE.Vector4).set(...frame)
+    this.material.uniforms['frameBlend']!.value = 0
+  }
+
+  private updateAnimation(now: number): void {
+    const animation = this.animation
+    if (!animation) return
+    const ticks = ((now - this.animationStart) / 1000) * TICKS_PER_SECOND
+    const { current, next, blend } = frameAt(animation, ticks)
+    const { width, height } = this.imageSize
+    const toUniform = (index: number, target: THREE.Vector4): void => {
+      const rect = frameRect(animation, index)
+      target.set(rect.x / width, rect.y / height, rect.width / width, rect.height / height)
+    }
+    toUniform(current.index, this.material.uniforms['frameA']!.value as THREE.Vector4)
+    toUniform(next.index, this.material.uniforms['frameB']!.value as THREE.Vector4)
+    this.material.uniforms['frameBlend']!.value = blend
+  }
+
+  private loop = (now: number = performance.now()): void => {
     if (this.disposed) return
+    this.updateAnimation(now)
     this.controls.update()
     this.renderer.render(this.scene, this.camera)
     this.frame = requestAnimationFrame(this.loop)

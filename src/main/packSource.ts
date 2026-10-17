@@ -7,7 +7,16 @@ export type PackSource =
   { kind: 'folder'; root: string } | { kind: 'zip'; root: string; data: Uint8Array }
 
 export const MAX_LISTED_FILES = 50_000
-const MAX_ASSET_BYTES = 16 * 1024 * 1024
+/** Files the renderer may read, with their type and size cap. */
+const SERVED_TYPES: Array<{ suffix: string; contentType: string; maxBytes: number }> = [
+  { suffix: '.png', contentType: 'image/png', maxBytes: 16 * 1024 * 1024 },
+  { suffix: '.mcmeta', contentType: 'application/json', maxBytes: 1024 * 1024 }
+]
+
+export interface PackAsset {
+  bytes: Uint8Array
+  contentType: string
+}
 
 export interface PackFileList {
   /** Posix-style paths relative to the pack root, sorted. */
@@ -64,14 +73,26 @@ export async function listPackFiles(source: PackSource, prefix = ''): Promise<Pa
   return { files, truncated }
 }
 
-/** Reads a PNG inside the pack, or null if the path is unsafe, missing or too big. */
-export async function readPackPng(source: PackSource, path: string): Promise<Uint8Array | null> {
-  if (!isSafePackPath(path) || !path.toLowerCase().endsWith('.png')) return null
+/**
+ * Reads a PNG or .mcmeta inside the pack, or null if the path is unsafe, of
+ * another type, missing or too big.
+ */
+export async function readPackAsset(source: PackSource, path: string): Promise<PackAsset | null> {
+  const type = SERVED_TYPES.find((t) => path.toLowerCase().endsWith(t.suffix))
+  if (!type || !isSafePackPath(path)) return null
+  const bytes = await readBytes(source, path, type.maxBytes)
+  return bytes ? { bytes, contentType: type.contentType } : null
+}
 
+async function readBytes(
+  source: PackSource,
+  path: string,
+  maxBytes: number
+): Promise<Uint8Array | null> {
   if (source.kind === 'zip') {
     try {
       const entries = unzipSync(source.data, {
-        filter: (file) => file.name === path && file.originalSize <= MAX_ASSET_BYTES
+        filter: (file) => file.name === path && file.originalSize <= maxBytes
       })
       return entries[path] ?? null
     } catch {
@@ -86,7 +107,7 @@ export async function readPackPng(source: PackSource, path: string): Promise<Uin
     const rel = relative(root, full)
     // On another drive, relative() returns an absolute path.
     if (rel === '' || isAbsolute(rel) || rel.split(sep)[0] === '..') return null
-    if ((await stat(full)).size > MAX_ASSET_BYTES) return null
+    if ((await stat(full)).size > maxBytes) return null
     return await readFile(full)
   } catch {
     return null

@@ -26,7 +26,7 @@
 - [x] Orbit camera, directional light, day/night cycle
 - [x] Live update when a texture file changes
 - [ ] Render real block models from model JSON (`cube_all`, `cube_column`, slabs, stairs…), including biome tint for grass/leaves
-- [ ] Animated textures (`.png.mcmeta` animation: frametime, interpolation)
+- [x] Animated textures (`.png.mcmeta` animation: frametime, interpolation)
 - [x] 3×3 tiling view to spot seams on repeating textures
 - [x] Preview scenes: single block, small wall, flat floor
 

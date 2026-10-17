@@ -1,7 +1,7 @@
 import type { OpenedSource, SourceRole } from './session'
-import { readPackPng } from './packSource'
+import { readPackAsset } from './packSource'
 
-// `pack://<p|v><generation>/<path>` serves PNGs of the open pack (`p`) or the
+// `pack://<p|v><generation>/<path>` serves PNG and .mcmeta files of the open pack (`p`) or the
 // loaded vanilla jar (`v`) to the renderer. Only current generations resolve.
 
 export const PACK_SCHEME = 'pack'
@@ -40,11 +40,11 @@ export async function handlePackRequest(
     return notFound()
   }
 
-  const bytes = await readPackPng(current.source, path)
-  if (!bytes) return notFound()
-  return new Response(bytes as Uint8Array<ArrayBuffer>, {
+  const asset = await readPackAsset(current.source, path)
+  if (!asset) return notFound()
+  return new Response(asset.bytes as Uint8Array<ArrayBuffer>, {
     headers: {
-      'content-type': 'image/png',
+      'content-type': asset.contentType,
       'cache-control': 'no-cache',
       // WebGL needs CORS to upload images from another origin as textures.
       // Safe: read-only, PNGs of the open pack/jar only, URLs change per open.

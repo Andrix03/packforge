@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { strToU8, zipSync } from 'fflate'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { isSafePackPath, listPackFiles, readPackPng, type PackSource } from './packSource'
+import { isSafePackPath, listPackFiles, readPackAsset, type PackSource } from './packSource'
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 
@@ -83,28 +83,30 @@ describe('listPackFiles', () => {
   })
 })
 
-describe('readPackPng', () => {
+describe('readPackAsset', () => {
   it.each([
     ['folder', folder],
     ['zip', zip]
   ] as const)('reads PNGs from a %s pack', async (_, source) => {
-    expect(await readPackPng(source(), 'assets/minecraft/textures/block/stone.png')).toEqual(
-      expect.objectContaining({ length: PNG.length })
-    )
+    const asset = await readPackAsset(source(), 'assets/minecraft/textures/block/stone.png')
+    expect(asset?.contentType).toBe('image/png')
+    expect(asset?.bytes.length).toBe(PNG.length)
+    const mcmeta = await readPackAsset(source(), 'pack.mcmeta')
+    expect(mcmeta?.contentType).toBe('application/json')
+    expect(new TextDecoder().decode(mcmeta?.bytes)).toBe('{}')
   })
 
   it.each([
     ['folder', folder],
     ['zip', zip]
-  ] as const)('refuses non-PNG, missing and traversal paths (%s)', async (_, source) => {
-    expect(await readPackPng(source(), 'pack.mcmeta')).toBeNull()
-    expect(await readPackPng(source(), 'assets/minecraft/textures/block/notes.txt')).toBeNull()
-    expect(await readPackPng(source(), 'missing.png')).toBeNull()
-    expect(await readPackPng(source(), '../outside/secret.png')).toBeNull()
+  ] as const)('refuses other types, missing and traversal paths (%s)', async (_, source) => {
+    expect(await readPackAsset(source(), 'assets/minecraft/textures/block/notes.txt')).toBeNull()
+    expect(await readPackAsset(source(), 'missing.png')).toBeNull()
+    expect(await readPackAsset(source(), '../outside/secret.png')).toBeNull()
   })
 
   it('refuses files reached through a link that leaves the pack', async () => {
     await symlink(join(root, 'outside'), join(packDir, 'link'), 'junction')
-    expect(await readPackPng(folder(), 'link/secret.png')).toBeNull()
+    expect(await readPackAsset(folder(), 'link/secret.png')).toBeNull()
   })
 })

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { parseAnimation } from '../../shared/animation'
 import { BlockPreview, type PreviewScene } from './BlockPreview'
 import { normalizeHour } from './dayNight'
 
@@ -6,6 +7,8 @@ export interface PreviewTarget {
   /** Changes when the texture or its source changes. */
   key: string
   url: string
+  /** URL of the texture's .png.mcmeta, if it has one. */
+  mcmetaUrl: string | null
   name: string
   sourceLabel: string
 }
@@ -45,18 +48,51 @@ export function PreviewPanel({ target }: { target: PreviewTarget | null }): Reac
   useEffect(() => {
     const preview = previewRef.current
     if (!preview) return
+    let current = true
     preview.setTexture(target?.url ?? null).then(
-      (size) => {
-        if (!size || !target) return
-        const animated = size.height > size.width
+      async (size) => {
+        if (!size || !target || !current) return
+        const sizeText = `${size.width}×${size.height}`
+        if (!target.mcmetaUrl) {
+          setInfo({ key: target.key, text: sizeText, error: false })
+          return
+        }
+        let mcmeta: unknown
+        try {
+          mcmeta = await (await fetch(target.mcmetaUrl)).json()
+        } catch {
+          mcmeta = undefined
+        }
+        if (!current) return
+        if (mcmeta === undefined) {
+          setInfo({
+            key: target.key,
+            text: `${sizeText} · .png.mcmeta non è un JSON valido`,
+            error: true
+          })
+          return
+        }
+        const parsed = parseAnimation(mcmeta, size.width, size.height)
+        if (!parsed.ok) {
+          setInfo({ key: target.key, text: `Animazione non valida: ${parsed.error}`, error: true })
+          return
+        }
+        preview.setAnimation(parsed.animation)
+        const animation = parsed.animation
+        if (animation?.warning) {
+          setInfo({ key: target.key, text: animation.warning, error: true })
+          return
+        }
         setInfo({
           key: target.key,
-          text: `${size.width}×${size.height}${animated ? ' · animata: primo frame' : ''}`,
+          text: animation
+            ? `${sizeText} · animata: ${animation.frames.length} frame, ${(animation.totalTicks / 20).toFixed(1)} s${animation.interpolate ? ', sfumata' : ''}`
+            : sizeText,
           error: false
         })
       },
       (error: unknown) => {
-        if (target) {
+        if (target && current) {
           setInfo({
             key: target.key,
             text: error instanceof Error ? error.message : String(error),
@@ -65,6 +101,9 @@ export function PreviewPanel({ target }: { target: PreviewTarget | null }): Reac
         }
       }
     )
+    return () => {
+      current = false
+    }
   }, [target])
 
   // Day/night cycle: advance the hour on animation frames while playing.

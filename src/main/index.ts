@@ -6,7 +6,10 @@ import { getSource } from './session'
 
 // Must run before `ready`. `standard` gives pack:// URLs a host and normal path parsing.
 protocol.registerSchemesAsPrivileged([
-  { scheme: PACK_SCHEME, privileges: { standard: true, secure: true, corsEnabled: true } }
+  {
+    scheme: PACK_SCHEME,
+    privileges: { standard: true, secure: true, corsEnabled: true, supportFetchAPI: true }
+  }
 ])
 
 function createWindow(): void {

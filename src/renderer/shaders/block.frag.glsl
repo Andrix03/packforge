@@ -2,8 +2,11 @@
 // Phase 5 extends this with LabPBR (_n / _s); keep the uniforms stable.
 
 uniform sampler2D albedoMap;
-// Height of the first frame as a fraction of the texture (animated strips).
-uniform float frameScale;
+// Animation frames as (x, y, width, height) fractions of the image, y from the
+// top. frameBlend fades from frameA to frameB (interpolated animations).
+uniform vec4 frameA;
+uniform vec4 frameB;
+uniform float frameBlend;
 uniform vec3 sunDirection;
 uniform vec3 sunColor;
 uniform vec3 moonDirection;
@@ -13,10 +16,13 @@ uniform vec3 ambientColor;
 in vec2 vUv;
 in vec3 vNormal;
 
+// UV v = 1 is the top of the image (textures are flipped on upload).
+vec2 frameUv(vec4 frame) {
+  return vec2(frame.x + vUv.x * frame.z, 1.0 - (frame.y + (1.0 - vUv.y) * frame.w));
+}
+
 void main() {
-  // UV v = 1 is the top of the image; show only the first (top) frame.
-  vec2 uv = vec2(vUv.x, 1.0 - (1.0 - vUv.y) * frameScale);
-  vec4 albedo = texture(albedoMap, uv);
+  vec4 albedo = mix(texture(albedoMap, frameUv(frameA)), texture(albedoMap, frameUv(frameB)), frameBlend);
   // Cutout like vanilla leaves/plants.
   if (albedo.a < 0.1) discard;
 

@@ -59,8 +59,14 @@ describe('handlePackRequest', () => {
     expect((await get(assetBase('pack', 6) + STONE)).status).toBe(404)
   })
 
-  it('returns 404 for non-PNGs, traversal, bad encoding, POST and closed sources', async () => {
-    expect((await get(assetBase('pack', 7) + 'pack.mcmeta')).status).toBe(404)
+  it('serves .mcmeta as JSON', async () => {
+    const response = await get(assetBase('pack', 7) + 'pack.mcmeta')
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('application/json')
+  })
+
+  it('returns 404 for other types, traversal, bad encoding, POST and closed sources', async () => {
+    expect((await get(assetBase('pack', 7) + 'notes.txt')).status).toBe(404)
     expect((await get(assetBase('pack', 7) + '..%2Fsecret.png')).status).toBe(404)
     expect((await get(assetBase('pack', 7) + '%E0%A4%A.png')).status).toBe(404)
     expect((await get(assetBase('pack', 7) + STONE, 'POST')).status).toBe(404)

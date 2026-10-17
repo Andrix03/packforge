@@ -141,16 +141,23 @@ function Workspace({
   const [query, setQuery] = useState('')
   const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
+  const previewMcmetaVersion =
+    previewSelection?.isPack && previewSelection.mcmeta
+      ? (fileVersions[previewSelection.mcmeta] ?? 0)
+      : 0
   // The URL carries the file version, so the 3D preview reloads on external edits.
   const previewTarget = useMemo<PreviewTarget | null>(
     () =>
       previewSelection && {
         key: previewSelection.key,
         url: assetUrl(previewSelection.base, previewSelection.albedo, previewVersion),
+        mcmetaUrl: previewSelection.mcmeta
+          ? assetUrl(previewSelection.base, previewSelection.mcmeta, previewMcmetaVersion)
+          : null,
         name: previewSelection.name,
         sourceLabel: previewSelection.sourceLabel
       },
-    [previewSelection, previewVersion]
+    [previewSelection, previewVersion, previewMcmetaVersion]
   )
 
   const vanillaReady = jar.status === 'ready'
@@ -209,6 +216,7 @@ function Workspace({
               base: source.assetBase,
               textureKey: texture.key,
               albedo: texture.albedo,
+              mcmeta: texture.mcmeta,
               name: texture.name,
               isPack: activeMode === 'pack',
               sourceLabel:
@@ -410,6 +418,7 @@ interface PreviewSelection {
   base: string
   textureKey: string
   albedo: string
+  mcmeta: string | null
   name: string
   isPack: boolean
   sourceLabel: string

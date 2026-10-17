@@ -1,6 +1,5 @@
 # PackForge Roadmap
 
-
 ## Phase 0 — Setup
 
 - [x] Scaffold Electron + electron-vite + React + TypeScript (strict)

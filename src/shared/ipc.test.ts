@@ -80,6 +80,8 @@ describe('registerHandlers', () => {
       'settings:setExternalEditor': () => ({ ok: false, error: 'unused' }),
       'pack:updateDescription': () => ({ ok: false, error: 'unused' }),
       'pack:updateVersions': () => ({ ok: false, error: 'unused' }),
+      'pack:pickIconSource': () => null,
+      'pack:setIcon': () => ({ ok: false, error: 'unused' }),
       'recent:list': () => [],
       'recent:remove': () => []
     }

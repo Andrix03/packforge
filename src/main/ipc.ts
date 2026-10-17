@@ -23,6 +23,7 @@ import {
 } from '../shared/versionRange'
 import { editPackObject } from './editMcmeta'
 import { openPack } from './openPack'
+import { ICON_IMAGE_EXTENSIONS, readIconSource, writePackIcon } from './packIcon'
 import { createPack } from './pack'
 import { assetBase } from './packProtocol'
 import { listPackFiles } from './packSource'
@@ -219,6 +220,24 @@ const handlers: IpcHandlers = {
     if (!edited.ok) return edited
     // Re-read for a fresh summary; the session source (a folder) is unchanged,
     // so thumbnail URLs stay valid.
+    const reopened = await openPack(current.source.root)
+    return reopened.ok ? { ok: true, pack: reopened.pack } : reopened
+  },
+
+  'pack:pickIconSource': async () => {
+    const path = await showOpenDialog({
+      title: "Scegli un'immagine per l'icona del pack",
+      properties: ['openFile'],
+      filters: [{ name: 'Immagini', extensions: ICON_IMAGE_EXTENSIONS }]
+    })
+    return path ? readIconSource(path) : null
+  },
+
+  'pack:setIcon': async (pngBase64) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    const written = await writePackIcon(current.source, pngBase64)
+    if (!written.ok) return written
     const reopened = await openPack(current.source.root)
     return reopened.ok ? { ok: true, pack: reopened.pack } : reopened
   },

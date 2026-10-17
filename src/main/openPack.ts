@@ -3,12 +3,12 @@ import { basename, extname, isAbsolute, join } from 'node:path'
 import { unzipSync } from 'fflate'
 import type { PackSummary } from '../shared/ipc'
 import { analyzePackMcmeta } from '../shared/mcmeta'
+import { isPng } from '../shared/png'
 import type { PackSource } from './packSource'
 
 const MAX_ZIP_BYTES = 1024 ** 3
 const MAX_MCMETA_BYTES = 1024 * 1024
 const MAX_ICON_BYTES = 4 * 1024 * 1024
-const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 
 interface PackFiles {
   mcmeta: Uint8Array
@@ -109,10 +109,6 @@ async function readZipPack(path: string): Promise<PackFiles | string> {
     return 'Non è un resource pack: manca pack.mcmeta nello zip.'
   }
   return { mcmeta, icon: entries['pack.png'] ?? null, source: { kind: 'zip', root: path, data } }
-}
-
-function isPng(bytes: Uint8Array): boolean {
-  return PNG_SIGNATURE.every((byte, i) => bytes[i] === byte)
 }
 
 function toPngDataUrl(bytes: Uint8Array): string {

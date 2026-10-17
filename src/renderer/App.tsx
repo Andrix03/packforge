@@ -70,7 +70,14 @@ export function App(): React.JSX.Element {
       <div className="stack" hidden={showSettings}>
         {pack ? (
           <>
-            <PackOverview pack={pack} onClose={() => void closePack()} onUpdated={setPack} />
+            <PackOverview
+              pack={pack}
+              onClose={() => void closePack()}
+              onUpdated={(updated, filesChanged) => {
+                setPack(updated)
+                if (filesChanged) setWorkspaceKey((key) => key + 1)
+              }}
+            />
             <PackWorkspace key={workspaceKey} pack={pack} />
           </>
         ) : (

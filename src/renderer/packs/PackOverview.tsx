@@ -4,32 +4,44 @@ import { compatibleReleases, isOverlayActive, type PackFormats } from '../../sha
 import { formatPackVersion, GAME_RELEASES, summarizeReleaseSpans } from '../../shared/packFormat'
 import { validatePackDescription } from '../../shared/validate'
 import { DescriptionEditor, McText } from './DescriptionEditor'
+import { IconEditor } from './IconEditor'
 import { VersionEditor } from './VersionEditor'
 
 interface PackOverviewProps {
   pack: PackSummary
   onClose: () => void
-  /** Called with the refreshed summary after pack.mcmeta was edited. */
-  onUpdated: (pack: PackSummary) => void
+  /**
+   * Called with the refreshed summary after an edit. `filesChanged` is true
+   * when files were added (icon, overlay folders), so the file list must reload.
+   */
+  onUpdated: (pack: PackSummary, filesChanged: boolean) => void
 }
 
 export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): React.JSX.Element {
   const { description, descriptionKind, formats, overlays, issues } = pack.mcmeta
   const [editing, setEditing] = useState(false)
   const [editingVersions, setEditingVersions] = useState(false)
+  const [editingIcon, setEditingIcon] = useState(false)
   const spans = summarizeReleaseSpans(compatibleReleases(formats))
   const errorCount = issues.filter((issue) => issue.severity === 'error').length
 
   return (
     <section className="card overview">
       <div className="overview-header">
-        {pack.iconDataUrl ? (
-          <img className="pack-icon" src={pack.iconDataUrl} alt="Icona del pack" />
-        ) : (
-          <div className="pack-icon placeholder" aria-label="Nessuna icona">
-            ?
-          </div>
-        )}
+        <div className="icon-column">
+          {pack.iconDataUrl ? (
+            <img className="pack-icon" src={pack.iconDataUrl} alt="Icona del pack" />
+          ) : (
+            <div className="pack-icon placeholder" aria-label="Nessuna icona">
+              ?
+            </div>
+          )}
+          {pack.kind === 'folder' && !editingIcon && (
+            <button type="button" className="link-button" onClick={() => setEditingIcon(true)}>
+              {pack.iconDataUrl ? 'Cambia' : 'Aggiungi'}
+            </button>
+          )}
+        </div>
         <div className="overview-title">
           <h2>
             {pack.name} <span className="badge">{pack.kind === 'zip' ? 'zip' : 'cartella'}</span>
@@ -41,7 +53,7 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
               onCancel={() => setEditing(false)}
               onSaved={(updated) => {
                 setEditing(false)
-                onUpdated(updated)
+                onUpdated(updated, false)
               }}
             />
           ) : (
@@ -68,6 +80,16 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
           Chiudi
         </button>
       </div>
+
+      {editingIcon && (
+        <IconEditor
+          onCancel={() => setEditingIcon(false)}
+          onSaved={(updated) => {
+            setEditingIcon(false)
+            onUpdated(updated, true)
+          }}
+        />
+      )}
 
       <dl className="facts">
         {formatFacts(formats).map(([label, value]) => (
@@ -105,7 +127,7 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
           onCancel={() => setEditingVersions(false)}
           onSaved={(updated) => {
             setEditingVersions(false)
-            onUpdated(updated)
+            onUpdated(updated, true)
           }}
         />
       ) : (

@@ -69,6 +69,10 @@ export type LoadVanillaResult =
     }
   | { ok: false; error: string }
 
+/** An image picked for the pack icon, read by main; null when the dialog was cancelled. */
+export type PickImageResult =
+  { ok: true; name: string; dataUrl: string } | { ok: false; error: string } | null
+
 export type SettingsUpdateResult = { ok: true; view: SettingsView } | { ok: false; error: string }
 
 /** Encodes a pack-relative path for use after `assetBase`. */
@@ -93,6 +97,10 @@ export interface IpcContract {
   'pack:updateDescription': { args: [description: string]; result: OpenPackResult }
   /** Folder packs only: rewrites format fields and root overlays, creates overlay folders. */
   'pack:updateVersions': { args: [request: VersionRangeRequest]; result: OpenPackResult }
+  /** Opens an image picker in main and returns the image for cropping. */
+  'pack:pickIconSource': { args: []; result: PickImageResult }
+  /** Folder packs only: writes base64 PNG data (square, 16–1024 px) as pack.png. */
+  'pack:setIcon': { args: [pngBase64: string]; result: OpenPackResult }
   /** Installed game versions with a client jar (reference textures). */
   'vanilla:listVersions': { args: []; result: ListVanillaVersionsResult }
   /** Loads a jar in memory, read-only; textures are never copied anywhere. */
@@ -123,6 +131,8 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:close': true,
   'pack:updateDescription': true,
   'pack:updateVersions': true,
+  'pack:pickIconSource': true,
+  'pack:setIcon': true,
   'vanilla:listVersions': true,
   'vanilla:load': true,
   'settings:get': true,

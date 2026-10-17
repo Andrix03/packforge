@@ -1,7 +1,5 @@
 # PackForge Roadmap
 
-This is my plan for PackForge, a desktop studio for making Minecraft Java Edition resource
-packs with live LabPBR preview. I work on one phase at a time and tick items off as they land.
 
 ## Phase 0 — Setup
 
@@ -14,7 +12,7 @@ packs with live LabPBR preview. I work on one phase at a time and tick items off
 ## Phase 1 — Pack management
 
 - [x] Create a new pack (name, description, target version → pack format), versions 1.20 → 26.3
-- [ ] Open an existing pack (folder or zip) and validate its `pack.mcmeta`
+- [x] Open an existing pack (folder or zip) and validate its `pack.mcmeta`
 - [ ] File tree and texture thumbnail grid
 - [ ] Import vanilla textures from my own client jar (reference only, never exported)
 - [ ] Settings: `.minecraft` path, external editor

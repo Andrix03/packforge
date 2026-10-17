@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { findRelease, formatPackVersion, GAME_RELEASES, LATEST_RELEASE } from './packFormat'
+import {
+  findRelease,
+  formatPackVersion,
+  GAME_RELEASES,
+  LATEST_RELEASE,
+  summarizeReleaseSpans
+} from './packFormat'
 
 describe('packFormat', () => {
   it('maps verified releases to their resource pack format', () => {
@@ -33,5 +39,27 @@ describe('packFormat', () => {
 
   it('formats versions as major.minor', () => {
     expect(formatPackVersion({ major: 97, minor: 1 })).toBe('97.1')
+  })
+})
+
+describe('summarizeReleaseSpans', () => {
+  const pick = (...versions: string[]) =>
+    versions.map((version) => {
+      const release = findRelease(version)
+      if (!release) throw new Error(version)
+      return release
+    })
+
+  it('groups contiguous releases oldest first', () => {
+    expect(summarizeReleaseSpans(pick('1.21.1', '1.21', '1.20.6', '1.20.5', '26.3'))).toEqual([
+      '1.20.5 – 1.21.1',
+      '26.3'
+    ])
+  })
+
+  it('handles single, all and none', () => {
+    expect(summarizeReleaseSpans(pick('1.21.4'))).toEqual(['1.21.4'])
+    expect(summarizeReleaseSpans(GAME_RELEASES)).toEqual(['1.20 – 26.3'])
+    expect(summarizeReleaseSpans([])).toEqual([])
   })
 })

@@ -7,6 +7,7 @@
 //   3. implement it in the main-process handlers
 //   4. validate renderer-provided args at runtime in main (they are untrusted)
 
+import type { McmetaAnalysis } from './mcmeta'
 import type { CreatePackRequest } from './validate'
 
 export interface AppInfo {
@@ -20,10 +21,26 @@ export interface AppInfo {
 
 export type CreatePackResult = { ok: true; path: string } | { ok: false; error: string }
 
+export interface PackSummary {
+  path: string
+  kind: 'folder' | 'zip'
+  name: string
+  mcmeta: McmetaAnalysis
+  /** `data:image/png;base64,…` of pack.png, or null when missing/invalid. */
+  iconDataUrl: string | null
+}
+
+export type OpenPackResult = { ok: true; pack: PackSummary } | { ok: false; error: string }
+
+/** Why a folder is being picked; main maps it to the dialog title. */
+export type DirectoryPurpose = 'packDestination' | 'openPack'
+
 export interface IpcContract {
   'app:getInfo': { args: []; result: AppInfo }
-  'dialog:pickDirectory': { args: []; result: string | null }
+  'dialog:pickDirectory': { args: [purpose: DirectoryPurpose]; result: string | null }
+  'dialog:pickPackZip': { args: []; result: string | null }
   'pack:create': { args: [request: CreatePackRequest]; result: CreatePackResult }
+  'pack:open': { args: [path: string]; result: OpenPackResult }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -34,7 +51,9 @@ export type IpcResult<C extends IpcChannel> = IpcContract[C]['result']
 const channelRegistry: Record<IpcChannel, true> = {
   'app:getInfo': true,
   'dialog:pickDirectory': true,
-  'pack:create': true
+  'dialog:pickPackZip': true,
+  'pack:create': true,
+  'pack:open': true
 }
 
 export const IPC_CHANNELS: readonly IpcChannel[] = Object.freeze(

@@ -16,6 +16,12 @@ export interface GameRelease {
 /** First resource pack format using `min_format`/`max_format` (snapshot 25w31a). */
 export const MODERN_FORMAT_MIN_MAJOR = 65
 
+/** First resource pack format reading `supported_formats` (1.20.2). */
+export const SUPPORTED_FORMATS_MIN_MAJOR = 18
+
+/** Minor value meaning "any minor version" (a bare integer in `max_format`). */
+export const ANY_MINOR = 0x7fffffff
+
 // Newest first, so the first entry is the default target.
 const FORMAT_GROUPS: ReadonlyArray<{ format: PackVersion; versions: readonly string[] }> = [
   { format: { major: 97, minor: 1 }, versions: ['26.3'] },
@@ -48,5 +54,34 @@ export function findRelease(version: string): GameRelease | undefined {
 }
 
 export function formatPackVersion({ major, minor }: PackVersion): string {
-  return `${major}.${minor}`
+  return minor === ANY_MINOR ? `${major}.*` : `${major}.${minor}`
+}
+
+export function comparePackVersions(a: PackVersion, b: PackVersion): number {
+  return a.major !== b.major ? a.major - b.major : a.minor - b.minor
+}
+
+/**
+ * Groups compatible releases into contiguous spans of the supported list,
+ * oldest first, e.g. ["1.20.5 – 1.21.1", "26.3"].
+ */
+export function summarizeReleaseSpans(compatible: readonly GameRelease[]): string[] {
+  const wanted = new Set(compatible.map((release) => release.version))
+  const spans: string[] = []
+  let start: string | null = null
+  let end: string | null = null
+  const flush = (): void => {
+    if (start !== null) spans.push(start === end ? start : `${start} – ${end}`)
+    start = end = null
+  }
+  for (const { version } of [...GAME_RELEASES].reverse()) {
+    if (wanted.has(version)) {
+      start ??= version
+      end = version
+    } else {
+      flush()
+    }
+  }
+  flush()
+  return spans
 }

@@ -65,7 +65,9 @@ describe('registerHandlers', () => {
     const handlers: IpcHandlers = {
       'app:getInfo': getInfo,
       'dialog:pickDirectory': () => null,
-      'pack:create': () => ({ ok: false, error: 'unused' })
+      'dialog:pickPackZip': () => null,
+      'pack:create': () => ({ ok: false, error: 'unused' }),
+      'pack:open': () => ({ ok: false, error: 'unused' })
     }
 
     registerHandlers(transport, handlers)

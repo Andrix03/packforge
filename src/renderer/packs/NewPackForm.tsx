@@ -9,7 +9,12 @@ type SubmitState =
   | { status: 'done'; path: string }
   | { status: 'error'; message: string }
 
-export function NewPackForm(): React.JSX.Element {
+interface NewPackFormProps {
+  /** Called with the new pack folder after it has been created. */
+  onCreated: (path: string) => void
+}
+
+export function NewPackForm({ onCreated }: NewPackFormProps): React.JSX.Element {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [gameVersion, setGameVersion] = useState(LATEST_RELEASE.version)
@@ -28,7 +33,7 @@ export function NewPackForm(): React.JSX.Element {
   const mcmetaPreview = serializeMcmeta(buildPackMcmeta(description, release.resourceFormat))
 
   async function pickDirectory(): Promise<void> {
-    const dir = await window.api.invoke('dialog:pickDirectory')
+    const dir = await window.api.invoke('dialog:pickDirectory', 'packDestination')
     if (dir) setParentDir(dir)
   }
 
@@ -44,11 +49,12 @@ export function NewPackForm(): React.JSX.Element {
         description,
         gameVersion
       })
-      setSubmit(
-        result.ok
-          ? { status: 'done', path: result.path }
-          : { status: 'error', message: result.error }
-      )
+      if (result.ok) {
+        setSubmit({ status: 'done', path: result.path })
+        onCreated(result.path)
+      } else {
+        setSubmit({ status: 'error', message: result.error })
+      }
     } catch (error) {
       setSubmit({
         status: 'error',

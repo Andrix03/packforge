@@ -7,6 +7,7 @@
   --muted: #9aa0ab;
   --accent: #6fbf73;
   --error: #ef6b6b;
+  --warning: #e5b454;
   font-family: 'Segoe UI', system-ui, sans-serif;
 }
 
@@ -146,4 +147,126 @@ footer {
   margin-top: 24px;
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.overview-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.overview-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overview-title h2 {
+  margin: 0;
+}
+
+.description {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.pack-icon {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 6px;
+  image-rendering: pixelated;
+  background: var(--bg);
+}
+
+.pack-icon.placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 1.5rem;
+  border: 1px dashed var(--border);
+}
+
+.badge {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  vertical-align: middle;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.facts dd {
+  margin: 2px 0 0;
+  font-family: Consolas, monospace;
+}
+
+h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.issues {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.issues li {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid var(--warning);
+  background: var(--bg);
+  font-size: 0.9rem;
+}
+
+.issues li.error {
+  border-left-color: var(--error);
+}
+
+.issue-tag {
+  margin-right: 8px;
+  font-weight: 600;
+  color: var(--warning);
+}
+
+.issues li.error .issue-tag {
+  color: var(--error);
 }

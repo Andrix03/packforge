@@ -6,7 +6,7 @@
 - [x] ESLint, Prettier, Vitest, script `typecheck` / `test`
 - [x] Bridge IPC tipizzato in preload
 - [x] Repo Git + primo commit
-- [ ] Push su GitHub (manuale, da Andrea)
+- [x] Push su GitHub (manuale, da Andrea)
 
 ## Fase 1 — Gestione pack
 

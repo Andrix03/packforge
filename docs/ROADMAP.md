@@ -14,7 +14,7 @@
 - [x] Open an existing pack (folder or zip) and validate its `pack.mcmeta`
 - [x] File tree and texture thumbnail grid
 - [x] Import vanilla textures from my own client jar (reference only, never exported)
-- [ ] Settings: `.minecraft` path, external editor
+- [x] Settings: `.minecraft` path, external editor
 - [ ] Recent packs list on the start screen
 - [ ] Pack icon (`pack.png`): pick, crop and preview
 - [ ] Multi-version support: version ranges and overlay folders in `pack.mcmeta`

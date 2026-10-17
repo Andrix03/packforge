@@ -9,6 +9,7 @@
 
 import type { McmetaAnalysis } from './mcmeta'
 import type { PackVersion } from './packFormat'
+import type { SettingsView } from './settings'
 import type { CreatePackRequest } from './validate'
 
 export interface AppInfo {
@@ -67,18 +68,21 @@ export type LoadVanillaResult =
     }
   | { ok: false; error: string }
 
+export type SettingsUpdateResult = { ok: true; view: SettingsView } | { ok: false; error: string }
+
 /** Encodes a pack-relative path for use after `assetBase`. */
 export function encodePackPath(path: string): string {
   return path.split('/').map(encodeURIComponent).join('/')
 }
 
 /** Why a folder is being picked; main maps it to the dialog title. */
-export type DirectoryPurpose = 'packDestination' | 'openPack'
+export type DirectoryPurpose = 'packDestination' | 'openPack' | 'minecraftDir'
 
 export interface IpcContract {
   'app:getInfo': { args: []; result: AppInfo }
   'dialog:pickDirectory': { args: [purpose: DirectoryPurpose]; result: string | null }
   'dialog:pickPackZip': { args: []; result: string | null }
+  'dialog:pickExecutable': { args: []; result: string | null }
   'pack:create': { args: [request: CreatePackRequest]; result: CreatePackResult }
   'pack:open': { args: [path: string]; result: OpenPackResult }
   /** Lists files of the pack opened with `pack:open`. */
@@ -88,6 +92,11 @@ export interface IpcContract {
   'vanilla:listVersions': { args: []; result: ListVanillaVersionsResult }
   /** Loads a jar in memory, read-only; textures are never copied anywhere. */
   'vanilla:load': { args: [versionId: string]; result: LoadVanillaResult }
+  'settings:get': { args: []; result: SettingsView }
+  /** null restores the launcher default. */
+  'settings:setMinecraftDir': { args: [path: string | null]; result: SettingsUpdateResult }
+  /** null removes the editor. */
+  'settings:setExternalEditor': { args: [path: string | null]; result: SettingsUpdateResult }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -99,12 +108,16 @@ const channelRegistry: Record<IpcChannel, true> = {
   'app:getInfo': true,
   'dialog:pickDirectory': true,
   'dialog:pickPackZip': true,
+  'dialog:pickExecutable': true,
   'pack:create': true,
   'pack:open': true,
   'pack:listFiles': true,
   'pack:close': true,
   'vanilla:listVersions': true,
-  'vanilla:load': true
+  'vanilla:load': true,
+  'settings:get': true,
+  'settings:setMinecraftDir': true,
+  'settings:setExternalEditor': true
 }
 
 export const IPC_CHANNELS: readonly IpcChannel[] = Object.freeze(

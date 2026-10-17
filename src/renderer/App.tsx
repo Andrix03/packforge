@@ -4,13 +4,16 @@ import { NewPackForm } from './packs/NewPackForm'
 import { OpenPackCard } from './packs/OpenPackCard'
 import { PackOverview } from './packs/PackOverview'
 import { PackWorkspace } from './packs/PackWorkspace'
+import { SettingsPanel } from './settings/SettingsPanel'
 
 export function App(): React.JSX.Element {
   const [info, setInfo] = useState<AppInfo | null>(null)
   const [pack, setPack] = useState<PackSummary | null>(null)
-  const [openCount, setOpenCount] = useState(0)
+  /** Bumped to remount the workspace (new pack opened, settings changed). */
+  const [workspaceKey, setWorkspaceKey] = useState(0)
   const [opening, setOpening] = useState(false)
   const [openError, setOpenError] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
     window.api
@@ -26,7 +29,7 @@ export function App(): React.JSX.Element {
       const result = await window.api.invoke('pack:open', path)
       if (result.ok) {
         setPack(result.pack)
-        setOpenCount((count) => count + 1)
+        setWorkspaceKey((key) => key + 1)
       } else setOpenError(result.error)
     } catch (error) {
       setOpenError(error instanceof Error ? error.message : String(error))
@@ -40,25 +43,42 @@ export function App(): React.JSX.Element {
     await window.api.invoke('pack:close')
   }
 
+  function closeSettings(changed: boolean): void {
+    setShowSettings(false)
+    // The .minecraft folder may have changed: reload the vanilla reference.
+    if (changed) setWorkspaceKey((key) => key + 1)
+  }
+
   return (
-    <main className={pack ? 'app wide' : 'app'}>
-      <header>
-        <h1>PackForge</h1>
-        <p>Studio per resource pack Minecraft Java con anteprima LabPBR</p>
+    <main className={pack && !showSettings ? 'app wide' : 'app'}>
+      <header className="app-header">
+        <div>
+          <h1>PackForge</h1>
+          <p>Studio per resource pack Minecraft Java con anteprima LabPBR</p>
+        </div>
+        {!showSettings && (
+          <button type="button" onClick={() => setShowSettings(true)}>
+            Impostazioni
+          </button>
+        )}
       </header>
 
-      {pack ? (
-        <div className="stack">
-          <PackOverview pack={pack} onClose={() => void closePack()} />
-          {/* Remount on every open so files are listed again. */}
-          <PackWorkspace key={openCount} pack={pack} />
-        </div>
-      ) : (
-        <div className="stack">
-          <OpenPackCard onPick={(path) => void openPack(path)} busy={opening} error={openError} />
-          <NewPackForm onCreated={(path) => void openPack(path)} />
-        </div>
-      )}
+      {showSettings && <SettingsPanel onClose={closeSettings} />}
+
+      {/* Hidden, not unmounted, while settings are open: keeps tree/grid state. */}
+      <div className="stack" hidden={showSettings}>
+        {pack ? (
+          <>
+            <PackOverview pack={pack} onClose={() => void closePack()} />
+            <PackWorkspace key={workspaceKey} pack={pack} />
+          </>
+        ) : (
+          <>
+            <OpenPackCard onPick={(path) => void openPack(path)} busy={opening} error={openError} />
+            <NewPackForm onCreated={(path) => void openPack(path)} />
+          </>
+        )}
+      </div>
 
       {info && (
         <footer>

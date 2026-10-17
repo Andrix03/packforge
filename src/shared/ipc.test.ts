@@ -71,7 +71,13 @@ describe('registerHandlers', () => {
       'pack:listFiles': () => ({ ok: false, error: 'unused' }),
       'pack:close': () => undefined,
       'vanilla:listVersions': () => ({ ok: false, error: 'unused' }),
-      'vanilla:load': () => ({ ok: false, error: 'unused' })
+      'vanilla:load': () => ({ ok: false, error: 'unused' }),
+      'dialog:pickExecutable': () => null,
+      'settings:get': () => {
+        throw new Error('unused')
+      },
+      'settings:setMinecraftDir': () => ({ ok: false, error: 'unused' }),
+      'settings:setExternalEditor': () => ({ ok: false, error: 'unused' })
     }
 
     registerHandlers(transport, handlers)

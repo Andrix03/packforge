@@ -1,10 +1,25 @@
+import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
-import { registerHandlers, type DirectoryPurpose, type IpcHandlers } from '../shared/ipc'
+import {
+  registerHandlers,
+  type DirectoryPurpose,
+  type IpcHandlers,
+  type SettingsUpdateResult
+} from '../shared/ipc'
+import type { SettingsView } from '../shared/settings'
 import { openPack } from './openPack'
 import { createPack } from './pack'
 import { assetBase } from './packProtocol'
 import { listPackFiles } from './packSource'
 import { closeSource, getSource, setSource } from './session'
+import {
+  detectEditors,
+  fileExists,
+  minecraftDirStatus,
+  SettingsStore,
+  validateEditorPath,
+  validateMinecraftDir
+} from './settings'
 import {
   defaultMinecraftDir,
   listInstalledVersions,
@@ -14,7 +29,58 @@ import {
 
 const DIRECTORY_TITLES: Record<DirectoryPurpose, string> = {
   packDestination: 'Scegli la cartella di destinazione',
-  openPack: 'Apri la cartella di un resource pack'
+  openPack: 'Apri la cartella di un resource pack',
+  minecraftDir: 'Scegli la cartella .minecraft'
+}
+
+let settingsStore: SettingsStore | null = null
+
+// Created lazily: userData is only reliable once the app is ready.
+function settings(): SettingsStore {
+  settingsStore ??= new SettingsStore(join(app.getPath('userData'), 'settings.json'))
+  return settingsStore
+}
+
+async function minecraftDir(): Promise<string> {
+  return (await settings().get()).minecraftDir ?? defaultMinecraftDir()
+}
+
+async function settingsView(): Promise<SettingsView> {
+  const current = await settings().get()
+  const effective = current.minecraftDir ?? defaultMinecraftDir()
+  return {
+    settings: current,
+    defaultMinecraftDir: defaultMinecraftDir(),
+    effectiveMinecraftDir: effective,
+    minecraft: await minecraftDirStatus(effective),
+    externalEditorExists: current.externalEditor ? await fileExists(current.externalEditor) : true,
+    detectedEditors:
+      process.platform === 'win32'
+        ? await detectEditors({
+            programFiles: process.env['ProgramFiles'],
+            programFilesX86: process.env['ProgramFiles(x86)']
+          })
+        : []
+  }
+}
+
+/** Validates (unless clearing), saves and returns the refreshed view. */
+async function updateSetting(
+  value: unknown,
+  validate: (value: unknown) => Promise<string | null>,
+  save: (value: string | null) => Promise<unknown>
+): Promise<SettingsUpdateResult> {
+  if (value !== null) {
+    const error = await validate(value)
+    if (error) return { ok: false, error }
+  }
+  try {
+    await save(value as string | null)
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    return { ok: false, error: `Impossibile salvare le impostazioni: ${detail}` }
+  }
+  return { ok: true, view: await settingsView() }
 }
 
 async function showOpenDialog(options: Electron.OpenDialogOptions): Promise<string | null> {
@@ -55,6 +121,13 @@ const handlers: IpcHandlers = {
       filters: [{ name: 'Resource pack', extensions: ['zip'] }]
     }),
 
+  'dialog:pickExecutable': () =>
+    showOpenDialog({
+      title: "Scegli l'editor di immagini",
+      properties: ['openFile'],
+      filters: process.platform === 'win32' ? [{ name: 'Programmi', extensions: ['exe'] }] : []
+    }),
+
   // Renderer input is untrusted: createPack/openPack re-validate everything.
   'pack:create': (request) => createPack(request),
 
@@ -79,14 +152,13 @@ const handlers: IpcHandlers = {
 
   'pack:close': () => closeSource('pack'),
 
-  // TODO(settings): use the configured .minecraft path once Settings exist.
   'vanilla:listVersions': async () => {
-    const minecraftDir = defaultMinecraftDir()
-    return { ok: true, minecraftDir, versions: await listInstalledVersions(minecraftDir) }
+    const dir = await minecraftDir()
+    return { ok: true, minecraftDir: dir, versions: await listInstalledVersions(dir) }
   },
 
   'vanilla:load': async (versionId) => {
-    const loaded = await loadVanillaJar(defaultMinecraftDir(), versionId)
+    const loaded = await loadVanillaJar(await minecraftDir(), versionId)
     if (!loaded.ok) return loaded
     const { files } = await listPackFiles(loaded.source, VANILLA_TEXTURES_PREFIX)
     const opened = setSource('vanilla', loaded.source)
@@ -97,7 +169,18 @@ const handlers: IpcHandlers = {
       files,
       assetBase: assetBase('vanilla', opened.generation)
     }
-  }
+  },
+
+  'settings:get': () => settingsView(),
+
+  // Paths come from the renderer: validated on disk before saving.
+  'settings:setMinecraftDir': (path) =>
+    updateSetting(path, validateMinecraftDir, (value) =>
+      settings().update({ minecraftDir: value })
+    ),
+
+  'settings:setExternalEditor': (path) =>
+    updateSetting(path, validateEditorPath, (value) => settings().update({ externalEditor: value }))
 }
 
 export function registerIpcHandlers(): void {

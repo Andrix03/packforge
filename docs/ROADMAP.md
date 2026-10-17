@@ -33,14 +33,22 @@
 ## Phase 3 — Texture editor (basics)
 
 So I can draw textures from start to finish inside PackForge, seeing them on the 3D block while I paint.
+It opens as a dedicated screen (double-click a texture in the grid), with the canvas in the middle,
+tools on the left and colors, live 3D and the vanilla reference on the right.
 
 - [ ] Pixel canvas with zoom, pan and pixel grid
-- [ ] Tools: pencil, eraser, fill bucket, color picker
-- [ ] Color palette: swatches, recent colors, hex/RGB/HSV input, alpha
-- [ ] Undo/redo history
-- [ ] New texture (size 16×/32×/64×…) and open/save PNGs in the pack
-- [ ] Vanilla texture as a side-by-side or traced reference (never copied into the pack)
-- [ ] Live 3D preview of the texture being edited
+- [ ] Tools: pencil (optional pixel-perfect stroke), eraser, fill bucket (contiguous or global), color picker
+- [ ] Primary/secondary color on left/right click (secondary defaults to transparent), X swaps them
+- [ ] Color picker panel: hex/RGB/HSV input, alpha, recent colors
+- [ ] Ramp generator: 5 shades from a base color with hue shifting (cool shadows, warm highlights)
+- [ ] Shade tool: each click moves a pixel one step lighter/darker along the ramp
+- [ ] Noise fill: fill an area with random shades of the ramp (base for stone, dirt, gravel)
+- [ ] Texture palette: the colors already used, sorted by brightness
+- [ ] Undo/redo history (100+ steps), unsaved-changes indicator
+- [ ] New texture wizard (pick the block, size 16×/32×/64×…, start empty / base color / noise) and save PNGs in the pack
+- [ ] Vanilla texture as a side-by-side or traced reference (color picking allowed, pixels never copied into the pack)
+- [ ] Live 3D preview and 3×3 tiling preview of the texture being edited
+- [ ] Keyboard shortcuts for the basic tools (B, E, G, I, S, X, Ctrl+Z / Ctrl+Y)
 
 ## Phase 4 — Texture editor (advanced)
 

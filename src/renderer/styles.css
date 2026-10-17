@@ -48,22 +48,102 @@ header p {
   font-size: 1rem;
 }
 
-dl {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 6px 16px;
-  margin: 0;
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-dt {
+.form label,
+.form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   color: var(--muted);
+  font-size: 0.9rem;
 }
 
-dd {
-  margin: 0;
+input,
+select,
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+}
+
+input:focus,
+select:focus,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #10140f;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+pre {
+  margin: 8px 0 0;
+  padding: 10px;
+  background: var(--bg);
+  border-radius: 6px;
   font-family: Consolas, monospace;
+  font-size: 0.85rem;
 }
 
-.error {
+.field-error {
   color: var(--error);
+  font-size: 0.85rem;
+}
+
+.success {
+  color: var(--accent);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+footer {
+  margin-top: 24px;
+  color: var(--muted);
+  font-size: 0.8rem;
 }

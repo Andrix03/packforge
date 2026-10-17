@@ -5,6 +5,9 @@
 //   1. add an entry to `IpcContract`
 //   2. add it to `channelRegistry` (the compiler enforces this)
 //   3. implement it in the main-process handlers
+//   4. validate renderer-provided args at runtime in main (they are untrusted)
+
+import type { CreatePackRequest } from './validate'
 
 export interface AppInfo {
   name: string
@@ -15,8 +18,12 @@ export interface AppInfo {
   platform: string
 }
 
+export type CreatePackResult = { ok: true; path: string } | { ok: false; error: string }
+
 export interface IpcContract {
   'app:getInfo': { args: []; result: AppInfo }
+  'dialog:pickDirectory': { args: []; result: string | null }
+  'pack:create': { args: [request: CreatePackRequest]; result: CreatePackResult }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -25,7 +32,9 @@ export type IpcResult<C extends IpcChannel> = IpcContract[C]['result']
 
 // Record keyed by every channel, so forgetting one is a compile error.
 const channelRegistry: Record<IpcChannel, true> = {
-  'app:getInfo': true
+  'app:getInfo': true,
+  'dialog:pickDirectory': true,
+  'pack:create': true
 }
 
 export const IPC_CHANNELS: readonly IpcChannel[] = Object.freeze(

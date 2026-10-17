@@ -10,7 +10,7 @@
 
 ## Fase 1 — Gestione pack
 
-- [ ] Crea nuovo pack (nome, descrizione, versione target → pack_format)
+- [x] Crea nuovo pack (nome, descrizione, versione target → pack_format) — versioni 1.20 → 26.3
 - [ ] Apri pack esistente (cartella o zip)
 - [ ] Albero file + griglia miniature texture
 - [ ] Import texture vanilla dal jar del client (solo riferimento)

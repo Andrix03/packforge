@@ -62,7 +62,11 @@ describe('registerHandlers', () => {
       }
     }
     const getInfo = vi.fn(() => sampleInfo)
-    const handlers: IpcHandlers = { 'app:getInfo': getInfo }
+    const handlers: IpcHandlers = {
+      'app:getInfo': getInfo,
+      'dialog:pickDirectory': () => null,
+      'pack:create': () => ({ ok: false, error: 'unused' })
+    }
 
     registerHandlers(transport, handlers)
 

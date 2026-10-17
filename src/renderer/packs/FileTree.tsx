@@ -39,7 +39,7 @@ function FolderItem(
           title={folder.path}
         >
           <span className="caret">{isOpen ? '▾' : '▸'}</span>
-          {folder.name}
+          <span className="name">{folder.name}</span>
           <span className="count">{folder.totalFiles}</span>
         </button>
       )}
@@ -59,7 +59,7 @@ function FolderItem(
                   onClick={() => props.onSelectFile(path)}
                   title={path}
                 >
-                  {name}
+                  <span className="name">{name}</span>
                 </button>
               </li>
             )

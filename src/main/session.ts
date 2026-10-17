@@ -1,26 +1,30 @@
 import type { PackSource } from './packSource'
 
-// The pack currently open in the window. Renderer requests that touch pack
-// files go through this, so the renderer never supplies file-system paths.
+// What the window has open: the user's pack and, optionally, a vanilla jar
+// for reference. Renderer requests that touch files go through this, so the
+// renderer never supplies file-system paths.
 
-interface OpenedPack {
+export type SourceRole = 'pack' | 'vanilla'
+
+export interface OpenedSource {
   source: PackSource
   /** Changes on every open; part of asset URLs so stale URLs stop resolving. */
   generation: number
 }
 
-let current: OpenedPack | null = null
+const opened: Record<SourceRole, OpenedSource | null> = { pack: null, vanilla: null }
 let nextGeneration = 1
 
-export function setCurrentPack(source: PackSource): OpenedPack {
-  current = { source, generation: nextGeneration++ }
-  return current
+export function setSource(role: SourceRole, source: PackSource): OpenedSource {
+  const entry = { source, generation: nextGeneration++ }
+  opened[role] = entry
+  return entry
 }
 
-export function getCurrentPack(): OpenedPack | null {
-  return current
+export function getSource(role: SourceRole): OpenedSource | null {
+  return opened[role]
 }
 
-export function closeCurrentPack(): void {
-  current = null
+export function closeSource(role: SourceRole): void {
+  opened[role] = null
 }

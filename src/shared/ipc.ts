@@ -8,6 +8,7 @@
 //   4. validate renderer-provided args at runtime in main (they are untrusted)
 
 import type { McmetaAnalysis } from './mcmeta'
+import type { PackVersion } from './packFormat'
 import type { CreatePackRequest } from './validate'
 
 export interface AppInfo {
@@ -44,6 +45,28 @@ export type ListPackFilesResult =
     }
   | { ok: false; error: string }
 
+export interface VanillaVersionInfo {
+  /** Launcher version id, e.g. `26.3` or `26.4-snapshot-4`. */
+  id: string
+  /** Launcher type: `release`, `snapshot`, … */
+  type: string
+}
+
+export type ListVanillaVersionsResult =
+  { ok: true; minecraftDir: string; versions: VanillaVersionInfo[] } | { ok: false; error: string }
+
+export type LoadVanillaResult =
+  | {
+      ok: true
+      versionId: string
+      /** From the jar's version.json; null if unreadable. */
+      resourceFormat: PackVersion | null
+      /** Vanilla texture files (`assets/minecraft/textures/…`). */
+      files: string[]
+      assetBase: string
+    }
+  | { ok: false; error: string }
+
 /** Encodes a pack-relative path for use after `assetBase`. */
 export function encodePackPath(path: string): string {
   return path.split('/').map(encodeURIComponent).join('/')
@@ -61,6 +84,10 @@ export interface IpcContract {
   /** Lists files of the pack opened with `pack:open`. */
   'pack:listFiles': { args: []; result: ListPackFilesResult }
   'pack:close': { args: []; result: void }
+  /** Installed game versions with a client jar (reference textures). */
+  'vanilla:listVersions': { args: []; result: ListVanillaVersionsResult }
+  /** Loads a jar in memory, read-only; textures are never copied anywhere. */
+  'vanilla:load': { args: [versionId: string]; result: LoadVanillaResult }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -75,7 +102,9 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:create': true,
   'pack:open': true,
   'pack:listFiles': true,
-  'pack:close': true
+  'pack:close': true,
+  'vanilla:listVersions': true,
+  'vanilla:load': true
 }
 
 export const IPC_CHANNELS: readonly IpcChannel[] = Object.freeze(

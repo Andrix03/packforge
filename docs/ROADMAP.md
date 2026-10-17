@@ -13,7 +13,7 @@
 - [x] Create a new pack (name, description, target version → pack format), versions 1.20 → 26.3
 - [x] Open an existing pack (folder or zip) and validate its `pack.mcmeta`
 - [x] File tree and texture thumbnail grid
-- [ ] Import vanilla textures from my own client jar (reference only, never exported)
+- [x] Import vanilla textures from my own client jar (reference only, never exported)
 - [ ] Settings: `.minecraft` path, external editor
 - [ ] Recent packs list on the start screen
 - [ ] Pack icon (`pack.png`): pick, crop and preview

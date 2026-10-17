@@ -8,13 +8,22 @@ interface TextureGridProps {
   /** Albedo or map path to highlight and scroll into view. */
   highlight: string | null
   showFolder: boolean
+  /** Extra badge for textures whose key is in `keys` (e.g. "also in the pack"). */
+  marker?: TextureMarker | undefined
+}
+
+export interface TextureMarker {
+  keys: ReadonlySet<string>
+  label: string
+  title: string
 }
 
 export function TextureGrid({
   textures,
   assetBase,
   highlight,
-  showFolder
+  showFolder,
+  marker
 }: TextureGridProps): React.JSX.Element {
   const highlightRef = useRef<HTMLLIElement>(null)
 
@@ -46,9 +55,17 @@ export function TextureGrid({
             <span className="texture-badges">
               <Badge on={texture.normal !== null} label="N" title="Mappa normal (_n)" />
               <Badge on={texture.specular !== null} label="S" title="Mappa specular (_s)" />
+              {marker?.keys.has(texture.key) && (
+                <span className="map-badge marker" title={marker.title}>
+                  {marker.label}
+                </span>
+              )}
               {texture.mcmeta && (
-                <span className="map-badge on" title="Ha un file .png.mcmeta (animazione)">
-                  A
+                <span
+                  className="map-badge on"
+                  title="Ha un file .png.mcmeta (animazione o altre proprietà)"
+                >
+                  M
                 </span>
               )}
             </span>

@@ -69,7 +69,9 @@ describe('registerHandlers', () => {
       'pack:create': () => ({ ok: false, error: 'unused' }),
       'pack:open': () => ({ ok: false, error: 'unused' }),
       'pack:listFiles': () => ({ ok: false, error: 'unused' }),
-      'pack:close': () => undefined
+      'pack:close': () => undefined,
+      'vanilla:listVersions': () => ({ ok: false, error: 'unused' }),
+      'vanilla:load': () => ({ ok: false, error: 'unused' })
     }
 
     registerHandlers(transport, handlers)

@@ -24,7 +24,8 @@ export function isSafePackPath(path: string): boolean {
   return path.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..')
 }
 
-export async function listPackFiles(source: PackSource): Promise<PackFileList> {
+/** Lists files; `prefix` keeps only paths starting with it (e.g. `assets/minecraft/textures/`). */
+export async function listPackFiles(source: PackSource, prefix = ''): Promise<PackFileList> {
   const files: string[] = []
   let truncated = false
 
@@ -32,7 +33,8 @@ export async function listPackFiles(source: PackSource): Promise<PackFileList> {
     // filter returns false for everything: only the central directory is read.
     unzipSync(source.data, {
       filter: (file) => {
-        if (file.name.endsWith('/') || !isSafePackPath(file.name)) return false
+        if (file.name.endsWith('/') || !file.name.startsWith(prefix)) return false
+        if (!isSafePackPath(file.name)) return false
         if (files.length < MAX_LISTED_FILES) files.push(file.name)
         else truncated = true
         return false
@@ -47,7 +49,7 @@ export async function listPackFiles(source: PackSource): Promise<PackFileList> {
         // Symlinks are skipped so listing never leaves the pack folder.
         const path = dir === '' ? entry.name : `${dir}/${entry.name}`
         if (entry.isDirectory()) pending.push(path)
-        else if (entry.isFile()) {
+        else if (entry.isFile() && path.startsWith(prefix)) {
           if (files.length >= MAX_LISTED_FILES) {
             truncated = true
             break

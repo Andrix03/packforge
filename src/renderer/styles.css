@@ -313,6 +313,7 @@ h3 {
 
 .tree-panel {
   padding: 8px;
+  overflow-x: hidden;
 }
 
 .tree,
@@ -346,6 +347,16 @@ h3 {
 
 .tree-row.file {
   color: var(--muted);
+}
+
+.tree-row .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-row .count,
+.tree-row .caret {
+  flex: none;
 }
 
 .tree-row .caret {
@@ -445,4 +456,60 @@ h3 {
 .map-badge.on {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.workspace-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.tab {
+  border: none;
+  background: none;
+  padding: 5px 14px;
+  border-radius: 6px;
+}
+
+.tab.active {
+  background: var(--border);
+}
+
+.tab .count {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.vanilla-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vanilla-picker select {
+  padding: 4px 8px;
+}
+
+.map-badge.marker {
+  border-color: #7aa7e8;
+  color: #7aa7e8;
 }

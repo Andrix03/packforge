@@ -51,7 +51,7 @@ export function App(): React.JSX.Element {
         <div className="stack">
           <PackOverview pack={pack} onClose={() => void closePack()} />
           {/* Remount on every open so files are listed again. */}
-          <PackWorkspace key={openCount} />
+          <PackWorkspace key={openCount} pack={pack} />
         </div>
       ) : (
         <div className="stack">

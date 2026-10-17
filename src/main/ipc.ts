@@ -2,9 +2,15 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { registerHandlers, type DirectoryPurpose, type IpcHandlers } from '../shared/ipc'
 import { openPack } from './openPack'
 import { createPack } from './pack'
-import { packAssetBase } from './packProtocol'
+import { assetBase } from './packProtocol'
 import { listPackFiles } from './packSource'
-import { closeCurrentPack, getCurrentPack, setCurrentPack } from './session'
+import { closeSource, getSource, setSource } from './session'
+import {
+  defaultMinecraftDir,
+  listInstalledVersions,
+  loadVanillaJar,
+  VANILLA_TEXTURES_PREFIX
+} from './vanilla'
 
 const DIRECTORY_TITLES: Record<DirectoryPurpose, string> = {
   packDestination: 'Scegli la cartella di destinazione',
@@ -55,23 +61,43 @@ const handlers: IpcHandlers = {
   'pack:open': async (path) => {
     const result = await openPack(path)
     if (!result.ok) return result
-    setCurrentPack(result.source)
+    setSource('pack', result.source)
     return { ok: true, pack: result.pack }
   },
 
   'pack:listFiles': async () => {
-    const current = getCurrentPack()
+    const current = getSource('pack')
     if (!current) return { ok: false, error: 'Nessun pack aperto.' }
     try {
       const { files, truncated } = await listPackFiles(current.source)
-      return { ok: true, files, truncated, assetBase: packAssetBase(current.generation) }
+      return { ok: true, files, truncated, assetBase: assetBase('pack', current.generation) }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
       return { ok: false, error: `Impossibile leggere i file del pack: ${detail}` }
     }
   },
 
-  'pack:close': () => closeCurrentPack()
+  'pack:close': () => closeSource('pack'),
+
+  // TODO(settings): use the configured .minecraft path once Settings exist.
+  'vanilla:listVersions': async () => {
+    const minecraftDir = defaultMinecraftDir()
+    return { ok: true, minecraftDir, versions: await listInstalledVersions(minecraftDir) }
+  },
+
+  'vanilla:load': async (versionId) => {
+    const loaded = await loadVanillaJar(defaultMinecraftDir(), versionId)
+    if (!loaded.ok) return loaded
+    const { files } = await listPackFiles(loaded.source, VANILLA_TEXTURES_PREFIX)
+    const opened = setSource('vanilla', loaded.source)
+    return {
+      ok: true,
+      versionId: String(versionId),
+      resourceFormat: loaded.resourceFormat,
+      files,
+      assetBase: assetBase('vanilla', opened.generation)
+    }
+  }
 }
 
 export function registerIpcHandlers(): void {

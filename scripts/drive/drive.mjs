@@ -57,22 +57,32 @@ const electron = createRequire(import.meta.url)('electron')
 const child = spawn(
   electron,
   ['.', `--remote-debugging-port=${port}`, `--user-data-dir=${paths.userData}`],
-  { cwd: root, env: { ...process.env, PACKFORGE_TEST_DIALOG_PATH: paths.pack }, stdio: 'ignore' }
+  {
+    cwd: root,
+    env: { ...process.env, PACKFORGE_TEST_DIALOG_PATH: paths.pack },
+    stdio: 'ignore',
+    // --keep-open: the app must outlive this script.
+    detached: flag('--keep-open')
+  }
 )
 
 const results = []
 let exitCode = 0
 let socket
+let app = null
 try {
-  const app = await connect()
+  app = await connect()
   const scenario = await import(pathToFileURL(resolve(scenarioPath)).href)
   await scenario.default(app)
 } catch (error) {
   exitCode = 1
   console.log(`SCENARIO ERROR: ${error instanceof Error ? error.stack : error}`)
+  // What the window looked like when it failed.
+  if (app) console.log(`error screenshot: ${await app.shot('error').catch(() => 'unavailable')}`)
 } finally {
   socket?.close()
-  if (!flag('--keep-open')) killTree(child.pid)
+  if (flag('--keep-open')) child.unref()
+  else killTree(child.pid)
 }
 const failures = results.filter((r) => !r.ok).length
 if (failures > 0) exitCode = 1
@@ -183,7 +193,10 @@ function createApp(send) {
     async waitFor(expression, timeout = 10000) {
       const end = Date.now() + timeout
       for (;;) {
-        const value = await ev(expression)
+        // A DOM node cannot be returned by value (it would come back empty): count it as found.
+        const value = await ev(
+          `(() => { const v = (${expression}); return v instanceof Node ? true : v })()`
+        )
         if (value) return value
         if (Date.now() > end) throw new Error(`timeout waiting for: ${expression}`)
         await sleep(100)

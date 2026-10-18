@@ -4,6 +4,8 @@
 import type { LightingPresetId } from './lightingPresets'
 
 export type ToneMappingId = 'neutral' | 'aces' | 'agx' | 'reinhard' | 'none'
+/** Sun shadows: none, soft-edged, or snapped to the texture's pixels like the shader packs. */
+export type ShadowMode = 'off' | 'soft' | 'pixel'
 
 export interface EffectSettings {
   lighting: LightingPresetId
@@ -16,6 +18,7 @@ export interface EffectSettings {
   bloom: number
   /** Brightness of 100% emission (×albedo, in HDR units). */
   emission: number
+  shadows: ShadowMode
 }
 
 export const DEFAULT_EFFECTS: EffectSettings = {
@@ -24,7 +27,8 @@ export const DEFAULT_EFFECTS: EffectSettings = {
   exposure: 0,
   toneMapping: 'neutral',
   bloom: 0.5,
-  emission: 4
+  emission: 4,
+  shadows: 'pixel'
 }
 
 export interface DebugView {
@@ -70,4 +74,10 @@ export const TONE_MAPPINGS: ReadonlyArray<{ id: ToneMappingId; label: string }> 
   { id: 'agx', label: 'AgX' },
   { id: 'reinhard', label: 'Reinhard' },
   { id: 'none', label: 'Nessuno' }
+]
+
+export const SHADOW_MODES: ReadonlyArray<{ id: ShadowMode; label: string }> = [
+  { id: 'pixel', label: 'A pixel (come gli shader pack)' },
+  { id: 'soft', label: 'Morbide' },
+  { id: 'off', label: 'Spente' }
 ]

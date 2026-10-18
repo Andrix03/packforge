@@ -6,9 +6,11 @@ import { loadColormaps, tintFor, type ColormapPixels } from '../preview/colormap
 import { formatHour, normalizeHour } from '../preview/dayNight'
 import {
   DEBUG_VIEWS,
+  SHADOW_MODES,
   DEFAULT_EFFECTS,
   TONE_MAPPINGS,
   type EffectSettings,
+  type ShadowMode,
   type ToneMappingId
 } from '../preview/effects'
 import { LIGHTING_PRESETS, type LightingPresetId } from '../preview/lightingPresets'
@@ -497,6 +499,22 @@ export function TestScreen({
                   </select>
                 </label>
                 <span className="muted small">{preset.hint}</span>
+                <label className="inline-select" title="Ombre del sole (di notte della luna)">
+                  <span className="muted small">Ombre</span>
+                  <select
+                    value={effects.shadows}
+                    aria-label="Ombre"
+                    onChange={(event) =>
+                      updateEffects({ shadows: event.target.value as ShadowMode })
+                    }
+                  >
+                    {SHADOW_MODES.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <label className="inline-select">
                   <span className="muted small">Vista</span>
                   <select

@@ -36,6 +36,15 @@ uniform vec3 skyGround;
 // Light held by the viewer (at the camera), black when off.
 uniform vec3 torchColor;
 uniform float emissionStrength;
+// Sun/moon shadow map: 0 = off, 1 = soft, 2 = snapped to the texture's pixels (Photon's
+// PIXELATED_SHADOWS). shadowMatrix maps world positions to the map's clip space.
+uniform int shadowMode;
+uniform sampler2D shadowMap;
+uniform mat4 shadowMatrix;
+uniform bool shadowFromSun;
+uniform float shadowTexel;
+// Depth covered by the map, in blocks (to turn the bias into map depth).
+uniform float shadowRange;
 
 in vec2 vUv;
 in vec3 vNormal;
@@ -144,6 +153,32 @@ vec3 skyRadiance(vec3 dir) {
   return mix(skyHorizon, skyGround, smoothstep(0.0, 0.25, -dir.y));
 }
 
+// How much of the shadowed light (sun or moon) reaches this point: 1 = lit, 0 = in shadow.
+float lightVisibility(vec3 face, vec3 lightDir) {
+  if (shadowMode == 0) return 1.0;
+  // Pixels per block of this texture (16 for a 16× pack).
+  float res = frameA.z * float(textureSize(albedoMap, 0).x);
+  // Half a pixel out of the surface, so the face doesn't shadow itself.
+  vec3 p = vWorldPosition + face * (0.5 / res);
+  // Block edges are at .5 (blocks are centered on whole numbers): snap to their pixel centers.
+  if (shadowMode == 2) p = (floor((p + 0.5) * res + 0.01) + 0.5) / res - 0.5;
+  vec4 clip = shadowMatrix * vec4(p, 1.0);
+  vec3 coord = clip.xyz / clip.w * 0.5 + 0.5;
+  if (any(lessThan(coord, vec3(0.0))) || any(greaterThan(coord, vec3(1.0)))) return 1.0;
+  // Grazing light needs more bias (slope-scaled), in blocks then in map depth.
+  float NoL = clamp(dot(face, lightDir), 0.05, 1.0);
+  float bias = (0.01 + 0.03 * sqrt(1.0 - NoL * NoL) / NoL) / shadowRange;
+  float lit = 0.0;
+  // 3×3 PCF: a soft edge one map texel wide.
+  for (int i = -1; i <= 1; i++) {
+    for (int j = -1; j <= 1; j++) {
+      float depth = texture(shadowMap, coord.xy + vec2(float(i), float(j)) * shadowTexel).r;
+      lit += step(coord.z - bias, depth);
+    }
+  }
+  return lit / 9.0;
+}
+
 struct Surface {
   vec3 albedo;
   vec3 normal;
@@ -245,7 +280,10 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   // Game light: how much sky reaches this corner (stands in for shadows), block light, AO.
   float sky = lightBrightness(vLight.x);
   float cornerAo = vLight.z;
-  vec3 color = (shadeLight(s, sunDirection, sunColor) + shadeLight(s, moonDirection, moonColor)) * sky;
+  // With shadows the map says where the sun (or moon) reaches; without, sky light stands in.
+  float sunLit = shadowMode == 0 ? sky : (shadowFromSun ? lightVisibility(face, sunDirection) : sky);
+  float moonLit = shadowMode == 0 ? sky : (shadowFromSun ? sky : lightVisibility(face, moonDirection));
+  vec3 color = shadeLight(s, sunDirection, sunColor) * sunLit + shadeLight(s, moonDirection, moonColor) * moonLit;
   if (dot(torchColor, torchColor) > 0.0) {
     vec3 toTorch = cameraPosition - vWorldPosition;
     float falloff = max(0.0, 1.0 - length(toTorch) / TORCH_RANGE);

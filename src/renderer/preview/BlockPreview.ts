@@ -5,6 +5,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import fragmentShader from '../shaders/block.frag.glsl?raw'
+import shadowFragmentShader from '../shaders/shadow.frag.glsl?raw'
 import vertexShader from '../shaders/block.vert.glsl?raw'
 import {
   frameAt,
@@ -101,6 +102,9 @@ const RIGHT_HAND_OFFSET: Vec3 = [0.56, -0.52, -0.72]
 const BLOOM_THRESHOLD = 1.1
 const BLOOM_RADIUS = 0.15
 
+/** Shadow map side in texels: the scenes are small, so one map covers the whole world. */
+const SHADOW_MAP_SIZE = 2048
+
 const TONE_MAPPING: Record<ToneMappingId, THREE.ToneMapping> = {
   neutral: THREE.NeutralToneMapping,
   aces: THREE.ACESFilmicToneMapping,
@@ -141,6 +145,8 @@ interface LoadedPart {
   animation: TextureAnimation | null
   /** Drawn from a live canvas (the texture being edited) instead of its file. */
   live: boolean
+  /** Depth-only material for the shadow pass (null: translucent, casts no shadow). */
+  shadowMaterial: THREE.ShaderMaterial | null
 }
 
 interface LoadedModel {
@@ -162,6 +168,8 @@ interface Side {
   hand: THREE.Group
   /** World geometry built by layout (disposed on the next one). */
   geometries: THREE.BufferGeometry[]
+  /** Sphere around the world, to fit the shadow camera. */
+  bounds: THREE.Sphere
 }
 
 /**
@@ -189,8 +197,17 @@ export class BlockPreview {
     skyHorizon: { value: new THREE.Color() },
     skyGround: { value: new THREE.Color() },
     torchColor: { value: new THREE.Color() },
-    emissionStrength: { value: 0 }
+    emissionStrength: { value: 0 },
+    // Sun (or moon) shadows of the Effects view, rendered for each half before drawing it.
+    shadowMode: { value: 0 },
+    shadowMap: { value: null as THREE.Texture | null },
+    shadowMatrix: { value: new THREE.Matrix4() },
+    shadowFromSun: { value: true },
+    shadowTexel: { value: 1 / SHADOW_MAP_SIZE },
+    shadowRange: { value: 1 }
   }
+  private shadow: { target: THREE.WebGLRenderTarget; camera: THREE.OrthographicCamera } | null =
+    null
   /** LabPBR view (HDR → bloom → tone mapping); null = the vanilla look straight to the screen. */
   private effects: EffectSettings | null = null
   /** One HDR pipeline per half of the view (effects on), or null. */
@@ -437,6 +454,10 @@ export class BlockPreview {
     window.removeEventListener('keyup', this.onKeyUp)
     window.removeEventListener('blur', this.onBlur)
     for (const composer of this.composers ?? []) composer.dispose()
+    if (this.shadow) {
+      this.shadow.target.depthTexture?.dispose()
+      this.shadow.target.dispose()
+    }
     for (const part of this.allParts()) disposePart(part)
     for (const side of [this.main, this.other]) {
       for (const geometry of side.geometries) geometry.dispose()
@@ -599,6 +620,18 @@ export class BlockPreview {
         translucent: { value: part.translucent }
       }
     })
+    const shadowMaterial = part.translucent
+      ? null
+      : new THREE.ShaderMaterial({
+          vertexShader,
+          fragmentShader: shadowFragmentShader,
+          side: THREE.DoubleSide,
+          // Same objects: animation frames and live textures stay in sync.
+          uniforms: {
+            albedoMap: material.uniforms['albedoMap']!,
+            frameA: material.uniforms['frameA']!
+          }
+        })
     const loaded: LoadedPart = {
       quads: part.quads,
       geometry: buildGeometry(part.quads),
@@ -608,7 +641,8 @@ export class BlockPreview {
       specularMap: specularMap ?? defaultMaps().specular,
       imageSize,
       animation,
-      live: liveCanvas !== undefined
+      live: liveCanvas !== undefined,
+      shadowMaterial
     }
     setStaticFrame(loaded)
     return {
@@ -639,9 +673,83 @@ export class BlockPreview {
       for (const part of model.parts) {
         const geometry = buildGeometry(part.quads, model.positions, grid)
         side.geometries.push(geometry)
-        side.world.add(new THREE.Mesh(geometry, part.material))
+        const mesh = new THREE.Mesh(geometry, part.material)
+        mesh.userData['shadowMaterial'] = part.shadowMaterial
+        side.world.add(mesh)
       }
     }
+    const box = new THREE.Box3()
+    for (const geometry of side.geometries) {
+      geometry.computeBoundingBox()
+      if (geometry.boundingBox) box.union(geometry.boundingBox)
+    }
+    if (box.isEmpty()) side.bounds.set(new THREE.Vector3(), 0)
+    else box.getBoundingSphere(side.bounds)
+  }
+
+  /**
+   * Renders the shadow map of one side from the sun (or the moon at night), with an orthographic
+   * camera around its world, and points the shadow uniforms at it. Off without effects or light.
+   */
+  private renderShadow(side: Side): void {
+    const u = this.sharedUniforms
+    const mode = this.effects?.shadows ?? 'off'
+    const fromSun = u.sunDirection.value.y > 0
+    const color = fromSun ? u.sunColor.value : u.moonColor.value
+    const radius = side.bounds.radius
+    if (mode === 'off' || radius <= 0 || color.r + color.g + color.b <= 0) {
+      u.shadowMode.value = 0
+      return
+    }
+    this.shadow ??= {
+      target: new THREE.WebGLRenderTarget(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, {
+        depthTexture: new THREE.DepthTexture(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE)
+      }),
+      camera: new THREE.OrthographicCamera()
+    }
+    const { target, camera } = this.shadow
+    const direction = (fromSun ? u.sunDirection.value : u.moonDirection.value).clone().normalize()
+    camera.left = -radius
+    camera.right = radius
+    camera.top = radius
+    camera.bottom = -radius
+    camera.near = 0.5
+    camera.far = 2 * radius + 1
+    camera.up.set(0, Math.abs(direction.y) > 0.99 ? 0 : 1, Math.abs(direction.y) > 0.99 ? 1 : 0)
+    camera.position.copy(side.bounds.center).addScaledVector(direction, radius + 0.5)
+    camera.lookAt(side.bounds.center)
+    camera.updateProjectionMatrix()
+    camera.updateMatrixWorld()
+
+    for (const s of [this.main, this.other]) {
+      s.world.visible = s === side
+      s.hand.visible = false
+    }
+    const swapped: Array<[THREE.Mesh, THREE.Material]> = []
+    for (const child of side.world.children) {
+      if (!(child instanceof THREE.Mesh)) continue
+      const caster = child.userData['shadowMaterial'] as THREE.ShaderMaterial | null
+      swapped.push([child, child.material as THREE.Material])
+      if (caster) child.material = caster
+      else child.visible = false
+    }
+    const background = this.scene.background
+    this.scene.background = null
+    this.renderer.setRenderTarget(target)
+    this.renderer.clear()
+    this.renderer.render(this.scene, camera)
+    this.renderer.setRenderTarget(null)
+    this.scene.background = background
+    for (const [mesh, material] of swapped) {
+      mesh.material = material
+      mesh.visible = true
+    }
+
+    u.shadowMap.value = target.depthTexture
+    u.shadowMatrix.value.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+    u.shadowFromSun.value = fromSun
+    u.shadowRange.value = camera.far - camera.near
+    u.shadowMode.value = mode === 'pixel' ? 2 : 1
   }
 
   private *allParts(): Generator<LoadedPart> {
@@ -733,6 +841,7 @@ export class BlockPreview {
       : [[this.main, 0, size.x]]
     this.renderer.setScissorTest(this.comparing)
     halves.forEach(([side, x, width], i) => {
+      if (this.composers) this.renderShadow(side)
       this.renderer.setViewport(x, 0, width, size.y)
       this.renderer.setScissor(x, 0, width, size.y)
       this.main.world.visible = side === this.main
@@ -825,7 +934,8 @@ function emptySide(): Side {
     held: [],
     world: new THREE.Group(),
     hand: new THREE.Group(),
-    geometries: []
+    geometries: [],
+    bounds: new THREE.Sphere()
   }
 }
 
@@ -980,6 +1090,7 @@ function missingTexture(): THREE.Texture {
 function disposePart(part: LoadedPart): void {
   part.geometry.dispose()
   part.material.dispose()
+  part.shadowMaterial?.dispose()
   part.texture.dispose()
   const defaults = defaultMaps()
   if (part.normalMap !== defaults.normal) part.normalMap.dispose()

@@ -95,13 +95,13 @@ A dedicated screen to judge a finished texture as it will look in game, one clic
 
 ## Phase 6 — Effects: LabPBR shader
 
-- [ ] Decode `_n` (normal, AO, height) and `_s` (smoothness, F0/metals, porosity/SSS, emission)
-- [ ] PBR lighting (GGX) and predefined metals
-- [ ] Single-channel view and debug modes
-- [ ] Unit tests for encode/decode in `shared/labpbr.ts`
-- [ ] Tone mapping and exposure controls
-- [ ] Emission bloom
-- [ ] Environment lighting presets (overworld noon, sunset, cave, nether)
+- [x] Decode `_n` (normal, AO, height) and `_s` (smoothness, F0/metals, porosity/SSS, emission)
+- [x] PBR lighting (GGX) and predefined metals
+- [x] Single-channel view and debug modes
+- [x] Unit tests for encode/decode in `shared/labpbr.ts`
+- [x] Tone mapping and exposure controls
+- [x] Emission bloom
+- [x] Environment lighting presets (overworld noon, sunset, cave, nether)
 
 ## Phase 7 — Effects: POM
 

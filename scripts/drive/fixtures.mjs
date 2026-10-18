@@ -122,5 +122,45 @@ export async function createTestPack(dir) {
       Math.abs(x - 7.5) + Math.abs(y - 7.5) < 7 ? [60, 220, 230, 255] : [0, 0, 0, 0]
     )
   )
+  await writeLabPbr(block)
   return block
+}
+
+/**
+ * LabPBR maps (Phase 6): stone gets 4 bevelled 8×8 tiles (normals tilted at the tile edges,
+ * darker AO and lower height in the seams) and a rough `_s`; gold_block is predefined gold (231),
+ * smooth; glowstone has an emissive cross (alpha 254) on a rough base.
+ */
+async function writeLabPbr(block) {
+  await writeFile(
+    join(block, 'stone_n.png'),
+    png(16, 16, (x, y) => {
+      const u = x % 8
+      const v = y % 8
+      const seam = u === 0 || v === 0 || u === 7 || v === 7
+      const r = u === 0 ? 50 : u === 7 ? 206 : 128
+      const g = v === 0 ? 50 : v === 7 ? 206 : 128
+      return [r, g, seam ? 150 : 255, seam ? 140 : 255]
+    })
+  )
+  await writeFile(
+    join(block, 'stone_s.png'),
+    png(16, 16, () => [70, 10, 20, 255])
+  )
+  await writeFile(
+    join(block, 'gold_block.png'),
+    png(16, 16, (x, y) => [250, 205 - ((x + y) % 4) * 6, 70, 255])
+  )
+  await writeFile(
+    join(block, 'gold_block_s.png'),
+    png(16, 16, () => [235, 231, 0, 255])
+  )
+  await writeFile(
+    join(block, 'glowstone.png'),
+    png(16, 16, (x, y) => (x === 8 || y === 8 ? [255, 230, 150, 255] : [140, 100, 50, 255]))
+  )
+  await writeFile(
+    join(block, 'glowstone_s.png'),
+    png(16, 16, (x, y) => (x === 8 || y === 8 ? [0, 10, 0, 254] : [30, 10, 0, 255]))
+  )
 }

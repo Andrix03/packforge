@@ -10,6 +10,7 @@ import {
   type TextureRef
 } from '../../shared/blockModel'
 import { assetUrl } from '../../shared/ipc'
+import { mapPath } from '../../shared/labpbr'
 import type { MeshPart, Rgb } from './BlockPreview'
 
 /** Where preview assets come from: the pack first, then the vanilla jar. */
@@ -27,6 +28,17 @@ export function resolveAssetUrl(sources: AssetSources, path: string): string | n
   }
   if (sources.vanilla?.files.has(path)) return assetUrl(sources.vanilla.base, path)
   return null
+}
+
+/** URLs of a texture's LabPBR maps (`_n`, `_s`); null where missing. */
+export function labPbrUrls(
+  sources: AssetSources,
+  texturePath: string
+): { normalUrl: string | null; specularUrl: string | null } {
+  return {
+    normalUrl: resolveAssetUrl(sources, mapPath(texturePath, 'normal')),
+    specularUrl: resolveAssetUrl(sources, mapPath(texturePath, 'specular'))
+  }
 }
 
 async function loadJson(sources: AssetSources, path: string): Promise<unknown> {
@@ -73,7 +85,12 @@ export function guessBlockForTexture(textureKey: string, blocks: readonly string
 }
 
 /** Mesh for a single texture on a full cube (the "Cubo" shape). */
-export function cubeMesh(key: string, url: string, mcmetaUrl: string | null): MeshPart[] {
+export function cubeMesh(
+  key: string,
+  url: string,
+  mcmetaUrl: string | null,
+  maps: ReturnType<typeof labPbrUrls> | null = null
+): MeshPart[] {
   const texture: TextureRef = { id: key, translucent: false }
   const face = { uv: null, texture, rotation: 0 as const, tintIndex: -1 }
   const model: ResolvedModel = {
@@ -93,6 +110,7 @@ export function cubeMesh(key: string, url: string, mcmetaUrl: string | null): Me
       key,
       url,
       mcmetaUrl,
+      ...maps,
       translucent: false,
       quads: buildQuads(model, { x: 0, y: 0 }).map((quad) => ({ quad, tint: WHITE }))
     }
@@ -169,6 +187,7 @@ export async function loadBlockMesh(
       path,
       url: path ? resolveAssetUrl(sources, path) : null,
       mcmetaUrl: mcmetaPath ? resolveAssetUrl(sources, mcmetaPath) : null,
+      ...(path ? labPbrUrls(sources, path) : null),
       translucent: group.texture?.translucent ?? false,
       quads: group.quads
     })

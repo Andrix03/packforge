@@ -6,7 +6,13 @@ import {
 } from '../../shared/itemModel'
 import { decodePng } from '../../shared/pngCodec'
 import type { MeshPart, Rgb, Vec3, WorldModel } from '../preview/BlockPreview'
-import { cubeMesh, loadBlockMesh, resolveAssetUrl, type AssetSources } from '../preview/modelSource'
+import {
+  cubeMesh,
+  labPbrUrls,
+  loadBlockMesh,
+  resolveAssetUrl,
+  type AssetSources
+} from '../preview/modelSource'
 import { MINE, type Placement } from '../preview/testScenes'
 
 export type TintOf = (block: string) => (tintIndex: number) => Rgb | null
@@ -46,7 +52,12 @@ export async function loadMine(
   const url = resolveAssetUrl(sources, texturePath)
   if (!url) return null
   return {
-    parts: cubeMesh(texturePath, url, resolveAssetUrl(sources, `${texturePath}.mcmeta`)),
+    parts: cubeMesh(
+      texturePath,
+      url,
+      resolveAssetUrl(sources, `${texturePath}.mcmeta`),
+      labPbrUrls(sources, texturePath)
+    ),
     warnings: []
   }
 }
@@ -102,7 +113,8 @@ export function itemMesh(
   url: string,
   mcmetaUrl: string | null,
   sprite: Sprite,
-  frameHeight: number | null
+  frameHeight: number | null,
+  maps: { normalUrl: string | null; specularUrl: string | null } | null = null
 ): MeshPart[] {
   const width = sprite.width
   const height = Math.min(sprite.height, frameHeight ?? Math.min(sprite.width, sprite.height))
@@ -112,6 +124,7 @@ export function itemMesh(
       key,
       url,
       mcmetaUrl,
+      ...maps,
       translucent: false,
       quads: itemQuads(width, height, opaque, { id: key, translucent: false }).map((quad) => ({
         quad,

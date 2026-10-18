@@ -4,7 +4,20 @@ import type { EditorTarget } from '../editor/TextureEditor'
 import { BlockPreview, type LiveAnimation } from '../preview/BlockPreview'
 import { loadColormaps, tintFor, type ColormapPixels } from '../preview/colormaps'
 import { formatHour, normalizeHour } from '../preview/dayNight'
-import { guessBlockForTexture, listBlocks, resolveAssetUrl } from '../preview/modelSource'
+import {
+  DEBUG_VIEWS,
+  DEFAULT_EFFECTS,
+  TONE_MAPPINGS,
+  type EffectSettings,
+  type ToneMappingId
+} from '../preview/effects'
+import { LIGHTING_PRESETS, type LightingPresetId } from '../preview/lightingPresets'
+import {
+  guessBlockForTexture,
+  labPbrUrls,
+  listBlocks,
+  resolveAssetUrl
+} from '../preview/modelSource'
 import {
   BLOCK_SCENES,
   DEFAULT_NEIGHBOURS,
@@ -96,6 +109,16 @@ export function TestScreen({
   const colormapsRef = useRef<Promise<ColormapPixels> | null>(null)
   const vanillaItemUrl =
     isItem && vanillaSources ? resolveAssetUrl(vanillaSources, target.path) : null
+  const maps = useMemo(() => labPbrUrls(sources, target.path), [sources, target.path])
+  // Effects start on when the texture has LabPBR maps to show.
+  const [effectsOn, setEffectsOn] = useState(
+    () => maps.normalUrl !== null || maps.specularUrl !== null
+  )
+  const [effects, setEffects] = useState<EffectSettings>(DEFAULT_EFFECTS)
+  const updateEffects = (change: Partial<EffectSettings>): void =>
+    setEffects((old) => ({ ...old, ...change }))
+  const preset = LIGHTING_PRESETS.find((p) => p.id === effects.lighting) ?? LIGHTING_PRESETS[0]!
+  const followsHour = !effectsOn || effects.lighting === 'time'
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -118,6 +141,7 @@ export function TestScreen({
     [live, target.url]
   )
   useEffect(() => previewRef.current?.setTime(hour), [hour])
+  useEffect(() => previewRef.current?.setEffects(effectsOn ? effects : null), [effectsOn, effects])
   useEffect(() => previewRef.current?.setMipmaps(mipmaps), [mipmaps])
   useEffect(() => previewRef.current?.setFly(fly), [fly])
   useEffect(() => previewRef.current?.setView(scene.focus, scene.camera, scene.fov), [scene])
@@ -191,7 +215,9 @@ export function TestScreen({
       if (!current) return
       const frameHeight = live?.animation ? live.animation.frameHeight : null
       await view.setHeld(
-        sprite ? itemMesh(target.path, target.url, target.mcmetaUrl, sprite, frameHeight) : null,
+        sprite
+          ? itemMesh(target.path, target.url, target.mcmetaUrl, sprite, frameHeight, maps)
+          : null,
         theirs && vanillaItemUrl && vanillaSources
           ? itemMesh(
               'vanilla',
@@ -208,7 +234,7 @@ export function TestScreen({
     return () => {
       current = false
     }
-  }, [isItem, live, target, sources, comparing, vanillaItemUrl, vanillaSources])
+  }, [isItem, live, target, sources, comparing, vanillaItemUrl, vanillaSources, maps])
 
   // Day/night cycle: advance the hour on animation frames while playing.
   useEffect(() => {
@@ -407,6 +433,7 @@ export function TestScreen({
                 max={24}
                 step={0.05}
                 value={hour}
+                disabled={!followsHour}
                 aria-label="Ora del giorno"
                 onChange={(event) => {
                   setCycling(false)
@@ -414,9 +441,14 @@ export function TestScreen({
                 }}
               />
             </label>
-            <button type="button" onClick={() => setCycling((on) => !on)}>
+            <button type="button" disabled={!followsHour} onClick={() => setCycling((on) => !on)}>
               {cycling ? '⏸ Ferma ciclo' : '▶ Ciclo giorno/notte'}
             </button>
+            {!followsHour && (
+              <span className="muted small">
+                La luce segue il preset degli effetti (scegli «Ora del giorno» per usare l’ora).
+              </span>
+            )}
             <label className="inline-select">
               <span className="muted small">Bioma (erba, foglie)</span>
               <select value={biomeId} onChange={(event) => setBiomeId(event.target.value)}>
@@ -427,6 +459,129 @@ export function TestScreen({
                 ))}
               </select>
             </label>
+          </section>
+
+          <section className="test-section">
+            <strong>Effetti (LabPBR)</strong>
+            <label
+              className="checkbox-inline"
+              title="Come con uno shader LabPBR (Iris): normali, riflessi, metalli, emissione"
+            >
+              <input
+                type="checkbox"
+                checked={effectsOn}
+                onChange={(event) => setEffectsOn(event.target.checked)}
+              />
+              Mostra effetti
+            </label>
+            <span className="muted small" aria-label="Mappe LabPBR">
+              Mappe di questa texture: {maps.normalUrl ? '✓' : '✗'} _n (normali){' '}
+              {maps.specularUrl ? '✓' : '✗'} _s (materiale)
+            </span>
+            {effectsOn && (
+              <>
+                <label className="inline-select">
+                  <span className="muted small">Luce</span>
+                  <select
+                    value={effects.lighting}
+                    aria-label="Luce degli effetti"
+                    onChange={(event) =>
+                      updateEffects({ lighting: event.target.value as LightingPresetId })
+                    }
+                  >
+                    {LIGHTING_PRESETS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <span className="muted small">{preset.hint}</span>
+                <label className="inline-select">
+                  <span className="muted small">Vista</span>
+                  <select
+                    value={effects.view}
+                    aria-label="Vista canale"
+                    onChange={(event) => updateEffects({ view: Number(event.target.value) })}
+                  >
+                    {DEBUG_VIEWS.map((v, index) => (
+                      <option key={v.label} value={index}>
+                        {v.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <span className="muted small">{DEBUG_VIEWS[effects.view]?.hint}</span>
+                <label className="preview-control">
+                  <span>
+                    Esposizione{' '}
+                    <strong>
+                      {effects.exposure > 0 ? '+' : ''}
+                      {effects.exposure.toFixed(1)} EV
+                    </strong>
+                  </span>
+                  <input
+                    type="range"
+                    min={-3}
+                    max={3}
+                    step={0.1}
+                    value={effects.exposure}
+                    aria-label="Esposizione"
+                    onChange={(event) => updateEffects({ exposure: Number(event.target.value) })}
+                  />
+                </label>
+                <label className="inline-select">
+                  <span className="muted small">Tone mapping</span>
+                  <select
+                    value={effects.toneMapping}
+                    aria-label="Tone mapping"
+                    onChange={(event) =>
+                      updateEffects({ toneMapping: event.target.value as ToneMappingId })
+                    }
+                  >
+                    {TONE_MAPPINGS.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="preview-control">
+                  <span>
+                    Bloom <strong>{effects.bloom > 0 ? effects.bloom.toFixed(2) : 'spento'}</strong>
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2}
+                    step={0.05}
+                    value={effects.bloom}
+                    aria-label="Bloom"
+                    onChange={(event) => updateEffects({ bloom: Number(event.target.value) })}
+                  />
+                </label>
+                <label className="preview-control">
+                  <span>
+                    Forza emissione <strong>×{effects.emission.toFixed(1)}</strong>
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={10}
+                    step={0.5}
+                    value={effects.emission}
+                    aria-label="Forza emissione"
+                    onChange={(event) => updateEffects({ emission: Number(event.target.value) })}
+                  />
+                </label>
+                <button type="button" onClick={() => setEffects(DEFAULT_EFFECTS)}>
+                  Ripristina effetti
+                </button>
+                <span className="muted small">
+                  Anteprima approssimata: ogni shader pack interpreta LabPBR a modo suo.
+                </span>
+              </>
+            )}
           </section>
         </aside>
       </div>

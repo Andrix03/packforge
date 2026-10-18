@@ -147,6 +147,37 @@ export function buildQuads(
   return quads
 }
 
+/**
+ * Directions on a quad in which its texture's u grows (right in the image) and v grows (down, image
+ * rows): the tangent frame of LabPBR normal maps (DirectX convention, green = down).
+ * Faces whose UVs are degenerate (zero width or height) fall back to the quad's own edges.
+ */
+export function textureAxes(quad: Pick<Quad, 'positions' | 'uvs' | 'normal'>): {
+  right: Vec3
+  down: Vec3
+} {
+  const [p0, p1, , p3] = quad.positions
+  const [t0, t1, , t3] = quad.uvs
+  const e1 = sub(p1, p0)
+  const e2 = sub(p3, p0)
+  const du1 = t1[0] - t0[0]
+  const dv1 = t1[1] - t0[1]
+  const du2 = t3[0] - t0[0]
+  const dv2 = t3[1] - t0[1]
+  const det = du1 * dv2 - du2 * dv1
+  if (Math.abs(det) < 1e-9) {
+    const right = normalize(e1)
+    return { right, down: normalize(cross(right, quad.normal)) }
+  }
+  const right = e1.map((v, i) => (v * dv2 - e2[i]! * dv1) / det) as Vec3
+  const down = e2.map((v, i) => (v * du1 - e1[i]! * du2) / det) as Vec3
+  return { right: normalize(right), down: normalize(down) }
+}
+
+function cross(a: Vec3, b: Vec3): Vec3 {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+}
+
 /** Element rotation around its origin (right-hand rule, degrees), with rescale. */
 function transformElement(point: Vec3, element: ModelElement, isDirection = false): Vec3 {
   const rotation = element.rotation

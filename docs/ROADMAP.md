@@ -52,12 +52,12 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 - [x] Pixel canvas with zoom, pan and pixel grid
 - [x] Pencil (optional pixel-perfect stroke) and eraser
 - [x] Fill bucket (contiguous or global) and color picker (also Alt + click with any tool)
-- [ ] Hard-pixel brush only (no soft edges / anti-aliasing), size 1–3 px in Beginner, free in Pro
+- [x] Hard-pixel brush only (no soft edges / anti-aliasing), size 1–3 px in Beginner, free in Pro (1–8, [ and ])
 - [x] Primary/secondary color on left/right click (secondary defaults to transparent), X swaps them
 - [x] Color picker panel: hex/RGB/HSV input, alpha, recent colors (full panel in Pro)
-- [ ] Ramp generator: 5 shades from a base color with hue shifting (cool shadows, warm highlights)
-- [ ] Shade tool: left click one step darker, right click one step lighter along the ramp
-- [ ] Noise fill: fill an area with random shades of the ramp (base for stone, dirt, gravel)
+- [x] Ramp generator: 5 shades from a base color with hue shifting (cool shadows, warm highlights)
+- [x] Shade tool: left click one step darker, right click one step lighter along the ramp
+- [x] Noise fill: fill an area with random shades of the ramp (base for stone, dirt, gravel)
 - [x] Replace color: swap one color for another across the whole texture (fill bucket, Globale mode)
 - [x] Texture palette: the colors already used, sorted by brightness, with a color counter
 - [ ] Soft warnings in Beginner mode: too many colors (> ~10), darkest next to lightest, too much contrast
@@ -69,7 +69,7 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 - [ ] New texture wizard (pick the block, size 16×/32×/64×…, start empty / base color / noise)
 - [ ] Vanilla texture as a side-by-side or traced reference (color picking allowed, pixels never copied into the pack)
 - [x] Live 3D preview and 3×3 tiling preview of the texture being edited
-- [ ] Keyboard shortcuts for the basic tools (B, E, G, I, S, X, Ctrl+Z / Ctrl+Y)
+- [x] Keyboard shortcuts for the basic tools (B, E, G, I, S, N, X, [ ], Ctrl+S, Ctrl+Z / Ctrl+Y)
 
 ## Phase 4 — Draw: Pro tools
 

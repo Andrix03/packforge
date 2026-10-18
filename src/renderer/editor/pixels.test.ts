@@ -168,6 +168,42 @@ describe('Stroke', () => {
     expect(render(b)).toEqual(['###'])
   })
 
+  it('stamps a square brush, centered on odd sizes', () => {
+    const b = buffer(5, 5)
+    new Stroke(b, RED, false, 3).add({ x: 2, y: 2 })
+    expect(render(b)).toEqual(['.....', '.###.', '.###.', '.###.', '.....'])
+    const even = buffer(4, 4)
+    new Stroke(even, RED, false, 2).add({ x: 1, y: 1 })
+    expect(render(even)).toEqual(['....', '.##.', '.##.', '....'])
+  })
+
+  it('paints the visible part of a brush at the edge', () => {
+    const b = buffer(3, 3)
+    new Stroke(b, RED, false, 3).add({ x: 0, y: 0 })
+    expect(render(b)).toEqual(['##.', '##.', '...'])
+  })
+
+  it('applies a color function once per pixel per stroke', () => {
+    const b = buffer(3, 1, GRAY)
+    let calls = 0
+    const darker = (before: Rgba): Rgba => {
+      calls++
+      return [before[0] - 10, before[1] - 10, before[2] - 10, 255]
+    }
+    const stroke = new Stroke(b, darker, true)
+    stroke.add({ x: 0, y: 0 })
+    stroke.add({ x: 2, y: 0 })
+    stroke.add({ x: 0, y: 0 })
+    expect(calls).toBe(3)
+    expect(getPixel(b, 1, 0)).toEqual([90, 90, 90, 255])
+  })
+
+  it('leaves pixels alone when the color function returns null', () => {
+    const b = buffer(2, 1, GRAY)
+    new Stroke(b, () => null, false).add({ x: 0, y: 0 })
+    expect(getPixel(b, 0, 0)).toEqual(GRAY)
+  })
+
   it('lists only the pixels that really changed', () => {
     const b = buffer(3, 1, RED)
     const same = new Stroke(b, RED, false)
@@ -259,6 +295,13 @@ describe('fill', () => {
     // (1,1) is gray but touches (0,0) only diagonally.
     fill(b, 0, 0, BLUE, 'contiguous')
     expect(render(b, BLUE)).toEqual(['#.', '..'])
+  })
+
+  it('records the real previous color for undo, even for odd transparent pixels', () => {
+    const b = buffer(1, 1, TRANSPARENT)
+    b.data.set([9, 9, 9, 0])
+    const [change] = fill(b, 0, 0, RED, 'contiguous')
+    expect(change!.before).toEqual([9, 9, 9, 0])
   })
 
   it('ignores clicks outside the buffer', () => {

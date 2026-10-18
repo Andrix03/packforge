@@ -7,7 +7,9 @@ import { EditorTools } from './EditorTools'
 import { TilingPreview } from './TilingPreview'
 import { History } from './history'
 import { fill, getPixel, Stroke, TRANSPARENT, type FillMode, type Rgba } from './pixels'
-import { toolByShortcut, type ToolId } from './tools'
+import { DEFAULT_RAMP, generateRamp, noiseFill, shiftAlongRamp, type RampOptions } from './ramp'
+import { RampPanel } from './RampPanel'
+import { BRUSH_TOOLS, MAX_BRUSH_SIZE, toolByShortcut, type ToolId } from './tools'
 import {
   clampViewport,
   fitViewport,
@@ -43,6 +45,9 @@ type Loaded =
 interface Tools {
   tool: ToolId
   pixelPerfect: boolean
+  brushSize: number
+  /** Shades used by the shade and noise tools, darkest first. */
+  ramp: readonly Rgba[]
   fillMode: FillMode
   primary: Rgba
   secondary: Rgba
@@ -62,6 +67,8 @@ export function TextureEditor({
   const [tools, setTools] = useState<Tools>({
     tool: 'pencil',
     pixelPerfect: false,
+    brushSize: 1,
+    ramp: [],
     fillMode: 'contiguous',
     primary: [255, 255, 255, 255],
     // Secondary defaults to transparent: right click erases.
@@ -75,6 +82,14 @@ export function TextureEditor({
   /** Bumped on every painted change, to refresh the live previews. */
   const [revision, setRevision] = useState(0)
   const [recent, setRecent] = useState<Rgba[]>([])
+  /** Ramp base color; null = follow the primary color until the ramp is used or picked from. */
+  const [rampBase, setRampBase] = useState<Rgba | null>(null)
+  const [rampOptions, setRampOptions] = useState<RampOptions>(DEFAULT_RAMP)
+  const ramp = useMemo(
+    () => generateRamp(rampBase ?? tools.primary, rampOptions),
+    [rampBase, tools.primary, rampOptions]
+  )
+  const lockRamp = (): void => setRampBase((base) => base ?? tools.primary)
   const pixels = loaded.status === 'ready' ? loaded.pixels : null
   // Recomputed after every change; cheap even at 64× (a single pass over the pixels).
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,6 +171,13 @@ export function TextureEditor({
       const tool = toolByShortcut(event.key)
       if (tool) setTools((t) => ({ ...t, tool }))
       else if (event.key.toLowerCase() === 'x') swap()
+      else if (event.key === '[' || event.key === ']') {
+        const step = event.key === ']' ? 1 : -1
+        setTools((t) => ({
+          ...t,
+          brushSize: Math.min(MAX_BRUSH_SIZE, Math.max(1, t.brushSize + step))
+        }))
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -226,6 +248,21 @@ export function TextureEditor({
             onTool={(tool) => setTools((t) => ({ ...t, tool }))}
             pixelPerfect={tools.pixelPerfect}
             onPixelPerfect={(pixelPerfect) => setTools((t) => ({ ...t, pixelPerfect }))}
+            brushSize={tools.brushSize}
+            onBrushSize={(brushSize) => setTools((t) => ({ ...t, brushSize }))}
+            rampPanel={
+              <RampPanel
+                ramp={ramp}
+                options={rampOptions}
+                onOptions={setRampOptions}
+                locked={rampBase !== null}
+                onFromPrimary={() => setRampBase(tools.primary)}
+                onPick={(slot, color) => {
+                  lockRamp()
+                  setTools((t) => ({ ...t, [slot]: color }))
+                }}
+              />
+            }
             fillMode={tools.fillMode}
             onFillMode={(fillMode) => setTools((t) => ({ ...t, fillMode }))}
             primary={tools.primary}
@@ -239,11 +276,12 @@ export function TextureEditor({
           <PixelCanvas
             pixels={loaded.pixels}
             source={loaded.source}
-            tools={target.readOnly ? null : tools}
+            tools={target.readOnly ? null : { ...tools, ramp }}
             history={history}
             onModifiedChange={setModified}
             onPixelsChanged={() => setRevision((r) => r + 1)}
             onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
+            onRampUsed={lockRamp}
             onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
           />
           <div className="editor-side">
@@ -269,6 +307,7 @@ function PixelCanvas({
   onModifiedChange,
   onPixelsChanged,
   onColorUsed,
+  onRampUsed,
   onPickColor
 }: {
   pixels: ImageData
@@ -282,6 +321,8 @@ function PixelCanvas({
   onPixelsChanged: () => void
   /** A color was painted with (for the recent colors). */
   onColorUsed: (color: Rgba) => void
+  /** The shade or noise tool used the ramp: it must stop following the primary color. */
+  onRampUsed: () => void
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -345,7 +386,8 @@ function PixelCanvas({
     if (!canvas || !viewSize || !viewport) return
     canvas.width = viewSize.width
     canvas.height = viewSize.height
-    drawCanvas(canvas, source, viewport, showGrid, tools ? hover : null)
+    const brush = tools && BRUSH_TOOLS.has(tools.tool) ? tools.brushSize : 1
+    drawCanvas(canvas, source, viewport, showGrid, tools ? hover : null, brush)
   }, [source, viewSize, viewport, showGrid, hover, tools, revision])
 
   const zoomCentered = useCallback(
@@ -453,18 +495,36 @@ function PixelCanvas({
       if (pixel) onPickColor(slot, getPixel(pixels, pixel.x, pixel.y))
       return
     }
-    if (tool === 'fill') {
+    if (tool === 'fill' || tool === 'noise') {
       if (!pixel) return
-      onColorUsed(tools[slot])
-      history.push(fill(pixels, pixel.x, pixel.y, tools[slot], tools.fillMode))
+      if (tool === 'fill') onColorUsed(tools[slot])
+      else onRampUsed()
+      history.push(
+        tool === 'fill'
+          ? fill(pixels, pixel.x, pixel.y, tools[slot], tools.fillMode)
+          : noiseFill(pixels, pixel.x, pixel.y, tools.ramp, tools.fillMode)
+      )
       showChanges()
       syncHistory()
       return
     }
     event.currentTarget.setPointerCapture(event.pointerId)
-    const color = tool === 'eraser' ? TRANSPARENT : tools[slot]
-    onColorUsed(color)
-    const current = new Stroke(pixels, color, tool === 'pencil' && tools.pixelPerfect)
+    let current: Stroke
+    if (tool === 'shade') {
+      onRampUsed()
+      const ramp = tools.ramp
+      const direction = slot === 'primary' ? -1 : 1
+      current = new Stroke(
+        pixels,
+        (before) => shiftAlongRamp(ramp, before, direction),
+        false,
+        tools.brushSize
+      )
+    } else {
+      const color = tool === 'eraser' ? TRANSPARENT : tools[slot]
+      onColorUsed(color)
+      current = new Stroke(pixels, color, tool === 'pencil' && tools.pixelPerfect, tools.brushSize)
+    }
     stroke.current = { pointerId: event.pointerId, stroke: current }
     if (current.add(screenToImage(viewport, point.x, point.y))) showChanges()
   }
@@ -605,7 +665,8 @@ function drawCanvas(
   source: HTMLCanvasElement,
   viewport: Viewport,
   showGrid: boolean,
-  hover: { x: number; y: number } | null
+  hover: { x: number; y: number } | null,
+  brushSize: number
 ): void {
   const context = canvas.getContext('2d')
   if (!context) return
@@ -646,15 +707,18 @@ function drawCanvas(
   context.lineWidth = 1
   context.strokeRect(x - 0.5, y - 0.5, width + 1, height + 1)
 
-  // Outline of the pixel the tool will paint: dark + light so it shows on any color.
+  // Outline of the pixels the tool will paint (same footprint as Stroke's brush): dark + light so
+  // it shows on any color.
   if (hover) {
-    const hx = x + hover.x * zoom
-    const hy = y + hover.y * zoom
+    const offset = Math.floor((brushSize - 1) / 2)
+    const hx = x + (hover.x - offset) * zoom
+    const hy = y + (hover.y - offset) * zoom
+    const side = brushSize * zoom
     context.strokeStyle = 'rgba(0, 0, 0, 0.8)'
-    context.strokeRect(hx + 0.5, hy + 0.5, zoom - 1, zoom - 1)
+    context.strokeRect(hx + 0.5, hy + 0.5, side - 1, side - 1)
     if (zoom >= 4) {
       context.strokeStyle = 'rgba(255, 255, 255, 0.9)'
-      context.strokeRect(hx + 1.5, hy + 1.5, zoom - 3, zoom - 3)
+      context.strokeRect(hx + 1.5, hy + 1.5, side - 3, side - 3)
     }
   }
 }

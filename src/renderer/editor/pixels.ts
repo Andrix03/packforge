@@ -69,21 +69,33 @@ export function linePoints(from: Point, to: Point): Point[] {
 }
 
 /**
- * One pencil/eraser stroke. Pointer samples are joined with lines so fast moves leave no gaps.
- * In pixel-perfect mode, L-shaped corners (two orthogonal steps that could be one diagonal step)
- * lose their middle pixel, which is restored to its color from before the stroke: this keeps
- * hand-drawn lines one pixel thin, as pixel artists do by hand.
+ * What a stroke writes: a fixed color (pencil, eraser) or a function of the pixel's color before
+ * the stroke (shade tool; null leaves the pixel alone). A function is applied once per pixel per
+ * stroke, so going back and forth over a pixel doesn't keep darkening it.
+ */
+export type StrokePaint = Rgba | ((before: Rgba) => Rgba | null)
+
+/**
+ * One brush stroke. Pointer samples are joined with lines so fast moves leave no gaps; each point
+ * stamps a square brush of `size` pixels (centered on odd sizes; even sizes extend right/down).
+ * In pixel-perfect mode (1-pixel fixed-color brush only), L-shaped corners (two orthogonal steps
+ * that could be one diagonal step) lose their middle pixel, which is restored to its color from
+ * before the stroke: this keeps hand-drawn lines one pixel thin, as pixel artists do by hand.
  */
 export class Stroke {
   private readonly path: Point[] = []
   /** Color of each touched pixel before the stroke, keyed by pixel index. */
   private readonly originals = new Map<number, Rgba>()
+  private readonly pixelPerfect: boolean
 
   constructor(
     private readonly buffer: PixelBuffer,
-    private readonly color: Rgba,
-    private readonly pixelPerfect: boolean
-  ) {}
+    private readonly paintWith: StrokePaint,
+    pixelPerfect: boolean,
+    private readonly size = 1
+  ) {
+    this.pixelPerfect = pixelPerfect && size === 1 && typeof paintWith !== 'function'
+  }
 
   /** Adds a pointer sample; returns true if any pixel changed. */
   add(point: Point): boolean {
@@ -91,13 +103,8 @@ export class Stroke {
     const segment = last ? linePoints(last, point).slice(1) : [point]
     let changed = false
     for (const p of segment) {
-      if (p.x < 0 || p.y < 0 || p.x >= this.buffer.width || p.y >= this.buffer.height) {
-        // Off-canvas samples break the L-corner chain but are not painted.
-        this.path.push(p)
-        continue
-      }
       this.path.push(p)
-      changed = this.paint(p) || changed
+      changed = this.stamp(p) || changed
       if (this.pixelPerfect) changed = this.removeCorner() || changed
     }
     return changed
@@ -117,10 +124,26 @@ export class Stroke {
     return changes
   }
 
-  private paint(p: Point): boolean {
-    const index = p.y * this.buffer.width + p.x
-    if (!this.originals.has(index)) this.originals.set(index, getPixel(this.buffer, p.x, p.y))
-    return setPixel(this.buffer, p.x, p.y, this.color)
+  private stamp(center: Point): boolean {
+    const offset = Math.floor((this.size - 1) / 2)
+    let changed = false
+    for (let dy = 0; dy < this.size; dy++) {
+      for (let dx = 0; dx < this.size; dx++) {
+        changed = this.paint(center.x - offset + dx, center.y - offset + dy) || changed
+      }
+    }
+    return changed
+  }
+
+  private paint(x: number, y: number): boolean {
+    if (x < 0 || y < 0 || x >= this.buffer.width || y >= this.buffer.height) return false
+    const index = y * this.buffer.width + x
+    const seen = this.originals.has(index)
+    if (!seen) this.originals.set(index, getPixel(this.buffer, x, y))
+    if (typeof this.paintWith !== 'function') return setPixel(this.buffer, x, y, this.paintWith)
+    if (seen) return false
+    const color = this.paintWith(this.originals.get(index)!)
+    return color ? setPixel(this.buffer, x, y, color) : false
   }
 
   private removeCorner(): boolean {
@@ -170,22 +193,20 @@ export function fill(
   color: Rgba,
   mode: FillMode
 ): PixelChange[] {
+  return paintPixels(buffer, fillRegion(buffer, x, y, mode), () => color)
+}
+
+/** Indices of the pixels the bucket would fill from (x, y); empty outside the buffer. */
+export function fillRegion(buffer: PixelBuffer, x: number, y: number, mode: FillMode): number[] {
   if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) return []
   const target = getPixel(buffer, x, y)
-  const changes: PixelChange[] = []
-  const paint = (index: number): void => {
-    const px = index % buffer.width
-    const py = Math.floor(index / buffer.width)
-    if (setPixel(buffer, px, py, color)) {
-      changes.push({ index, before: target, after: getPixel(buffer, px, py) })
-    }
-  }
   const total = buffer.width * buffer.height
   const matches = (index: number): boolean => sameColor(buffer, index, target)
+  const region: number[] = []
 
   if (mode === 'global') {
-    for (let index = 0; index < total; index++) if (matches(index)) paint(index)
-    return changes
+    for (let index = 0; index < total; index++) if (matches(index)) region.push(index)
+    return region
   }
 
   const visited = new Uint8Array(total)
@@ -193,6 +214,7 @@ export function fill(
   visited[stack[0]!] = 1
   while (stack.length > 0) {
     const index = stack.pop()!
+    region.push(index)
     const px = index % buffer.width
     const neighbors = [
       px > 0 ? index - 1 : -1,
@@ -205,8 +227,24 @@ export function fill(
       visited[n] = 1
       stack.push(n)
     }
-    // Painted after its neighbors were checked, so the new color can't confuse `matches`.
-    paint(index)
+  }
+  return region
+}
+
+/** Sets each pixel to `colorFor(index)`; returns what changed (with the real previous colors). */
+export function paintPixels(
+  buffer: PixelBuffer,
+  indices: readonly number[],
+  colorFor: (index: number) => Rgba
+): PixelChange[] {
+  const changes: PixelChange[] = []
+  for (const index of indices) {
+    const x = index % buffer.width
+    const y = Math.floor(index / buffer.width)
+    const before = getPixel(buffer, x, y)
+    if (setPixel(buffer, x, y, colorFor(index))) {
+      changes.push({ index, before, after: getPixel(buffer, x, y) })
+    }
   }
   return changes
 }

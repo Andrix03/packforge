@@ -1325,3 +1325,36 @@ kbd {
   appearance: none;
   margin: 0;
 }
+
+.ramp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ramp-swatches {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.ramp-swatch {
+  flex: 1;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.ramp-swatch:hover {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.small-button {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  align-self: flex-start;
+}

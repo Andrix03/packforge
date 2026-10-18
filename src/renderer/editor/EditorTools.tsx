@@ -1,13 +1,17 @@
 import type { UsedColor } from './color'
 import { ColorPanel } from './ColorPanel'
 import type { FillMode, Rgba } from './pixels'
-import { TOOLS, type ToolId } from './tools'
+import { BRUSH_TOOLS, MAX_BRUSH_SIZE, TOOLS, type ToolId } from './tools'
 
 interface EditorToolsProps {
   tool: ToolId
   onTool: (tool: ToolId) => void
   pixelPerfect: boolean
   onPixelPerfect: (value: boolean) => void
+  brushSize: number
+  onBrushSize: (size: number) => void
+  /** The shading ramp section, shown under the colors. */
+  rampPanel: React.ReactNode
   fillMode: FillMode
   onFillMode: (mode: FillMode) => void
   primary: Rgba
@@ -40,7 +44,22 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
         ))}
       </div>
 
-      {props.tool === 'pencil' && (
+      {BRUSH_TOOLS.has(props.tool) && (
+        <label className="color-slider" title="Dimensione del pennello quadrato ( [ e ] )">
+          <span className="small muted">
+            Pennello <span className="slider-value">{props.brushSize} px</span>
+          </span>
+          <input
+            type="range"
+            min={1}
+            max={MAX_BRUSH_SIZE}
+            value={props.brushSize}
+            onChange={(event) => props.onBrushSize(Number(event.target.value))}
+          />
+        </label>
+      )}
+
+      {props.tool === 'pencil' && props.brushSize === 1 && (
         <label
           className="inline-check small"
           title="Toglie gli angoli a L mentre disegni, così le linee restano spesse un pixel."
@@ -54,7 +73,7 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
         </label>
       )}
 
-      {props.tool === 'fill' && (
+      {(props.tool === 'fill' || props.tool === 'noise') && (
         <div className="tabs small-tabs" role="radiogroup" aria-label="Modalità del secchiello">
           {(
             [
@@ -87,6 +106,7 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
         recent={props.recent}
         palette={props.palette}
       />
+      {props.rampPanel}
     </aside>
   )
 }

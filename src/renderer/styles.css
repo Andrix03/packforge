@@ -1374,3 +1374,28 @@ kbd {
 .advice-panel .issues {
   margin: 0;
 }
+
+.reference-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.reference-panel .row {
+  justify-content: space-between;
+}
+
+.reference-panel p {
+  margin: 0;
+}
+
+.reference-image {
+  cursor: crosshair;
+}
+
+.reference-canvas {
+  display: block;
+  width: 100%;
+  image-rendering: pixelated;
+}

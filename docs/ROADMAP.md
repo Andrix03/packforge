@@ -67,7 +67,7 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 - [ ] Block-centric editing: open a block and switch between its textures (top / side / bottom) as tabs
 - [x] Save edited textures into the pack (Ctrl+S), exact PNG decode/encode
 - [ ] New texture wizard (pick the block, size 16×/32×/64×…, start empty / base color / noise)
-- [ ] Vanilla texture as a side-by-side or traced reference (color picking allowed, pixels never copied into the pack)
+- [x] Vanilla texture as a side-by-side or traced reference (color picking allowed, pixels never copied into the pack)
 - [x] Live 3D preview and 3×3 tiling preview of the texture being edited
 - [x] Keyboard shortcuts for the basic tools (B, E, G, I, S, N, X, [ ], Ctrl+S, Ctrl+Z / Ctrl+Y)
 

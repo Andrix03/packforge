@@ -9,6 +9,8 @@ import { History } from './history'
 import { fill, getPixel, Stroke, TRANSPARENT, type FillMode, type Rgba } from './pixels'
 import { DEFAULT_RAMP, generateRamp, noiseFill, shiftAlongRamp, type RampOptions } from './ramp'
 import { RampPanel } from './RampPanel'
+import { ReferencePanel, type LoadedReference } from './ReferencePanel'
+import { assetUrl } from '../../shared/ipc'
 import type { EditorMode } from '../../shared/settings'
 import { analyzeTexture } from './advice'
 import { AdvicePanel } from './AdvicePanel'
@@ -87,6 +89,10 @@ export function TextureEditor({
   const [recent, setRecent] = useState<Rgba[]>([])
   const [mode, setMode] = useState<EditorMode>('beginner')
   const [proTips, setProTips] = useState(false)
+  const [reference, setReference] = useState<LoadedReference | null>(null)
+  const [traceOpacity, setTraceOpacity] = useState(0)
+  const vanilla = target.sources.vanilla
+  const referenceUrl = vanilla?.files.has(target.path) ? assetUrl(vanilla.base, target.path) : null
   const pro = mode === 'pro'
   const showTips = !pro || proTips
   /** Ramp base color; null = follow the primary color until the ramp is used or picked from. */
@@ -349,6 +355,11 @@ export function TextureEditor({
             onPixelsChanged={() => setRevision((r) => r + 1)}
             onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
             onRampUsed={lockRamp}
+            trace={
+              reference && traceOpacity > 0
+                ? { canvas: reference.canvas, opacity: traceOpacity / 100 }
+                : null
+            }
             onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
           />
           <div className="editor-side">
@@ -358,6 +369,14 @@ export function TextureEditor({
               sources={target.sources}
               live={{ url: target.url, canvas: loaded.source, revision }}
               initialShape="block"
+            />
+            <ReferencePanel
+              url={referenceUrl}
+              label={vanilla ? '' : 'jar non caricato'}
+              traceOpacity={traceOpacity}
+              onTraceOpacity={setTraceOpacity}
+              onLoaded={setReference}
+              onPick={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
             />
             <TilingPreview source={loaded.source} revision={revision} />
           </div>
@@ -372,6 +391,7 @@ function PixelCanvas({
   source,
   tools,
   history,
+  trace,
   onModifiedChange,
   onPixelsChanged,
   onColorUsed,
@@ -383,6 +403,8 @@ function PixelCanvas({
   /** Null when read-only: the canvas can only be zoomed and panned. */
   tools: Tools | null
   history: History
+  /** Vanilla texture drawn over the canvas for tracing (display only). */
+  trace: { canvas: HTMLCanvasElement; opacity: number } | null
   /** Called when the image starts or stops differing from the file (undo can go back to it). */
   onModifiedChange: (modified: boolean) => void
   onPickColor: (slot: 'primary' | 'secondary', color: Rgba) => void
@@ -455,8 +477,8 @@ function PixelCanvas({
     canvas.width = viewSize.width
     canvas.height = viewSize.height
     const brush = tools && BRUSH_TOOLS.has(tools.tool) ? tools.brushSize : 1
-    drawCanvas(canvas, source, viewport, showGrid, tools ? hover : null, brush)
-  }, [source, viewSize, viewport, showGrid, hover, tools, revision])
+    drawCanvas(canvas, source, viewport, showGrid, tools ? hover : null, brush, trace)
+  }, [source, viewSize, viewport, showGrid, hover, tools, revision, trace])
 
   const zoomCentered = useCallback(
     (direction: 1 | -1) =>
@@ -734,7 +756,8 @@ function drawCanvas(
   viewport: Viewport,
   showGrid: boolean,
   hover: { x: number; y: number } | null,
-  brushSize: number
+  brushSize: number,
+  trace: { canvas: HTMLCanvasElement; opacity: number } | null
 ): void {
   const context = canvas.getContext('2d')
   if (!context) return
@@ -763,6 +786,12 @@ function drawCanvas(
 
   context.imageSmoothingEnabled = false
   context.drawImage(source, x, y, width, height)
+  if (trace) {
+    // Scaled to the texture size (a 16× reference over a 32× texture still lines up).
+    context.globalAlpha = trace.opacity
+    context.drawImage(trace.canvas, x, y, width, height)
+    context.globalAlpha = 1
+  }
 
   if (showGrid && zoom >= GRID_MIN_ZOOM) {
     strokeGrid(context, viewport, source.width, source.height, 1, 'rgba(0, 0, 0, 0.22)')

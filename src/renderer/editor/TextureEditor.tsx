@@ -13,6 +13,7 @@ import { PalettesPanel } from './PalettesPanel'
 import type { SavedPalette } from '../../shared/settings'
 import { EditorDocument } from './document'
 import { FramesPanel } from './FramesPanel'
+import { ShortcutsHelp } from './ShortcutsHelp'
 import { animationFromMcmeta, buildMcmeta, type AnimationSettings } from './frames'
 import { EditorTools, type SelectionAction } from './EditorTools'
 import type { Floating } from './selection'
@@ -112,6 +113,7 @@ export function TextureEditor({
     frames: 1
   })
   const [onionSkin, setOnionSkin] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   /** Animation settings changed since the last save (frame edits are in the history). */
   const animationDirty = useRef(false)
   const vanilla = target.sources.vanilla
@@ -382,6 +384,15 @@ export function TextureEditor({
         return
       }
       if (isTyping(event)) return
+      if (event.key === '?' || event.key === 'F1') {
+        event.preventDefault()
+        setShowShortcuts((open) => !open)
+        return
+      }
+      if (showShortcuts) {
+        if (event.key === 'Escape') setShowShortcuts(false)
+        return
+      }
       if (pro) {
         const action = selectionShortcut(event)
         if (action) {
@@ -396,7 +407,16 @@ export function TextureEditor({
         if (tool !== 'move' && tool !== 'select') settle()
         setTools((t) => ({ ...t, tool }))
       } else if (event.key.toLowerCase() === 'x') swap()
-      else if (event.key === '[' || event.key === ']') {
+      else if (event.key.toLowerCase() === 't' && !target.readOnly) {
+        setTools((t) => ({ ...t, tiling: !t.tiling }))
+      } else if ((event.key === ',' || event.key === '.') && animation && doc) {
+        const count = Math.round(doc.height / animation.frameHeight)
+        const current = Math.floor(doc.view.y0 / animation.frameHeight)
+        const next = (current + (event.key === '.' ? 1 : -1) + count) % count
+        settle()
+        doc.setFrameView(animation.frameHeight, next)
+        refresh()
+      } else if (event.key === '[' || event.key === ']') {
         const step = event.key === ']' ? 1 : -1
         setTools((t) => ({
           ...t,
@@ -406,7 +426,7 @@ export function TextureEditor({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [swap, save, pro, runSelectionAction, settle])
+  }, [swap, save, pro, runSelectionAction, settle, showShortcuts, animation, doc, refresh, target])
 
   // Offer a draft left by an earlier session (crash, closed without saving).
   useEffect(() => {
@@ -587,6 +607,7 @@ export function TextureEditor({
           })}
         </div>
       )}
+      {showShortcuts && <ShortcutsHelp pro={pro} onClose={() => setShowShortcuts(false)} />}
       {creatingPath && (
         <NewTextureDialog
           request={{
@@ -692,6 +713,7 @@ export function TextureEditor({
               onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
               onRampUsed={lockRamp}
               onSettle={settle}
+              onShowShortcuts={() => setShowShortcuts(true)}
               onionY={
                 animation && onionSkin && doc.view.y0 > 0
                   ? doc.view.y0 - animation.frameHeight

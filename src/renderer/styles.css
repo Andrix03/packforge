@@ -1684,3 +1684,39 @@ kbd {
 .animation-note {
   margin: 0;
 }
+
+.shortcuts-help {
+  width: min(760px, 100%);
+}
+
+.shortcuts-help > .row {
+  justify-content: space-between;
+}
+
+.shortcut-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.shortcut-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shortcut-list > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.shortcut-list dt {
+  flex: none;
+  min-width: 72px;
+}
+
+.shortcut-list dd {
+  margin: 0;
+}

@@ -83,6 +83,8 @@ interface PixelCanvasProps {
   onRampUsed: () => void
   /** Drops a floating (moved/pasted) piece before another tool changes the layer. */
   onSettle: () => void
+  /** Opens the keyboard shortcuts window. */
+  onShowShortcuts: () => void
   /** Onion skin: row where the previous animation frame starts (null = off). */
   onionY: number | null
   /** Turns seamless mode on/off (absent when read-only). */
@@ -583,6 +585,13 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
             Bordi continui
           </label>
         )}
+        <button
+          type="button"
+          onClick={props.onShowShortcuts}
+          title="Tutte le scorciatoie da tastiera (?)"
+        >
+          ⌨ Scorciatoie
+        </button>
         <span className="muted small">
           Rotellina: zoom · tasto centrale o Spazio + trascina: sposta
         </span>

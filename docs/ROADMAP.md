@@ -79,7 +79,7 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 - [x] Seamless tiling mode: paint across the edges of a repeating texture
 - [x] Custom ramps and saved palettes
 - [x] Animation frames editor that writes the strip and `.png.mcmeta` (onion skin, preview, frame time, interpolation)
-- [ ] Keyboard shortcuts for every tool
+- [x] Keyboard shortcuts for every tool (+ shortcuts window: ? or F1)
 
 ## Phase 5 — Test: the block in action
 

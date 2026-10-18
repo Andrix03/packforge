@@ -116,14 +116,20 @@ export function PackWorkspace({
       vanilla={vanilla}
       jar={jar}
       onSelectVersion={(id) => void loadJar(id)}
-      onEditTexture={(texture, assetBase) =>
+      onEditTexture={(texture, sources) => {
+        const base = packFiles.value.assetBase
         onEditTexture({
           path: texture.albedo,
+          textureKey: texture.key,
           name: texture.name,
-          url: assetUrl(assetBase, texture.albedo, fileVersions[texture.albedo] ?? 0),
-          readOnly: pack.kind === 'zip'
+          url: assetUrl(base, texture.albedo, fileVersions[texture.albedo] ?? 0),
+          mcmetaUrl: texture.mcmeta
+            ? assetUrl(base, texture.mcmeta, fileVersions[texture.mcmeta] ?? 0)
+            : null,
+          readOnly: pack.kind === 'zip',
+          sources
         })
-      }
+      }}
     />
   )
 }
@@ -141,7 +147,7 @@ function Workspace({
   vanilla: Loadable<VanillaState>
   jar: Loadable<VanillaJar>
   onSelectVersion: (versionId: string) => void
-  onEditTexture: (texture: TextureEntry, assetBase: string) => void
+  onEditTexture: (texture: TextureEntry, sources: AssetSources) => void
 }): React.JSX.Element {
   const packTextures = useMemo(() => groupTextures(packFiles.files), [packFiles.files])
   const jarFiles = jar.status === 'ready' ? jar.value.files : null
@@ -258,9 +264,7 @@ function Workspace({
           }
           // Only pack textures are editable: vanilla pixels never enter the pack.
           onOpenTexture={
-            activeMode === 'pack'
-              ? (texture) => onEditTexture(texture, packFiles.assetBase)
-              : undefined
+            activeMode === 'pack' ? (texture) => onEditTexture(texture, previewSources) : undefined
           }
           source={source}
           textures={textures}

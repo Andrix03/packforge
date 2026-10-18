@@ -68,7 +68,7 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 - [x] Save edited textures into the pack (Ctrl+S), exact PNG decode/encode
 - [ ] New texture wizard (pick the block, size 16×/32×/64×…, start empty / base color / noise)
 - [ ] Vanilla texture as a side-by-side or traced reference (color picking allowed, pixels never copied into the pack)
-- [ ] Live 3D preview and 3×3 tiling preview of the texture being edited
+- [x] Live 3D preview and 3×3 tiling preview of the texture being edited
 - [ ] Keyboard shortcuts for the basic tools (B, E, G, I, S, X, Ctrl+Z / Ctrl+Y)
 
 ## Phase 4 — Draw: Pro tools

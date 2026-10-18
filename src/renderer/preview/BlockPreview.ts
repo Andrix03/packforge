@@ -49,6 +49,8 @@ interface LoadedPart {
   texture: THREE.Texture
   imageSize: { width: number; height: number }
   animation: TextureAnimation | null
+  /** Drawn from a live canvas (the texture being edited) instead of its file. */
+  live: boolean
 }
 
 /**
@@ -72,6 +74,8 @@ export class BlockPreview {
     ambientColor: { value: new THREE.Color() }
   }
   private parts: LoadedPart[] = []
+  /** Canvases shown instead of the file at a URL (query string ignored). */
+  private readonly liveTextures = new Map<string, HTMLCanvasElement>()
   private sceneKind: PreviewScene = 'block'
   private animationStart = performance.now()
   private meshRequest = 0
@@ -112,6 +116,19 @@ export class BlockPreview {
     return results.map((r) => r.report)
   }
 
+  /**
+   * Shows `canvas` wherever the model uses the texture at `url` (the texture being edited).
+   * Applies to meshes set afterwards; call refreshLiveTextures() after painting on the canvas.
+   */
+  setLiveTexture(url: string | null, canvas: HTMLCanvasElement | null): void {
+    this.liveTextures.clear()
+    if (url && canvas) this.liveTextures.set(withoutQuery(url), canvas)
+  }
+
+  refreshLiveTextures(): void {
+    for (const part of this.parts) if (part.live) part.texture.needsUpdate = true
+  }
+
   setScene(kind: PreviewScene): void {
     this.sceneKind = kind
     this.layoutBlocks()
@@ -150,7 +167,10 @@ export class BlockPreview {
   private async loadPart(part: MeshPart): Promise<{ loaded: LoadedPart; report: PartReport }> {
     let problem: string | null = null
     let texture: THREE.Texture
-    if (part.url) {
+    const liveCanvas = part.url ? this.liveTextures.get(withoutQuery(part.url)) : undefined
+    if (liveCanvas) {
+      texture = new THREE.CanvasTexture(liveCanvas)
+    } else if (part.url) {
       try {
         texture = await this.loader.loadAsync(part.url)
       } catch {
@@ -209,7 +229,8 @@ export class BlockPreview {
       material,
       texture,
       imageSize,
-      animation
+      animation,
+      live: liveCanvas !== undefined
     }
     setStaticFrame(loaded)
     return {
@@ -301,6 +322,11 @@ function setAnimatedFrame(part: LoadedPart, ticks: number): void {
 
 function srgbToLinear(c: number): number {
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+}
+
+function withoutQuery(url: string): string {
+  const index = url.indexOf('?')
+  return index === -1 ? url : url.slice(0, index)
 }
 
 /** Minecraft's magenta/black missing-texture checkerboard. */

@@ -24,6 +24,14 @@ export interface PreviewTarget {
   sourceLabel: string
 }
 
+/** A texture being edited: shown from its canvas instead of the file, updated on each stroke. */
+export interface LiveTexture {
+  url: string
+  canvas: HTMLCanvasElement
+  /** Bumped after every change painted on the canvas. */
+  revision: number
+}
+
 type Shape = 'cube' | 'block'
 
 const SCENES: Array<{ value: PreviewScene; label: string }> = [
@@ -42,10 +50,14 @@ interface Status {
 
 export function PreviewPanel({
   target,
-  sources
+  sources,
+  live = null,
+  initialShape = 'cube'
 }: {
   target: PreviewTarget | null
   sources: AssetSources | null
+  live?: LiveTexture | null
+  initialShape?: Shape
 }): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const previewRef = useRef<BlockPreview | null>(null)
@@ -54,7 +66,7 @@ export function PreviewPanel({
   const [hour, setHour] = useState(12)
   const [cycling, setCycling] = useState(false)
   const [autoRotate, setAutoRotate] = useState(false)
-  const [shape, setShape] = useState<Shape>('cube')
+  const [shape, setShape] = useState<Shape>(initialShape)
   const [blockInput, setBlockInput] = useState('')
   const [variantKey, setVariantKey] = useState<string | null>(null)
   const [variants, setVariants] = useState<BlockstateVariant[]>([])
@@ -79,6 +91,13 @@ export function PreviewPanel({
       previewRef.current = null
     }
   }, [])
+
+  const liveUrl = live?.url ?? null
+  const liveCanvas = live?.canvas ?? null
+  const liveRevision = live?.revision ?? 0
+  // Declared before the mesh effect so the override is in place when the mesh loads.
+  useEffect(() => previewRef.current?.setLiveTexture(liveUrl, liveCanvas), [liveUrl, liveCanvas])
+  useEffect(() => previewRef.current?.refreshLiveTextures(), [liveRevision])
 
   useEffect(() => previewRef.current?.setScene(scene), [scene])
   useEffect(() => previewRef.current?.setTime(hour), [hour])
@@ -150,7 +169,8 @@ export function PreviewPanel({
     return () => {
       current = false
     }
-  }, [shape, target, sources, block, variantKey, biome])
+    // liveUrl/liveCanvas: the mesh must reload to pick up a new live texture.
+  }, [shape, target, sources, block, variantKey, biome, liveUrl, liveCanvas])
 
   // Day/night cycle: advance the hour on animation frames while playing.
   useEffect(() => {

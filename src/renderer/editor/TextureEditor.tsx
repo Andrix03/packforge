@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { decodePng } from '../../shared/pngCodec'
+import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
+import type { AssetSources } from '../preview/modelSource'
 import { EditorTools } from './EditorTools'
+import { TilingPreview } from './TilingPreview'
 import { History } from './history'
 import { fill, getPixel, Stroke, TRANSPARENT, type FillMode, type Rgba } from './pixels'
 import { toolByShortcut, type ToolId } from './tools'
@@ -20,8 +23,13 @@ import {
 export interface EditorTarget {
   /** Pack-relative path of the albedo PNG. */
   path: string
+  /** Path without `.png`, used by the 3D preview to guess the block. */
+  textureKey: string
   name: string
   url: string
+  mcmetaUrl: string | null
+  /** Models and textures for the live 3D preview (pack first, then vanilla). */
+  sources: AssetSources
   /** Zip packs are opened read-only. */
   readOnly: boolean
 }
@@ -63,6 +71,19 @@ export function TextureEditor({
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedOnce, setSavedOnce] = useState(false)
+  /** Bumped on every painted change, to refresh the live previews. */
+  const [revision, setRevision] = useState(0)
+  const previewTarget = useMemo<PreviewTarget>(
+    () => ({
+      key: `editor|${target.url}`,
+      textureKey: target.textureKey,
+      url: target.url,
+      mcmetaUrl: target.mcmetaUrl,
+      name: target.name,
+      sourceLabel: 'In modifica'
+    }),
+    [target]
+  )
   const swap = useCallback(
     () => setTools((t) => ({ ...t, primary: t.secondary, secondary: t.primary })),
     []
@@ -214,8 +235,18 @@ export function TextureEditor({
             tools={target.readOnly ? null : tools}
             history={history}
             onModifiedChange={setModified}
+            onPixelsChanged={() => setRevision((r) => r + 1)}
             onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
           />
+          <div className="editor-side">
+            <PreviewPanel
+              target={previewTarget}
+              sources={target.sources}
+              live={{ url: target.url, canvas: loaded.source, revision }}
+              initialShape="block"
+            />
+            <TilingPreview source={loaded.source} revision={revision} />
+          </div>
         </div>
       )}
     </section>
@@ -228,6 +259,7 @@ function PixelCanvas({
   tools,
   history,
   onModifiedChange,
+  onPixelsChanged,
   onPickColor
 }: {
   pixels: ImageData
@@ -238,6 +270,7 @@ function PixelCanvas({
   /** Called when the image starts or stops differing from the file (undo can go back to it). */
   onModifiedChange: (modified: boolean) => void
   onPickColor: (slot: 'primary' | 'secondary', color: Rgba) => void
+  onPixelsChanged: () => void
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -333,7 +366,8 @@ function PixelCanvas({
   const showChanges = useCallback(() => {
     source.getContext('2d')?.putImageData(pixels, 0, 0)
     setRevision((r) => r + 1)
-  }, [source, pixels])
+    onPixelsChanged()
+  }, [source, pixels, onPixelsChanged])
 
   const syncHistory = useCallback(() => {
     setCanUndo(history.canUndo)

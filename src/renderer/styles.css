@@ -1177,3 +1177,36 @@ kbd {
   color: var(--warning);
   border-color: var(--warning);
 }
+
+.editor-main {
+  grid-template-columns: 220px minmax(0, 1fr) 300px;
+}
+
+.editor-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.editor-side .preview-panel {
+  overflow: visible;
+}
+
+.tiling-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.tiling-preview .row {
+  justify-content: space-between;
+}
+
+.tiling-canvas {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+}

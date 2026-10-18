@@ -42,6 +42,13 @@ uniform float emissionStrength;
 // Rain: how wet things are (0–1) and seconds, for the ripples in puddles.
 uniform float wetness;
 uniform float rainTime;
+// Parallax occlusion mapping from the height in _n.a (Photon / Complementary): depth multiplier
+// (1 = the spec's 25% of a block, 0 = off), most pixels crossed, self-shadowing, "slope normals" (the
+// sides of the steps between pixels get their own normal, the blocky look of PBR packs).
+uniform float pomDepth;
+uniform int pomSamples;
+uniform bool pomShadows;
+uniform bool pomSlopes;
 // Sun/moon shadow map: 0 = off, 1 = soft, 2 = snapped to the texture's pixels (Photon's
 // PIXELATED_SHADOWS). shadowMatrix maps world positions to the map's clip space.
 uniform int shadowMode;
@@ -167,19 +174,142 @@ vec2 frameUv(vec4 frame) {
   return vec2(frame.x + vUv.x * frame.z, 1.0 - (frame.y + (1.0 - vUv.y) * frame.w));
 }
 
-vec4 sampleFrame(sampler2D map, vec4 frame) {
-  vec2 uv = frameUv(frame);
+// Screen derivatives of the face UVs, taken once in main() (uniform control flow): the mip level
+// of a sample comes from these even when POM moves the sample point (like textureGrad).
+vec2 uvDx;
+vec2 uvDy;
+
+// A point of the frame in texture-local coordinates: x right, y DOWN (image rows), 0–1.
+vec2 localUv() {
+  return vec2(vUv.x, 1.0 - vUv.y);
+}
+
+vec4 sampleFrameAt(sampler2D map, vec4 frame, vec2 local) {
+  vec2 uv = vec2(frame.x + local.x * frame.z, 1.0 - (frame.y + local.y * frame.w));
   float levels = min(mipLevels, maxLod);
   if (levels <= 0.0) return textureLod(map, uv, 0.0);
-  vec2 texel = uv * vec2(textureSize(map, 0));
-  vec2 dx = dFdx(texel);
-  vec2 dy = dFdy(texel);
+  vec2 size = vec2(textureSize(map, 0)) * frame.zw;
+  vec2 dx = uvDx * size;
+  vec2 dy = uvDy * size;
   float lod = 0.5 * log2(max(dot(dx, dx), dot(dy, dy)));
   return textureLod(map, uv, clamp(lod, 0.0, levels));
 }
 
+vec4 sampleFrame(sampler2D map, vec4 frame) {
+  return sampleFrameAt(map, frame, localUv());
+}
+
 vec4 sampleMap(sampler2D map) {
   return mix(sampleFrame(map, frameA), sampleFrame(map, frameB), frameBlend);
+}
+
+vec4 sampleMapAt(sampler2D map, vec2 local) {
+  return mix(sampleFrameAt(map, frameA, local), sampleFrameAt(map, frameB, local), frameBlend);
+}
+
+const int POM_MAX_SAMPLES = 128;
+
+// Depth of the pixel (texel cell) `cell` of the frame's height map, sampled at its center.
+float pomCellDepth(vec2 cell, vec2 res) {
+  vec2 local = fract((cell + 0.5) / res);
+  vec2 uv = vec2(frameA.x + local.x * frameA.z, 1.0 - (frameA.y + local.y * frameA.w));
+  return 1.0 - textureLod(normalMap, uv, 0.0).a;
+}
+
+// Walks the view ray (dir, tangent space: x right, y down, z out of the surface) pixel by pixel
+// through the height map (2D DDA, Amanatides & Woo): the height is constant inside a pixel, so the
+// hit on a pixel's top or side is exact, with no stepping bands or dither noise (shader packs hide
+// those with TAA, which the preview doesn't have). Up to pomSamples pixels are crossed.
+// Returns the local point hit; `hit` = (local, depth 0–1); `slope` = the tangent normal of the pixel
+// side it ran into (when slope normals are on), else 0.
+vec2 parallax(vec3 dir, float scale, out vec3 hit, out vec3 slope) {
+  vec2 start = localUv();
+  hit = vec3(start, 0.0);
+  slope = vec3(0.0);
+  vec2 res = vec2(textureSize(normalMap, 0)) * frameA.zw;
+  vec2 cell = floor(start * res);
+  // At the surface already (or no height map): nothing to do.
+  if (scale <= 0.0 || pomCellDepth(cell, res) < 1.0 / 255.0) return start;
+  // Local offset per unit of depth: full depth = 25% of a block, one block = one frame (16-pixel UVs).
+  vec2 offset = dir.xy / max(-dir.z, 0.1) * MAX_DEPTH * scale;
+  vec2 stepCell = vec2(offset.x > 0.0 ? 1.0 : -1.0, offset.y > 0.0 ? 1.0 : -1.0);
+  // Depth at which the ray crosses the next pixel edge on each axis, and the depth per pixel.
+  vec2 perCell = vec2(
+    abs(offset.x) > 1e-6 ? 1.0 / (abs(offset.x) * res.x) : 1e9,
+    abs(offset.y) > 1e-6 ? 1.0 / (abs(offset.y) * res.y) : 1e9
+  );
+  vec2 nextEdge = (cell + max(stepCell, 0.0)) / res;
+  vec2 tNext = vec2(
+    abs(offset.x) > 1e-6 ? (nextEdge.x - start.x) / offset.x : 1e9,
+    abs(offset.y) > 1e-6 ? (nextEdge.y - start.y) / offset.y : 1e9
+  );
+  float tEnter = 0.0;
+  int axis = -1;
+  int cells = clamp(pomSamples, 1, POM_MAX_SAMPLES);
+  for (int i = 0; i < POM_MAX_SAMPLES; i++) {
+    float depth = pomCellDepth(cell, res);
+    float tExit = min(min(tNext.x, tNext.y), 1.0);
+    if (depth <= tEnter) {
+      // The pixel's top is above where the ray came in: it hit the pixel's side.
+      if (pomSlopes && axis == 0) slope = vec3(-stepCell.x, 0.0, 0.0);
+      if (pomSlopes && axis == 1) slope = vec3(0.0, -stepCell.y, 0.0);
+      hit = vec3(start + offset * tEnter, tEnter);
+      return fract(hit.xy);
+    }
+    if (depth <= tExit || tExit >= 1.0 || i + 1 >= cells) {
+      // The ray reaches this pixel's top inside it (or the deepest level).
+      float t = min(depth, 1.0);
+      hit = vec3(start + offset * t, t);
+      return fract(hit.xy);
+    }
+    tEnter = tExit;
+    if (tNext.x < tNext.y) {
+      cell.x += stepCell.x;
+      tNext.x += perCell.x;
+      axis = 0;
+    } else {
+      cell.y += stepCell.y;
+      tNext.y += perCell.y;
+      axis = 1;
+    }
+  }
+  return fract(hit.xy);
+}
+
+// How much of a light (tangent direction l) reaches the POM hit point past the height field: the
+// same pixel walk from the hit towards the light while it rises to the surface; any pixel whose top
+// is above the ray when the ray leaves it blocks the light.
+float parallaxShadow(vec3 hit, vec3 l, float scale) {
+  if (!pomShadows || scale <= 0.0 || hit.z <= 1.0 / 255.0 || l.z <= 0.0) return 1.0;
+  vec2 res = vec2(textureSize(normalMap, 0)) * frameA.zw;
+  vec2 offset = l.xy / max(l.z, 0.1) * MAX_DEPTH * scale;
+  vec2 start = hit.xy;
+  vec2 cell = floor(start * res);
+  vec2 stepCell = vec2(offset.x > 0.0 ? 1.0 : -1.0, offset.y > 0.0 ? 1.0 : -1.0);
+  vec2 perCell = vec2(
+    abs(offset.x) > 1e-6 ? 1.0 / (abs(offset.x) * res.x) : 1e9,
+    abs(offset.y) > 1e-6 ? 1.0 / (abs(offset.y) * res.y) : 1e9
+  );
+  vec2 nextEdge = (cell + max(stepCell, 0.0)) / res;
+  vec2 tNext = vec2(
+    abs(offset.x) > 1e-6 ? (nextEdge.x - start.x) / offset.x : 1e9,
+    abs(offset.y) > 1e-6 ? (nextEdge.y - start.y) / offset.y : 1e9
+  );
+  // t = how much the ray has risen; it reaches the surface at t = hit depth.
+  for (int i = 0; i < POM_MAX_SAMPLES; i++) {
+    float tExit = min(tNext.x, tNext.y);
+    if (tExit >= hit.z) return 1.0;
+    if (tNext.x < tNext.y) {
+      cell.x += stepCell.x;
+      tNext.x += perCell.x;
+    } else {
+      cell.y += stepCell.y;
+      tNext.y += perCell.y;
+    }
+    // Entering this pixel at depth hit.z - tExit: blocked if its top is above that.
+    if (pomCellDepth(cell, res) < hit.z - tExit - 1e-3) return 0.0;
+  }
+  return 1.0;
 }
 
 vec3 toLinear(vec3 c) {
@@ -326,15 +456,28 @@ vec3 shadeLight(Surface s, vec3 L, vec3 color) {
   return result + (diffuse + min(specular, vec3(64.0))) * NoL * color * lit;
 }
 
-vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out float alpha) {
+vec3 shadePbr(out float alpha) {
   vec3 face = normalize(vNormal);
+  vec3 right = normalize(vTexRight - face * dot(face, vTexRight));
+  vec3 down = normalize(vTexDown - face * dot(face, vTexDown));
+  vec3 toCamera = normalize(cameraPosition - vWorldPosition);
+
+  // POM: find where the view ray meets the height field, then read every map there. It fades
+  // out between 24 and 32 blocks away (like Photon's POM_DISTANCE 32).
+  float pomScale = pomDepth * (1.0 - smoothstep(24.0, 32.0, length(cameraPosition - vWorldPosition)));
+  vec3 dirT = vec3(dot(-toCamera, right), dot(-toCamera, down), dot(-toCamera, face));
+  vec3 pomHit;
+  vec3 slope;
+  vec2 local = parallax(dirT, pomScale, pomHit, slope);
+  vec4 albedoSample = sampleMapAt(albedoMap, local);
+  vec4 normalSample = sampleMapAt(normalMap, local);
+  vec4 specularSample = sampleMapAt(specularMap, local);
   vec3 albedo = albedoSample.rgb * vTint;
 
   // _n: X right, Y down (DirectX), Z rebuilt; B = AO, A = height.
   vec2 xy = normalSample.rg * 2.0 - 1.0;
   vec3 tangentNormal = vec3(xy, sqrt(clamp(1.0 - dot(xy, xy), 0.0, 1.0)));
-  vec3 right = normalize(vTexRight - face * dot(face, vTexRight));
-  vec3 down = normalize(vTexDown - face * dot(face, vTexDown));
+  if (slope != vec3(0.0)) tangentNormal = slope;
   vec3 N = normalize(right * tangentNormal.x + down * tangentNormal.y + face * tangentNormal.z);
   float ao = normalSample.b;
   float height = normalSample.a;
@@ -415,6 +558,11 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   // With shadows the map says where the sun (or moon) reaches; without, sky light stands in.
   float sunLit = shadowMode == 0 ? sky : (shadowFromSun ? lightVisibility(face, sunDirection) : sky);
   float moonLit = shadowMode == 0 ? sky : (shadowFromSun ? sky : lightVisibility(face, moonDirection));
+  // POM self-shadowing: the relief of the height map shades itself.
+  vec3 sunT = vec3(dot(sunDirection, right), dot(sunDirection, down), dot(sunDirection, face));
+  vec3 moonT = vec3(dot(moonDirection, right), dot(moonDirection, down), dot(moonDirection, face));
+  sunLit *= parallaxShadow(pomHit, sunT, pomScale);
+  moonLit *= parallaxShadow(pomHit, moonT, pomScale);
   vec3 color = shadeLight(s, sunDirection, sunColor) * sunLit + shadeLight(s, moonDirection, moonColor) * moonLit;
   if (dot(torchColor, torchColor) > 0.0) {
     vec3 toTorch = cameraPosition - vWorldPosition;
@@ -455,12 +603,14 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
 }
 
 void main() {
+  uvDx = dFdx(vUv);
+  uvDy = dFdy(vUv);
   vec4 albedo = sampleMap(albedoMap);
   if (albedo.a < (translucent ? 0.004 : 0.1)) discard;
 
   if (pbr) {
     float alpha;
-    vec3 color = shadePbr(albedo, sampleMap(normalMap), sampleMap(specularMap), alpha);
+    vec3 color = shadePbr(alpha);
     gl_FragColor = vec4(color, alpha);
   } else {
     vec3 n = normalize(vNormal);

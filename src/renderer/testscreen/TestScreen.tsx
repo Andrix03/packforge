@@ -108,7 +108,10 @@ export function TestScreen({
   }
   const [mipmaps, setMipmaps] = useState(true)
   const [compare, setCompare] = useState(false)
-  const comparing = compare && vanillaSources !== null
+  // Side by side with and without POM (same pack on both halves); excludes the vanilla one.
+  const [pomCompare, setPomCompare] = useState(false)
+  const comparingPom = pomCompare && !isItem
+  const comparing = compare && vanillaSources !== null && !comparingPom
   const [fly, setFly] = useState(false)
   const [status, setStatus] = useState<Status | null>(null)
   const colormapsRef = useRef<Promise<ColormapPixels> | null>(null)
@@ -147,6 +150,7 @@ export function TestScreen({
   )
   useEffect(() => previewRef.current?.setTime(hour), [hour])
   useEffect(() => previewRef.current?.setEffects(effectsOn ? effects : null), [effectsOn, effects])
+  useEffect(() => previewRef.current?.setPomCompare(comparingPom), [comparingPom])
   useEffect(() => previewRef.current?.setMipmaps(mipmaps), [mipmaps])
   useEffect(() => previewRef.current?.setFly(fly), [fly])
   useEffect(() => previewRef.current?.setView(scene.focus, scene.camera, scene.fov), [scene])
@@ -176,7 +180,8 @@ export function TestScreen({
         comparing && vanillaSources ? buildWorld(vanillaSources, placements, theirs, tintOf) : null
       ])
       if (!current) return
-      const report = await view.setWorld(world, vanillaWorld)
+      // With / without POM: the same world on both halves (the right one has POM off).
+      const report = await view.setWorld(world, comparingPom ? world : vanillaWorld)
       if (!current) return
       const problems = [
         ...(mine?.warnings ?? []),
@@ -201,6 +206,7 @@ export function TestScreen({
     block,
     biome,
     comparing,
+    comparingPom,
     isItem,
     sources,
     vanillaSources,
@@ -283,12 +289,23 @@ export function TestScreen({
       <div className="test-body">
         <div className="test-view">
           <div
-            className={['test-canvas-wrap', isItem && 'game-screen', comparing && 'comparing']
+            className={[
+              'test-canvas-wrap',
+              isItem && 'game-screen',
+              (comparing || comparingPom) && 'comparing'
+            ]
               .filter(Boolean)
               .join(' ')}
           >
             <div className="test-canvas-box">
               <canvas ref={canvasRef} className="test-canvas" aria-label="Prova 3D" />
+              {comparingPom && (
+                <>
+                  <div className="test-divider" />
+                  <span className="test-label left">Con POM</span>
+                  <span className="test-label right">Senza POM</span>
+                </>
+              )}
               {comparing && (
                 <>
                   <div className="test-divider" />
@@ -502,6 +519,83 @@ export function TestScreen({
                   </select>
                 </label>
                 <span className="muted small">{preset.hint}</span>
+                <label
+                  className="preview-control"
+                  title="100% = 25% di blocco, come la spec LabPBR"
+                >
+                  <span>
+                    Rilievo (POM){' '}
+                    <strong>
+                      {effects.pom > 0 ? `${Math.round(effects.pom * 100)}%` : 'spento'}
+                    </strong>
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2}
+                    step={0.05}
+                    value={effects.pom}
+                    aria-label="Rilievo POM"
+                    onChange={(event) => updateEffects({ pom: Number(event.target.value) })}
+                  />
+                </label>
+                {effects.pom > 0 && (
+                  <>
+                    <label
+                      className="preview-control"
+                      title="Più passi = rilievo più preciso, più lento"
+                    >
+                      <span>
+                        Passi POM <strong>{effects.pomSamples}</strong>
+                      </span>
+                      <input
+                        type="range"
+                        min={8}
+                        max={128}
+                        step={8}
+                        value={effects.pomSamples}
+                        aria-label="Passi POM"
+                        onChange={(event) =>
+                          updateEffects({ pomSamples: Number(event.target.value) })
+                        }
+                      />
+                    </label>
+                    <label className="checkbox-inline">
+                      <input
+                        type="checkbox"
+                        checked={effects.pomShadows}
+                        onChange={(event) => updateEffects({ pomShadows: event.target.checked })}
+                      />
+                      Ombre del rilievo
+                    </label>
+                    <label
+                      className="checkbox-inline"
+                      title="I lati dei gradini tra i pixel hanno la loro normale: rilievo a cubetti"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={effects.pomSlopes}
+                        onChange={(event) => updateEffects({ pomSlopes: event.target.checked })}
+                      />
+                      Lati dei pixel (a cubetti)
+                    </label>
+                    {!isItem && (
+                      <label className="checkbox-inline">
+                        <input
+                          type="checkbox"
+                          checked={comparingPom}
+                          onChange={(event) => setPomCompare(event.target.checked)}
+                        />
+                        Confronta con e senza POM (affiancato)
+                      </label>
+                    )}
+                    {!maps.normalUrl && (
+                      <span className="muted small">
+                        Questa texture non ha _n: il rilievo usa l’altezza in _n.a.
+                      </span>
+                    )}
+                  </>
+                )}
                 <label className="preview-control">
                   <span>
                     Pioggia{' '}

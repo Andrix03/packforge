@@ -116,9 +116,9 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 
 ## Phase 7 — Effects: POM
 
-- [ ] Parallax occlusion mapping using height from `_n.a`
-- [ ] Depth/sample count sliders, self-shadowing
-- [ ] Side-by-side comparison with and without POM
+- [x] Parallax occlusion mapping using height from `_n.a`
+- [x] Depth/sample count sliders, self-shadowing
+- [x] Side-by-side comparison with and without POM
 
 ## Phase 8 — Effects: PBR tools
 

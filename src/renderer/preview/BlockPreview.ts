@@ -19,6 +19,7 @@ import { textureAxes, type Quad } from '../../shared/blockGeometry'
 import type { DisplayTransform } from '../../shared/itemModel'
 import {
   FLAT_NORMAL,
+  MAX_DEPTH,
   METALS,
   metalF0,
   NO_SPECULAR,
@@ -158,6 +159,7 @@ const METALS_GLSL = (() => {
       METALS.map((m) => m.k)
     ),
     table('METAL_F0', METALS.map(metalF0)),
+    `const float MAX_DEPTH = ${MAX_DEPTH.toFixed(5)};`,
     ''
   ].join('\n')
 })()
@@ -234,6 +236,10 @@ export class BlockPreview {
     torchColor: { value: new THREE.Color() },
     emissionStrength: { value: 0 },
     wetness: { value: 0 },
+    pomDepth: { value: 0 },
+    pomSamples: { value: 40 },
+    pomShadows: { value: true },
+    pomSlopes: { value: false },
     rainTime: { value: 0 },
     // Sun (or moon) shadows of the Effects view, rendered for each half before drawing it.
     shadowMode: { value: 0 },
@@ -285,6 +291,8 @@ export class BlockPreview {
   private readonly other: Side = emptySide()
   /** Whether the right half shows the comparison. */
   private comparing = false
+  /** The right half shows the same world with POM off (with / without POM comparison). */
+  private pomCompare = false
   /** setMesh mode: one model laid out by the scene kind (the small preview panels). */
   private single = true
   /** Canvases shown instead of the file at a URL (query string ignored). */
@@ -472,6 +480,10 @@ export class BlockPreview {
     u.metalMode.value = METAL_MODE_INDEX[settings?.metals ?? 'spec']
     u.emissionStrength.value = settings?.emission ?? 0
     u.wetness.value = settings?.rain ?? 0
+    u.pomDepth.value = settings?.pom ?? 0
+    u.pomSamples.value = settings?.pomSamples ?? 40
+    u.pomShadows.value = settings?.pomShadows ?? true
+    u.pomSlopes.value = settings?.pomSlopes ?? false
     const raw = settings ? (DEBUG_VIEWS[settings.view]?.raw ?? false) : false
     if (settings) {
       this.composers ??= [
@@ -493,6 +505,11 @@ export class BlockPreview {
     this.skyDome.visible = settings !== null
     this.invalidateReflections()
     this.applyLighting()
+  }
+
+  /** Right half without POM: compare the relief side by side (the world must be set twice). */
+  setPomCompare(enabled: boolean): void {
+    this.pomCompare = enabled
   }
 
   private invalidateReflections(): void {
@@ -1044,6 +1061,7 @@ export class BlockPreview {
       : [[this.main, 0, size.x]]
     this.renderer.setScissorTest(this.comparing)
     halves.forEach(([side, x, width], i) => {
+      this.sharedUniforms.pomDepth.value = i === 1 && this.pomCompare ? 0 : (this.effects?.pom ?? 0)
       if (this.composers) {
         this.renderShadow(side)
         this.renderReflections(side, now)

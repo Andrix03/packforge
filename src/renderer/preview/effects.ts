@@ -27,6 +27,14 @@ export interface EffectSettings {
   metals: MetalMode
   /** Rain wetness 0–1 (porous blocks darken, puddles on top faces). */
   rain: number
+  /** POM depth multiplier: 1 = the spec's 25% of a block, 0 = off. */
+  pom: number
+  /** Ray steps (Photon's POM_SAMPLES, default 40). */
+  pomSamples: number
+  /** Self-shadowing of the relief. */
+  pomShadows: boolean
+  /** Step sides between pixels get their own normal (blocky relief of PBR packs). */
+  pomSlopes: boolean
 }
 
 export const DEFAULT_EFFECTS: EffectSettings = {
@@ -40,7 +48,11 @@ export const DEFAULT_EFFECTS: EffectSettings = {
   shadows: 'pixel',
   reflections: 'scene',
   metals: 'spec',
-  rain: 0
+  rain: 0,
+  pom: 1,
+  pomSamples: 40,
+  pomShadows: true,
+  pomSlopes: false
 }
 
 export interface DebugView {

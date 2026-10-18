@@ -21,7 +21,9 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check": "node scripts/check.mjs",
+    "drive": "node scripts/drive/drive.mjs"
   },
   "dependencies": {
     "chokidar": "^5.0.0",

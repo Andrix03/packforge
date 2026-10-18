@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { AppInfo, PackSummary } from '../shared/ipc'
+import { TextureEditor, type EditorTarget } from './editor/TextureEditor'
 import { NewPackForm } from './packs/NewPackForm'
 import { OpenPackCard } from './packs/OpenPackCard'
 import { PackOverview } from './packs/PackOverview'
@@ -15,6 +16,7 @@ export function App(): React.JSX.Element {
   const [opening, setOpening] = useState(false)
   const [openError, setOpenError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [editing, setEditing] = useState<EditorTarget | null>(null)
 
   useEffect(() => {
     window.api
@@ -42,6 +44,7 @@ export function App(): React.JSX.Element {
       const result = await window.api.invoke('pack:open', path)
       if (result.ok) {
         setPack(result.pack)
+        setEditing(null)
         setWorkspaceKey((key) => key + 1)
       } else setOpenError(result.error)
     } catch (error) {
@@ -53,6 +56,7 @@ export function App(): React.JSX.Element {
 
   async function closePack(): Promise<void> {
     setPack(null)
+    setEditing(null)
     await window.api.invoke('pack:close')
   }
 
@@ -62,55 +66,67 @@ export function App(): React.JSX.Element {
     if (changed) setWorkspaceKey((key) => key + 1)
   }
 
+  const editorOpen = pack !== null && editing !== null
+
   return (
-    <main className={pack && !showSettings ? 'app wide' : 'app'}>
-      <header className="app-header">
-        <div>
-          <h1>PackForge</h1>
-          <p>Studio per resource pack Minecraft Java con anteprima LabPBR</p>
-        </div>
-        {!showSettings && (
-          <button type="button" onClick={() => setShowSettings(true)}>
-            Impostazioni
-          </button>
-        )}
-      </header>
-
-      {showSettings && <SettingsPanel onClose={closeSettings} />}
-
-      {/* Hidden, not unmounted, while settings are open: keeps tree/grid state. */}
-      <div className="stack" hidden={showSettings}>
-        {pack ? (
-          <>
-            <PackOverview
-              pack={pack}
-              onClose={() => void closePack()}
-              onUpdated={(updated, filesChanged) => {
-                setPack(updated)
-                if (filesChanged) setWorkspaceKey((key) => key + 1)
-              }}
-            />
-            <PackWorkspace key={workspaceKey} pack={pack} />
-          </>
-        ) : (
-          <>
-            <RecentPacksCard
-              // Remount when returning home so the list reflects the last open.
-              key={workspaceKey}
-              onOpen={(path) => void openPack(path)}
-              busy={opening}
-            />
-            <OpenPackCard onPick={(path) => void openPack(path)} busy={opening} error={openError} />
-            <NewPackForm onCreated={(path) => void openPack(path)} />
-          </>
-        )}
-      </div>
-
-      {info && (
-        <footer>
-          PackForge {info.version} · Electron {info.electron} · Node {info.node}
-        </footer>
+    <>
+      {/* Full-screen editor; the workspace below stays mounted (hidden) to keep its state. */}
+      {editorOpen && (
+        <TextureEditor key={editing.url} target={editing} onClose={() => setEditing(null)} />
       )}
-    </main>
+      <main className={pack && !showSettings ? 'app wide' : 'app'} hidden={editorOpen}>
+        <header className="app-header">
+          <div>
+            <h1>PackForge</h1>
+            <p>Studio per resource pack Minecraft Java con anteprima LabPBR</p>
+          </div>
+          {!showSettings && (
+            <button type="button" onClick={() => setShowSettings(true)}>
+              Impostazioni
+            </button>
+          )}
+        </header>
+
+        {showSettings && <SettingsPanel onClose={closeSettings} />}
+
+        {/* Hidden, not unmounted, while settings are open: keeps tree/grid state. */}
+        <div className="stack" hidden={showSettings}>
+          {pack ? (
+            <>
+              <PackOverview
+                pack={pack}
+                onClose={() => void closePack()}
+                onUpdated={(updated, filesChanged) => {
+                  setPack(updated)
+                  if (filesChanged) setWorkspaceKey((key) => key + 1)
+                }}
+              />
+              <PackWorkspace key={workspaceKey} pack={pack} onEditTexture={setEditing} />
+            </>
+          ) : (
+            <>
+              <RecentPacksCard
+                // Remount when returning home so the list reflects the last open.
+                key={workspaceKey}
+                onOpen={(path) => void openPack(path)}
+                busy={opening}
+              />
+              <OpenPackCard
+                onPick={(path) => void openPack(path)}
+                busy={opening}
+                error={openError}
+              />
+              <NewPackForm onCreated={(path) => void openPack(path)} />
+            </>
+          )}
+        </div>
+
+        {info && (
+          <footer>
+            PackForge {info.version} · Electron {info.electron} · Node {info.node}
+          </footer>
+        )}
+      </main>
+    </>
   )
 }

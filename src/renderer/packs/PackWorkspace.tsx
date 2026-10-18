@@ -4,6 +4,7 @@ import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../share
 import { compatibleReleases } from '../../shared/mcmeta'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
+import type { EditorTarget } from '../editor/TextureEditor'
 import type { AssetSources } from '../preview/modelSource'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { FileTree } from './FileTree'
@@ -36,7 +37,13 @@ interface VanillaJar extends SourceFiles {
   resourceFormat: PackVersion | null
 }
 
-export function PackWorkspace({ pack }: { pack: PackSummary }): React.JSX.Element {
+export function PackWorkspace({
+  pack,
+  onEditTexture
+}: {
+  pack: PackSummary
+  onEditTexture: (target: EditorTarget) => void
+}): React.JSX.Element {
   const [packFiles, setPackFiles] = useState<Loadable<SourceFiles>>({ status: 'loading' })
   const [vanilla, setVanilla] = useState<Loadable<VanillaState>>({ status: 'loading' })
   const [jar, setJar] = useState<Loadable<VanillaJar>>({ status: 'idle' })
@@ -109,6 +116,14 @@ export function PackWorkspace({ pack }: { pack: PackSummary }): React.JSX.Elemen
       vanilla={vanilla}
       jar={jar}
       onSelectVersion={(id) => void loadJar(id)}
+      onEditTexture={(texture, assetBase) =>
+        onEditTexture({
+          path: texture.albedo,
+          name: texture.name,
+          url: assetUrl(assetBase, texture.albedo, fileVersions[texture.albedo] ?? 0),
+          readOnly: pack.kind === 'zip'
+        })
+      }
     />
   )
 }
@@ -118,13 +133,15 @@ function Workspace({
   fileVersions,
   vanilla,
   jar,
-  onSelectVersion
+  onSelectVersion,
+  onEditTexture
 }: {
   packFiles: SourceFiles
   fileVersions: Readonly<Record<string, number>>
   vanilla: Loadable<VanillaState>
   jar: Loadable<VanillaJar>
   onSelectVersion: (versionId: string) => void
+  onEditTexture: (texture: TextureEntry, assetBase: string) => void
 }): React.JSX.Element {
   const packTextures = useMemo(() => groupTextures(packFiles.files), [packFiles.files])
   const jarFiles = jar.status === 'ready' ? jar.value.files : null
@@ -239,6 +256,12 @@ function Workspace({
                   : 'Pack'
             })
           }
+          // Only pack textures are editable: vanilla pixels never enter the pack.
+          onOpenTexture={
+            activeMode === 'pack'
+              ? (texture) => onEditTexture(texture, packFiles.assetBase)
+              : undefined
+          }
           source={source}
           textures={textures}
           marker={marker}
@@ -322,6 +345,8 @@ interface TextureBrowserProps {
   onQuery: (query: string) => void
   selectedKey: string | null
   onSelectTexture: (texture: TextureEntry) => void
+  /** Pack only: double-click opens the editor. */
+  onOpenTexture: ((texture: TextureEntry) => void) | undefined
   /** Pack only: file version for cache-busting URLs. */
   versionOf: ((path: string) => number) | undefined
 }
@@ -415,6 +440,7 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
             marker={props.marker}
             selectedKey={props.selectedKey}
             onSelect={props.onSelectTexture}
+            onOpen={props.onOpenTexture}
             versionOf={props.versionOf}
           />
         ) : (

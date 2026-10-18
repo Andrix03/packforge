@@ -13,6 +13,8 @@ interface TextureGridProps {
   /** Key of the texture shown in the 3D preview. */
   selectedKey?: string | null
   onSelect?: (texture: TextureEntry) => void
+  /** Double-click: open the texture in the editor. */
+  onOpen?: ((texture: TextureEntry) => void) | undefined
   /** File version for cache-busting (bumped when the file changes on disk). */
   versionOf?: ((path: string) => number) | undefined
 }
@@ -31,6 +33,7 @@ export function TextureGrid({
   marker,
   selectedKey = null,
   onSelect,
+  onOpen,
   versionOf
 }: TextureGridProps): React.JSX.Element {
   const highlightRef = useRef<HTMLLIElement>(null)
@@ -53,6 +56,7 @@ export function TextureGrid({
               title={texture.albedo}
               aria-pressed={selectedKey === texture.key}
               onClick={() => onSelect?.(texture)}
+              onDoubleClick={onOpen && (() => onOpen(texture))}
             >
               <img
                 src={assetUrl(assetBase, texture.albedo, versionOf?.(texture.albedo) ?? 0)}

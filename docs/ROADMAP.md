@@ -49,7 +49,7 @@ middle, tools on the left and colors, live 3D and the vanilla reference on the r
 Beginner mode shows only the essential tools (pencil, eraser, fill, picker, shade, noise), the guided
 ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everything.
 
-- [ ] Pixel canvas with zoom, pan and pixel grid
+- [x] Pixel canvas with zoom, pan and pixel grid
 - [ ] Tools: pencil (optional pixel-perfect stroke), eraser, fill bucket (contiguous or global), color picker
 - [ ] Hard-pixel brush only (no soft edges / anti-aliasing), size 1–3 px in Beginner, free in Pro
 - [ ] Primary/secondary color on left/right click (secondary defaults to transparent), X swaps them

@@ -52,6 +52,8 @@ export interface TestLive {
   pixels: Sprite
   /** LabPBR maps painted in the editor (null = their files). */
   maps: LiveMaps | null
+  /** The editor has changes not saved yet (only then the badge says so). */
+  modified: boolean
 }
 
 /** Game hours per real second while the day/night cycle plays. */
@@ -271,7 +273,7 @@ export function TestScreen({
         <div>
           <strong>Prova: {target.name}</strong>
           <span className="muted small"> {target.path}</span>
-          {live && (
+          {live?.modified && (
             <span className="badge" title="La prova usa la texture così com'è nell'editor">
               con le modifiche non salvate
             </span>

@@ -805,7 +805,8 @@ export function TextureEditor({
                   // An animation the editor cannot handle keeps playing from the file.
                   animation: animationNote ? undefined : animation,
                   pixels: doc.composite,
-                  maps: liveMaps
+                  maps: liveMaps,
+                  modified
                 })
               }}
             >

@@ -40,10 +40,13 @@ interface VanillaJar extends SourceFiles {
 
 export function PackWorkspace({
   pack,
-  onEditTexture
+  onEditTexture,
+  onTestTexture
 }: {
   pack: PackSummary
   onEditTexture: (target: EditorTarget) => void
+  /** Opens the test screen on a pack texture. */
+  onTestTexture: (target: EditorTarget) => void
 }): React.JSX.Element {
   const [packFiles, setPackFiles] = useState<Loadable<SourceFiles>>({ status: 'loading' })
   const [vanilla, setVanilla] = useState<Loadable<VanillaState>>({ status: 'loading' })
@@ -110,6 +113,32 @@ export function PackWorkspace({
   if (packFiles.status === 'error') {
     return <section className="card field-error">{packFiles.message}</section>
   }
+  const base = packFiles.value.assetBase
+  const targetOf = (texture: TextureEntry, previewSources: AssetSources): EditorTarget => {
+    // A texture just created may not be listed yet: the 3D preview must still find it in the pack.
+    const sources = previewSources.pack.files.has(texture.albedo)
+      ? previewSources
+      : {
+          ...previewSources,
+          pack: {
+            ...previewSources.pack,
+            files: new Set([...previewSources.pack.files, texture.albedo])
+          }
+        }
+    return {
+      path: texture.albedo,
+      textureKey: texture.key,
+      name: texture.name,
+      url: assetUrl(base, texture.albedo, fileVersions[texture.albedo] ?? 0),
+      mcmetaUrl: texture.mcmeta
+        ? assetUrl(base, texture.mcmeta, fileVersions[texture.mcmeta] ?? 0)
+        : null,
+      readOnly: pack.kind === 'zip',
+      packBase: base,
+      sources
+    }
+  }
+
   return (
     <Workspace
       packFiles={packFiles.value}
@@ -118,31 +147,8 @@ export function PackWorkspace({
       jar={jar}
       onSelectVersion={(id) => void loadJar(id)}
       canCreate={pack.kind === 'folder'}
-      onEditTexture={(texture, previewSources) => {
-        const base = packFiles.value.assetBase
-        // A texture just created may not be listed yet: the 3D preview must still find it in the pack.
-        const sources = previewSources.pack.files.has(texture.albedo)
-          ? previewSources
-          : {
-              ...previewSources,
-              pack: {
-                ...previewSources.pack,
-                files: new Set([...previewSources.pack.files, texture.albedo])
-              }
-            }
-        onEditTexture({
-          path: texture.albedo,
-          textureKey: texture.key,
-          name: texture.name,
-          url: assetUrl(base, texture.albedo, fileVersions[texture.albedo] ?? 0),
-          mcmetaUrl: texture.mcmeta
-            ? assetUrl(base, texture.mcmeta, fileVersions[texture.mcmeta] ?? 0)
-            : null,
-          readOnly: pack.kind === 'zip',
-          packBase: base,
-          sources
-        })
-      }}
+      onEditTexture={(texture, previewSources) => onEditTexture(targetOf(texture, previewSources))}
+      onTestTexture={(texture, previewSources) => onTestTexture(targetOf(texture, previewSources))}
     />
   )
 }
@@ -154,7 +160,8 @@ function Workspace({
   jar,
   onSelectVersion,
   canCreate,
-  onEditTexture
+  onEditTexture,
+  onTestTexture
 }: {
   packFiles: SourceFiles
   fileVersions: Readonly<Record<string, number>>
@@ -162,6 +169,7 @@ function Workspace({
   jar: Loadable<VanillaJar>
   onSelectVersion: (versionId: string) => void
   onEditTexture: (texture: TextureEntry, sources: AssetSources) => void
+  onTestTexture: (texture: TextureEntry, sources: AssetSources) => void
   /** Folder packs can get new textures; zip packs are read-only. */
   canCreate: boolean
 }): React.JSX.Element {
@@ -201,6 +209,10 @@ function Workspace({
       },
     [previewSelection, previewVersion, previewMcmetaVersion]
   )
+  // Only pack textures can be tested (vanilla ones are the reference).
+  const testable = previewSelection?.isPack
+    ? (packTextures.find((t) => t.key === previewSelection.textureKey) ?? null)
+    : null
 
   // Models and textures for the 3D preview: the pack first, then vanilla.
   const packFileSet = useMemo(() => new Set(packFiles.files), [packFiles.files])
@@ -314,7 +326,11 @@ function Workspace({
           onQuery={setQuery}
         />
         {/* Outside the browser so it survives Pack/Vanilla switches. */}
-        <PreviewPanel target={previewTarget} sources={previewSources} />
+        <PreviewPanel
+          target={previewTarget}
+          sources={previewSources}
+          onTest={testable ? () => onTestTexture(testable, previewSources) : null}
+        />
       </div>
       {creating && (
         <NewTextureDialog

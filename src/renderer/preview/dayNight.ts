@@ -68,3 +68,9 @@ function normalize(v: Vec3): Vec3 {
   const length = Math.hypot(v[0], v[1], v[2])
   return [v[0] / length, v[1] / length, v[2] / length]
 }
+
+/** "HH:MM" of an hour of the day. */
+export function formatHour(hour: number): string {
+  const total = Math.round(normalizeHour(hour) * 60) % (24 * 60)
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}

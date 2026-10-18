@@ -1750,3 +1750,143 @@ kbd {
 .preview-size {
   align-self: flex-end;
 }
+
+/* Test screen: full-screen like the editor, the 3D view large on the left. */
+.test-screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  gap: 10px;
+}
+
+.test-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 12px;
+  min-height: 0;
+}
+
+.test-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.test-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+}
+
+.test-canvas-box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Absolute: the canvas must follow the box, never size it (its buffer has the old shape). */
+.test-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  cursor: grab;
+  touch-action: none;
+  background: var(--bg);
+}
+
+/* Items: a 16:9 view like the game window, so the held item is framed as in game. */
+.test-canvas-wrap.game-screen {
+  container-type: size;
+  /* Not stretched: the height comes from the aspect ratio. */
+  align-items: center;
+}
+
+.game-screen .test-canvas-box {
+  width: min(100cqw, 100cqh * 16 / 9);
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+/* Side by side: each half keeps the 16:9 shape. */
+.game-screen.comparing .test-canvas-box {
+  width: min(100cqw, 100cqh * 32 / 9);
+  aspect-ratio: 32 / 9;
+}
+
+.test-canvas:active {
+  cursor: grabbing;
+}
+
+.test-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-1px);
+  background: var(--border);
+  pointer-events: none;
+}
+
+.test-label {
+  position: absolute;
+  top: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.test-label.left {
+  left: 8px;
+}
+
+.test-label.right {
+  left: calc(50% + 8px);
+}
+
+.test-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.test-section,
+.test-neighbours,
+.test-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.test-neighbours {
+  gap: 4px;
+}
+
+.tabs.wrap {
+  flex-wrap: wrap;
+}
+
+.item-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-slots-canvas {
+  align-self: flex-start;
+  max-width: 100%;
+  image-rendering: pixelated;
+}

@@ -8,6 +8,7 @@ import { PackOverview } from './packs/PackOverview'
 import { PackWorkspace } from './packs/PackWorkspace'
 import { RecentPacksCard } from './packs/RecentPacksCard'
 import { SettingsPanel } from './settings/SettingsPanel'
+import { TestScreen, type TestLive } from './testscreen/TestScreen'
 
 export function App(): React.JSX.Element {
   const [info, setInfo] = useState<AppInfo | null>(null)
@@ -18,6 +19,10 @@ export function App(): React.JSX.Element {
   const [openError, setOpenError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [editing, setEditing] = useState<EditorTarget | null>(null)
+  /** Test screen, over the editor (live = opened from it) or over the workspace. */
+  const [testing, setTesting] = useState<{ target: EditorTarget; live: TestLive | null } | null>(
+    null
+  )
 
   useEffect(() => {
     window.api
@@ -46,6 +51,7 @@ export function App(): React.JSX.Element {
       if (result.ok) {
         setPack(result.pack)
         setEditing(null)
+        setTesting(null)
         setWorkspaceKey((key) => key + 1)
       } else setOpenError(result.error)
     } catch (error) {
@@ -58,6 +64,7 @@ export function App(): React.JSX.Element {
   async function closePack(): Promise<void> {
     setPack(null)
     setEditing(null)
+    setTesting(null)
     await window.api.invoke('pack:close')
   }
 
@@ -68,16 +75,40 @@ export function App(): React.JSX.Element {
   }
 
   const editorOpen = pack !== null && editing !== null
+  const testOpen = pack !== null && testing !== null
 
   return (
     <>
       {/* Full-screen editor; the workspace below stays mounted (hidden) to keep its state. */}
-      {editorOpen && (
-        <ErrorBoundary key={editing.url} what="L'editor" onReset={() => setEditing(null)}>
-          <TextureEditor target={editing} onClose={() => setEditing(null)} onSwitch={setEditing} />
+      {testOpen && (
+        <ErrorBoundary key={testing.target.url} what="La prova" onReset={() => setTesting(null)}>
+          <TestScreen
+            target={testing.target}
+            live={testing.live}
+            onBack={() => {
+              // From the pack: open the editor on the same texture.
+              if (!testing.live) setEditing(testing.target)
+              setTesting(null)
+            }}
+            onClose={testing.live ? null : () => setTesting(null)}
+          />
         </ErrorBoundary>
       )}
-      <main className={pack && !showSettings ? 'app wide' : 'app'} hidden={editorOpen}>
+      {/* The editor stays mounted under the test screen: its history and unsaved work stay. */}
+      {editorOpen && (
+        <div hidden={testOpen}>
+          <ErrorBoundary key={editing.url} what="L'editor" onReset={() => setEditing(null)}>
+            <TextureEditor
+              target={editing}
+              onClose={() => setEditing(null)}
+              onSwitch={setEditing}
+              onTest={(live) => setTesting({ target: editing, live })}
+              suspended={testOpen}
+            />
+          </ErrorBoundary>
+        </div>
+      )}
+      <main className={pack && !showSettings ? 'app wide' : 'app'} hidden={editorOpen || testOpen}>
         <header className="app-header">
           <div>
             <h1>PackForge</h1>
@@ -104,7 +135,12 @@ export function App(): React.JSX.Element {
                   if (filesChanged) setWorkspaceKey((key) => key + 1)
                 }}
               />
-              <PackWorkspace key={workspaceKey} pack={pack} onEditTexture={setEditing} />
+              <PackWorkspace
+                key={workspaceKey}
+                pack={pack}
+                onEditTexture={setEditing}
+                onTestTexture={(target) => setTesting({ target, live: null })}
+              />
             </>
           ) : (
             <>

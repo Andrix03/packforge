@@ -7,6 +7,10 @@ uniform sampler2D albedoMap;
 uniform vec4 frameA;
 uniform vec4 frameB;
 uniform float frameBlend;
+// Mipmap levels like the game's setting (0 = off), and the most this texture allows without
+// mixing its animation frames. The level is chosen here because frames are sub-rectangles.
+uniform float mipLevels;
+uniform float maxLod;
 // Translucent textures (model "force_translucent", e.g. glass) keep their alpha;
 // others are cutout like vanilla leaves and plants.
 uniform bool translucent;
@@ -26,8 +30,19 @@ vec2 frameUv(vec4 frame) {
   return vec2(frame.x + vUv.x * frame.z, 1.0 - (frame.y + (1.0 - vUv.y) * frame.w));
 }
 
+vec4 sampleFrame(vec4 frame) {
+  vec2 uv = frameUv(frame);
+  float levels = min(mipLevels, maxLod);
+  if (levels <= 0.0) return textureLod(albedoMap, uv, 0.0);
+  vec2 texel = uv * vec2(textureSize(albedoMap, 0));
+  vec2 dx = dFdx(texel);
+  vec2 dy = dFdy(texel);
+  float lod = 0.5 * log2(max(dot(dx, dx), dot(dy, dy)));
+  return textureLod(albedoMap, uv, clamp(lod, 0.0, levels));
+}
+
 void main() {
-  vec4 albedo = mix(texture(albedoMap, frameUv(frameA)), texture(albedoMap, frameUv(frameB)), frameBlend);
+  vec4 albedo = mix(sampleFrame(frameA), sampleFrame(frameB), frameBlend);
   if (albedo.a < (translucent ? 0.004 : 0.1)) discard;
 
   vec3 n = normalize(vNormal);

@@ -8,7 +8,7 @@ import {
   type PreviewScene
 } from './BlockPreview'
 import { loadColormaps, tintFor, type ColormapPixels } from './colormaps'
-import { normalizeHour } from './dayNight'
+import { formatHour, normalizeHour } from './dayNight'
 import {
   cubeMesh,
   guessBlockForTexture,
@@ -60,7 +60,8 @@ export function PreviewPanel({
   sources,
   live = null,
   initialShape = 'cube',
-  onBlockTextures
+  onBlockTextures,
+  onTest = null
 }: {
   target: PreviewTarget | null
   sources: AssetSources | null
@@ -68,6 +69,8 @@ export function PreviewPanel({
   initialShape?: Shape
   /** Texture paths used by the block model shown (empty for the plain cube). */
   onBlockTextures?: (paths: string[]) => void
+  /** Shows a button opening the test screen on the texture. */
+  onTest?: (() => void) | null
 }): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const previewRef = useRef<BlockPreview | null>(null)
@@ -251,6 +254,17 @@ export function PreviewPanel({
         )}
       </div>
 
+      {onTest && (
+        <button
+          type="button"
+          className="small-button"
+          onClick={onTest}
+          title="Scene, distanza, confronto con vanilla e blocchi vicini"
+        >
+          🧪 Prova in gioco
+        </button>
+      )}
+
       <div className="tabs small-tabs" role="radiogroup" aria-label="Forma">
         {(['cube', 'block'] as const).map((value) => (
           <button
@@ -376,9 +390,4 @@ function describeTexture(report: PartReport): Status {
     ? `${size} · animata: ${animation.frames.length} frame, ${(animation.totalTicks / 20).toFixed(1)} s${animation.interpolate ? ', sfumata' : ''}`
     : size
   return { text, problems: report.problem ? [report.problem] : [] }
-}
-
-function formatHour(hour: number): string {
-  const total = Math.round(normalizeHour(hour) * 60) % (24 * 60)
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }

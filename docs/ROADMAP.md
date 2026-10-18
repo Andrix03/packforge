@@ -86,12 +86,12 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 A dedicated screen to judge a finished texture as it will look in game, one click away from the editor
 ("back to drawing" opens the same texture).
 
-- [ ] Test screen reusing the Phase 2 preview (scenes, day/night, biomes, animations)
-- [ ] Distance view: the block seen from far away, to spot noise that turns into a blur
-- [ ] Side-by-side comparison with the vanilla block
-- [ ] Mixed scene: my block next to other blocks (pack first, then vanilla) to check colors fit together
-- [ ] Small built scenes (house corner, cave, path) with a free-fly camera
-- [ ] Held item / inventory slot view for item textures
+- [x] Test screen reusing the Phase 2 preview (scenes, day/night, biomes, animations)
+- [x] Distance view: the block seen from far away, to spot noise that turns into a blur
+- [x] Side-by-side comparison with the vanilla block
+- [x] Mixed scene: my block next to other blocks (pack first, then vanilla) to check colors fit together
+- [x] Small built scenes (house corner, cave, path) with a free-fly camera
+- [x] Held item / inventory slot view for item textures
 
 ## Phase 6 — Effects: LabPBR shader
 

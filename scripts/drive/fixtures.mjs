@@ -113,5 +113,14 @@ export async function createTestPack(dir) {
     join(block, 'magma.png.mcmeta'),
     JSON.stringify({ animation: { frametime: 2 } }, null, 2)
   )
+  // Item: a cyan diamond shape on transparency (the generated model extrudes its outline).
+  const item = join(dir, 'assets', 'minecraft', 'textures', 'item')
+  await mkdir(item, { recursive: true })
+  await writeFile(
+    join(item, 'diamond.png'),
+    png(16, 16, (x, y) =>
+      Math.abs(x - 7.5) + Math.abs(y - 7.5) < 7 ? [60, 220, 230, 255] : [0, 0, 0, 0]
+    )
+  )
   return block
 }

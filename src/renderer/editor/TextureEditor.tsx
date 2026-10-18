@@ -5,6 +5,7 @@ import type { EditorMode } from '../../shared/settings'
 import { NewTextureDialog } from '../packs/NewTextureDialog'
 import type { AssetSources } from '../preview/modelSource'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
+import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
 import { AdvicePanel } from './AdvicePanel'
 import { isTyping, putBuffer } from './canvasDraw'
@@ -66,10 +67,16 @@ const DRAFT_DELAY_MS = 2000
 export function TextureEditor({
   target,
   onClose,
-  onSwitch
+  onSwitch,
+  onTest,
+  suspended = false
 }: {
   target: EditorTarget
   onClose: () => void
+  /** Opens the test screen on the texture as it is now (unsaved changes included). */
+  onTest: (live: TestLive) => void
+  /** Hidden under the test screen: keyboard shortcuts are off. */
+  suspended?: boolean
   /** Opens another texture of the pack in the editor (block tabs). */
   onSwitch: (target: EditorTarget) => void
 }): React.JSX.Element {
@@ -379,6 +386,7 @@ export function TextureEditor({
   }, [doc, target, saving, history, settle, animation, mcmetaOnDisk])
 
   useEffect(() => {
+    if (suspended) return
     const onKeyDown = (event: KeyboardEvent): void => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
@@ -428,7 +436,19 @@ export function TextureEditor({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [swap, save, pro, runSelectionAction, settle, showShortcuts, animation, doc, refresh, target])
+  }, [
+    swap,
+    save,
+    pro,
+    runSelectionAction,
+    settle,
+    showShortcuts,
+    animation,
+    doc,
+    refresh,
+    target,
+    suspended
+  ])
 
   // Offer a draft left by an earlier session (crash, closed without saving).
   useEffect(() => {
@@ -566,6 +586,23 @@ export function TextureEditor({
               title="Salva la texture nel pack (Ctrl+S)"
             >
               {saving ? 'Salvataggio…' : 'Salva'}
+            </button>
+          )}
+          {doc && source && (
+            <button
+              type="button"
+              title="Guarda la texture come apparirà nel gioco: scene, distanza, confronto con vanilla"
+              onClick={() => {
+                settle()
+                onTest({
+                  canvas: source,
+                  // An animation the editor cannot handle keeps playing from the file.
+                  animation: animationNote ? undefined : animation,
+                  pixels: doc.composite
+                })
+              }}
+            >
+              🧪 Prova
             </button>
           )}
           <button type="button" onClick={close}>

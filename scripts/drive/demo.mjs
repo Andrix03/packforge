@@ -104,6 +104,52 @@ export function createDemo(app) {
       await mouse('mouseReleased', screen.at(-1), button, 0, modifiers)
       await sleep(500)
     },
+    /**
+     * Asks the viewer whether what they just saw works: "✓ Funziona" / "✗ C'è un problema" (with a
+     * note field) under the caption; waits for the answer (the viewer clicks with the real mouse)
+     * and records it as a check line. Returns { ok, note }.
+     */
+    async ask(question, timeout = 30 * 60 * 1000) {
+      await overlay()
+      await ev(`(() => {
+        window.__demoAnswer = null
+        document.getElementById('demo-ask')?.remove()
+        const box = document.createElement('div')
+        box.id = 'demo-ask'
+        box.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:100000;background:#1f2329;color:#eee;font:600 17px Segoe UI;padding:14px 18px;border-radius:12px;box-shadow:0 4px 22px #000a;border:2px solid #6fbf73;max-width:80vw;text-align:center'
+        const q = document.createElement('div')
+        q.textContent = ${JSON.stringify(question)}
+        q.style.marginBottom = '10px'
+        const note = document.createElement('input')
+        note.placeholder = 'Se qualcosa non va, scrivi qui cosa (facoltativo)'
+        note.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:10px;padding:6px 8px;font:15px Segoe UI;border-radius:6px;border:1px solid #555;background:#111;color:#eee'
+        note.addEventListener('keydown', (e) => e.stopPropagation())
+        const row = document.createElement('div')
+        row.style.cssText = 'display:flex;gap:12px;justify-content:center'
+        for (const [label, ok, color] of [['✓ Funziona', true, '#6fbf73'], ['✗ C\\'è un problema', false, '#ef6b6b']]) {
+          const b = document.createElement('button')
+          b.textContent = label
+          b.style.cssText = 'font:700 16px Segoe UI;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;color:#111;background:' + color
+          b.onclick = () => { window.__demoAnswer = { ok, note: note.value }; box.remove() }
+          row.appendChild(b)
+        }
+        box.append(q, note, row)
+        document.body.appendChild(box)
+        const cap = document.getElementById('demo-cap')
+        if (cap) cap.style.display = 'none'
+      })()`)
+      // DEMO_AUTO=1: answer by itself (to dry-run a tour before showing it).
+      if (process.env.DEMO_AUTO)
+        await ev(`setTimeout(() => document.querySelector('#demo-ask button')?.click(), 800)`)
+      await app.waitFor(`window.__demoAnswer !== null`, timeout)
+      const answer = await ev(`window.__demoAnswer`)
+      await ev(`document.getElementById('demo-cap').style.display = ''`)
+      app.check(
+        answer.ok,
+        `${question} → ${answer.ok ? 'funziona' : 'PROBLEMA'}${answer.note ? `: ${answer.note}` : ''}`
+      )
+      return answer
+    },
     async done() {
       await ev(
         `document.getElementById('demo-cap')?.remove(); document.getElementById('demo-dot')?.remove()`

@@ -74,6 +74,7 @@ export function TextureEditor({
     fillMode: 'contiguous',
     shapeFilled: false,
     mirror: { x: false, y: false },
+    tiling: false,
     primary: [255, 255, 255, 255],
     // Secondary defaults to transparent: right click erases.
     secondary: TRANSPARENT
@@ -591,6 +592,9 @@ export function TextureEditor({
             onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
             onRampUsed={lockRamp}
             onSettle={settle}
+            {...(target.readOnly
+              ? {}
+              : { onTiling: (tiling: boolean) => setTools((t) => ({ ...t, tiling })) })}
           />
           <div className="editor-side">
             {(pro || doc.layers.length > 1) && !target.readOnly && (

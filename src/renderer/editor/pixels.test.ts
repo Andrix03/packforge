@@ -359,6 +359,19 @@ describe('fill', () => {
     expect(getPixel(b, 1, 0)).toEqual(RED)
   })
 
+  it('continues across the edges in seamless mode', () => {
+    // 4×1: gray, red wall, gray, gray → from x = 3 the area wraps around to x = 0.
+    const b = buffer(4, 1, GRAY)
+    setPixel(b, 1, 0, RED)
+    const BLUE: Rgba = [0, 0, 255, 255]
+    fill(b, 3, 0, BLUE, 'contiguous', null, true)
+    expect(render(b, BLUE)).toEqual(['#.##'])
+    const plain = buffer(4, 1, GRAY)
+    setPixel(plain, 1, 0, RED)
+    fill(plain, 3, 0, BLUE, 'contiguous')
+    expect(render(plain, BLUE)).toEqual(['..##'])
+  })
+
   it('ignores clicks outside the buffer', () => {
     expect(fill(buffer(2, 2), 5, 0, RED, 'global')).toEqual([])
   })

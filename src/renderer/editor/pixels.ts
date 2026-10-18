@@ -254,14 +254,25 @@ export function fill(
   color: Rgba,
   mode: FillMode,
   /** Restricts the fill (selection): pixels for which it returns false are left alone. */
-  clip: ((index: number) => boolean) | null = null
+  clip: ((index: number) => boolean) | null = null,
+  /** Seamless mode: the area continues across the edges. */
+  wrap = false
 ): PixelChange[] {
-  const region = fillRegion(buffer, x, y, mode)
+  const region = fillRegion(buffer, x, y, mode, wrap)
   return paintPixels(buffer, clip ? region.filter(clip) : region, () => color)
 }
 
-/** Indices of the pixels the bucket would fill from (x, y); empty outside the buffer. */
-export function fillRegion(buffer: PixelBuffer, x: number, y: number, mode: FillMode): number[] {
+/**
+ * Indices of the pixels the bucket would fill from (x, y); empty outside the buffer. With `wrap`,
+ * 4-neighbors continue on the opposite edge (seamless textures).
+ */
+export function fillRegion(
+  buffer: PixelBuffer,
+  x: number,
+  y: number,
+  mode: FillMode,
+  wrap = false
+): number[] {
   if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) return []
   const target = getPixel(buffer, x, y)
   const total = buffer.width * buffer.height
@@ -280,12 +291,15 @@ export function fillRegion(buffer: PixelBuffer, x: number, y: number, mode: Fill
     const index = stack.pop()!
     region.push(index)
     const px = index % buffer.width
-    const neighbors = [
-      px > 0 ? index - 1 : -1,
-      px < buffer.width - 1 ? index + 1 : -1,
-      index - buffer.width,
-      index + buffer.width
-    ]
+    const w = buffer.width
+    const neighbors = wrap
+      ? [
+          px > 0 ? index - 1 : index + w - 1,
+          px < w - 1 ? index + 1 : index - w + 1,
+          (index - w + total) % total,
+          (index + w) % total
+        ]
+      : [px > 0 ? index - 1 : -1, px < w - 1 ? index + 1 : -1, index - w, index + w]
     for (const n of neighbors) {
       if (n < 0 || n >= total || visited[n] || !matches(n)) continue
       visited[n] = 1

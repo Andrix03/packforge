@@ -103,10 +103,11 @@ export function noiseFill(
   ramp: readonly Rgba[],
   mode: FillMode,
   random: () => number = Math.random,
-  clip: ((index: number) => boolean) | null = null
+  clip: ((index: number) => boolean) | null = null,
+  wrap = false
 ): PixelChange[] {
   if (ramp.length === 0) return []
-  const region = fillRegion(buffer, x, y, mode)
+  const region = fillRegion(buffer, x, y, mode, wrap)
   return paintPixels(buffer, clip ? region.filter(clip) : region, () => noiseColor(ramp, random))
 }
 

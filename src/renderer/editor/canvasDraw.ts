@@ -16,6 +16,8 @@ export interface CanvasOverlays {
   mirror: { x: boolean; y: boolean } | null
   /** Selection outline as unit edges in pixel coordinates. */
   selection: ReadonlyArray<readonly [number, number, number, number]> | null
+  /** Seamless mode: draw the 8 neighboring copies around the texture. */
+  tiling: boolean
 }
 
 export function drawCanvas(
@@ -35,22 +37,33 @@ export function drawCanvas(
 
   // Checkerboard under the texture so transparent pixels are visible.
   const check = Math.max(1, Math.round(CHECKER_SIZE * (window.devicePixelRatio || 1)))
-  context.save()
-  context.beginPath()
-  context.rect(x, y, width, height)
-  context.clip()
-  context.fillStyle = '#8c8c8c'
-  context.fillRect(x, y, width, height)
-  context.fillStyle = '#707070'
-  for (let row = 0; row * check < height; row++) {
-    for (let col = row % 2; col * check < width; col += 2) {
-      context.fillRect(x + col * check, y + row * check, check, check)
-    }
-  }
-  context.restore()
-
+  const tiles: Array<[number, number]> = overlays.tiling
+    ? [-1, 0, 1].flatMap((ty) => [-1, 0, 1].map((tx): [number, number] => [tx, ty]))
+    : [[0, 0]]
   context.imageSmoothingEnabled = false
-  context.drawImage(source, x, y, width, height)
+  for (const [tx, ty] of tiles) {
+    const ox = x + tx * width
+    const oy = y + ty * height
+    context.save()
+    context.beginPath()
+    context.rect(ox, oy, width, height)
+    context.clip()
+    context.fillStyle = '#8c8c8c'
+    context.fillRect(ox, oy, width, height)
+    context.fillStyle = '#707070'
+    for (let row = 0; row * check < height; row++) {
+      for (let col = row % 2; col * check < width; col += 2) {
+        context.fillRect(ox + col * check, oy + row * check, check, check)
+      }
+    }
+    context.drawImage(source, ox, oy, width, height)
+    // Neighbors are dimmed so the editable copy stays obvious.
+    if (tx !== 0 || ty !== 0) {
+      context.fillStyle = 'rgba(27, 29, 34, 0.35)'
+      context.fillRect(ox, oy, width, height)
+    }
+    context.restore()
+  }
   const { trace, hover, showGrid, mirror, selection } = overlays
   if (trace) {
     // Scaled to the texture size (a 16× reference over a 32× texture still lines up).

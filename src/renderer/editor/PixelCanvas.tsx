@@ -43,6 +43,8 @@ export interface Tools {
   secondary: Rgba
   shapeFilled: boolean
   mirror: { x: boolean; y: boolean }
+  /** Seamless mode: painting and fills continue across the edges. */
+  tiling: boolean
 }
 
 /** A shape being dragged: redrawn from the snapshot on every move. */
@@ -81,6 +83,8 @@ interface PixelCanvasProps {
   onRampUsed: () => void
   /** Drops a floating (moved/pasted) piece before another tool changes the layer. */
   onSettle: () => void
+  /** Turns seamless mode on/off (absent when read-only). */
+  onTiling?: (tiling: boolean) => void
 }
 
 export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
@@ -166,7 +170,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       hover: tools && hover && !SELECTION_TOOLS.has(tools.tool) ? { ...hover, size } : null,
       trace,
       mirror,
-      selection: outline
+      selection: outline,
+      tiling: tools?.tiling ?? false
     })
   }, [source, viewSize, viewport, showGrid, hover, tools, revision, trace, doc])
 
@@ -249,7 +254,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     if (!tools || !viewport || !frame || (event.button !== 0 && event.button !== 2)) return
     event.preventDefault()
     const point = toDevice(event)
-    const pixel = screenToPixel(viewport, point.x, point.y, frame)
+    const pixel = pixelAt(point)
     const slot = event.button === 0 ? 'primary' : 'secondary'
     // Alt turns any tool into the color picker while held.
     const tool = event.altKey ? 'picker' : tools.tool
@@ -270,7 +275,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     if (tool === 'wand') {
       props.onSettle()
       if (pixel) {
-        const region = fillRegion(doc.active.pixels, pixel.x, pixel.y, tools.fillMode)
+        const region = fillRegion(doc.active.pixels, pixel.x, pixel.y, tools.fillMode, tools.tiling)
         doc.selection = maskSelection(doc.width, doc.height, region)
         props.onPainted()
       }
@@ -306,7 +311,15 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       else props.onRampUsed()
       const changes =
         tool === 'fill'
-          ? fill(layer.pixels, pixel.x, pixel.y, tools[slot], tools.fillMode, clipIndex)
+          ? fill(
+              layer.pixels,
+              pixel.x,
+              pixel.y,
+              tools[slot],
+              tools.fillMode,
+              clipIndex,
+              tools.tiling
+            )
           : noiseFill(
               layer.pixels,
               pixel.x,
@@ -314,7 +327,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
               tools.ramp,
               tools.fillMode,
               Math.random,
-              clipIndex
+              clipIndex,
+              tools.tiling
             )
       props.onCommit(pixelCommand(layer.pixels, changes))
       return
@@ -342,7 +356,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       current = new Stroke(layer.pixels, (before) => shiftAlongRamp(ramp, before, direction), {
         size: tools.brushSize,
         mirror: tools.mirror,
-        clip
+        clip,
+        wrap: tools.tiling
       })
     } else {
       const color = tool === 'eraser' ? TRANSPARENT : tools[slot]
@@ -351,11 +366,23 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
         pixelPerfect: tool === 'pencil' && tools.pixelPerfect,
         size: tools.brushSize,
         mirror: tools.mirror,
-        clip
+        clip,
+        wrap: tools.tiling
       })
     }
     stroke.current = { pointerId: event.pointerId, stroke: current }
     if (current.add(screenToImage(viewport, point.x, point.y))) props.onPainted()
+  }
+
+  /** Texture pixel under a device point; in seamless mode the neighbor copies map back to it. */
+  function pixelAt(point: { x: number; y: number }): Point | null {
+    if (!viewport || !frame) return null
+    if (!tools?.tiling) return screenToPixel(viewport, point.x, point.y, frame)
+    const raw = screenToImage(viewport, point.x, point.y)
+    return {
+      x: ((raw.x % doc.width) + doc.width) % doc.width,
+      y: ((raw.y % doc.height) + doc.height) % doc.height
+    }
   }
 
   /** Redraws the dragged shape from its snapshot up to `end`. */
@@ -369,7 +396,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     new Stroke(pixels, current.color, {
       size: tools.brushSize,
       mirror: tools.mirror,
-      clip: current.clip
+      clip: current.clip,
+      wrap: tools.tiling
     }).addPoints(points)
     props.onPainted()
   }
@@ -415,7 +443,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       }
       if (changed) props.onPainted()
     }
-    const pixel = screenToPixel(viewport, point.x, point.y, frame)
+    const pixel = pixelAt(point)
     setHover((previous) =>
       previous?.x === pixel?.x && previous?.y === pixel?.y ? previous : pixel
     )
@@ -491,6 +519,19 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
           />
           Griglia
         </label>
+        {props.onTiling && (
+          <label
+            className="inline-check"
+            title="Mostra la texture ripetuta e disegna oltre i bordi: quello che esce da un lato rientra dall'altro"
+          >
+            <input
+              type="checkbox"
+              checked={tools?.tiling ?? false}
+              onChange={(event) => props.onTiling?.(event.target.checked)}
+            />
+            Bordi continui
+          </label>
+        )}
         <span className="muted small">
           Rotellina: zoom · tasto centrale o Spazio + trascina: sposta
         </span>

@@ -52,12 +52,15 @@ export function PreviewPanel({
   target,
   sources,
   live = null,
-  initialShape = 'cube'
+  initialShape = 'cube',
+  onBlockTextures
 }: {
   target: PreviewTarget | null
   sources: AssetSources | null
   live?: LiveTexture | null
   initialShape?: Shape
+  /** Texture paths used by the block model shown (empty for the plain cube). */
+  onBlockTextures?: (paths: string[]) => void
 }): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const previewRef = useRef<BlockPreview | null>(null)
@@ -130,6 +133,7 @@ export function PreviewPanel({
         }
         const reports = await view.setMesh(cubeMesh(target.key, target.url, target.mcmetaUrl))
         if (current && reports[0]) setStatus(describeTexture(reports[0]))
+        if (current) onBlockTextures?.([])
         return
       }
       if (!sources || !block) {
@@ -149,6 +153,7 @@ export function PreviewPanel({
       if (!current) return
       const reports = await view.setMesh(mesh.parts)
       if (!current) return
+      onBlockTextures?.([...new Set(mesh.parts.flatMap((part) => (part.path ? [part.path] : [])))])
       setVariants(mesh.variants)
       const animated = reports.filter((r) => r.animation).length
       setStatus({
@@ -170,7 +175,7 @@ export function PreviewPanel({
       current = false
     }
     // liveUrl/liveCanvas: the mesh must reload to pick up a new live texture.
-  }, [shape, target, sources, block, variantKey, biome, liveUrl, liveCanvas])
+  }, [shape, target, sources, block, variantKey, biome, liveUrl, liveCanvas, onBlockTextures])
 
   // Day/night cycle: advance the hour on animation frames while playing.
   useEffect(() => {

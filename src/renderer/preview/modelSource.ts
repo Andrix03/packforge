@@ -164,6 +164,7 @@ export async function loadBlockMesh(
     const mcmetaPath = path ? `${path}.mcmeta` : null
     parts.push({
       key,
+      path,
       url: path ? resolveAssetUrl(sources, path) : null,
       mcmetaUrl: mcmetaPath ? resolveAssetUrl(sources, mcmetaPath) : null,
       translucent: group.texture?.translucent ?? false,

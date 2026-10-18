@@ -19,6 +19,8 @@ export type Rgb = [number, number, number]
 export interface MeshPart {
   /** Identifies the texture (for reports). */
   key: string
+  /** Pack-relative PNG path of the texture, when known. */
+  path?: string | null
   /** Texture URL, or null to show Minecraft's missing texture. */
   url: string | null
   mcmetaUrl: string | null

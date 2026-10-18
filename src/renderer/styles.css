@@ -1423,3 +1423,20 @@ kbd {
 .modal p {
   margin: 0;
 }
+
+.face-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.face-tabs .tab {
+  padding: 3px 10px;
+  font-size: 0.85rem;
+}
+
+.face-tabs .tab.missing {
+  color: var(--muted);
+  border: 1px dashed var(--border);
+}

@@ -139,6 +139,7 @@ export function PackWorkspace({
             ? assetUrl(base, texture.mcmeta, fileVersions[texture.mcmeta] ?? 0)
             : null,
           readOnly: pack.kind === 'zip',
+          packBase: base,
           sources
         })
       }}

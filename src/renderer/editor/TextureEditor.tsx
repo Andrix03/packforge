@@ -5,6 +5,7 @@ import type { AssetSources } from '../preview/modelSource'
 import { addRecent, usedColors } from './color'
 import { EditorTools } from './EditorTools'
 import { TilingPreview } from './TilingPreview'
+import { NewTextureDialog } from '../packs/NewTextureDialog'
 import { History } from './history'
 import type { TextureDraft } from '../../shared/ipc'
 import {
@@ -47,6 +48,8 @@ export interface EditorTarget {
   mcmetaUrl: string | null
   /** Models and textures for the live 3D preview (pack first, then vanilla). */
   sources: AssetSources
+  /** Asset URL prefix of the open pack. */
+  packBase: string
   /** Zip packs are opened read-only. */
   readOnly: boolean
 }
@@ -74,10 +77,13 @@ const DRAFT_DELAY_MS = 2000
 
 export function TextureEditor({
   target,
-  onClose
+  onClose,
+  onSwitch
 }: {
   target: EditorTarget
   onClose: () => void
+  /** Opens another texture of the pack in the editor (block tabs). */
+  onSwitch: (target: EditorTarget) => void
 }): React.JSX.Element {
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' })
   const [tools, setTools] = useState<Tools>({
@@ -101,6 +107,9 @@ export function TextureEditor({
   const [mode, setMode] = useState<EditorMode>('beginner')
   const [proTips, setProTips] = useState(false)
   const [reference, setReference] = useState<LoadedReference | null>(null)
+  /** Textures of the block shown in the 3D preview, for the face tabs. */
+  const [blockTextures, setBlockTextures] = useState<string[]>([])
+  const [creatingPath, setCreatingPath] = useState<string | null>(null)
   /** A draft found for this texture, waiting for the user to restore or discard it. */
   const [draftOffer, setDraftOffer] = useState<TextureDraft | null>(null)
   const [traceOpacity, setTraceOpacity] = useState(0)
@@ -285,6 +294,17 @@ export function TextureEditor({
     void window.api.invoke('draft:discard', target.path)
   }
 
+  async function switchTo(path: string): Promise<void> {
+    if (path === target.path) return
+    if (modified) {
+      if (!window.confirm('Ci sono modifiche non salvate. Salvarle prima di cambiare texture?'))
+        return
+      await save()
+      if (history.modified) return
+    }
+    onSwitch(targetFor(target, path))
+  }
+
   function close(): void {
     if (modified && !window.confirm('Ci sono modifiche non salvate: andranno perse. Chiudere?')) {
       return
@@ -388,6 +408,44 @@ export function TextureEditor({
           </button>
         </div>
       )}
+      {blockTextures.length > 1 && (
+        <div className="face-tabs" role="tablist" aria-label="Texture del blocco">
+          <span className="muted small">Texture del blocco:</span>
+          {blockTextures.map((path) => {
+            const inPack = target.sources.pack.files.has(path)
+            const name = path.slice(path.lastIndexOf('/') + 1, -'.png'.length)
+            return (
+              <button
+                key={path}
+                type="button"
+                role="tab"
+                aria-selected={path === target.path}
+                className={path === target.path ? 'tab active' : inPack ? 'tab' : 'tab missing'}
+                title={inPack ? path : `${path} — non è ancora nel pack: clicca per crearla`}
+                disabled={target.readOnly && !inPack}
+                onClick={() => (inPack ? void switchTo(path) : setCreatingPath(path))}
+              >
+                {inPack ? name : `+ ${name}`}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {creatingPath && (
+        <NewTextureDialog
+          request={{
+            folder: creatingPath.slice(0, creatingPath.lastIndexOf('/')),
+            name: creatingPath.slice(creatingPath.lastIndexOf('/') + 1, -'.png'.length),
+            fromVanilla: true
+          }}
+          existing={target.sources.pack.files}
+          onCancel={() => setCreatingPath(null)}
+          onCreated={(path) => {
+            setCreatingPath(null)
+            void switchTo(path)
+          }}
+        />
+      )}
       {loaded.status === 'loading' && <p className="muted">Caricamento della texture…</p>}
       {loaded.status === 'error' && <p className="field-error">{loaded.message}</p>}
       {loaded.status === 'ready' && (
@@ -449,6 +507,7 @@ export function TextureEditor({
               sources={target.sources}
               live={{ url: target.url, canvas: loaded.source, revision }}
               initialShape="block"
+              onBlockTextures={setBlockTextures}
             />
             <ReferencePanel
               url={referenceUrl}
@@ -931,7 +990,8 @@ function strokeGrid(
 async function loadPixels(
   url: string
 ): Promise<{ pixels: ImageData; source: HTMLCanvasElement; reducedFrom16Bit: boolean }> {
-  const response = await fetch(url)
+  // no-store: the file may have been saved moments ago under the same versioned URL.
+  const response = await fetch(url, { cache: 'no-store' })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   const decoded = decodePng(new Uint8Array(await response.arrayBuffer()))
   if (!decoded.ok) throw new Error(decoded.error)
@@ -945,6 +1005,24 @@ async function loadPixels(
 }
 
 /** Shortcuts are ignored while typing in a text field (checkboxes and color inputs don't count). */
+/** Editor target for another PNG of the same pack (the file may have just been created). */
+function targetFor(current: EditorTarget, path: string): EditorTarget {
+  const { pack } = current.sources
+  const mcmeta = `${path}.mcmeta`
+  const files = pack.files.has(path) ? pack.files : new Set([...pack.files, path])
+  return {
+    ...current,
+    path,
+    textureKey: path.slice(0, -'.png'.length),
+    name: path.slice(path.lastIndexOf('/') + 1, -'.png'.length),
+    url: assetUrl(current.packBase, path, pack.versions[path] ?? 0),
+    mcmetaUrl: pack.files.has(mcmeta)
+      ? assetUrl(current.packBase, mcmeta, pack.versions[mcmeta] ?? 0)
+      : null,
+    sources: { ...current.sources, pack: { ...pack, files } }
+  }
+}
+
 function formatTime(iso: string): string {
   const date = new Date(iso)
   return Number.isNaN(date.getTime())

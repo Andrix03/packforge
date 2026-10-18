@@ -72,7 +72,12 @@ export function App(): React.JSX.Element {
     <>
       {/* Full-screen editor; the workspace below stays mounted (hidden) to keep its state. */}
       {editorOpen && (
-        <TextureEditor key={editing.url} target={editing} onClose={() => setEditing(null)} />
+        <TextureEditor
+          key={editing.url}
+          target={editing}
+          onClose={() => setEditing(null)}
+          onSwitch={setEditing}
+        />
       )}
       <main className={pack && !showSettings ? 'app wide' : 'app'} hidden={editorOpen}>
         <header className="app-header">

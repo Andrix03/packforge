@@ -1,8 +1,9 @@
 // Test resource pack for UI scenarios: a few small textures written with a minimal PNG encoder
 // (scripts run as plain Node and cannot import the TypeScript sources).
 
-import { mkdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { join, relative, sep } from 'node:path'
+import { zipSync } from 'fflate'
 import { deflateSync } from 'node:zlib'
 
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
@@ -45,6 +46,21 @@ export function png(width, height, pixel) {
   ])
 }
 
+/** Zips a folder (paths with forward slashes, like real packs) and returns the zip path. */
+export async function zipFolder(folder, zipPath) {
+  const files = {}
+  async function walk(dir) {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) await walk(full)
+      else files[relative(folder, full).split(sep).join('/')] = new Uint8Array(await readFile(full))
+    }
+  }
+  await walk(folder)
+  await writeFile(zipPath, zipSync(files))
+  return zipPath
+}
+
 /** Gray stone-like pattern; value of pixel (x, y) is predictable for assertions. */
 export const stoneValue = (x, y) => 110 + ((x * 7 + y * 13) % 5) * 12
 
@@ -75,6 +91,13 @@ export async function createTestPack(dir) {
   await writeFile(
     join(block, 'oak_planks.png'),
     png(32, 32, (x, y) => [150 + (y % 8) * 6, 110 + (x % 3) * 5, 60, 255])
+  )
+  // Large texture for performance checks (512×512, a few big areas plus a pattern).
+  await writeFile(
+    join(block, 'big.png'),
+    png(512, 512, (x, y) =>
+      x < 256 ? [90 + ((x * 7 + y * 13) % 5) * 10, 90, 90, 255] : [40, 120, 200, 255]
+    )
   )
   // Animated: 3 frames of 16×16 (red, green, blue), 2 ticks each.
   const frameColors = [

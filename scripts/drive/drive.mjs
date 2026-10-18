@@ -13,7 +13,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { createTestPack } from './fixtures.mjs'
+import { createTestPack, zipFolder } from './fixtures.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const argv = process.argv.slice(2)
@@ -50,7 +50,13 @@ const paths = {
   out: join(work, 'shots')
 }
 await mkdir(paths.out, { recursive: true })
-if (!option('--pack')) await createTestPack(paths.pack)
+// A scenario may ask for fixtures: `export const options = { zip: true }` opens the pack as a .zip.
+const scenarioModule = await import(pathToFileURL(resolve(scenarioPath)).href)
+const scenarioOptions = scenarioModule.options ?? {}
+if (!option('--pack')) {
+  await createTestPack(paths.pack)
+  if (scenarioOptions.zip) paths.pack = await zipFolder(paths.pack, `${paths.pack}.zip`)
+}
 
 const port = 9300 + Math.floor(Math.random() * 100)
 const electron = createRequire(import.meta.url)('electron')
@@ -75,7 +81,7 @@ let socket
 let app = null
 try {
   app = await connect()
-  const scenario = await import(pathToFileURL(resolve(scenarioPath)).href)
+  const scenario = scenarioModule
   await scenario.default(app)
 } catch (error) {
   exitCode = 1

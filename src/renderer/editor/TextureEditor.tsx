@@ -208,7 +208,8 @@ export function TextureEditor({
 
   const runSelectionAction = useCallback(
     (action: SelectionAction) => {
-      if (!doc) return
+      // Read-only packs: selections could still change pixels in memory (Canc, flip…).
+      if (!doc || target.readOnly) return
       const actions = selectionActions
       switch (action) {
         case 'all':
@@ -252,7 +253,7 @@ export function TextureEditor({
           break
       }
     },
-    [doc, commit, refresh]
+    [doc, commit, refresh, target.readOnly]
   )
 
   useEffect(() => {
@@ -393,7 +394,7 @@ export function TextureEditor({
         if (event.key === 'Escape') setShowShortcuts(false)
         return
       }
-      if (pro) {
+      if (pro && !target.readOnly) {
         const action = selectionShortcut(event)
         if (action) {
           event.preventDefault()

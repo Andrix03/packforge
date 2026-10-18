@@ -25,6 +25,8 @@ export interface EffectSettings {
   reflections: ReflectionMode
   /** How metals are read, as different shader packs do. */
   metals: MetalMode
+  /** Rain wetness 0–1 (porous blocks darken, puddles on top faces). */
+  rain: number
 }
 
 export const DEFAULT_EFFECTS: EffectSettings = {
@@ -37,7 +39,8 @@ export const DEFAULT_EFFECTS: EffectSettings = {
   emission: 8,
   shadows: 'pixel',
   reflections: 'scene',
-  metals: 'spec'
+  metals: 'spec',
+  rain: 0
 }
 
 export interface DebugView {

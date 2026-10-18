@@ -159,6 +159,15 @@ async function writeLabPbr(block) {
     join(block, 'glowstone.png'),
     png(16, 16, (x, y) => (x === 8 || y === 8 ? [255, 230, 150, 255] : [140, 100, 50, 255]))
   )
+  // Sand: fully porous (blue 64), rough — darkens most in the rain.
+  await writeFile(
+    join(block, 'sand.png'),
+    png(16, 16, (x, y) => [219 - ((x * 3 + y * 5) % 4) * 6, 207 - ((x + y) % 3) * 5, 160, 255])
+  )
+  await writeFile(
+    join(block, 'sand_s.png'),
+    png(16, 16, () => [20, 10, 64, 255])
+  )
   await writeFile(
     join(block, 'glowstone_s.png'),
     png(16, 16, (x, y) => (x === 8 || y === 8 ? [0, 10, 0, 254] : [30, 10, 0, 255]))

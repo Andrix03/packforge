@@ -39,6 +39,9 @@ uniform vec3 skyGround;
 // Light held by the viewer (at the camera), black when off.
 uniform vec3 torchColor;
 uniform float emissionStrength;
+// Rain: how wet things are (0–1) and seconds, for the ripples in puddles.
+uniform float wetness;
+uniform float rainTime;
 // Sun/moon shadow map: 0 = off, 1 = soft, 2 = snapped to the texture's pixels (Photon's
 // PIXELATED_SHADOWS). shadowMatrix maps world positions to the map's clip space.
 uniform int shadowMode;
@@ -265,6 +268,18 @@ float lightVisibility(vec3 face, vec3 lightDir) {
   return lit / 9.0;
 }
 
+// Smooth value noise over the world's ground plane (puddle patches, ripples).
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float valueNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + 1.0), u.x), u.y);
+}
+
 struct Surface {
   vec3 albedo;
   vec3 normal;
@@ -353,6 +368,30 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   if (debugView == 9) return albedo * emission;
   if (debugView == 10) albedo = vec3(0.45);
 
+  // Rain, after Photon's rain_puddles.glsl, only where the sky reaches (sky light 14–15).
+  // Porosity (_s B 0–64) decides how much a block soaks up and darkens; puddles form on top
+  // faces in patches; non-porous surfaces get a shiny film of water.
+  float puddle = 0.0;
+  if (wetness > 0.0) {
+    float exposed = wetness * smoothstep(13.5 / 15.0, 1.0, vLight.x);
+    vec2 ground = vWorldPosition.xz;
+    float patches = 0.6 * valueNoise(ground * 0.35) + 0.4 * valueNoise(ground * 0.9 + 17.0);
+    puddle = face.y > 0.99 ? smoothstep(0.45, 0.55, patches) * exposed : 0.0;
+    albedo *= 1.0 - 0.67 * porosity * max(puddle, 0.6 * exposed);
+    puddle *= 1.0 - porosity;
+    albedo *= 1.0 - 0.33 * puddle;
+    // Puddle water: very smooth (roughness 0.002) and flat, with rain ripples.
+    float film = 0.5 * exposed * (1.0 - porosity);
+    smoothness = max(smoothness, mix(smoothness, 0.85, film));
+    smoothness = mix(smoothness, 1.0 - sqrt(0.002), puddle);
+    vec2 ripple = vec2(
+      valueNoise(ground * 6.0 + vec2(rainTime * 1.3, 0.0)),
+      valueNoise(ground * 6.0 + vec2(0.0, rainTime * 1.1) + 5.0)
+    ) - 0.5;
+    N = normalize(mix(N, normalize(face + vec3(ripple.x, 0.0, ripple.y) * 0.08), puddle));
+    if (metalMode != 2) metalTint = albedo;
+  }
+
   float roughness = (1.0 - smoothness) * (1.0 - smoothness);
   Surface s;
   s.albedo = albedo;
@@ -366,6 +405,8 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   s.metalTint = metalTint;
   s.metalId = metalId;
   s.f0 = metalKind == 0 ? specularSample.g : 0.0;
+  // Water reflects 2% (Photon: f0 = max(f0, mix(f0, 0.02, puddle))).
+  if (metalKind == 0) s.f0 = max(s.f0, mix(s.f0, 0.02, puddle));
   s.sss = sss;
 
   // Game light: how much sky reaches this corner (stands in for shadows), block light, AO.

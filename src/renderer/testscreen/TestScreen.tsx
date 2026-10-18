@@ -502,6 +502,29 @@ export function TestScreen({
                   </select>
                 </label>
                 <span className="muted small">{preset.hint}</span>
+                <label className="preview-control">
+                  <span>
+                    Pioggia{' '}
+                    <strong>
+                      {effects.rain > 0 ? `${Math.round(effects.rain * 100)}% bagnato` : 'no'}
+                    </strong>
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={effects.rain}
+                    aria-label="Pioggia"
+                    onChange={(event) => updateEffects({ rain: Number(event.target.value) })}
+                  />
+                </label>
+                {effects.rain > 0 && (
+                  <span className="muted small">
+                    La porosità (_s B 0–64) decide quanto si scuriscono; sulle facce in alto sotto
+                    il cielo si formano pozze.
+                  </span>
+                )}
                 <label
                   className="inline-select"
                   title="Ogni shader pack legge i metalli a modo suo"

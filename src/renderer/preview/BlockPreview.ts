@@ -233,6 +233,8 @@ export class BlockPreview {
     skyGround: { value: new THREE.Color() },
     torchColor: { value: new THREE.Color() },
     emissionStrength: { value: 0 },
+    wetness: { value: 0 },
+    rainTime: { value: 0 },
     // Sun (or moon) shadows of the Effects view, rendered for each half before drawing it.
     shadowMode: { value: 0 },
     shadowMap: { value: null as THREE.Texture | null },
@@ -469,6 +471,7 @@ export class BlockPreview {
     u.debugView.value = settings?.view ?? 0
     u.metalMode.value = METAL_MODE_INDEX[settings?.metals ?? 'spec']
     u.emissionStrength.value = settings?.emission ?? 0
+    u.wetness.value = settings?.rain ?? 0
     const raw = settings ? (DEBUG_VIEWS[settings.view]?.raw ?? false) : false
     if (settings) {
       this.composers ??= [
@@ -1075,6 +1078,7 @@ export class BlockPreview {
     this.lastFrame = now
     const ticks = ((now - this.animationStart) / 1000) * TICKS_PER_SECOND
     for (const part of this.allParts()) if (part.animation) setAnimatedFrame(part, ticks)
+    this.sharedUniforms.rainTime.value = now / 1000
     if (this.flying) this.fly(seconds)
     else this.controls.update()
     this.renderSides(now)

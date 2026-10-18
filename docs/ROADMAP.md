@@ -112,7 +112,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 - [x] Reflections of the real scene (cubemap prefiltered by roughness; the sun stays the GGX highlight)
 - [x] Metal interpretation switch (spec / 230–255 read as 255 / no albedo tint)
 - [x] Threshold-free bloom (progressive downsample/upsample, mixed like Photon)
-- [ ] Rain and wetness driven by porosity (darkening, puddles on top faces)
+- [x] Rain and wetness driven by porosity (darkening, puddles on top faces)
 
 ## Phase 7 — Effects: POM
 

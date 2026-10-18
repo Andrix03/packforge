@@ -55,7 +55,8 @@ uniform sampler2D envMap;
 #include <cube_uv_reflection_fragment>
 
 // Screen-space reflections (like the shader packs' SSR): march the reflected ray in this frame's
-// depth, take the color it hits from the previous frame. ssrClip = camera near, far.
+// depth, take the color it hits from the same view rendered without SSR (BlockPreview.prepareSsr).
+// ssrPrevViewProj maps the hit into that image (the same camera today). ssrClip = near, far.
 uniform bool ssrOn;
 uniform sampler2D ssrDepth;
 uniform sampler2D ssrColor;
@@ -383,6 +384,7 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   // Ambient: sky above, ground below, darkened by the material AO.
   float NoV = max(dot(N, s.view), 1e-3);
   vec3 irradiance = mix(skyGround, ambientColor, 0.5 + 0.5 * N.y) * sky;
+  float materialAo = ao;
   ao *= cornerAo;
   vec3 lamps = blockLight(vLight.y);
   if (metalKind == 0) color += albedo * (irradiance + lamps) * ao * (1.0 - s.f0);
@@ -396,10 +398,17 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
     ? max(textureCubeUV(envMap, R, s.perceptualRoughness).rgb, lamps * s.perceptualRoughness)
     : mix(skyRadiance(R) * sky, irradiance, sqrt(roughness)) + lamps;
   vec4 traced = traceReflection(vWorldPosition + face * 0.01, R, s.view, s.perceptualRoughness);
-  reflected = mix(reflected, traced.rgb, traced.a);
+  // AO only darkens the fallback, and as specular occlusion (Frostbite / Unity HDRP: smooth
+  // surfaces see past small cavities). Traced reflections already show what is really there: AO
+  // on them would compound at every bounce and turn inner corners of metal black.
+  // The corner AO of smooth lighting spans a whole block: a mirror sees the other wall there, not
+  // a cavity, so it only counts as much as the surface is rough.
+  float specularAo = clamp(pow(NoV + materialAo, exp2(-16.0 * roughness - 1.0)) - 1.0 + materialAo, 0.0, 1.0)
+    * mix(1.0, cornerAo, s.perceptualRoughness);
+  reflected = mix(reflected * specularAo, traced.rgb, traced.a);
   reflected *= smoothstep(-0.25, 0.15, dot(R, face));
   vec3 f0 = metalKind == 1 ? METAL_F0[metalId] * metalTint : (metalKind == 2 ? albedo : vec3(s.f0));
-  color += reflected * environmentBrdf(f0, s.perceptualRoughness, NoV) * ao;
+  color += reflected * environmentBrdf(f0, s.perceptualRoughness, NoV);
 
   return color + albedo * emission * emissionStrength;
 }

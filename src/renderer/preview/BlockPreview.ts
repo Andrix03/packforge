@@ -2,8 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
-import { FullScreenQuad, Pass } from 'three/examples/jsm/postprocessing/Pass.js'
-import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js'
+import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import fragmentShader from '../shaders/block.frag.glsl?raw'
 import shadowFragmentShader from '../shaders/shadow.frag.glsl?raw'
@@ -248,8 +247,7 @@ export class BlockPreview {
     // Reflections: 0 = the analytic sky gradient, 1 = the captured scene (envMap, CubeUV).
     envMode: { value: 0 },
     envMap: { value: null as THREE.Texture | null },
-    // Screen-space reflections: this frame's depth (prepass) to march in, last frame's HDR color
-    // to take the reflected color from (reprojected with last frame's view-projection).
+    // Screen-space reflections: depth and HDR color of the view rendered without them.
     ssrOn: { value: false },
     ssrDepth: { value: null as THREE.Texture | null },
     ssrColor: { value: null as THREE.Texture | null },
@@ -926,9 +924,11 @@ export class BlockPreview {
   }
 
   /**
-   * Screen-space reflections for one half: depth prepass from the camera, then points the SSR
-   * uniforms at it and at the composer's previous frame. Off for raw views, "sky only" or when
-   * there is no previous frame yet.
+   * Screen-space reflections for one half: first the same view WITHOUT SSR (reflections from the
+   * capture only) into the composer's `base` target, color + depth; the final pass marches in that
+   * depth and takes the reflected color from it. Reading a frame that already had SSR would chain
+   * mirror-in-mirror reflections forever (black inner corners): this way it's two bounces at most,
+   * the second from the capture, and there's no frame of lag. Off for raw views and "sky only".
    */
   private prepareSsr(side: Side, composer: Composer): void {
     const u = this.sharedUniforms
@@ -937,19 +937,23 @@ export class BlockPreview {
       u.ssrOn.value = false
       return
     }
+    u.ssrOn.value = false
     side.hand.visible = false
-    this.drawDepth(side, composer.depth, this.camera)
+    this.renderer.setRenderTarget(composer.base)
+    this.renderer.clear()
+    this.renderer.render(this.scene, this.camera)
+    this.renderer.setRenderTarget(null)
     side.hand.visible = true
     this.camera.updateMatrixWorld()
     u.ssrViewProj.value.multiplyMatrices(
       this.camera.projectionMatrix,
       this.camera.matrixWorldInverse
     )
-    u.ssrPrevViewProj.value.copy(composer.previousViewProj)
-    u.ssrDepth.value = composer.depth.depthTexture
-    u.ssrColor.value = composer.history.texture
+    u.ssrPrevViewProj.value.copy(u.ssrViewProj.value)
+    u.ssrDepth.value = composer.base.depthTexture
+    u.ssrColor.value = composer.base.texture
     u.ssrClip.value.set(this.camera.near, this.camera.far)
-    u.ssrOn.value = composer.hasHistory
+    u.ssrOn.value = true
   }
 
   private *allParts(): Generator<LoadedPart> {
@@ -1062,11 +1066,6 @@ export class BlockPreview {
         composer.setSize(width, size.y)
         this.prepareSsr(side, composer)
         composer.render()
-        this.camera.updateMatrixWorld()
-        composer.previousViewProj.multiplyMatrices(
-          this.camera.projectionMatrix,
-          this.camera.matrixWorldInverse
-        )
       } else {
         this.renderer.render(this.scene, this.camera)
       }
@@ -1093,24 +1092,18 @@ export class BlockPreview {
  */
 class Composer {
   readonly bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0, BLOOM_RADIUS, BLOOM_THRESHOLD)
-  /** Depth of this frame from the camera (SSR prepass). */
-  readonly depth = new THREE.WebGLRenderTarget(1, 1, { depthTexture: new THREE.DepthTexture(1, 1) })
-  /** Last frame's HDR image before bloom, with mipmaps (blurrier reflections on rough surfaces). */
-  readonly history = new THREE.WebGLRenderTarget(1, 1, {
+  /**
+   * The view without screen-space reflections (SSR reads it): HDR color with mipmaps (blurrier
+   * reflections on rough surfaces) and depth.
+   */
+  readonly base = new THREE.WebGLRenderTarget(1, 1, {
     type: THREE.HalfFloatType,
     generateMipmaps: true,
-    minFilter: THREE.LinearMipmapLinearFilter
+    minFilter: THREE.LinearMipmapLinearFilter,
+    depthTexture: new THREE.DepthTexture(1, 1)
   })
-  readonly previousViewProj = new THREE.Matrix4()
-  hasHistory = false
   private readonly composer: EffectComposer
   private readonly output = new OutputPass()
-  private readonly copy = new FullScreenQuad(
-    new THREE.ShaderMaterial({
-      ...CopyShader,
-      uniforms: THREE.UniformsUtils.clone(CopyShader.uniforms)
-    })
-  )
   private readonly size = new THREE.Vector2()
 
   constructor(
@@ -1121,7 +1114,7 @@ class Composer {
     // Half floats keep lights and emission above 1 for the bloom; 4× MSAA like the screen.
     const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 })
     this.composer = new EffectComposer(renderer, target)
-    this.composer.addPass(new DrawPass(scene, camera, (drawn) => this.keep(drawn)))
+    this.composer.addPass(new DrawPass(scene, camera))
     this.composer.addPass(this.bloom)
     this.composer.addPass(this.output)
   }
@@ -1134,32 +1127,19 @@ class Composer {
     const ratio = this.renderer.getPixelRatio()
     const w = Math.max(1, Math.floor(width * ratio))
     const h = Math.max(1, Math.floor(height * ratio))
-    this.depth.setSize(w, h)
-    this.history.setSize(w, h)
-    this.hasHistory = false
+    this.base.setSize(w, h)
   }
 
   render(): void {
     this.composer.render()
   }
 
-  /** Copies the frame just drawn into the history (mipmaps are rebuilt by the renderer). */
-  private keep(drawn: THREE.WebGLRenderTarget): void {
-    ;(this.copy.material as THREE.ShaderMaterial).uniforms['tDiffuse']!.value = drawn.texture
-    this.renderer.setRenderTarget(this.history)
-    this.copy.render(this.renderer)
-    this.hasHistory = true
-  }
-
   dispose(): void {
     this.bloom.dispose()
     this.output.dispose()
     this.composer.dispose()
-    this.depth.depthTexture?.dispose()
-    this.depth.dispose()
-    this.history.dispose()
-    this.copy.material.dispose()
-    this.copy.dispose()
+    this.base.depthTexture?.dispose()
+    this.base.dispose()
   }
 }
 
@@ -1167,8 +1147,7 @@ class Composer {
 class DrawPass extends Pass {
   constructor(
     private readonly scene: THREE.Scene,
-    private readonly camera: THREE.Camera,
-    private readonly after: (drawn: THREE.WebGLRenderTarget) => void
+    private readonly camera: THREE.Camera
   ) {
     super()
     this.needsSwap = false
@@ -1181,7 +1160,6 @@ class DrawPass extends Pass {
   ): void {
     renderer.setRenderTarget(readBuffer)
     renderer.render(this.scene, this.camera)
-    this.after(readBuffer)
   }
 }
 

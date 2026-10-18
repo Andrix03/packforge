@@ -1,6 +1,7 @@
 // Settings of the Effects (LabPBR) view: lighting preset, channel/debug view, exposure,
 // tone mapping, bloom and emission strength. Pure data, shared by the UI and BlockPreview.
 
+import type { MetalMode } from '../../shared/labpbr'
 import type { LightingPresetId } from './lightingPresets'
 
 export type ToneMappingId = 'neutral' | 'aces' | 'agx' | 'reinhard' | 'none'
@@ -22,6 +23,8 @@ export interface EffectSettings {
   emission: number
   shadows: ShadowMode
   reflections: ReflectionMode
+  /** How metals are read, as different shader packs do. */
+  metals: MetalMode
 }
 
 export const DEFAULT_EFFECTS: EffectSettings = {
@@ -32,7 +35,8 @@ export const DEFAULT_EFFECTS: EffectSettings = {
   bloom: 0.5,
   emission: 4,
   shadows: 'pixel',
-  reflections: 'scene'
+  reflections: 'scene',
+  metals: 'spec'
 }
 
 export interface DebugView {

@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { BIOMES, DEFAULT_BIOME } from '../../shared/biomeTint'
+import { METAL_MODES, type MetalMode } from '../../shared/labpbr'
 import type { EditorTarget } from '../editor/TextureEditor'
 import { BlockPreview, type LiveAnimation } from '../preview/BlockPreview'
 import { loadColormaps, tintFor, type ColormapPixels } from '../preview/colormaps'
@@ -501,6 +502,26 @@ export function TestScreen({
                   </select>
                 </label>
                 <span className="muted small">{preset.hint}</span>
+                <label
+                  className="inline-select"
+                  title="Ogni shader pack legge i metalli a modo suo"
+                >
+                  <span className="muted small">Metalli</span>
+                  <select
+                    value={effects.metals}
+                    aria-label="Metalli"
+                    onChange={(event) => updateEffects({ metals: event.target.value as MetalMode })}
+                  >
+                    {METAL_MODES.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <span className="muted small">
+                  {METAL_MODES.find((m) => m.id === effects.metals)?.hint}
+                </span>
                 <label
                   className="inline-select"
                   title="Cosa riflettono le superfici lisce e i metalli («Solo cielo» è più leggero)"

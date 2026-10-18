@@ -11,6 +11,7 @@ import {
   metalF0,
   METALS,
   NO_SPECULAR,
+  reflectanceUnder,
   roughnessOf,
   smoothnessOf,
   type Rgba
@@ -133,5 +134,23 @@ describe('map paths', () => {
     expect(mapKindOf('assets/minecraft/textures/block/stone_n.png')).toBe('normal')
     expect(mapKindOf('assets/minecraft/textures/block/stone_s.png')).toBe('specular')
     expect(mapKindOf(stone)).toBeNull()
+  })
+})
+
+describe('reflectanceUnder', () => {
+  const gold = decodeSpecular([255, 231, 0, 255]).reflectance
+  it('keeps the spec reading: predefined metal tinted by the albedo', () => {
+    expect(reflectanceUnder(gold, 'spec')).toEqual({ reflectance: gold, albedoTint: true })
+  })
+  it('reads every metal as an albedo metal when packs skip the predefined ones', () => {
+    expect(reflectanceUnder(gold, 'albedo')).toEqual({
+      reflectance: { kind: 'albedoMetal' },
+      albedoTint: false
+    })
+  })
+  it('can drop the albedo tint, and leaves dielectrics alone', () => {
+    expect(reflectanceUnder(gold, 'untinted').albedoTint).toBe(false)
+    const stone = decodeSpecular([40, 10, 0, 255]).reflectance
+    expect(reflectanceUnder(stone, 'albedo').reflectance).toBe(stone)
   })
 })

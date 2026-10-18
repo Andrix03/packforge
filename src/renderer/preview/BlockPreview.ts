@@ -19,7 +19,14 @@ import {
 } from '../../shared/animation'
 import { textureAxes, type Quad } from '../../shared/blockGeometry'
 import type { DisplayTransform } from '../../shared/itemModel'
-import { FLAT_NORMAL, METALS, metalF0, NO_SPECULAR, type Rgba } from '../../shared/labpbr'
+import {
+  FLAT_NORMAL,
+  METALS,
+  metalF0,
+  NO_SPECULAR,
+  type MetalMode,
+  type Rgba
+} from '../../shared/labpbr'
 import { cornerLight, LightGrid, type CornerLight, type LightProps } from '../../shared/lightLevels'
 import { decodePng } from '../../shared/pngCodec'
 import { lightingAt, type Lighting } from './dayNight'
@@ -138,6 +145,9 @@ const TONE_MAPPING: Record<ToneMappingId, THREE.ToneMapping> = {
   none: THREE.NoToneMapping
 }
 
+/** `metalMode` uniform of block.frag.glsl. */
+const METAL_MODE_INDEX: Record<MetalMode, number> = { spec: 0, albedo: 1, untinted: 2 }
+
 /** The predefined LabPBR metals for the shader, generated from shared/labpbr.ts. */
 const METALS_GLSL = (() => {
   const vec3 = (v: readonly number[]): string => `vec3(${v.map((x) => x.toFixed(5)).join(', ')})`
@@ -222,6 +232,7 @@ export class BlockPreview {
     mipLevels: { value: 0 },
     pbr: { value: false },
     debugView: { value: 0 },
+    metalMode: { value: 0 },
     skyZenith: { value: new THREE.Color() },
     skyHorizon: { value: new THREE.Color() },
     skyGround: { value: new THREE.Color() },
@@ -462,6 +473,7 @@ export class BlockPreview {
     const u = this.sharedUniforms
     u.pbr.value = settings !== null
     u.debugView.value = settings?.view ?? 0
+    u.metalMode.value = METAL_MODE_INDEX[settings?.metals ?? 'spec']
     u.emissionStrength.value = settings?.emission ?? 0
     const raw = settings ? (DEBUG_VIEWS[settings.view]?.raw ?? false) : false
     if (settings) {

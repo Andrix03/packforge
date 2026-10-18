@@ -209,3 +209,40 @@ function toByte(value: number): number {
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value))
 }
+
+/**
+ * How a shader pack reads the metals (the spec lets packs skip the predefined ones):
+ * - 'spec': 230–237 are the predefined metals (N/K) tinted by the albedo, like the spec and Photon;
+ * - 'albedo': no predefined metals, all of 230–255 is read as 255 (albedo as F0), like the packs
+ *   the spec warns about;
+ * - 'untinted': predefined metals with their own N/K color, not tinted by the albedo.
+ */
+export type MetalMode = 'spec' | 'albedo' | 'untinted'
+
+export const METAL_MODES: ReadonlyArray<{ id: MetalMode; label: string; hint: string }> = [
+  {
+    id: 'spec',
+    label: 'Come la spec',
+    hint: '230–237 metalli predefiniti, riflessi tinti dall’albedo (spec LabPBR, Photon).'
+  },
+  {
+    id: 'albedo',
+    label: 'Senza metalli predefiniti',
+    hint: 'Tutto 230–255 letto come 255: albedo come F0 (alcuni shader pack).'
+  },
+  {
+    id: 'untinted',
+    label: 'Metalli senza tinta',
+    hint: '230–237 col colore del metallo reale, senza tinta dell’albedo.'
+  }
+]
+
+/** Reflectance of a texel as a pack in `mode` would shade it; also whether the albedo tints it. */
+export function reflectanceUnder(
+  reflectance: Reflectance,
+  mode: MetalMode
+): { reflectance: Reflectance; albedoTint: boolean } {
+  if (reflectance.kind !== 'metal') return { reflectance, albedoTint: false }
+  if (mode === 'albedo') return { reflectance: { kind: 'albedoMetal' }, albedoTint: false }
+  return { reflectance, albedoTint: mode === 'spec' }
+}

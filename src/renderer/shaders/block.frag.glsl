@@ -29,6 +29,9 @@ uniform vec3 ambientColor;
 uniform bool pbr;
 // 0 = final image; 1–9 = one material channel alone; 10 = lighting on a gray material.
 uniform int debugView;
+// How metals are read (shared/labpbr.ts MetalMode): 0 = spec, 1 = 230–255 as 255 (albedo as F0),
+// 2 = predefined metals without the albedo tint.
+uniform int metalMode;
 // Sky gradient reflected by smooth surfaces (linear), and the ground color below the horizon.
 uniform vec3 skyZenith;
 uniform vec3 skyHorizon;
@@ -271,13 +274,15 @@ struct Surface {
   float perceptualRoughness;
   // 0 = dielectric (F0 = f0), 1 = predefined metal (metalId), 2 = albedo metal.
   int metalKind;
+  // What tints a predefined metal's reflections (the albedo, or white without tint).
+  vec3 metalTint;
   int metalId;
   float f0;
   float sss;
 };
 
 vec3 specularFresnel(Surface s, float cosTheta) {
-  if (s.metalKind == 1) return fresnelConductor(cosTheta, METAL_N[s.metalId], METAL_K[s.metalId]) * s.albedo;
+  if (s.metalKind == 1) return fresnelConductor(cosTheta, METAL_N[s.metalId], METAL_K[s.metalId]) * s.metalTint;
   if (s.metalKind == 2) return fresnelSchlick(cosTheta, s.albedo);
   return fresnelSchlick(cosTheta, vec3(s.f0));
 }
@@ -327,6 +332,8 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   float sss = b > 64 ? float(b - 65) / 190.0 : 0.0;
   float emission = a < 255 ? float(a) / 254.0 : 0.0;
   int metalKind = g <= 229 ? 0 : (g <= 237 ? 1 : 2);
+  if (metalMode == 1 && metalKind == 1) metalKind = 2;
+  vec3 metalTint = metalMode == 2 ? vec3(1.0) : albedo;
   int metalId = clamp(g - 230, 0, 7);
 
   alpha = translucent ? albedoSample.a : 1.0;
@@ -355,6 +362,7 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   s.alpha = max(roughness, 0.02);
   s.perceptualRoughness = 1.0 - smoothness;
   s.metalKind = metalKind;
+  s.metalTint = metalTint;
   s.metalId = metalId;
   s.f0 = metalKind == 0 ? specularSample.g : 0.0;
   s.sss = sss;
@@ -390,7 +398,7 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   vec4 traced = traceReflection(vWorldPosition + face * 0.01, R, s.view, s.perceptualRoughness);
   reflected = mix(reflected, traced.rgb, traced.a);
   reflected *= smoothstep(-0.25, 0.15, dot(R, face));
-  vec3 f0 = metalKind == 1 ? METAL_F0[metalId] * albedo : (metalKind == 2 ? albedo : vec3(s.f0));
+  vec3 f0 = metalKind == 1 ? METAL_F0[metalId] * metalTint : (metalKind == 2 ? albedo : vec3(s.f0));
   color += reflected * environmentBrdf(f0, s.perceptualRoughness, NoV) * ao;
 
   return color + albedo * emission * emissionStrength;

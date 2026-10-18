@@ -27,7 +27,6 @@ export function MaterialPanel({
   accentCount: number | null
 }): React.JSX.Element {
   const preset = materialPreset(options.preset)
-  const set = (change: Partial<MaterialOptions>): void => onOptions({ ...options, ...change })
   return (
     <section className="card generator-panel" aria-label="Materiale">
       <h3 className="panel-title">Materiale</h3>
@@ -35,6 +34,40 @@ export function MaterialPanel({
         Riempie levigatezza, riflettanza e porosità partendo dai colori della texture. Sono valori
         di partenza scelti da noi: la specifica LabPBR non dà tabelle per materiale.
       </p>
+      <MaterialFields options={options} onOptions={onOptions} accentCount={accentCount} />
+      <button
+        type="button"
+        className="primary"
+        disabled={disabled !== null}
+        title={
+          disabled ??
+          'Sostituisce levigatezza, riflettanza e porosità (un solo passo da annullare). L’emissione cambia solo con “Luminoso”.'
+        }
+        onClick={onApply}
+      >
+        Applica {preset.label.toLowerCase()}
+        {selectionActive ? ' alla selezione' : ''}
+      </button>
+      {disabled && <p className="small muted">{disabled}</p>}
+    </section>
+  )
+}
+
+/** Preset buttons and the options of the chosen preset (also used by the batch dialog). */
+export function MaterialFields({
+  options,
+  onOptions,
+  accentCount = null
+}: {
+  options: MaterialOptions
+  onOptions: (options: MaterialOptions) => void
+  /** Ore preset: how many pixels count as gem (null = not shown). */
+  accentCount?: number | null
+}): React.JSX.Element {
+  const preset = materialPreset(options.preset)
+  const set = (change: Partial<MaterialOptions>): void => onOptions({ ...options, ...change })
+  return (
+    <>
       <div className="value-presets material-presets" role="group" aria-label="Preset materiale">
         {MATERIALS.map((material) => (
           <button
@@ -114,20 +147,6 @@ export function MaterialPanel({
         title="I pixel scuri (fessure) diventano più ruvidi, quelli chiari più lisci; 0 = tutto uguale"
         onChange={(value) => set({ variation: value / 100 })}
       />
-      <button
-        type="button"
-        className="primary"
-        disabled={disabled !== null}
-        title={
-          disabled ??
-          'Sostituisce levigatezza, riflettanza e porosità (un solo passo da annullare). L’emissione cambia solo con “Luminoso”.'
-        }
-        onClick={onApply}
-      >
-        Applica {preset.label.toLowerCase()}
-        {selectionActive ? ' alla selezione' : ''}
-      </button>
-      {disabled && <p className="small muted">{disabled}</p>}
-    </section>
+    </>
   )
 }

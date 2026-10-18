@@ -189,10 +189,16 @@ function lumaAt(albedo: ArrayLike<number>, i: number): number {
   return (0.2126 * albedo[i * 4]! + 0.7152 * albedo[i * 4 + 1]! + 0.0722 * albedo[i * 4 + 2]!) / 255
 }
 
-function median(values: number[]): number {
-  if (values.length === 0) return 0
-  const sorted = [...values].sort((a, b) => a - b)
-  return sorted[Math.floor(sorted.length / 2)]!
+/** Median of byte values from their histogram (the upper median, as sorting would give). */
+function medianOfHistogram(histogram: Uint32Array, count: number): number {
+  if (count === 0) return 0
+  const rank = Math.floor(count / 2)
+  let seen = 0
+  for (let value = 0; value < histogram.length; value++) {
+    seen += histogram[value]!
+    if (seen > rank) return value
+  }
+  return histogram.length - 1
 }
 
 /** Weights of the accent score: a different hue counts more than a lighter or darker shade. */
@@ -204,12 +210,14 @@ const LIGHTNESS_WEIGHT = 1
  * pixels): the hue/saturation difference, or the lightness difference (coal's black spots).
  */
 export function accentScores(albedo: ArrayLike<number>, pixels: number): Float32Array {
-  const channels: number[][] = [[], [], []]
+  const histograms = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)]
+  let opaque = 0
   for (let i = 0; i < pixels; i++) {
     if (albedo[i * 4 + 3]! === 0) continue
-    for (let c = 0; c < 3; c++) channels[c]!.push(albedo[i * 4 + c]!)
+    opaque++
+    for (let c = 0; c < 3; c++) histograms[c]![albedo[i * 4 + c]!]! += 1
   }
-  const typical = channels.map(median)
+  const typical = histograms.map((histogram) => medianOfHistogram(histogram, opaque))
   const out = new Float32Array(pixels)
   for (let i = 0; i < pixels; i++) {
     if (albedo[i * 4 + 3]! === 0) continue

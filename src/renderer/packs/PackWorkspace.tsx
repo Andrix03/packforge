@@ -11,6 +11,7 @@ import { FileTree } from './FileTree'
 import { NewTextureDialog, type NewTextureRequest } from './NewTextureDialog'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
 import { ValidatorDialog } from './ValidatorDialog'
+import { BatchDialog } from './BatchDialog'
 import type { ValidatorSource } from './runValidator'
 
 const DEFAULT_FOLDER = 'assets/minecraft/textures/block'
@@ -192,6 +193,7 @@ function Workspace({
   const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null)
   const [creating, setCreating] = useState<NewTextureRequest | null>(null)
   const [validating, setValidating] = useState(false)
+  const [batching, setBatching] = useState(false)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
     previewSelection?.isPack && previewSelection.mcmeta
@@ -288,6 +290,16 @@ function Workspace({
         >
           🔍 Controlla mappe
         </button>
+        {canCreate && (
+          <button
+            type="button"
+            className="small-button"
+            title="Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo"
+            onClick={() => setBatching(true)}
+          >
+            ⚙ Applica in blocco
+          </button>
+        )}
       </div>
 
       <div className="workspace-row">
@@ -356,6 +368,14 @@ function Workspace({
           onTest={testable ? () => onTestTexture(testable, previewSources) : null}
         />
       </div>
+      {batching && (
+        <BatchDialog
+          pack={validatorPack}
+          textures={packTextures}
+          initialFolder={selectedFolder}
+          onClose={() => setBatching(false)}
+        />
+      )}
       {validating && (
         <ValidatorDialog
           pack={validatorPack}

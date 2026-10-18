@@ -170,6 +170,9 @@ const DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
   [1, -1]
 ]
 
+/** Most distances the AO march looks at per direction. */
+export const MAX_AO_STEPS = 32
+
 /**
  * Ambient occlusion bytes (255 = open) from height bytes: in 8 directions, the highest horizon
  * within the radius hides part of the sky (horizon-based AO, like PixelGraph's ray march on the
@@ -184,18 +187,37 @@ export function occlusionFromHeight(
   const scale = (MAX_DEPTH * width) / 255
   const radius =
     options.radius > 0 ? Math.round(options.radius) : Math.max(2, Math.round(width / 4))
-  const at = sampler(heights, grid)
+  // Every pixel up to MAX_AO_STEPS (exact for textures up to 128 px); beyond, the march samples
+  // MAX_AO_STEPS distances spread over the radius, so 512–1024 px textures take ~1 s, not minutes.
+  const steps: number[] = []
+  for (let k = 1; k <= Math.min(radius, MAX_AO_STEPS); k++) {
+    steps.push(radius <= MAX_AO_STEPS ? k : Math.round((k * radius) / MAX_AO_STEPS))
+  }
+  const frame = Math.max(1, Math.min(grid.frameHeight, height))
   const strength = Math.max(0, Math.min(1, options.strength))
   const out = new Uint8Array(width * height)
   for (let y = 0; y < height; y++) {
+    // The frame holding row y: neighbours wrap or clamp inside it (as `sampler`).
+    const top = Math.floor(y / frame) * frame
+    const rows = Math.min(frame, height - top)
+    const fy0 = y - top
     for (let x = 0; x < width; x++) {
-      const own = at(x, y, y) * scale
+      const own = heights[y * width + x]! * scale
       let hidden = 0
       for (const [dx, dy] of DIRECTIONS) {
         const unit = Math.hypot(dx, dy)
         let slope = 0
-        for (let step = 1; step <= radius; step++) {
-          const rise = at(x + dx * step, y + dy * step, y) * scale - own
+        for (const step of steps) {
+          let fx = x + dx * step
+          let fy = fy0 + dy * step
+          if (grid.wrap) {
+            fx = ((fx % width) + width) % width
+            fy = ((fy % rows) + rows) % rows
+          } else {
+            fx = fx < 0 ? 0 : fx >= width ? width - 1 : fx
+            fy = fy < 0 ? 0 : fy >= rows ? rows - 1 : fy
+          }
+          const rise = heights[(top + fy) * width + fx]! * scale - own
           slope = Math.max(slope, rise / (step * unit))
         }
         // sin of the horizon's elevation = the share of that slice of sky it hides.

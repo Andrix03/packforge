@@ -43,10 +43,25 @@ in vec3 vTint;
 in vec3 vTexRight;
 in vec3 vTexDown;
 in vec3 vWorldPosition;
+in vec3 vLight;
 
 const float PI = 3.14159265359;
 // Blocks reached by the torch light (like a torch's light level 14).
 const float TORCH_RANGE = 14.0;
+// Warm color of block light at middle levels (the game fades it to white at 0 and 15). Its exact
+// default is in the game's code, not in its data: this is an approximation.
+const vec3 BLOCK_LIGHT_TINT = vec3(1.0, 0.8, 0.6);
+
+// The game's lightmap curve (shaders/core/lightmap.fsh): level 0–1 to brightness.
+float lightBrightness(float level) {
+  return level / (4.0 - 3.0 * level);
+}
+
+// Color of block light at a level, mixed towards white at the ends like the game.
+vec3 blockLight(float level) {
+  float edge = (2.0 * level - 1.0) * (2.0 * level - 1.0);
+  return mix(BLOCK_LIGHT_TINT, vec3(1.0), 0.9 * edge) * lightBrightness(level);
+}
 
 // UVs are relative to one frame (0–1); v = 1 is the top of the image
 // (textures are flipped on upload).
@@ -227,7 +242,10 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   s.f0 = metalKind == 0 ? specularSample.g : 0.0;
   s.sss = sss;
 
-  vec3 color = shadeLight(s, sunDirection, sunColor) + shadeLight(s, moonDirection, moonColor);
+  // Game light: how much sky reaches this corner (stands in for shadows), block light, AO.
+  float sky = lightBrightness(vLight.x);
+  float cornerAo = vLight.z;
+  vec3 color = (shadeLight(s, sunDirection, sunColor) + shadeLight(s, moonDirection, moonColor)) * sky;
   if (dot(torchColor, torchColor) > 0.0) {
     vec3 toTorch = cameraPosition - vWorldPosition;
     float falloff = max(0.0, 1.0 - length(toTorch) / TORCH_RANGE);
@@ -236,11 +254,13 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
 
   // Ambient: sky above, ground below, darkened by the material AO.
   float NoV = max(dot(N, s.view), 1e-3);
-  vec3 irradiance = mix(skyGround, ambientColor, 0.5 + 0.5 * N.y);
-  if (metalKind == 0) color += albedo * irradiance * ao * (1.0 - s.f0);
+  vec3 irradiance = mix(skyGround, ambientColor, 0.5 + 0.5 * N.y) * sky;
+  ao *= cornerAo;
+  vec3 lamps = blockLight(vLight.y);
+  if (metalKind == 0) color += albedo * (irradiance + lamps) * ao * (1.0 - s.f0);
   // Reflections of the sky, blurred towards the ambient light as roughness grows.
   vec3 R = reflect(-s.view, N);
-  vec3 reflected = mix(skyRadiance(R), irradiance, sqrt(roughness));
+  vec3 reflected = mix(skyRadiance(R) * sky, irradiance, sqrt(roughness)) + lamps * roughness;
   reflected *= smoothstep(-0.25, 0.15, dot(R, face));
   vec3 f0 = metalKind == 1 ? METAL_F0[metalId] * albedo : (metalKind == 2 ? albedo : vec3(s.f0));
   color += reflected * environmentBrdf(f0, s.perceptualRoughness, NoV) * ao;
@@ -258,9 +278,11 @@ void main() {
     gl_FragColor = vec4(color, alpha);
   } else {
     vec3 n = normalize(vNormal);
-    vec3 light = ambientColor
+    vec3 daylight = ambientColor
       + sunColor * max(dot(n, sunDirection), 0.0)
       + moonColor * max(dot(n, moonDirection), 0.0);
+    // Like the game's lightmap: sky light scales the daylight, block light adds to it.
+    vec3 light = (daylight * lightBrightness(vLight.x) + blockLight(vLight.y)) * vLight.z;
     gl_FragColor = vec4(albedo.rgb * vTint * light, translucent ? albedo.a : 1.0);
   }
 

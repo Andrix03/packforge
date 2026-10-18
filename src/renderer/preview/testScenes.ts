@@ -90,7 +90,7 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   {
     kind: 'cave',
     label: 'Grotta',
-    hint: 'Il tuo blocco forma pareti, soffitto e pavimento di una galleria.',
+    hint: 'Il tuo blocco forma pareti, soffitto e pavimento di una galleria, rischiarata in fondo da una torcia.',
     focus: [0, 2, -3],
     camera: [0.6, 0.4, 11],
     fov: 70,
@@ -186,10 +186,11 @@ function caveScene(): Placement[] {
       }
     }
   }
-  // The tunnel ends against a wall.
+  // The tunnel ends against a wall, with a torch: sky light fades inside, block light near it.
   for (let x = -2; x <= 2; x++) {
     for (let y = 1; y <= 3; y++) placements.push({ block: MINE, at: [x, y, -9] })
   }
+  placements.push({ block: 'torch', at: [0, 1, -7] })
   return placements
 }
 

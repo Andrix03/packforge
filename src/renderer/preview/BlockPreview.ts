@@ -16,6 +16,7 @@ import {
 import { textureAxes, type Quad } from '../../shared/blockGeometry'
 import type { DisplayTransform } from '../../shared/itemModel'
 import { FLAT_NORMAL, METALS, metalF0, NO_SPECULAR, type Rgba } from '../../shared/labpbr'
+import { cornerLight, LightGrid, type CornerLight, type LightProps } from '../../shared/lightLevels'
 import { decodePng } from '../../shared/pngCodec'
 import { lightingAt, type Lighting } from './dayNight'
 import { DEBUG_VIEWS, type EffectSettings, type ToneMappingId } from './effects'
@@ -46,6 +47,8 @@ export interface WorldModel {
   key: string
   parts: MeshPart[]
   positions: Vec3[]
+  /** How the block takes part in the scene's light (none: lit as in full daylight, no AO). */
+  light?: LightProps
 }
 
 export interface PartReport {
@@ -126,6 +129,8 @@ const METALS_GLSL = (() => {
 })()
 
 interface LoadedPart {
+  quads: MeshPart['quads']
+  /** One copy at the origin, fully lit (held items). The world builds its own, lit per block. */
   geometry: THREE.BufferGeometry
   material: THREE.ShaderMaterial
   texture: THREE.Texture
@@ -141,6 +146,7 @@ interface LoadedPart {
 interface LoadedModel {
   parts: LoadedPart[]
   positions: Vec3[]
+  light: LightProps | null
 }
 
 interface LoadedWithReports {
@@ -154,6 +160,8 @@ interface Side {
   held: LoadedPart[]
   world: THREE.Group
   hand: THREE.Group
+  /** World geometry built by layout (disposed on the next one). */
+  geometries: THREE.BufferGeometry[]
 }
 
 /**
@@ -430,6 +438,9 @@ export class BlockPreview {
     window.removeEventListener('blur', this.onBlur)
     for (const composer of this.composers ?? []) composer.dispose()
     for (const part of this.allParts()) disposePart(part)
+    for (const side of [this.main, this.other]) {
+      for (const geometry of side.geometries) geometry.dispose()
+    }
     this.main.models = []
     this.other.models = []
     this.main.held = []
@@ -470,7 +481,11 @@ export class BlockPreview {
   private async loadModel(model: WorldModel): Promise<LoadedWithReports> {
     const results = await Promise.all(model.parts.map((part) => this.loadPart(part)))
     return {
-      loaded: { parts: results.map((r) => r.loaded), positions: model.positions },
+      loaded: {
+        parts: results.map((r) => r.loaded),
+        positions: model.positions,
+        light: model.light ?? null
+      },
       reports: results.map((r) => r.report)
     }
   }
@@ -585,6 +600,7 @@ export class BlockPreview {
       }
     })
     const loaded: LoadedPart = {
+      quads: part.quads,
       geometry: buildGeometry(part.quads),
       material,
       texture,
@@ -607,16 +623,23 @@ export class BlockPreview {
     }
   }
 
-  /** One instanced mesh per texture of each model, an instance per block position. */
+  /**
+   * One mesh per texture of each model, with a copy of its quads at every block position, lit like
+   * the game (sky and block light, smooth lighting AO) when the models carry light properties.
+   */
   private layout(side: Side): void {
     side.world.clear()
-    const matrix = new THREE.Matrix4()
+    for (const geometry of side.geometries) geometry.dispose()
+    side.geometries = []
+    const lit = side.models.flatMap((model) =>
+      model.light ? model.positions.map((at) => ({ at, light: model.light! })) : []
+    )
+    const grid = lit.length > 0 ? new LightGrid(lit) : null
     for (const model of side.models) {
       for (const part of model.parts) {
-        const mesh = new THREE.InstancedMesh(part.geometry, part.material, model.positions.length)
-        model.positions.forEach((at, i) => mesh.setMatrixAt(i, matrix.makeTranslation(...at)))
-        mesh.frustumCulled = false
-        side.world.add(mesh)
+        const geometry = buildGeometry(part.quads, model.positions, grid)
+        side.geometries.push(geometry)
+        side.world.add(new THREE.Mesh(geometry, part.material))
       }
     }
   }
@@ -797,7 +820,13 @@ class DrawPass extends Pass {
 }
 
 function emptySide(): Side {
-  return { models: [], held: [], world: new THREE.Group(), hand: new THREE.Group() }
+  return {
+    models: [],
+    held: [],
+    world: new THREE.Group(),
+    hand: new THREE.Group(),
+    geometries: []
+  }
 }
 
 /**
@@ -814,29 +843,54 @@ function displayMatrix(display: DisplayTransform): THREE.Matrix4 {
   )
 }
 
-/** Two counter-clockwise triangles per quad, in block units centered on 0. */
-function buildGeometry(quads: MeshPart['quads']): THREE.BufferGeometry {
+/**
+ * Two counter-clockwise triangles per quad, in block units, a copy centered on each block position.
+ * With a light grid, each corner gets the game's smooth light (sky, block, AO); faces pressed
+ * against an opaque block are skipped, and quads are split along their darker diagonal (0fps).
+ */
+function buildGeometry(
+  quads: MeshPart['quads'],
+  blocks: readonly Vec3[] = [[0, 0, 0]],
+  grid: LightGrid | null = null
+): THREE.BufferGeometry {
   const positions: number[] = []
+  const lights: number[] = []
   const normals: number[] = []
   const uvs: number[] = []
   const tints: number[] = []
   const rights: number[] = []
   const downs: number[] = []
-  // Corners are TL, TR, BR, BL seen from outside: TL-BL-BR and TL-BR-TR face outwards.
+  // Corners are TL, TR, BR, BL seen from outside: TL-BL-BR and TL-BR-TR face outwards
+  // (split along TL-BR), or TL-BL-TR and TR-BL-BR (split along TR-BL).
   const order = [0, 3, 2, 0, 2, 1]
-  for (const { quad, tint } of quads) {
-    const axes = textureAxes(quad)
-    for (const i of order) {
-      rights.push(...axes.right)
-      downs.push(...axes.down)
-      const p = quad.positions[i]!
-      const uv = quad.uvs[i]!
-      positions.push(p[0] / 16 - 0.5, p[1] / 16 - 0.5, p[2] / 16 - 0.5)
-      normals.push(...quad.normal)
-      uvs.push(uv[0] / 16, 1 - uv[1] / 16)
-      // Albedo is decoded to linear on sampling; the game multiplies tint and
-      // texture in sRGB, which matches linear(albedo) × linear(tint) here.
-      tints.push(srgbToLinear(tint[0]), srgbToLinear(tint[1]), srgbToLinear(tint[2]))
+  const flipped = [0, 3, 1, 1, 3, 2]
+  const daylight: CornerLight = { sky: 15, block: 0, ao: 1 }
+  for (const at of blocks) {
+    for (const { quad, tint } of quads) {
+      const side = boundarySide(quad)
+      if (grid && side && grid.propsAt(at[0] + side[0], at[1] + side[1], at[2] + side[2])?.opaque) {
+        continue
+      }
+      const corners = quad.positions.map((corner) =>
+        grid ? cornerLight(grid, at, quad.normal, corner, side !== null) : daylight
+      )
+      const weight = (c: CornerLight): number => c.ao * (1 + Math.max(c.sky, c.block) / 15)
+      const [w0, w1, w2, w3] = corners.map(weight) as [number, number, number, number]
+      const axes = textureAxes(quad)
+      for (const i of w0 + w2 > w1 + w3 ? flipped : order) {
+        rights.push(...axes.right)
+        downs.push(...axes.down)
+        const p = quad.positions[i]!
+        const uv = quad.uvs[i]!
+        const light = corners[i]!
+        lights.push(light.sky / 15, light.block / 15, light.ao)
+        positions.push(p[0] / 16 - 0.5 + at[0], p[1] / 16 - 0.5 + at[1], p[2] / 16 - 0.5 + at[2])
+        normals.push(...quad.normal)
+        uvs.push(uv[0] / 16, 1 - uv[1] / 16)
+        // Albedo is decoded to linear on sampling; the game multiplies tint and
+        // texture in sRGB, which matches linear(albedo) × linear(tint) here.
+        tints.push(srgbToLinear(tint[0]), srgbToLinear(tint[1]), srgbToLinear(tint[2]))
+      }
     }
   }
   const geometry = new THREE.BufferGeometry()
@@ -846,7 +900,19 @@ function buildGeometry(quads: MeshPart['quads']): THREE.BufferGeometry {
   geometry.setAttribute('tint', new THREE.Float32BufferAttribute(tints, 3))
   geometry.setAttribute('texRight', new THREE.Float32BufferAttribute(rights, 3))
   geometry.setAttribute('texDown', new THREE.Float32BufferAttribute(downs, 3))
+  geometry.setAttribute('lightLevels', new THREE.Float32BufferAttribute(lights, 3))
   return geometry
+}
+
+/** The block side a quad lies on (unit step towards the neighbour), or null when inside it. */
+function boundarySide(quad: Quad): Vec3 | null {
+  const axis = quad.normal.findIndex((c) => Math.abs(c) > 0.999)
+  if (axis < 0) return null
+  const plane = quad.normal[axis]! > 0 ? 16 : 0
+  if (!quad.positions.every((corner) => Math.abs(corner[axis]! - plane) < 1e-6)) return null
+  const side: Vec3 = [0, 0, 0]
+  side[axis] = Math.sign(quad.normal[axis]!)
+  return side
 }
 
 /** Top-left square of the smaller side, like the game's default frame. */

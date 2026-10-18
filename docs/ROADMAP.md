@@ -103,6 +103,17 @@ A dedicated screen to judge a finished texture as it will look in game, one clic
 - [x] Emission bloom
 - [x] Environment lighting presets (overworld noon, sunset, cave, nether)
 
+## Phase 6b — Effects: closer to the shader packs
+
+Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps, Bedrock Vibrant Visuals).
+
+- [x] Game-like light levels (sky light and block light flood fill) and vanilla smooth-lighting AO between blocks
+- [ ] Sun shadows (shadow map, pixel-snapped to 1/16 block like the shader packs)
+- [ ] Reflections of the real scene (cubemap prefiltered by roughness, sun disk included)
+- [ ] Metal interpretation switch (spec / 230–255 read as 255 / no albedo tint)
+- [ ] Threshold-free bloom (progressive downsample/upsample, mixed like Photon)
+- [ ] Rain and wetness driven by porosity (darkening, puddles on top faces)
+
 ## Phase 7 — Effects: POM
 
 - [ ] Parallax occlusion mapping using height from `_n.a`

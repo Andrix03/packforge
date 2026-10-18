@@ -4,6 +4,7 @@ import {
   readDisplay,
   type DisplayTransform
 } from '../../shared/itemModel'
+import { lightPropsFor, type LightProps } from '../../shared/lightLevels'
 import { decodePng } from '../../shared/pngCodec'
 import type { MeshPart, Rgb, Vec3, WorldModel } from '../preview/BlockPreview'
 import {
@@ -21,6 +22,7 @@ export type TintOf = (block: string) => (tintIndex: number) => Rgb | null
 export interface MineMesh {
   parts: MeshPart[]
   warnings: string[]
+  light: LightProps
 }
 
 /** Only the vanilla jar, for the comparison (null when it is not loaded). */
@@ -45,7 +47,11 @@ export async function loadMine(
   if (block) {
     const mesh = await loadBlockMesh(sources, block, null, tintOf(block))
     if (mesh.parts.length > 0 || sources.pack.files.size > 0) {
-      return { parts: mesh.parts, warnings: mesh.warnings }
+      return {
+        parts: mesh.parts,
+        warnings: mesh.warnings,
+        light: lightPropsFor(block, mesh.fullCube)
+      }
     }
     return null
   }
@@ -58,7 +64,9 @@ export async function loadMine(
       resolveAssetUrl(sources, `${texturePath}.mcmeta`),
       labPbrUrls(sources, texturePath)
     ),
-    warnings: []
+    warnings: [],
+    // The texture alone on a cube: lit like a block of the same name (glowstone.png emits).
+    light: lightPropsFor(texturePath.replace(/^.*\//, '').replace(/\.png$/, ''), true)
   }
 }
 
@@ -75,14 +83,16 @@ export async function buildWorld(
     byBlock.set(block, [...(byBlock.get(block) ?? []), at])
   }
   return Promise.all(
-    [...byBlock].map(async ([block, positions]) => ({
-      key: block,
-      positions,
-      parts:
-        block === MINE
-          ? mine!.parts
-          : (await loadBlockMesh(sources, block, null, tintOf(block))).parts
-    }))
+    [...byBlock].map(async ([block, positions]): Promise<WorldModel> => {
+      if (block === MINE) return { key: block, positions, parts: mine!.parts, light: mine!.light }
+      const mesh = await loadBlockMesh(sources, block, null, tintOf(block))
+      return {
+        key: block,
+        positions,
+        parts: mesh.parts,
+        light: lightPropsFor(block, mesh.fullCube)
+      }
+    })
   )
 }
 

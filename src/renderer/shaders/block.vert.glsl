@@ -6,6 +6,8 @@ attribute vec3 tint;
 // normal maps (DirectX convention: green grows downwards).
 attribute vec3 texRight;
 attribute vec3 texDown;
+// Game-like light of the corner: sky level, block level (0–1 = 0–15) and smooth-lighting AO.
+attribute vec3 lightLevels;
 
 out vec2 vUv;
 out vec3 vNormal;
@@ -13,15 +15,13 @@ out vec3 vTint;
 out vec3 vTexRight;
 out vec3 vTexDown;
 out vec3 vWorldPosition;
+out vec3 vLight;
 
 void main() {
   vUv = uv;
   vTint = tint;
+  vLight = lightLevels;
   vec4 local = vec4(position, 1.0);
-  // Instanced scenes: one instance per block, translated only (normals unchanged).
-  #ifdef USE_INSTANCING
-  local = instanceMatrix * local;
-  #endif
   mat3 toWorld = mat3(modelMatrix);
   vNormal = normalize(toWorld * normal);
   vTexRight = toWorld * texRight;

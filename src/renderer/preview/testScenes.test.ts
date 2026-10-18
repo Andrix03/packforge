@@ -41,7 +41,7 @@ describe('test scenes', () => {
     expect(at(-3, 1, -3)).toBe('oak_log')
     const cave = sceneByKind('cave').build([])
     expect(cave.some((p) => p.at[0] === 0 && p.at[1] === 2 && p.at[2] === 0)).toBe(false)
-    expect(sceneBlocks(cave).sort()).toEqual(['coal_ore', 'gravel'])
+    expect(sceneBlocks(cave).sort()).toEqual(['coal_ore', 'gravel', 'torch'])
   })
 
   it('has a lawn for items and default views for every scene', () => {

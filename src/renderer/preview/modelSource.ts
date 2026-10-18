@@ -122,6 +122,8 @@ export interface BlockMesh {
   variants: BlockstateVariant[]
   variant: BlockstateVariant | null
   warnings: string[]
+  /** One of its models has an unrotated 16×16×16 element (a full cube, for light and AO). */
+  fullCube: boolean
 }
 
 /**
@@ -142,15 +144,20 @@ export async function loadBlockMesh(
       parts: [],
       variants,
       variant: null,
+      fullCube: false,
       warnings: [`Nessun blockstate valido per "${block}".`]
     }
   }
   const variant = variants.find((v) => v.key === variantKey) ?? defaultVariant(variants)
   const warnings: string[] = []
+  let fullCube = false
   const groups = new Map<string, { texture: TextureRef | null; quads: MeshPart['quads'] }>()
 
   for (const ref of variant?.models ?? []) {
     const model = await resolveModel(ref.model, (path) => loadJson(sources, path))
+    fullCube ||= model.elements.some(
+      (e) => !e.rotation && e.from.every((v) => v === 0) && e.to.every((v) => v === 16)
+    )
     warnings.push(...model.warnings)
     if (model.elements.length === 0 && model.warnings.length === 0) {
       warnings.push(`Il modello ${ref.model} non ha elementi (forma speciale disegnata dal gioco).`)
@@ -192,5 +199,5 @@ export async function loadBlockMesh(
       quads: group.quads
     })
   }
-  return { parts, variants, variant, warnings: [...new Set(warnings)] }
+  return { parts, variants, variant, warnings: [...new Set(warnings)], fullCube }
 }

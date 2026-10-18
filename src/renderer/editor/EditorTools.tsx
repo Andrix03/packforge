@@ -1,5 +1,6 @@
-import { useRef } from 'react'
-import { fromHex, toHex, type FillMode, type Rgba } from './pixels'
+import type { UsedColor } from './color'
+import { ColorPanel } from './ColorPanel'
+import type { FillMode, Rgba } from './pixels'
 import { TOOLS, type ToolId } from './tools'
 
 interface EditorToolsProps {
@@ -11,9 +12,10 @@ interface EditorToolsProps {
   onFillMode: (mode: FillMode) => void
   primary: Rgba
   secondary: Rgba
-  onPrimary: (color: Rgba) => void
-  onSecondary: (color: Rgba) => void
+  onColor: (slot: 'primary' | 'secondary', color: Rgba) => void
   onSwap: () => void
+  recent: readonly Rgba[]
+  palette: readonly UsedColor[]
   disabled: boolean
 }
 
@@ -77,70 +79,14 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
 
       <p className="tool-tip small muted">{active.tip}</p>
 
-      <div className="color-pair">
-        <ColorSwatch
-          label="Primario (clic sinistro)"
-          color={props.primary}
-          onChange={props.onPrimary}
-        />
-        <ColorSwatch
-          label="Secondario (clic destro)"
-          color={props.secondary}
-          onChange={props.onSecondary}
-        />
-        <div className="row">
-          <button type="button" onClick={props.onSwap} title="Scambia i colori (X)">
-            ⇄ Scambia <kbd>X</kbd>
-          </button>
-          <button
-            type="button"
-            onClick={() => props.onSecondary([0, 0, 0, 0])}
-            title="Il secondario torna trasparente: il clic destro cancella"
-            disabled={props.secondary[3] === 0}
-          >
-            Trasparente
-          </button>
-        </div>
-      </div>
+      <ColorPanel
+        primary={props.primary}
+        secondary={props.secondary}
+        onChange={props.onColor}
+        onSwap={props.onSwap}
+        recent={props.recent}
+        palette={props.palette}
+      />
     </aside>
-  )
-}
-
-function ColorSwatch({
-  label,
-  color,
-  onChange
-}: {
-  label: string
-  color: Rgba
-  onChange: (color: Rgba) => void
-}): React.JSX.Element {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const transparent = color[3] === 0
-  return (
-    <div className="color-swatch-row">
-      <button
-        type="button"
-        className={transparent ? 'color-swatch checker' : 'color-swatch'}
-        style={transparent ? undefined : { background: toHex(color) }}
-        onClick={() => inputRef.current?.click()}
-        aria-label={`${label}: cambia colore`}
-      />
-      <div className="color-swatch-text">
-        <span className="small">{label}</span>
-        <span className="small muted">{transparent ? 'trasparente' : toHex(color)}</span>
-      </div>
-      <input
-        ref={inputRef}
-        type="color"
-        className="visually-hidden"
-        tabIndex={-1}
-        value={transparent ? '#000000' : toHex(color)}
-        onChange={(event) => {
-          const parsed = fromHex(event.target.value)
-          if (parsed) onChange(parsed)
-        }}
-      />
-    </div>
   )
 }

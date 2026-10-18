@@ -148,11 +148,12 @@ export function toHex([r, g, b]: Rgba): string {
   return '#' + [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')
 }
 
-/** Parses `#rrggbb` (case-insensitive) into an opaque color, or null if malformed. */
+/** Parses `#rrggbb` or `#rrggbbaa` (`#` optional, case-insensitive), or null if malformed. */
 export function fromHex(hex: string): Rgba | null {
-  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim())
+  const match = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})?$/i.exec(hex.trim())
   if (!match) return null
-  return [parseInt(match[1]!, 16), parseInt(match[2]!, 16), parseInt(match[3]!, 16), 255]
+  const [r, g, b, a] = match.slice(1).map((part) => (part === undefined ? 255 : parseInt(part, 16)))
+  return [r!, g!, b!, a!]
 }
 
 export type FillMode = 'contiguous' | 'global'

@@ -198,8 +198,13 @@ describe('toHex / fromHex', () => {
     expect(fromHex('#FF08A0')).toEqual([255, 8, 160, 255])
   })
 
+  it('accepts a missing # and an alpha byte', () => {
+    expect(fromHex('ff08a0')).toEqual([255, 8, 160, 255])
+    expect(fromHex(' #FF08A080 ')).toEqual([255, 8, 160, 128])
+  })
+
   it('rejects malformed input', () => {
-    expect(fromHex('ff08a0')).toBeNull()
+    expect(fromHex('#ff08a')).toBeNull()
     expect(fromHex('#fff')).toBeNull()
     expect(fromHex('#gg0000')).toBeNull()
   })

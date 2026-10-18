@@ -1125,44 +1125,148 @@ kbd {
   line-height: 1.4;
 }
 
-.color-pair {
+.color-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
 }
 
-.color-pair .row {
+.color-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.color-slots .row {
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.color-pair .row button {
+.color-slots .row button {
   padding: 4px 8px;
   font-size: 0.85rem;
 }
 
-.color-swatch-row {
+.slot-button {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 5px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.slot-button.active {
+  border-color: var(--accent);
 }
 
 .color-swatch {
-  width: 36px;
-  height: 36px;
-  padding: 0;
+  position: relative;
+  display: block;
+  width: 32px;
+  height: 32px;
   flex: none;
-  border: 2px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.swatch-fill {
+  position: absolute;
+  inset: 0;
 }
 
 .color-swatch-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+.color-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.color-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slider-value {
+  float: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.color-slider input[type='range'] {
+  appearance: none;
+  height: 12px;
+  padding: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.color-slider input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #222;
+}
+
+.color-fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 4px;
+}
+
+.color-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.color-fields input {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 4px;
+  font-size: 0.8rem;
+}
+
+.panel-title {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22px, 1fr));
+  gap: 3px;
+}
+
+.swatch-cell {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.swatch-cell .color-swatch {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 3px;
+}
+
+.swatch-cell:hover .color-swatch {
+  outline: 2px solid var(--accent);
 }
 
 .visually-hidden {
@@ -1179,7 +1283,7 @@ kbd {
 }
 
 .editor-main {
-  grid-template-columns: 220px minmax(0, 1fr) 300px;
+  grid-template-columns: 240px minmax(0, 1fr) 300px;
 }
 
 .editor-side {
@@ -1209,4 +1313,15 @@ kbd {
   width: 100%;
   aspect-ratio: 1;
   display: block;
+}
+
+/* Narrow RGB fields: no spinner arrows, so three digits always fit. */
+.color-fields input[type='number'] {
+  appearance: textfield;
+}
+
+.color-fields input[type='number']::-webkit-inner-spin-button,
+.color-fields input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
 }

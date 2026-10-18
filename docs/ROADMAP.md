@@ -54,12 +54,12 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 - [x] Fill bucket (contiguous or global) and color picker (also Alt + click with any tool)
 - [ ] Hard-pixel brush only (no soft edges / anti-aliasing), size 1–3 px in Beginner, free in Pro
 - [x] Primary/secondary color on left/right click (secondary defaults to transparent), X swaps them
-- [ ] Color picker panel: hex/RGB/HSV input, alpha, recent colors (full panel in Pro)
+- [x] Color picker panel: hex/RGB/HSV input, alpha, recent colors (full panel in Pro)
 - [ ] Ramp generator: 5 shades from a base color with hue shifting (cool shadows, warm highlights)
 - [ ] Shade tool: left click one step darker, right click one step lighter along the ramp
 - [ ] Noise fill: fill an area with random shades of the ramp (base for stone, dirt, gravel)
-- [ ] Replace color: swap one color for another across the whole texture
-- [ ] Texture palette: the colors already used, sorted by brightness, with a color counter
+- [x] Replace color: swap one color for another across the whole texture (fill bucket, Globale mode)
+- [x] Texture palette: the colors already used, sorted by brightness, with a color counter
 - [ ] Soft warnings in Beginner mode: too many colors (> ~10), darkest next to lightest, too much contrast
 - [ ] Beginner / Pro mode switch (remembered in settings), tool tips with shortcut and one-line advice
 - [x] Undo/redo history (100+ steps), unsaved-changes indicator

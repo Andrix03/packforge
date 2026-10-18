@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { decodePng } from '../../shared/pngCodec'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import type { AssetSources } from '../preview/modelSource'
+import { addRecent, usedColors } from './color'
 import { EditorTools } from './EditorTools'
 import { TilingPreview } from './TilingPreview'
 import { History } from './history'
@@ -73,6 +74,11 @@ export function TextureEditor({
   const [savedOnce, setSavedOnce] = useState(false)
   /** Bumped on every painted change, to refresh the live previews. */
   const [revision, setRevision] = useState(0)
+  const [recent, setRecent] = useState<Rgba[]>([])
+  const pixels = loaded.status === 'ready' ? loaded.pixels : null
+  // Recomputed after every change; cheap even at 64× (a single pass over the pixels).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const palette = useMemo(() => (pixels ? usedColors(pixels) : []), [pixels, revision])
   const previewTarget = useMemo<PreviewTarget>(
     () => ({
       key: `editor|${target.url}`,
@@ -224,8 +230,9 @@ export function TextureEditor({
             onFillMode={(fillMode) => setTools((t) => ({ ...t, fillMode }))}
             primary={tools.primary}
             secondary={tools.secondary}
-            onPrimary={(primary) => setTools((t) => ({ ...t, primary }))}
-            onSecondary={(secondary) => setTools((t) => ({ ...t, secondary }))}
+            onColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
+            recent={recent}
+            palette={palette}
             onSwap={swap}
             disabled={target.readOnly}
           />
@@ -236,6 +243,7 @@ export function TextureEditor({
             history={history}
             onModifiedChange={setModified}
             onPixelsChanged={() => setRevision((r) => r + 1)}
+            onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
             onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
           />
           <div className="editor-side">
@@ -260,6 +268,7 @@ function PixelCanvas({
   history,
   onModifiedChange,
   onPixelsChanged,
+  onColorUsed,
   onPickColor
 }: {
   pixels: ImageData
@@ -271,6 +280,8 @@ function PixelCanvas({
   onModifiedChange: (modified: boolean) => void
   onPickColor: (slot: 'primary' | 'secondary', color: Rgba) => void
   onPixelsChanged: () => void
+  /** A color was painted with (for the recent colors). */
+  onColorUsed: (color: Rgba) => void
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -444,6 +455,7 @@ function PixelCanvas({
     }
     if (tool === 'fill') {
       if (!pixel) return
+      onColorUsed(tools[slot])
       history.push(fill(pixels, pixel.x, pixel.y, tools[slot], tools.fillMode))
       showChanges()
       syncHistory()
@@ -451,6 +463,7 @@ function PixelCanvas({
     }
     event.currentTarget.setPointerCapture(event.pointerId)
     const color = tool === 'eraser' ? TRANSPARENT : tools[slot]
+    onColorUsed(color)
     const current = new Stroke(pixels, color, tool === 'pencil' && tools.pixelPerfect)
     stroke.current = { pointerId: event.pointerId, stroke: current }
     if (current.add(screenToImage(viewport, point.x, point.y))) showChanges()

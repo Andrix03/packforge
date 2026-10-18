@@ -127,6 +127,11 @@ export interface IpcContract {
     args: [path: string, width: number, height: number, rgba: Uint8Array]
     result: SaveTextureResult
   }
+  /**
+   * Folder packs only: writes the texture's `.png.mcmeta` (a JSON object as text), or deletes it
+   * with null. `path` is the PNG's path.
+   */
+  'texture:saveMcmeta': { args: [path: string, content: string | null]; result: SaveTextureResult }
   /** Autosaves editor pixels as a draft for this pack texture (folder packs only). */
   'draft:save': {
     args: [path: string, width: number, height: number, rgba: Uint8Array]
@@ -172,6 +177,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:pickIconSource': true,
   'pack:setIcon': true,
   'texture:save': true,
+  'texture:saveMcmeta': true,
   'draft:save': true,
   'draft:load': true,
   'draft:discard': true,

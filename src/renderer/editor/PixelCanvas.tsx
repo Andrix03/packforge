@@ -83,6 +83,8 @@ interface PixelCanvasProps {
   onRampUsed: () => void
   /** Drops a floating (moved/pasted) piece before another tool changes the layer. */
   onSettle: () => void
+  /** Onion skin: row where the previous animation frame starts (null = off). */
+  onionY: number | null
   /** Turns seamless mode on/off (absent when read-only). */
   onTiling?: (tiling: boolean) => void
 }
@@ -113,15 +115,19 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
   const selectDrag = useRef<{ pointerId: number; start: Point; moved: boolean } | null>(null)
   const moveDrag = useRef<{ pointerId: number; last: Point } | null>(null)
 
+  // The editable area: the whole image, or the animation frame being edited.
+  const area = doc.view
+  const viewWidth = area.x1 - area.x0 + 1
+  const viewHeight = area.y1 - area.y0 + 1
   const frame = useMemo<Frame | null>(
     () =>
       viewSize && {
-        imageWidth: doc.width,
-        imageHeight: doc.height,
+        imageWidth: viewWidth,
+        imageHeight: viewHeight,
         viewWidth: viewSize.width,
         viewHeight: viewSize.height
       },
-    [viewSize, doc.width, doc.height]
+    [viewSize, viewWidth, viewHeight]
   )
 
   // The canvas backing store follows the container size in device pixels.
@@ -163,17 +169,41 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     const size = tools && BRUSH_TOOLS.has(tools.tool) ? tools.brushSize : 1
     const mirror = tools && MIRROR_TOOLS.has(tools.tool) ? tools.mirror : null
     const outline = doc.selection
-      ? outlineSegments(doc.selection.mask, doc.width, doc.height)
+      ? outlineSegments(doc.selection.mask, doc.width, doc.height, -area.x0, -area.y0)
       : null
     drawCanvas(canvas, source, viewport, {
       showGrid,
-      hover: tools && hover && !SELECTION_TOOLS.has(tools.tool) ? { ...hover, size } : null,
+      hover:
+        // The last hovered pixel may belong to another frame after switching: hide it then.
+        tools &&
+        hover &&
+        !SELECTION_TOOLS.has(tools.tool) &&
+        hover.y >= area.y0 &&
+        hover.y <= area.y1
+          ? { x: hover.x - area.x0, y: hover.y - area.y0, size }
+          : null,
       trace,
       mirror,
       selection: outline,
-      tiling: tools?.tiling ?? false
+      tiling: tools?.tiling ?? false,
+      region: { x: area.x0, y: area.y0, width: viewWidth, height: viewHeight },
+      onion: props.onionY === null ? null : { y: props.onionY }
     })
-  }, [source, viewSize, viewport, showGrid, hover, tools, revision, trace, doc])
+  }, [
+    source,
+    viewSize,
+    viewport,
+    showGrid,
+    hover,
+    tools,
+    revision,
+    trace,
+    doc,
+    area,
+    viewWidth,
+    viewHeight,
+    props.onionY
+  ])
 
   const zoomCentered = useCallback(
     (direction: 1 | -1) =>
@@ -266,16 +296,23 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     if (tool === 'select') {
       props.onSettle()
       event.currentTarget.setPointerCapture(event.pointerId)
-      const start = screenToImage(viewport, point.x, point.y)
+      const start = toImage(point.x, point.y)
       selectDrag.current = { pointerId: event.pointerId, start, moved: false }
-      doc.selection = rectSelection(doc.width, doc.height, start, start)
+      doc.selection = rectSelection(doc.width, doc.height, start, start, area)
       props.onPainted()
       return
     }
     if (tool === 'wand') {
       props.onSettle()
       if (pixel) {
-        const region = fillRegion(doc.active.pixels, pixel.x, pixel.y, tools.fillMode, tools.tiling)
+        const region = fillRegion(
+          doc.active.pixels,
+          pixel.x,
+          pixel.y,
+          tools.fillMode,
+          tools.tiling,
+          area
+        )
         doc.selection = maskSelection(doc.width, doc.height, region)
         props.onPainted()
       }
@@ -290,7 +327,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       lift(doc)
       moveDrag.current = {
         pointerId: event.pointerId,
-        last: screenToImage(viewport, point.x, point.y)
+        last: toImage(point.x, point.y)
       }
       props.onPainted()
       return
@@ -318,7 +355,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
               tools[slot],
               tools.fillMode,
               clipIndex,
-              tools.tiling
+              tools.tiling,
+              area
             )
           : noiseFill(
               layer.pixels,
@@ -328,7 +366,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
               tools.fillMode,
               Math.random,
               clipIndex,
-              tools.tiling
+              tools.tiling,
+              area
             )
       props.onCommit(pixelCommand(layer.pixels, changes))
       return
@@ -340,12 +379,12 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       shape.current = {
         pointerId: event.pointerId,
         kind: tool as ShapeKind,
-        start: screenToImage(viewport, point.x, point.y),
+        start: toImage(point.x, point.y),
         color,
         snapshot: new Uint8ClampedArray(layer.pixels.data),
         clip
       }
-      drawShape(screenToImage(viewport, point.x, point.y), event.shiftKey)
+      drawShape(toImage(point.x, point.y), event.shiftKey)
       return
     }
     let current: Stroke
@@ -357,7 +396,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
         size: tools.brushSize,
         mirror: tools.mirror,
         clip,
-        wrap: tools.tiling
+        wrap: tools.tiling,
+        bounds: area
       })
     } else {
       const color = tool === 'eraser' ? TRANSPARENT : tools[slot]
@@ -367,21 +407,31 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
         size: tools.brushSize,
         mirror: tools.mirror,
         clip,
-        wrap: tools.tiling
+        wrap: tools.tiling,
+        bounds: area
       })
     }
     stroke.current = { pointerId: event.pointerId, stroke: current }
-    if (current.add(screenToImage(viewport, point.x, point.y))) props.onPainted()
+    if (current.add(toImage(point.x, point.y))) props.onPainted()
   }
 
-  /** Texture pixel under a device point; in seamless mode the neighbor copies map back to it. */
+  /** Image coordinates (inside or outside the editable area) of a device point. */
+  function toImage(x: number, y: number): Point {
+    const relative = screenToImage(viewport!, x, y)
+    return { x: relative.x + area.x0, y: relative.y + area.y0 }
+  }
+
+  /** Pixel under a device point; in seamless mode the neighbor copies map back into the area. */
   function pixelAt(point: { x: number; y: number }): Point | null {
     if (!viewport || !frame) return null
-    if (!tools?.tiling) return screenToPixel(viewport, point.x, point.y, frame)
-    const raw = screenToImage(viewport, point.x, point.y)
+    if (!tools?.tiling) {
+      const inside = screenToPixel(viewport, point.x, point.y, frame)
+      return inside && { x: inside.x + area.x0, y: inside.y + area.y0 }
+    }
+    const raw = toImage(point.x, point.y)
     return {
-      x: ((raw.x % doc.width) + doc.width) % doc.width,
-      y: ((raw.y % doc.height) + doc.height) % doc.height
+      x: area.x0 + ((((raw.x - area.x0) % viewWidth) + viewWidth) % viewWidth),
+      y: area.y0 + ((((raw.y - area.y0) % viewHeight) + viewHeight) % viewHeight)
     }
   }
 
@@ -397,7 +447,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       size: tools.brushSize,
       mirror: tools.mirror,
       clip: current.clip,
-      wrap: tools.tiling
+      wrap: tools.tiling,
+      bounds: area
     }).addPoints(points)
     props.onPainted()
   }
@@ -406,18 +457,18 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     if (!frame || !viewport) return
     const point = toDevice(event)
     if (shape.current?.pointerId === event.pointerId) {
-      drawShape(screenToImage(viewport, point.x, point.y), event.shiftKey)
+      drawShape(toImage(point.x, point.y), event.shiftKey)
     }
     const selecting = selectDrag.current
     if (selecting?.pointerId === event.pointerId) {
-      const end = screenToImage(viewport, point.x, point.y)
+      const end = toImage(point.x, point.y)
       if (end.x !== selecting.start.x || end.y !== selecting.start.y) selecting.moved = true
-      doc.selection = rectSelection(doc.width, doc.height, selecting.start, end)
+      doc.selection = rectSelection(doc.width, doc.height, selecting.start, end, area)
       props.onPainted()
     }
     const moving = moveDrag.current
     if (moving?.pointerId === event.pointerId) {
-      const now = screenToImage(viewport, point.x, point.y)
+      const now = toImage(point.x, point.y)
       moveBy(doc, now.x - moving.last.x, now.y - moving.last.y)
       moving.last = now
       props.onPainted()
@@ -439,7 +490,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       let changed = false
       for (const sample of samples) {
         const p = toDevice(sample)
-        changed = active.stroke.add(screenToImage(viewport, p.x, p.y)) || changed
+        changed = active.stroke.add(toImage(p.x, p.y)) || changed
       }
       if (changed) props.onPainted()
     }
@@ -544,6 +595,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
         )}
         <canvas
           ref={canvasRef}
+          // Editable area (x, y, width, height) for UI tests.
+          data-view={`${area.x0},${area.y0},${viewWidth},${viewHeight}`}
           className={
             panning
               ? 'editor-canvas panning'

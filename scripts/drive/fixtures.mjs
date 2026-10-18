@@ -76,5 +76,19 @@ export async function createTestPack(dir) {
     join(block, 'oak_planks.png'),
     png(32, 32, (x, y) => [150 + (y % 8) * 6, 110 + (x % 3) * 5, 60, 255])
   )
+  // Animated: 3 frames of 16×16 (red, green, blue), 2 ticks each.
+  const frameColors = [
+    [200, 40, 30, 255],
+    [40, 180, 60, 255],
+    [40, 60, 200, 255]
+  ]
+  await writeFile(
+    join(block, 'magma.png'),
+    png(16, 48, (x, y) => frameColors[Math.floor(y / 16)])
+  )
+  await writeFile(
+    join(block, 'magma.png.mcmeta'),
+    JSON.stringify({ animation: { frametime: 2 } }, null, 2)
+  )
   return block
 }

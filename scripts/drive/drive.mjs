@@ -263,14 +263,16 @@ function createApp(send) {
       await sleep(300)
     },
     editor: {
-      /** Screen point at the center of texture pixel (x, y), from the current zoom and pan. */
+      /**
+       * Screen point at the center of pixel (x, y) of the editable area (the whole texture, or the
+       * animation frame being edited), from the current zoom. Press 0 first if you zoomed/panned.
+       */
       async pixel(x, y) {
         return ev(`(() => {
-          const canvas = document.querySelector('.editor-canvas').getBoundingClientRect()
+          const canvasEl = document.querySelector('.editor-canvas')
+          const canvas = canvasEl.getBoundingClientRect()
           const zoom = parseInt(document.querySelector('.zoom-label').textContent) / 100
-          const size = document.querySelector('.editor-header .badge').textContent.match(/(\\d+)×(\\d+)/)
-          const [w, h] = [Number(size[1]), Number(size[2])]
-          // The canvas starts fitted and centered; scenarios that pan should press 0 first.
+          const [, , w, h] = canvasEl.dataset.view.split(',').map(Number)
           return {
             x: canvas.x + canvas.width / 2 + (${x} - w / 2 + 0.5) * zoom,
             y: canvas.y + canvas.height / 2 + (${y} - h / 2 + 0.5) * zoom

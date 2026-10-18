@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { assetUrl, type TextureDraft } from '../../shared/ipc'
 import { decodePng } from '../../shared/pngCodec'
 import type { EditorMode } from '../../shared/settings'
@@ -12,6 +12,8 @@ import { addRecent, toRamp, usedColors } from './color'
 import { PalettesPanel } from './PalettesPanel'
 import type { SavedPalette } from '../../shared/settings'
 import { EditorDocument } from './document'
+import { FramesPanel } from './FramesPanel'
+import { animationFromMcmeta, buildMcmeta, type AnimationSettings } from './frames'
 import { EditorTools, type SelectionAction } from './EditorTools'
 import type { Floating } from './selection'
 import * as selectionActions from './selectionActions'
@@ -46,6 +48,8 @@ type Loaded =
   | { status: 'error'; message: string }
   | {
       status: 'ready'
+      /** The texture's .png.mcmeta as read (null when there is none). */
+      mcmeta: unknown
       doc: EditorDocument
       /** Display copy of the composite (also the live 3D texture). */
       source: HTMLCanvasElement
@@ -98,6 +102,18 @@ export function TextureEditor({
   /** A draft found for this texture, waiting for the user to restore or discard it. */
   const [draftOffer, setDraftOffer] = useState<TextureDraft | null>(null)
   const [traceOpacity, setTraceOpacity] = useState(0)
+  /** Animation being edited (null = plain texture). */
+  const [animation, setAnimation] = useState<AnimationSettings | null>(null)
+  /** Why an existing animation can't be edited here. */
+  const [animationNote, setAnimationNote] = useState<string | null>(null)
+  /** The mcmeta on disk and its frame count, to keep its other fields when saving. */
+  const [mcmetaOnDisk, setMcmetaOnDisk] = useState<{ value: unknown; frames: number }>({
+    value: null,
+    frames: 1
+  })
+  const [onionSkin, setOnionSkin] = useState(false)
+  /** Animation settings changed since the last save (frame edits are in the history). */
+  const animationDirty = useRef(false)
   const vanilla = target.sources.vanilla
   const referenceUrl = vanilla?.files.has(target.path) ? assetUrl(vanilla.base, target.path) : null
   const pro = mode === 'pro'
@@ -144,12 +160,23 @@ export function TextureEditor({
   /** Recomposites, updates the display canvas and re-renders everything that depends on it. */
   const refresh = useCallback(() => {
     if (!doc || !source) return
+    // Keep the editable area on a whole frame (frames may have been added/removed by undo).
+    if (animation) {
+      const count = Math.max(1, Math.round(doc.height / animation.frameHeight))
+      const index = Math.min(count - 1, Math.floor(doc.view.y0 / animation.frameHeight))
+      const aligned =
+        doc.view.y0 === index * animation.frameHeight &&
+        doc.view.y1 === (index + 1) * animation.frameHeight - 1
+      if (!aligned) doc.setFrameView(animation.frameHeight, index)
+    } else if (doc.view.y0 !== 0 || doc.view.y1 !== doc.height - 1) {
+      doc.setFrameView(null)
+    }
     doc.recomposite()
     putBuffer(source, doc.composite)
     setRevision((r) => r + 1)
-    // A moved piece not yet put down is a change too.
-    setModified(history.modified || doc.floating !== null)
-  }, [doc, source, history])
+    // A moved piece not yet put down, or new animation settings, are changes too.
+    setModified(history.modified || doc.floating !== null || animationDirty.current)
+  }, [doc, source, history, animation])
 
   const commit = useCallback(
     (command: Command | null) => {
@@ -268,8 +295,20 @@ export function TextureEditor({
 
   useEffect(() => {
     let cancelled = false
-    loadDocument(target.url).then(
-      (value) => !cancelled && setLoaded({ status: 'ready', ...value }),
+    loadDocument(target.url, target.mcmetaUrl).then(
+      (value) => {
+        if (cancelled) return
+        setLoaded({ status: 'ready', ...value })
+        const read = animationFromMcmeta(value.mcmeta, value.doc.width, value.doc.height)
+        if (read.kind === 'editable') {
+          setAnimation(read.settings)
+          setMcmetaOnDisk({ value: value.mcmeta, frames: read.frameCount })
+          value.doc.setFrameView(read.settings.frameHeight, 0)
+        } else {
+          setMcmetaOnDisk({ value: value.mcmeta, frames: 1 })
+          if (read.kind === 'unsupported') setAnimationNote(read.reason)
+        }
+      },
       (error: unknown) =>
         !cancelled &&
         setLoaded({
@@ -282,7 +321,7 @@ export function TextureEditor({
     return () => {
       cancelled = true
     }
-  }, [target.url])
+  }, [target.url, target.mcmetaUrl])
 
   const canSave = doc !== null && !target.readOnly
   const save = useCallback(async () => {
@@ -305,6 +344,25 @@ export function TextureEditor({
         setSaveError(result.error)
         return
       }
+      // The .png.mcmeta follows the animation (kept untouched for textures never animated).
+      const hadAnimation = mcmetaOnDisk.frames > 1 || isAnimated(mcmetaOnDisk.value)
+      if (animation || hadAnimation) {
+        const frames = animation ? Math.round(doc.height / animation.frameHeight) : 1
+        const content = buildMcmeta(
+          mcmetaOnDisk.value,
+          animation,
+          doc.width,
+          frames,
+          mcmetaOnDisk.frames
+        )
+        const written = await window.api.invoke('texture:saveMcmeta', target.path, content)
+        if (!written.ok) {
+          setSaveError(written.error)
+          return
+        }
+        setMcmetaOnDisk({ value: content === null ? null : JSON.parse(content), frames })
+        animationDirty.current = false
+      }
       // If something changed during the save, the file holds the older state: stay modified.
       if (history.version === version) history.markSaved()
       setModified(history.modified)
@@ -314,7 +372,7 @@ export function TextureEditor({
     } finally {
       setSaving(false)
     }
-  }, [doc, target, saving, history, settle])
+  }, [doc, target, saving, history, settle, animation, mcmetaOnDisk])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -613,30 +671,97 @@ export function TextureEditor({
             pro={pro}
             showTips={showTips}
           />
-          <PixelCanvas
-            doc={doc}
-            source={source}
-            tools={target.readOnly ? null : { ...tools, ramp }}
-            revision={revision}
-            canUndo={history.canUndo}
-            canRedo={history.canRedo}
-            onUndo={undo}
-            onRedo={redo}
-            onPainted={refresh}
-            onCommit={commit}
-            trace={
-              reference && traceOpacity > 0
-                ? { canvas: reference.canvas, opacity: traceOpacity / 100 }
-                : null
-            }
-            onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
-            onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
-            onRampUsed={lockRamp}
-            onSettle={settle}
-            {...(target.readOnly
-              ? {}
-              : { onTiling: (tiling: boolean) => setTools((t) => ({ ...t, tiling })) })}
-          />
+          <div className="editor-center">
+            <PixelCanvas
+              doc={doc}
+              source={source}
+              tools={target.readOnly ? null : { ...tools, ramp }}
+              revision={revision}
+              canUndo={history.canUndo}
+              canRedo={history.canRedo}
+              onUndo={undo}
+              onRedo={redo}
+              onPainted={refresh}
+              onCommit={commit}
+              trace={
+                reference && traceOpacity > 0
+                  ? { canvas: reference.canvas, opacity: traceOpacity / 100 }
+                  : null
+              }
+              onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
+              onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
+              onRampUsed={lockRamp}
+              onSettle={settle}
+              onionY={
+                animation && onionSkin && doc.view.y0 > 0
+                  ? doc.view.y0 - animation.frameHeight
+                  : null
+              }
+              {...(target.readOnly
+                ? {}
+                : { onTiling: (tiling: boolean) => setTools((t) => ({ ...t, tiling })) })}
+            />
+            {animation && (
+              <FramesPanel
+                doc={doc}
+                source={source}
+                revision={revision}
+                settings={animation}
+                current={Math.floor(doc.view.y0 / animation.frameHeight)}
+                onionSkin={onionSkin}
+                readOnly={target.readOnly}
+                onSelect={(index) => {
+                  settle()
+                  doc.setFrameView(animation.frameHeight, index)
+                  refresh()
+                }}
+                onCommand={(command, select) => {
+                  settle()
+                  history.push(command)
+                  doc.setFrameView(animation.frameHeight, select)
+                  refresh()
+                }}
+                onSettings={(settings) => {
+                  setAnimation(settings)
+                  animationDirty.current = true
+                  setModified(true)
+                }}
+                onOnionSkin={setOnionSkin}
+                onStopAnimating={() => {
+                  setAnimation(null)
+                  animationDirty.current = true
+                  doc.setFrameView(null)
+                  refresh()
+                  setModified(true)
+                }}
+              />
+            )}
+            {!animation && animationNote && (
+              <p className="muted small animation-note">
+                Animazione non modificabile qui: {animationNote}
+              </p>
+            )}
+            {!animation && !animationNote && pro && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button animate-button"
+                title="Trasforma la texture in un'animazione: i frame stanno uno sotto l'altro nel PNG"
+                onClick={() => {
+                  settle()
+                  // A strip without mcmeta already holds square frames; else one frame.
+                  const frameHeight = doc.height % doc.width === 0 ? doc.width : doc.height
+                  const settings = { frameHeight, frametime: 4, interpolate: false }
+                  setAnimation(settings)
+                  animationDirty.current = true
+                  doc.setFrameView(frameHeight, 0)
+                  refresh()
+                  setModified(true)
+                }}
+              >
+                🎞 Anima questa texture
+              </button>
+            )}
+          </div>
           <div className="editor-side">
             {(pro || doc.layers.length > 1) && !target.readOnly && (
               <LayersPanel
@@ -666,7 +791,11 @@ export function TextureEditor({
               onLoaded={setReference}
               onPick={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
             />
-            <TilingPreview source={source} revision={revision} />
+            <TilingPreview
+              source={source}
+              revision={revision}
+              region={{ y: doc.view.y0, height: doc.view.y1 - doc.view.y0 + 1 }}
+            />
           </div>
         </div>
       )}
@@ -679,9 +808,20 @@ export function TextureEditor({
  * used only to draw the composite scaled: a 2D canvas stores premultiplied alpha, so it is never
  * read back.
  */
+/** True when an mcmeta object has an "animation" section. */
+function isAnimated(mcmeta: unknown): boolean {
+  return typeof mcmeta === 'object' && mcmeta !== null && 'animation' in mcmeta
+}
+
 async function loadDocument(
-  url: string
-): Promise<{ doc: EditorDocument; source: HTMLCanvasElement; reducedFrom16Bit: boolean }> {
+  url: string,
+  mcmetaUrl: string | null
+): Promise<{
+  doc: EditorDocument
+  source: HTMLCanvasElement
+  reducedFrom16Bit: boolean
+  mcmeta: unknown
+}> {
   // no-store: the file may have been saved moments ago under the same versioned URL.
   const response = await fetch(url, { cache: 'no-store' })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -693,7 +833,16 @@ async function loadDocument(
   source.width = width
   source.height = height
   putBuffer(source, doc.composite)
-  return { doc, source, reducedFrom16Bit }
+  let mcmeta: unknown = null
+  if (mcmetaUrl) {
+    try {
+      const meta = await fetch(mcmetaUrl, { cache: 'no-store' })
+      if (meta.ok) mcmeta = await meta.json()
+    } catch {
+      // Unreadable mcmeta: the texture still opens; the 3D preview reports the problem.
+    }
+  }
+  return { doc, source, reducedFrom16Bit, mcmeta }
 }
 
 /** Editor target for another PNG of the same pack (the file may have just been created). */

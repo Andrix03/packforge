@@ -1590,3 +1590,97 @@ kbd {
   flex-direction: column;
   gap: 4px;
 }
+
+.editor-center {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.editor-center > .editor-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.frames-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.frames-header {
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.frames-header input[type='number'] {
+  width: 64px;
+  padding: 2px 6px;
+}
+
+.frames-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.frames-preview {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  image-rendering: pixelated;
+  border-radius: 4px;
+}
+
+.frame-list {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.frame-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  cursor: pointer;
+}
+
+.frame-thumb canvas {
+  display: block;
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+.frame-thumb.active {
+  border-color: var(--accent);
+}
+
+.frame-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.frame-actions button {
+  padding: 3px 8px;
+  font-size: 0.8rem;
+}
+
+.animate-button {
+  align-self: flex-start;
+}
+
+.animation-note {
+  margin: 0;
+}

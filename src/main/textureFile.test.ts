@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { decodePng } from '../shared/pngCodec'
-import { saveTexture } from './textureFile'
+import { saveTexture, saveTextureMcmeta } from './textureFile'
 
 let dir: string
 let pack: string
@@ -73,5 +73,28 @@ describe('saveTexture', () => {
     expect(nested.ok).toBe(false)
     // Nothing was created through the link, not even the folder.
     expect(await readdir(outside)).toEqual([])
+  })
+})
+
+describe('saveTextureMcmeta', () => {
+  const MCMETA = `${PATH}.mcmeta`
+
+  it('writes the JSON next to the texture and deletes it with null', async () => {
+    const source = { kind: 'folder', root: pack } as const
+    const json = '{\n  "animation": { "frametime": 2 }\n}\n'
+    expect(await saveTextureMcmeta(source, PATH, json)).toEqual({ ok: true })
+    expect(await readFile(join(pack, ...MCMETA.split('/')), 'utf8')).toBe(json)
+    expect(await saveTextureMcmeta(source, PATH, null)).toEqual({ ok: true })
+    await expect(readFile(join(pack, ...MCMETA.split('/')))).rejects.toThrow()
+  })
+
+  it('rejects non-objects, bad paths and zip packs', async () => {
+    const source = { kind: 'folder', root: pack } as const
+    expect((await saveTextureMcmeta(source, PATH, '[1, 2]')).ok).toBe(false)
+    expect((await saveTextureMcmeta(source, PATH, 'not json')).ok).toBe(false)
+    expect((await saveTextureMcmeta(source, '../x.png', '{}')).ok).toBe(false)
+    expect((await saveTextureMcmeta(source, 'a/b.txt', '{}')).ok).toBe(false)
+    const zip = { kind: 'zip', root: join(dir, 'p.zip'), data: new Uint8Array() } as const
+    expect((await saveTextureMcmeta(zip, PATH, '{}')).ok).toBe(false)
   })
 })

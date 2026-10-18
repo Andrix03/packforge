@@ -18,6 +18,10 @@ export interface CanvasOverlays {
   selection: ReadonlyArray<readonly [number, number, number, number]> | null
   /** Seamless mode: draw the 8 neighboring copies around the texture. */
   tiling: boolean
+  /** Part of the source shown (texture pixels): the whole image or one animation frame. */
+  region: { x: number; y: number; width: number; height: number }
+  /** Onion skin: source row where the previous frame starts, drawn faintly on top. */
+  onion: { y: number } | null
 }
 
 export function drawCanvas(
@@ -29,8 +33,9 @@ export function drawCanvas(
   const context = canvas.getContext('2d')
   if (!context) return
   const { zoom, x, y } = viewport
-  const width = source.width * zoom
-  const height = source.height * zoom
+  const { region } = overlays
+  const width = region.width * zoom
+  const height = region.height * zoom
   const style = getComputedStyle(canvas)
   context.fillStyle = style.getPropertyValue('--bg').trim() || '#1b1d22'
   context.fillRect(0, 0, canvas.width, canvas.height)
@@ -56,7 +61,17 @@ export function drawCanvas(
         context.fillRect(ox + col * check, oy + row * check, check, check)
       }
     }
-    context.drawImage(source, ox, oy, width, height)
+    context.drawImage(
+      source,
+      region.x,
+      region.y,
+      region.width,
+      region.height,
+      ox,
+      oy,
+      width,
+      height
+    )
     // Neighbors are dimmed so the editable copy stays obvious.
     if (tx !== 0 || ty !== 0) {
       context.fillStyle = 'rgba(27, 29, 34, 0.35)'
@@ -64,20 +79,30 @@ export function drawCanvas(
     }
     context.restore()
   }
-  const { trace, hover, showGrid, mirror, selection } = overlays
+  const { trace, hover, showGrid, mirror, selection, onion } = overlays
+  if (onion) {
+    context.globalAlpha = 0.3
+    context.drawImage(source, region.x, onion.y, region.width, region.height, x, y, width, height)
+    context.globalAlpha = 1
+  }
   if (trace) {
-    // Scaled to the texture size (a 16× reference over a 32× texture still lines up).
+    // Scaled to the texture size (a 16× reference over a 32× texture still lines up); for an
+    // animated reference only its first frame.
+    const traceHeight = Math.min(
+      trace.canvas.height,
+      (trace.canvas.width * region.height) / region.width
+    )
     context.globalAlpha = trace.opacity
-    context.drawImage(trace.canvas, x, y, width, height)
+    context.drawImage(trace.canvas, 0, 0, trace.canvas.width, traceHeight, x, y, width, height)
     context.globalAlpha = 1
   }
 
   if (showGrid && zoom >= GRID_MIN_ZOOM) {
-    strokeGrid(context, viewport, source.width, source.height, 1, 'rgba(0, 0, 0, 0.22)')
+    strokeGrid(context, viewport, region.width, region.height, 1, 'rgba(0, 0, 0, 0.22)')
   }
-  const major = majorGridStep(source.width)
+  const major = majorGridStep(region.width)
   if (showGrid && major !== null && zoom * major >= GRID_MIN_ZOOM) {
-    strokeGrid(context, viewport, source.width, source.height, major, 'rgba(0, 0, 0, 0.5)')
+    strokeGrid(context, viewport, region.width, region.height, major, 'rgba(0, 0, 0, 0.5)')
   }
   context.strokeStyle = 'rgba(255, 255, 255, 0.25)'
   context.lineWidth = 1
@@ -158,6 +183,9 @@ function strokeGrid(
 
 /** Copies a buffer into a display canvas (never read back: canvases store premultiplied alpha). */
 export function putBuffer(canvas: HTMLCanvasElement, buffer: PixelBuffer): void {
+  // Animation frames added/removed: the display canvas follows the image size.
+  if (canvas.width !== buffer.width) canvas.width = buffer.width
+  if (canvas.height !== buffer.height) canvas.height = buffer.height
   const data = new Uint8ClampedArray(buffer.data)
   canvas.getContext('2d')?.putImageData(new ImageData(data, buffer.width, buffer.height), 0, 0)
 }

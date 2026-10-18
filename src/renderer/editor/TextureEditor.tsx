@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { EditorTools } from './EditorTools'
+import { getPixel, Stroke, TRANSPARENT, type Rgba } from './pixels'
+import { toolByShortcut, type ToolId } from './tools'
 import {
   clampViewport,
   fitViewport,
   GRID_MIN_ZOOM,
   majorGridStep,
   panBy,
+  screenToImage,
   screenToPixel,
   zoomAt,
   type Frame,
@@ -25,10 +29,11 @@ type Loaded =
   | { status: 'error'; message: string }
   | { status: 'ready'; pixels: ImageData; source: HTMLCanvasElement }
 
-interface Hover {
-  x: number
-  y: number
-  rgba: [number, number, number, number]
+interface Tools {
+  tool: ToolId
+  pixelPerfect: boolean
+  primary: Rgba
+  secondary: Rgba
 }
 
 /** Size of the transparency checkerboard squares, in CSS pixels. */
@@ -42,6 +47,18 @@ export function TextureEditor({
   onClose: () => void
 }): React.JSX.Element {
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' })
+  const [tools, setTools] = useState<Tools>({
+    tool: 'pencil',
+    pixelPerfect: false,
+    primary: [255, 255, 255, 255],
+    // Secondary defaults to transparent: right click erases.
+    secondary: TRANSPARENT
+  })
+  const [modified, setModified] = useState(false)
+  const swap = useCallback(
+    () => setTools((t) => ({ ...t, primary: t.secondary, secondary: t.primary })),
+    []
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -54,6 +71,25 @@ export function TextureEditor({
     }
   }, [target.url])
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (isTyping(event) || event.ctrlKey || event.altKey || event.metaKey) return
+      const tool = toolByShortcut(event.key)
+      if (tool) setTools((t) => ({ ...t, tool }))
+      else if (event.key.toLowerCase() === 'x') swap()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [swap])
+
+  function close(): void {
+    // Saving arrives with the "save PNGs in the pack" roadmap item; until then edits are lost.
+    if (modified && !window.confirm('Le modifiche non sono salvate e andranno perse. Chiudere?')) {
+      return
+    }
+    onClose()
+  }
+
   return (
     <section className="editor">
       <header className="editor-header">
@@ -65,29 +101,63 @@ export function TextureEditor({
               {loaded.pixels.width}×{loaded.pixels.height}
             </span>
           )}
+          {modified && (
+            <span
+              className="badge unsaved"
+              title="Le modifiche sono solo in memoria: il salvataggio nel pack arriva nei prossimi passi."
+            >
+              ● modificata
+            </span>
+          )}
           {target.readOnly && (
             <span className="badge" title="I pack .zip si aprono in sola lettura.">
               sola lettura
             </span>
           )}
         </div>
-        <button type="button" onClick={onClose}>
+        <button type="button" onClick={close}>
           Chiudi editor
         </button>
       </header>
       {loaded.status === 'loading' && <p className="muted">Caricamento della texture…</p>}
       {loaded.status === 'error' && <p className="field-error">{loaded.message}</p>}
-      {loaded.status === 'ready' && <PixelCanvas pixels={loaded.pixels} source={loaded.source} />}
+      {loaded.status === 'ready' && (
+        <div className="editor-main">
+          <EditorTools
+            tool={tools.tool}
+            onTool={(tool) => setTools((t) => ({ ...t, tool }))}
+            pixelPerfect={tools.pixelPerfect}
+            onPixelPerfect={(pixelPerfect) => setTools((t) => ({ ...t, pixelPerfect }))}
+            primary={tools.primary}
+            secondary={tools.secondary}
+            onPrimary={(primary) => setTools((t) => ({ ...t, primary }))}
+            onSecondary={(secondary) => setTools((t) => ({ ...t, secondary }))}
+            onSwap={swap}
+            disabled={target.readOnly}
+          />
+          <PixelCanvas
+            pixels={loaded.pixels}
+            source={loaded.source}
+            tools={target.readOnly ? null : tools}
+            onModified={() => setModified(true)}
+          />
+        </div>
+      )}
     </section>
   )
 }
 
 function PixelCanvas({
   pixels,
-  source
+  source,
+  tools,
+  onModified
 }: {
   pixels: ImageData
   source: HTMLCanvasElement
+  /** Null when read-only: the canvas can only be zoomed and panned. */
+  tools: Tools | null
+  onModified: () => void
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -95,10 +165,13 @@ function PixelCanvas({
   /** Null until the user zooms or pans: then the texture is fitted to the view. */
   const [storedViewport, setStoredViewport] = useState<Viewport | null>(null)
   const [showGrid, setShowGrid] = useState(true)
-  const [hover, setHover] = useState<Hover | null>(null)
+  const [hover, setHover] = useState<{ x: number; y: number } | null>(null)
   const [panning, setPanning] = useState(false)
+  /** Bumped after each painted change so the canvas redraws. */
+  const [revision, setRevision] = useState(0)
   const spaceHeld = useRef(false)
   const drag = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null)
+  const stroke = useRef<{ pointerId: number; stroke: Stroke } | null>(null)
 
   const frame = useMemo<Frame | null>(
     () =>
@@ -126,8 +199,8 @@ function PixelCanvas({
     return () => observer.disconnect()
   }, [])
 
-  // Fit on first layout; afterwards a resize only re-clamps the current view.
-  // Re-clamped on every render so a window resize can't push the texture off screen.
+  // Fitted until the user zooms or pans; re-clamped on every render so a window resize can't
+  // push the texture off screen.
   const viewport =
     frame && (storedViewport ? clampViewport(storedViewport, frame) : fitViewport(frame))
 
@@ -146,8 +219,8 @@ function PixelCanvas({
     if (!canvas || !viewSize || !viewport) return
     canvas.width = viewSize.width
     canvas.height = viewSize.height
-    drawCanvas(canvas, source, viewport, showGrid)
-  }, [source, viewSize, viewport, showGrid])
+    drawCanvas(canvas, source, viewport, showGrid, tools ? hover : null)
+  }, [source, viewSize, viewport, showGrid, hover, tools, revision])
 
   const zoomCentered = useCallback(
     (direction: 1 | -1) =>
@@ -176,9 +249,7 @@ function PixelCanvas({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) {
-        return
-      }
+      if (isTyping(event)) return
       if (event.code === 'Space') {
         spaceHeld.current = true
         event.preventDefault()
@@ -201,15 +272,33 @@ function PixelCanvas({
     }
   }, [zoomCentered])
 
+  /** Copies the edited pixels to the canvas used for display and schedules a redraw. */
+  function showChanges(): void {
+    source.getContext('2d')?.putImageData(pixels, 0, 0)
+    setRevision((r) => r + 1)
+  }
+
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>): void {
-    // Middle button, or Space + left button, pans. Left/right are kept for the drawing tools.
+    if (drag.current || stroke.current) return
+    // Middle button, or Space + left button, pans. Left/right draw with primary/secondary.
     const wantsPan = event.button === 1 || (event.button === 0 && spaceHeld.current)
-    if (!wantsPan) return
+    if (wantsPan) {
+      event.preventDefault()
+      event.currentTarget.setPointerCapture(event.pointerId)
+      const point = toDevice(event)
+      drag.current = { pointerId: event.pointerId, lastX: point.x, lastY: point.y }
+      setPanning(true)
+      return
+    }
+    if (!tools || !viewport || (event.button !== 0 && event.button !== 2)) return
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
+    const color =
+      tools.tool === 'eraser' ? TRANSPARENT : event.button === 0 ? tools.primary : tools.secondary
+    const current = new Stroke(pixels, color, tools.tool === 'pencil' && tools.pixelPerfect)
+    stroke.current = { pointerId: event.pointerId, stroke: current }
     const point = toDevice(event)
-    drag.current = { pointerId: event.pointerId, lastX: point.x, lastY: point.y }
-    setPanning(true)
+    if (current.add(screenToImage(viewport, point.x, point.y))) showChanges()
   }
 
   function onPointerMove(event: React.PointerEvent<HTMLCanvasElement>): void {
@@ -224,18 +313,38 @@ function PixelCanvas({
       updateViewport((v, f) => panBy(v, dx, dy, f))
       return
     }
+    const active = stroke.current
+    if (active?.pointerId === event.pointerId) {
+      // Coalesced events keep fast strokes faithful (several samples per frame).
+      const coalesced = event.nativeEvent.getCoalescedEvents?.() ?? []
+      const samples = coalesced.length > 0 ? coalesced : [event.nativeEvent]
+      let changed = false
+      for (const sample of samples) {
+        const p = toDevice(sample)
+        changed = active.stroke.add(screenToImage(viewport, p.x, p.y)) || changed
+      }
+      if (changed) showChanges()
+    }
     const pixel = screenToPixel(viewport, point.x, point.y, frame)
-    setHover(pixel && { ...pixel, rgba: readPixel(pixels, pixel.x, pixel.y) })
+    setHover((previous) =>
+      previous?.x === pixel?.x && previous?.y === pixel?.y ? previous : pixel
+    )
   }
 
-  function endDrag(event: React.PointerEvent<HTMLCanvasElement>): void {
-    if (drag.current?.pointerId !== event.pointerId) return
-    drag.current = null
-    setPanning(false)
+  function endPointer(event: React.PointerEvent<HTMLCanvasElement>): void {
+    if (drag.current?.pointerId === event.pointerId) {
+      drag.current = null
+      setPanning(false)
+    }
+    if (stroke.current?.pointerId === event.pointerId) {
+      if (stroke.current.stroke.modified) onModified()
+      stroke.current = null
+    }
   }
 
   const ratio = window.devicePixelRatio || 1
   const zoomPercent = viewport ? Math.round((viewport.zoom / ratio) * 100) : null
+  const hoverColor = hover ? getPixel(pixels, hover.x, hover.y) : null
 
   return (
     <div className="editor-body">
@@ -282,21 +391,21 @@ function PixelCanvas({
           className={panning ? 'editor-canvas panning' : 'editor-canvas'}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
+          onPointerUp={endPointer}
+          onPointerCancel={endPointer}
           onPointerLeave={() => setHover(null)}
-          // Right click is reserved for the secondary color.
+          // Right click paints with the secondary color.
           onContextMenu={(event) => event.preventDefault()}
         />
       </div>
       <footer className="editor-status muted small">
-        {hover ? (
+        {hover && hoverColor ? (
           <>
             <span>
               x {hover.x}, y {hover.y}
             </span>
-            <span className="status-swatch" style={{ background: cssColor(hover.rgba) }} />
-            <span>{formatColor(hover.rgba)}</span>
+            <span className="status-swatch" style={{ background: cssColor(hoverColor) }} />
+            <span>{formatColor(hoverColor)}</span>
           </>
         ) : (
           <span>Passa sopra la texture per vedere coordinate e colore.</span>
@@ -310,7 +419,8 @@ function drawCanvas(
   canvas: HTMLCanvasElement,
   source: HTMLCanvasElement,
   viewport: Viewport,
-  showGrid: boolean
+  showGrid: boolean,
+  hover: { x: number; y: number } | null
 ): void {
   const context = canvas.getContext('2d')
   if (!context) return
@@ -350,6 +460,18 @@ function drawCanvas(
   context.strokeStyle = 'rgba(255, 255, 255, 0.25)'
   context.lineWidth = 1
   context.strokeRect(x - 0.5, y - 0.5, width + 1, height + 1)
+
+  // Outline of the pixel the tool will paint: dark + light so it shows on any color.
+  if (hover) {
+    const hx = x + hover.x * zoom
+    const hy = y + hover.y * zoom
+    context.strokeStyle = 'rgba(0, 0, 0, 0.8)'
+    context.strokeRect(hx + 0.5, hy + 0.5, zoom - 1, zoom - 1)
+    if (zoom >= 4) {
+      context.strokeStyle = 'rgba(255, 255, 255, 0.9)'
+      context.strokeRect(hx + 1.5, hy + 1.5, zoom - 3, zoom - 3)
+    }
+  }
 }
 
 function strokeGrid(
@@ -375,7 +497,8 @@ function strokeGrid(
 }
 
 /**
- * Decodes the PNG into editable pixels plus a canvas used to draw them scaled.
+ * Decodes the PNG into editable pixels plus a canvas used to draw them scaled. `pixels` is the
+ * source of truth for the tools; the canvas is only a display copy.
  * TODO(save): a 2D canvas stores premultiplied alpha, so semi-transparent pixels can be off by a
  * few units; decode exactly before edits are written back to the pack.
  */
@@ -397,17 +520,21 @@ async function loadPixels(url: string): Promise<{ pixels: ImageData; source: HTM
   return { pixels: context.getImageData(0, 0, source.width, source.height), source }
 }
 
-function readPixel(pixels: ImageData, x: number, y: number): [number, number, number, number] {
-  const i = (y * pixels.width + x) * 4
-  const d = pixels.data
-  return [d[i]!, d[i + 1]!, d[i + 2]!, d[i + 3]!]
+/** Shortcuts are ignored while typing in a text field (checkboxes and color inputs don't count). */
+function isTyping(event: KeyboardEvent): boolean {
+  const target = event.target
+  if (target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) return true
+  return (
+    target instanceof HTMLInputElement &&
+    !['checkbox', 'radio', 'color', 'range', 'button'].includes(target.type)
+  )
 }
 
-function cssColor([r, g, b, a]: readonly number[]): string {
-  return `rgba(${r}, ${g}, ${b}, ${(a ?? 255) / 255})`
+function cssColor([r, g, b, a]: Rgba): string {
+  return `rgba(${r}, ${g}, ${b}, ${a / 255})`
 }
 
-function formatColor([r, g, b, a]: readonly [number, number, number, number]): string {
+function formatColor([r, g, b, a]: Rgba): string {
   const hex = [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')
   return a === 255 ? `#${hex}` : a === 0 ? 'trasparente' : `#${hex} · alpha ${a}`
 }

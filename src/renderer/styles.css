@@ -1073,3 +1073,107 @@ h3 {
   border: 1px solid var(--border);
   border-radius: 3px;
 }
+
+.editor-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+  min-height: 0;
+}
+
+.editor-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tool {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tool.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+kbd {
+  font:
+    0.75rem ui-monospace,
+    'Cascadia Mono',
+    monospace;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+}
+
+.tool-tip {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.color-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.color-pair .row {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.color-pair .row button {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+.color-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-swatch {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex: none;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.color-swatch-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.badge.unsaved {
+  color: var(--warning);
+  border-color: var(--warning);
+}

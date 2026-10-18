@@ -50,9 +50,10 @@ Beginner mode shows only the essential tools (pencil, eraser, fill, picker, shad
 ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everything.
 
 - [x] Pixel canvas with zoom, pan and pixel grid
-- [ ] Tools: pencil (optional pixel-perfect stroke), eraser, fill bucket (contiguous or global), color picker
+- [x] Pencil (optional pixel-perfect stroke) and eraser
+- [ ] Fill bucket (contiguous or global) and color picker
 - [ ] Hard-pixel brush only (no soft edges / anti-aliasing), size 1–3 px in Beginner, free in Pro
-- [ ] Primary/secondary color on left/right click (secondary defaults to transparent), X swaps them
+- [x] Primary/secondary color on left/right click (secondary defaults to transparent), X swaps them
 - [ ] Color picker panel: hex/RGB/HSV input, alpha, recent colors (full panel in Pro)
 - [ ] Ramp generator: 5 shades from a base color with hue shifting (cool shadows, warm highlights)
 - [ ] Shade tool: left click one step darker, right click one step lighter along the ramp

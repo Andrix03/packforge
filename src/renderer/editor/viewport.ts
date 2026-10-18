@@ -82,6 +82,18 @@ export function clampViewport(viewport: Viewport, frame: Frame): Viewport {
   }
 }
 
+/** Texture pixel coordinates of a screen point, even outside the texture (for strokes). */
+export function screenToImage(
+  viewport: Viewport,
+  screenX: number,
+  screenY: number
+): { x: number; y: number } {
+  return {
+    x: Math.floor((screenX - viewport.x) / viewport.zoom),
+    y: Math.floor((screenY - viewport.y) / viewport.zoom)
+  }
+}
+
 /** Texture pixel under a screen point, or null outside the texture. */
 export function screenToPixel(
   viewport: Viewport,
@@ -89,8 +101,7 @@ export function screenToPixel(
   screenY: number,
   frame: Pick<Frame, 'imageWidth' | 'imageHeight'>
 ): { x: number; y: number } | null {
-  const x = Math.floor((screenX - viewport.x) / viewport.zoom)
-  const y = Math.floor((screenY - viewport.y) / viewport.zoom)
+  const { x, y } = screenToImage(viewport, screenX, screenY)
   if (x < 0 || y < 0 || x >= frame.imageWidth || y >= frame.imageHeight) return null
   return { x, y }
 }

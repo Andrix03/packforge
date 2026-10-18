@@ -253,7 +253,10 @@ vec2 parallax(vec3 dir, float scale, out vec3 hit, out vec3 slope) {
       // The pixel's top is above where the ray came in: it hit the pixel's side.
       if (pomSlopes && axis == 0) slope = vec3(-stepCell.x, 0.0, 0.0);
       if (pomSlopes && axis == 1) slope = vec3(0.0, -stepCell.y, 0.0);
-      hit = vec3(start + offset * tEnter, tEnter);
+      // The entry point lies exactly on the edge with the pixel the ray came from: keep it a hair
+      // inside this one, or rounding reads either pixel's maps (speckled walls).
+      vec2 side = clamp(start + offset * tEnter, (cell + 0.001) / res, (cell + 0.999) / res);
+      hit = vec3(side, tEnter);
       return fract(hit.xy);
     }
     if (depth <= tExit || tExit >= 1.0 || i + 1 >= cells) {
@@ -283,8 +286,15 @@ float parallaxShadow(vec3 hit, vec3 l, float scale) {
   if (!pomShadows || scale <= 0.0 || hit.z <= 1.0 / 255.0 || l.z <= 0.0) return 1.0;
   vec2 res = vec2(textureSize(normalMap, 0)) * frameA.zw;
   vec2 offset = l.xy / max(l.z, 0.1) * MAX_DEPTH * scale;
+  // A hit on a pixel's side lies exactly on the edge between two pixels: floor() would pick either
+  // one by rounding (salt-and-pepper shadows). Start a hair towards the light instead, in the pixel
+  // the light ray really leaves through, and check that pixel too: a side facing away from the
+  // light is inside its own (taller) pixel.
+  float offsetLength = length(offset);
   vec2 start = hit.xy;
+  if (offsetLength > 1e-6) start += offset / offsetLength * (0.01 / max(res.x, res.y));
   vec2 cell = floor(start * res);
+  if (pomCellDepth(cell, res) < hit.z - 1e-3) return 0.0;
   vec2 stepCell = vec2(offset.x > 0.0 ? 1.0 : -1.0, offset.y > 0.0 ? 1.0 : -1.0);
   vec2 perCell = vec2(
     abs(offset.x) > 1e-6 ? 1.0 / (abs(offset.x) * res.x) : 1e9,

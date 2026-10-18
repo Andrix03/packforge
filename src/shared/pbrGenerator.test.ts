@@ -34,10 +34,11 @@ describe('heightFromAlbedo', () => {
   })
 
   it('keeps the depth fraction and inverts on request', () => {
-    const half = heightFromAlbedo(grays([0, 255]), grid(2, 1), DEFAULT_HEIGHT)
+    const half = heightFromAlbedo(grays([0, 255]), grid(2, 1), { ...DEFAULT_HEIGHT, depth: 0.5 })
     expect([...half]).toEqual([128, 255])
     const inverted = heightFromAlbedo(grays([0, 255]), grid(2, 1), {
       ...DEFAULT_HEIGHT,
+      depth: 0.5,
       invert: true
     })
     expect([...inverted]).toEqual([255, 128])

@@ -24,7 +24,7 @@ export interface HeightOptions {
 }
 
 export const DEFAULT_HEIGHT: HeightOptions = {
-  depth: 0.5,
+  depth: 0.25,
   invert: false,
   autoLevels: true,
   blur: 0,

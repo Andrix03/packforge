@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  diffPixels,
   fill,
   fromHex,
   getPixel,
@@ -15,6 +16,7 @@ import {
 
 const RED: Rgba = [255, 0, 0, 255]
 const GRAY: Rgba = [100, 100, 100, 255]
+const BLUE_TEST: Rgba = [0, 0, 255, 255]
 
 function buffer(width: number, height: number, fill: Rgba = TRANSPARENT): PixelBuffer {
   const data = new Uint8ClampedArray(width * height * 4)
@@ -205,6 +207,42 @@ describe('Stroke', () => {
     expect(getPixel(b, 0, 0)).toEqual(GRAY)
   })
 
+  it('mirrors across the vertical and horizontal center lines', () => {
+    const b = buffer(4, 3)
+    new Stroke(b, RED, { mirror: { x: true, y: false } }).add({ x: 0, y: 0 })
+    expect(render(b)).toEqual(['#..#', '....', '....'])
+    const both = buffer(4, 3)
+    new Stroke(both, RED, { mirror: { x: true, y: true } }).add({ x: 1, y: 0 })
+    expect(render(both)).toEqual(['.##.', '....', '.##.'])
+  })
+
+  it('paints only inside the clip', () => {
+    const b = buffer(4, 1)
+    const stroke = new Stroke(b, RED, { clip: (x) => x >= 2 })
+    stroke.add({ x: 0, y: 0 })
+    stroke.add({ x: 3, y: 0 })
+    expect(render(b)).toEqual(['..##'])
+  })
+
+  it('wraps around the edges in seamless mode', () => {
+    const b = buffer(4, 2)
+    const stroke = new Stroke(b, RED, { wrap: true })
+    stroke.add({ x: 2, y: 0 })
+    stroke.add({ x: 5, y: 0 })
+    expect(render(b)).toEqual(['####', '....'])
+    new Stroke(b, BLUE_TEST, { wrap: true }).add({ x: -1, y: -1 })
+    expect(getPixel(b, 3, 1)).toEqual(BLUE_TEST)
+  })
+
+  it('stamps shape points without joining them', () => {
+    const b = buffer(5, 1)
+    new Stroke(b, RED, {}).addPoints([
+      { x: 0, y: 0 },
+      { x: 4, y: 0 }
+    ])
+    expect(render(b)).toEqual(['#...#'])
+  })
+
   it('lists only the pixels that really changed', () => {
     const b = buffer(3, 1, RED)
     const same = new Stroke(b, RED, false)
@@ -226,6 +264,15 @@ describe('Stroke', () => {
     stroke.add({ x: 1, y: 0 })
     stroke.add({ x: 1, y: 1 })
     expect(stroke.changes().map((c) => c.index)).toEqual([0, 3])
+  })
+})
+
+describe('diffPixels', () => {
+  it('lists the pixels that differ from a snapshot', () => {
+    const b = buffer(2, 1, GRAY)
+    const before = new Uint8ClampedArray(b.data)
+    setPixel(b, 1, 0, RED)
+    expect(diffPixels(b, before)).toEqual([{ index: 1, before: GRAY, after: RED }])
   })
 })
 

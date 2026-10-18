@@ -2,9 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cssColor, drawCanvas, formatColor, isTyping } from './canvasDraw'
 import type { EditorDocument } from './document'
 import { pixelCommand, type Command } from './history'
-import { fill, getPixel, Stroke, TRANSPARENT, type FillMode, type Rgba } from './pixels'
+import {
+  diffPixels,
+  fill,
+  getPixel,
+  Stroke,
+  TRANSPARENT,
+  type FillMode,
+  type Point,
+  type Rgba
+} from './pixels'
 import { noiseFill, shiftAlongRamp } from './ramp'
-import { BRUSH_TOOLS, type ToolId } from './tools'
+import { constrainEnd, shapePoints, type ShapeKind } from './shapes'
+import { BRUSH_TOOLS, MIRROR_TOOLS, SHAPE_TOOLS, type ToolId } from './tools'
 import {
   clampViewport,
   fitViewport,
@@ -28,6 +38,18 @@ export interface Tools {
   fillMode: FillMode
   primary: Rgba
   secondary: Rgba
+  shapeFilled: boolean
+  mirror: { x: boolean; y: boolean }
+}
+
+/** A shape being dragged: redrawn from the snapshot on every move. */
+interface ShapeDrag {
+  pointerId: number
+  kind: ShapeKind
+  start: Point
+  color: Rgba
+  /** Layer pixels before the shape. */
+  snapshot: Uint8ClampedArray
 }
 
 interface PixelCanvasProps {
@@ -76,6 +98,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
   const spaceHeld = useRef(false)
   const drag = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null)
   const stroke = useRef<{ pointerId: number; stroke: Stroke } | null>(null)
+  const shape = useRef<ShapeDrag | null>(null)
 
   const frame = useMemo<Frame | null>(
     () =>
@@ -125,10 +148,12 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     canvas.width = viewSize.width
     canvas.height = viewSize.height
     const size = tools && BRUSH_TOOLS.has(tools.tool) ? tools.brushSize : 1
+    const mirror = tools && MIRROR_TOOLS.has(tools.tool) ? tools.mirror : null
     drawCanvas(canvas, source, viewport, {
       showGrid,
       hover: tools && hover ? { ...hover, size } : null,
-      trace
+      trace,
+      mirror
     })
   }, [source, viewSize, viewport, showGrid, hover, tools, revision, trace])
 
@@ -165,7 +190,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       if ((event.ctrlKey || event.metaKey) && (key === 'z' || key === 'y')) {
         event.preventDefault()
         // Not in the middle of a stroke: it isn't in the history yet.
-        if (stroke.current) return
+        if (stroke.current || shape.current) return
         if (key === 'y' || event.shiftKey) onRedo()
         else onUndo()
       } else if (event.key === 'Alt') {
@@ -196,7 +221,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
   }, [zoomCentered, onUndo, onRedo])
 
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>): void {
-    if (drag.current || stroke.current) return
+    if (drag.current || stroke.current || shape.current) return
     // Middle button, or Space + left button, pans. Left/right draw with primary/secondary.
     const wantsPan = event.button === 1 || (event.button === 0 && spaceHeld.current)
     if (wantsPan) {
@@ -236,34 +261,61 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       return
     }
     event.currentTarget.setPointerCapture(event.pointerId)
+    if (SHAPE_TOOLS.has(tool)) {
+      const color = tools[slot]
+      props.onColorUsed(color)
+      shape.current = {
+        pointerId: event.pointerId,
+        kind: tool as ShapeKind,
+        start: screenToImage(viewport, point.x, point.y),
+        color,
+        snapshot: new Uint8ClampedArray(layer.pixels.data)
+      }
+      drawShape(screenToImage(viewport, point.x, point.y), event.shiftKey)
+      return
+    }
     let current: Stroke
     if (tool === 'shade') {
       props.onRampUsed()
       const ramp = tools.ramp
       const direction = slot === 'primary' ? -1 : 1
-      current = new Stroke(
-        layer.pixels,
-        (before) => shiftAlongRamp(ramp, before, direction),
-        false,
-        tools.brushSize
-      )
+      current = new Stroke(layer.pixels, (before) => shiftAlongRamp(ramp, before, direction), {
+        size: tools.brushSize,
+        mirror: tools.mirror
+      })
     } else {
       const color = tool === 'eraser' ? TRANSPARENT : tools[slot]
       props.onColorUsed(color)
-      current = new Stroke(
-        layer.pixels,
-        color,
-        tool === 'pencil' && tools.pixelPerfect,
-        tools.brushSize
-      )
+      current = new Stroke(layer.pixels, color, {
+        pixelPerfect: tool === 'pencil' && tools.pixelPerfect,
+        size: tools.brushSize,
+        mirror: tools.mirror
+      })
     }
     stroke.current = { pointerId: event.pointerId, stroke: current }
     if (current.add(screenToImage(viewport, point.x, point.y))) props.onPainted()
   }
 
+  /** Redraws the dragged shape from its snapshot up to `end`. */
+  function drawShape(end: Point, constrain: boolean): void {
+    const current = shape.current
+    if (!current || !tools) return
+    const pixels = doc.active.pixels
+    pixels.data.set(current.snapshot)
+    const to = constrain ? constrainEnd(current.kind, current.start, end) : end
+    const points = shapePoints(current.kind, current.start, to, tools.shapeFilled)
+    new Stroke(pixels, current.color, { size: tools.brushSize, mirror: tools.mirror }).addPoints(
+      points
+    )
+    props.onPainted()
+  }
+
   function onPointerMove(event: React.PointerEvent<HTMLCanvasElement>): void {
     if (!frame || !viewport) return
     const point = toDevice(event)
+    if (shape.current?.pointerId === event.pointerId) {
+      drawShape(screenToImage(viewport, point.x, point.y), event.shiftKey)
+    }
     const current = drag.current
     if (current && current.pointerId === event.pointerId) {
       const dx = point.x - current.lastX
@@ -300,6 +352,12 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       const finished = stroke.current
       stroke.current = null
       props.onCommit(pixelCommand(doc.active.pixels, finished.stroke.changes()))
+    }
+    if (shape.current?.pointerId === event.pointerId) {
+      const finished = shape.current
+      shape.current = null
+      const pixels = doc.active.pixels
+      props.onCommit(pixelCommand(pixels, diffPixels(pixels, finished.snapshot)))
     }
   }
 

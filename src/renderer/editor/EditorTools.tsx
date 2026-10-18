@@ -1,7 +1,7 @@
 import type { UsedColor } from './color'
 import { ColorPanel } from './ColorPanel'
 import type { FillMode, Rgba } from './pixels'
-import { BRUSH_TOOLS, maxBrushSize, TOOLS, type ToolId } from './tools'
+import { BRUSH_TOOLS, maxBrushSize, MIRROR_TOOLS, TOOLS, visibleTools, type ToolId } from './tools'
 
 interface EditorToolsProps {
   tool: ToolId
@@ -10,6 +10,10 @@ interface EditorToolsProps {
   onPixelPerfect: (value: boolean) => void
   brushSize: number
   onBrushSize: (size: number) => void
+  shapeFilled: boolean
+  onShapeFilled: (filled: boolean) => void
+  mirror: { x: boolean; y: boolean }
+  onMirror: (mirror: { x: boolean; y: boolean }) => void
   /** The shading ramp section, shown under the colors. */
   rampPanel: React.ReactNode
   fillMode: FillMode
@@ -31,7 +35,7 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
   return (
     <aside className="editor-tools card">
       <div className="tool-list" role="toolbar" aria-label="Strumenti">
-        {TOOLS.map((tool) => (
+        {visibleTools(props.pro).map((tool) => (
           <button
             key={tool.id}
             type="button"
@@ -74,6 +78,42 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
           />
           Pixel-perfect
         </label>
+      )}
+
+      {(props.tool === 'rect' || props.tool === 'ellipse') && (
+        <label
+          className="inline-check small"
+          title="Riempie la forma invece di disegnarne solo il bordo"
+        >
+          <input
+            type="checkbox"
+            checked={props.shapeFilled}
+            onChange={(event) => props.onShapeFilled(event.target.checked)}
+          />
+          Pieno
+        </label>
+      )}
+
+      {props.pro && MIRROR_TOOLS.has(props.tool) && (
+        <div className="mirror-toggles small" role="group" aria-label="Simmetria">
+          <span className="muted">Simmetria</span>
+          <label className="inline-check" title="Specchia sinistra ↔ destra">
+            <input
+              type="checkbox"
+              checked={props.mirror.x}
+              onChange={(event) => props.onMirror({ ...props.mirror, x: event.target.checked })}
+            />
+            ↔
+          </label>
+          <label className="inline-check" title="Specchia sopra ↕ sotto">
+            <input
+              type="checkbox"
+              checked={props.mirror.y}
+              onChange={(event) => props.onMirror({ ...props.mirror, y: event.target.checked })}
+            />
+            ↕
+          </label>
+        </div>
       )}
 
       {(props.tool === 'fill' || props.tool === 'noise') && (

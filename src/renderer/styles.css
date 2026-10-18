@@ -1534,3 +1534,9 @@ kbd {
   font-size: 0.85rem;
   pointer-events: none;
 }
+
+.mirror-toggles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

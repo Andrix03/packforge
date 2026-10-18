@@ -12,6 +12,8 @@ export interface CanvasOverlays {
   hover: { x: number; y: number; size: number } | null
   /** Vanilla texture drawn over the canvas for tracing. */
   trace: { canvas: HTMLCanvasElement; opacity: number } | null
+  /** Symmetry axes to show (mirror drawing). */
+  mirror: { x: boolean; y: boolean } | null
 }
 
 export function drawCanvas(
@@ -47,7 +49,7 @@ export function drawCanvas(
 
   context.imageSmoothingEnabled = false
   context.drawImage(source, x, y, width, height)
-  const { trace, hover, showGrid } = overlays
+  const { trace, hover, showGrid, mirror } = overlays
   if (trace) {
     // Scaled to the texture size (a 16× reference over a 32× texture still lines up).
     context.globalAlpha = trace.opacity
@@ -65,6 +67,24 @@ export function drawCanvas(
   context.strokeStyle = 'rgba(255, 255, 255, 0.25)'
   context.lineWidth = 1
   context.strokeRect(x - 0.5, y - 0.5, width + 1, height + 1)
+
+  if (mirror?.x || mirror?.y) {
+    context.save()
+    context.strokeStyle = 'rgba(111, 191, 115, 0.9)'
+    context.setLineDash([6, 4])
+    context.lineWidth = 2
+    context.beginPath()
+    if (mirror.x) {
+      context.moveTo(x + width / 2, y - 8)
+      context.lineTo(x + width / 2, y + height + 8)
+    }
+    if (mirror.y) {
+      context.moveTo(x - 8, y + height / 2)
+      context.lineTo(x + width + 8, y + height / 2)
+    }
+    context.stroke()
+    context.restore()
+  }
 
   // Outline of the pixels the tool will paint (same footprint as Stroke's brush): dark + light so
   // it shows on any color.

@@ -75,7 +75,7 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 
 - [x] Layers (add, reorder, hide, opacity, duplicate, merge, rename), flattened on save
 - [ ] Selections: rectangle, magic wand; move, copy, paste, flip, rotate
-- [ ] Lines, rectangles, ellipses; mirror (symmetry) drawing
+- [x] Lines, rectangles, ellipses; mirror (symmetry) drawing
 - [ ] Seamless tiling mode: paint across the edges of a repeating texture
 - [ ] Custom ramps and saved palettes
 - [ ] Animation frames editor that writes the strip and `.png.mcmeta`

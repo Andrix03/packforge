@@ -19,7 +19,7 @@ import { DEFAULT_RAMP, generateRamp, type RampOptions } from './ramp'
 import { RampPanel } from './RampPanel'
 import { ReferencePanel, type LoadedReference } from './ReferencePanel'
 import { TilingPreview } from './TilingPreview'
-import { maxBrushSize, toolByShortcut } from './tools'
+import { maxBrushSize, toolByShortcut, visibleTools } from './tools'
 
 export interface EditorTarget {
   /** Pack-relative path of the albedo PNG. */
@@ -67,6 +67,8 @@ export function TextureEditor({
     pixelPerfect: false,
     brushSize: 1,
     fillMode: 'contiguous',
+    shapeFilled: false,
+    mirror: { x: false, y: false },
     primary: [255, 255, 255, 255],
     // Secondary defaults to transparent: right click erases.
     secondary: TRANSPARENT
@@ -159,8 +161,14 @@ export function TextureEditor({
 
   function changeMode(next: EditorMode): void {
     setMode(next)
-    // Beginner brushes are small: shrink a bigger brush when switching.
-    setTools((t) => ({ ...t, brushSize: Math.min(t.brushSize, maxBrushSize(next === 'pro')) }))
+    const pro = next === 'pro'
+    // Beginner mode: small brushes, no mirror, and back to a basic tool if a Pro one was active.
+    setTools((t) => ({
+      ...t,
+      brushSize: Math.min(t.brushSize, maxBrushSize(pro)),
+      mirror: pro ? t.mirror : { x: false, y: false },
+      tool: pro || visibleTools(false).some((tool) => tool.id === t.tool) ? t.tool : 'pencil'
+    }))
     void window.api.invoke('settings:setEditorMode', next)
   }
 
@@ -221,7 +229,7 @@ export function TextureEditor({
         return
       }
       if (isTyping(event) || event.ctrlKey || event.altKey || event.metaKey) return
-      const tool = toolByShortcut(event.key)
+      const tool = toolByShortcut(event.key, pro)
       if (tool) setTools((t) => ({ ...t, tool }))
       else if (event.key.toLowerCase() === 'x') swap()
       else if (event.key === '[' || event.key === ']') {
@@ -441,6 +449,10 @@ export function TextureEditor({
             onPixelPerfect={(pixelPerfect) => setTools((t) => ({ ...t, pixelPerfect }))}
             brushSize={tools.brushSize}
             onBrushSize={(brushSize) => setTools((t) => ({ ...t, brushSize }))}
+            shapeFilled={tools.shapeFilled}
+            onShapeFilled={(shapeFilled) => setTools((t) => ({ ...t, shapeFilled }))}
+            mirror={tools.mirror}
+            onMirror={(mirror) => setTools((t) => ({ ...t, mirror }))}
             rampPanel={
               <RampPanel
                 ramp={ramp}

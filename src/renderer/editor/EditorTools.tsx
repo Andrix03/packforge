@@ -40,6 +40,8 @@ interface EditorToolsProps {
   onSelectionAction: (action: SelectionAction) => void
   /** The shading ramp section, shown under the colors. */
   rampPanel: React.ReactNode
+  /** Painting a map channel: replaces the colors and the ramp with a value picker. */
+  valuePanel?: React.ReactNode
   fillMode: FillMode
   onFillMode: (mode: FillMode) => void
   primary: Rgba
@@ -194,16 +196,20 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
 
       {props.showTips && <p className="tool-tip small muted">{active.tip}</p>}
 
-      <ColorPanel
-        primary={props.primary}
-        secondary={props.secondary}
-        onChange={props.onColor}
-        onSwap={props.onSwap}
-        recent={props.recent}
-        palette={props.palette}
-        pro={props.pro}
-      />
-      {props.rampPanel}
+      {props.valuePanel ?? (
+        <>
+          <ColorPanel
+            primary={props.primary}
+            secondary={props.secondary}
+            onChange={props.onColor}
+            onSwap={props.onSwap}
+            recent={props.recent}
+            palette={props.palette}
+            pro={props.pro}
+          />
+          {props.rampPanel}
+        </>
+      )}
     </aside>
   )
 }

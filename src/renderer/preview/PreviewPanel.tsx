@@ -4,10 +4,12 @@ import type { BlockstateVariant } from '../../shared/blockModel'
 import {
   BlockPreview,
   type LiveAnimation,
+  type LiveMaps,
   type PartReport,
   type PreviewScene
 } from './BlockPreview'
 import { loadColormaps, tintFor, type ColormapPixels } from './colormaps'
+import type { EffectSettings } from './effects'
 import { formatHour, normalizeHour } from './dayNight'
 import {
   cubeMesh,
@@ -35,8 +37,10 @@ export interface LiveTexture {
   /** The animation being edited (null = static); omitted = use the file's .png.mcmeta. */
   animation?: LiveAnimation | null
   canvas: HTMLCanvasElement
-  /** Bumped after every change painted on the canvas. */
+  /** Bumped after every change painted on the canvas (or on its maps). */
   revision: number
+  /** LabPBR maps being edited, shown instead of their files. */
+  maps?: LiveMaps | null
 }
 
 type Shape = 'cube' | 'block'
@@ -61,8 +65,11 @@ export function PreviewPanel({
   live = null,
   initialShape = 'cube',
   onBlockTextures,
-  onTest = null
+  onTest = null,
+  effects = null
 }: {
+  /** LabPBR effects to render with (null = vanilla look). */
+  effects?: EffectSettings | null
   target: PreviewTarget | null
   sources: AssetSources | null
   live?: LiveTexture | null
@@ -109,8 +116,9 @@ export function PreviewPanel({
   const liveCanvas = live?.canvas ?? null
   const liveRevision = live?.revision ?? 0
   const liveAnimation = live?.animation
-  // Size and animation of the live texture: when they change the mesh is rebuilt (a GPU texture
-  // can't grow in place, and the frames must be re-sliced).
+  const liveMaps = live?.maps ?? null
+  // Size and animation of the live texture (and which maps are live): when they change the mesh
+  // is rebuilt (a GPU texture can't grow in place, and the frames must be re-sliced).
   const liveShape =
     live === null
       ? ''
@@ -120,15 +128,16 @@ export function PreviewPanel({
             : liveAnimation === null
               ? 'static'
               : `${liveAnimation.frameHeight}/${liveAnimation.frametime}/${liveAnimation.interpolate}`
-        }`
+        }|${mapShape(liveMaps?.normal)}|${mapShape(liveMaps?.specular)}`
   // Declared before the mesh effect so the override is in place when the mesh loads.
   useEffect(
-    () => previewRef.current?.setLiveTexture(liveUrl, liveCanvas, liveAnimation),
-    // liveShape stands for the animation object (a new object on every render).
+    () => previewRef.current?.setLiveTexture(liveUrl, liveCanvas, liveAnimation, liveMaps),
+    // liveShape stands for the animation and maps objects (new objects on every render).
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [liveUrl, liveCanvas, liveShape]
   )
   useEffect(() => previewRef.current?.refreshLiveTextures(), [liveRevision])
+  useEffect(() => previewRef.current?.setEffects(effects), [effects])
 
   useEffect(() => previewRef.current?.setScene(scene), [scene])
   useEffect(() => previewRef.current?.setTime(hour), [hour])
@@ -390,4 +399,8 @@ function describeTexture(report: PartReport): Status {
     ? `${size} · animata: ${animation.frames.length} frame, ${(animation.totalTicks / 20).toFixed(1)} s${animation.interpolate ? ', sfumata' : ''}`
     : size
   return { text, problems: report.problem ? [report.problem] : [] }
+}
+
+function mapShape(map: { width: number; height: number } | null | undefined): string {
+  return map ? `${map.width}x${map.height}` : '-'
 }

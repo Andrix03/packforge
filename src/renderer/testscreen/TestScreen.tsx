@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { BIOMES, DEFAULT_BIOME } from '../../shared/biomeTint'
 import { METAL_MODES, type MetalMode } from '../../shared/labpbr'
 import type { EditorTarget } from '../editor/TextureEditor'
-import { BlockPreview, type LiveAnimation } from '../preview/BlockPreview'
+import { BlockPreview, type LiveAnimation, type LiveMaps } from '../preview/BlockPreview'
 import { loadColormaps, tintFor, type ColormapPixels } from '../preview/colormaps'
 import { formatHour, normalizeHour } from '../preview/dayNight'
 import {
@@ -50,6 +50,8 @@ export interface TestLive {
   animation: LiveAnimation | null | undefined
   /** Exact pixels of the composite (straight alpha), for the item's shape. */
   pixels: Sprite
+  /** LabPBR maps painted in the editor (null = their files). */
+  maps: LiveMaps | null
 }
 
 /** Game hours per real second while the day/night cycle plays. */
@@ -118,10 +120,10 @@ export function TestScreen({
   const vanillaItemUrl =
     isItem && vanillaSources ? resolveAssetUrl(vanillaSources, target.path) : null
   const maps = useMemo(() => labPbrUrls(sources, target.path), [sources, target.path])
+  const hasNormal = maps.normalUrl !== null || Boolean(live?.maps?.normal)
+  const hasSpecular = maps.specularUrl !== null || Boolean(live?.maps?.specular)
   // Effects start on when the texture has LabPBR maps to show.
-  const [effectsOn, setEffectsOn] = useState(
-    () => maps.normalUrl !== null || maps.specularUrl !== null
-  )
+  const [effectsOn, setEffectsOn] = useState(() => hasNormal || hasSpecular)
   const [effects, setEffects] = useState<EffectSettings>(DEFAULT_EFFECTS)
   const updateEffects = (change: Partial<EffectSettings>): void =>
     setEffects((old) => ({ ...old, ...change }))
@@ -144,7 +146,8 @@ export function TestScreen({
       previewRef.current?.setLiveTexture(
         live ? target.url : null,
         live?.canvas ?? null,
-        live?.animation
+        live?.animation,
+        live?.maps ?? null
       ),
     [live, target.url]
   )
@@ -497,8 +500,8 @@ export function TestScreen({
               Mostra effetti
             </label>
             <span className="muted small" aria-label="Mappe LabPBR">
-              Mappe di questa texture: {maps.normalUrl ? '✓' : '✗'} _n (normali){' '}
-              {maps.specularUrl ? '✓' : '✗'} _s (materiale)
+              Mappe di questa texture: {hasNormal ? '✓' : '✗'} _n (normali){' '}
+              {hasSpecular ? '✓' : '✗'} _s (materiale)
             </span>
             {effectsOn && (
               <>
@@ -589,7 +592,7 @@ export function TestScreen({
                         Confronta con e senza POM (affiancato)
                       </label>
                     )}
-                    {!maps.normalUrl && (
+                    {!hasNormal && (
                       <span className="muted small">
                         Questa texture non ha _n: il rilievo usa l’altezza in _n.a.
                       </span>

@@ -19,7 +19,7 @@ import { animationFromMcmeta, buildMcmeta, type AnimationSettings } from './fram
 import { EditorTools, type SelectionAction } from './EditorTools'
 import type { Floating } from './selection'
 import * as selectionActions from './selectionActions'
-import { History, pixelCommand, type Command } from './history'
+import { combine, History, pixelCommand, type Command } from './history'
 import { LayersPanel } from './LayersPanel'
 import { replacePixels, TRANSPARENT, type Rgba } from './pixels'
 import { PixelCanvas, type Tools } from './PixelCanvas'
@@ -28,6 +28,24 @@ import { RampPanel } from './RampPanel'
 import { ReferencePanel, type LoadedReference } from './ReferencePanel'
 import { TilingPreview } from './TilingPreview'
 import { maxBrushSize, toolByShortcut, visibleTools } from './tools'
+import { mapPath, type MapKind } from '../../shared/labpbr'
+import type { MapGrid } from '../../shared/pbrGenerator'
+import { DEFAULT_HEIGHT, DEFAULT_NORMALS, DEFAULT_OCCLUSION } from '../../shared/pbrGenerator'
+import { DEFAULT_EFFECTS } from '../preview/effects'
+import type { LiveMaps } from '../preview/BlockPreview'
+import {
+  CHANNELS,
+  channelDef,
+  EditedMap,
+  gray,
+  grayRamp,
+  newMap,
+  type ChannelDef,
+  type ChannelId
+} from './channels'
+import { MapTabs, ValuePanel, type ChannelValues, type Surface } from './ChannelPanel'
+import { GeneratorPanel, type GenerateAction, type GeneratorSettings } from './GeneratorPanel'
+import { generateFromHeight, generateHeight, normalsAreFlat } from './mapGenerate'
 
 export interface EditorTarget {
   /** Pack-relative path of the albedo PNG. */
@@ -56,6 +74,11 @@ type Loaded =
       /** Display copy of the composite (also the live 3D texture). */
       source: HTMLCanvasElement
       reducedFrom16Bit: boolean
+      /** The texture's LabPBR maps (new, neutral ones when the file doesn't exist yet). */
+      maps: Partial<Record<MapKind, EditedMap>>
+      mapErrors: Partial<Record<MapKind, string>>
+      /** Display copy of each channel being painted. */
+      channelCanvases: Partial<Record<ChannelId, HTMLCanvasElement>>
     }
 
 /** Copied pixels, shared by every texture opened in this session. */
@@ -124,6 +147,42 @@ export function TextureEditor({
   const [bigPreview, setBigPreview] = useState(false)
   /** Animation settings changed since the last save (frame edits are in the history). */
   const animationDirty = useRef(false)
+  /** The albedo as on disk: saving skips the PNG when only the maps changed. */
+  const savedAlbedo = useRef<Uint8Array | null>(null)
+  /** What is being painted: the colors, or a channel of `_n` / `_s`. */
+  const [surface, setSurface] = useState<Surface>('color')
+  const [channelOf, setChannelOf] = useState<Record<MapKind, ChannelId>>({
+    normal: 'height',
+    specular: 'smoothness'
+  })
+  const [channelValues, setChannelValues] = useState<Record<ChannelId, ChannelValues>>(
+    () =>
+      Object.fromEntries(
+        CHANNELS.map((def) => [
+          def.id,
+          { primary: def.presets[1]?.value ?? def.neutral, secondary: def.neutral }
+        ])
+      ) as Record<ChannelId, ChannelValues>
+  )
+  const [rampStep, setRampStep] = useState(16)
+  const [colorOverlay, setColorOverlay] = useState(0)
+  const [generator, setGenerator] = useState<GeneratorSettings>({
+    height: DEFAULT_HEIGHT,
+    normals: DEFAULT_NORMALS,
+    occlusion: DEFAULT_OCCLUSION,
+    withOcclusion: true,
+    wrap: true,
+    auto: false
+  })
+  const normalPath = mapPath(target.path, 'normal')
+  const specularPath = mapPath(target.path, 'specular')
+  const packFiles = target.sources.pack
+  const normalUrl = packFiles.files.has(normalPath)
+    ? assetUrl(target.packBase, normalPath, packFiles.versions[normalPath] ?? 0)
+    : null
+  const specularUrl = packFiles.files.has(specularPath)
+    ? assetUrl(target.packBase, specularPath, packFiles.versions[specularPath] ?? 0)
+    : null
   const vanilla = target.sources.vanilla
   const referenceUrl = vanilla?.files.has(target.path) ? assetUrl(vanilla.base, target.path) : null
   const pro = mode === 'pro'
@@ -142,14 +201,52 @@ export function TextureEditor({
   const lockRamp = (): void => setRampBase((base) => base ?? tools.primary)
   const doc = loaded.status === 'ready' ? loaded.doc : null
   const source = loaded.status === 'ready' ? loaded.source : null
+  const maps = loaded.status === 'ready' ? loaded.maps : null
+  const channelCanvases = loaded.status === 'ready' ? loaded.channelCanvases : null
+  const editedMap = surface !== 'color' ? (maps?.[surface] ?? null) : null
+  const channel: ChannelDef | null =
+    surface !== 'color' && editedMap ? channelDef(channelOf[surface]) : null
+  /** The document the tools paint on: the color layers, or a channel's gray proxy. */
+  const editDoc = channel && editedMap ? editedMap.proxy(channel) : doc
+  const editSource = channel ? (channelCanvases?.[channel.id] ?? null) : source
+  const values = channel ? channelValues[channel.id] : null
+  /** Pixel grid of a map for the generator (animation frames scale with the map). */
+  const mapGrid = useCallback(
+    (map: EditedMap): MapGrid => {
+      const sameShape = doc !== null && map.height * doc.width === map.width * doc.height
+      return {
+        width: map.width,
+        height: map.height,
+        frameHeight:
+          animation && sameShape && doc
+            ? Math.round((animation.frameHeight * map.height) / doc.height)
+            : map.height,
+        wrap: generator.wrap
+      }
+    },
+    [doc, animation, generator.wrap]
+  )
+  // The maps are mutated in place: `revision` tells when to look at them again.
+  const liveMaps = useMemo<LiveMaps | null>(
+    () =>
+      maps && {
+        normal: maps.normal?.present ? maps.normal.buffer : null,
+        specular: maps.specular?.present ? maps.specular.buffer : null
+      },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [maps, revision]
+  )
   // The composite is mutated in place: `revision` is what tells us it changed. One pass over the
   // pixels each, cheap even at 64×.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const palette = useMemo(() => (doc ? usedColors(doc.composite) : []), [doc, revision])
-  const advice = useMemo(
-    () => (doc && showTips ? analyzeTexture(doc.composite) : []),
+  const palette = useMemo(
+    () => (editDoc ? usedColors(editDoc.composite) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [doc, revision, showTips]
+    [editDoc, revision]
+  )
+  const advice = useMemo(
+    () => (doc && showTips && surface === 'color' ? analyzeTexture(doc.composite) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [doc, revision, showTips, surface]
   )
   const previewTarget = useMemo<PreviewTarget>(
     () => ({
@@ -162,10 +259,17 @@ export function TextureEditor({
     }),
     [target]
   )
-  const swap = useCallback(
-    () => setTools((t) => ({ ...t, primary: t.secondary, secondary: t.primary })),
-    []
-  )
+  const channelId = channel?.id ?? null
+  const swap = useCallback(() => {
+    if (channelId) {
+      setChannelValues((all) => ({
+        ...all,
+        [channelId]: { primary: all[channelId].secondary, secondary: all[channelId].primary }
+      }))
+    } else {
+      setTools((t) => ({ ...t, primary: t.secondary, secondary: t.primary }))
+    }
+  }, [channelId])
 
   /** Recomposites, updates the display canvas and re-renders everything that depends on it. */
   const refresh = useCallback(() => {
@@ -183,31 +287,52 @@ export function TextureEditor({
     }
     doc.recomposite()
     putBuffer(source, doc.composite)
+    let floating = doc.floating !== null
+    for (const map of Object.values(maps ?? {})) map.sync()
+    for (const def of CHANNELS) {
+      const canvas = channelCanvases?.[def.id]
+      const map = maps?.[def.map]
+      if (!canvas || !map) continue
+      const proxy = map.proxy(def)
+      putBuffer(canvas, proxy.composite)
+      floating ||= proxy.floating !== null
+    }
     setRevision((r) => r + 1)
     // A moved piece not yet put down, or new animation settings, are changes too.
-    setModified(history.modified || doc.floating !== null || animationDirty.current)
-  }, [doc, source, history, animation])
+    setModified(history.modified || floating || animationDirty.current)
+  }, [doc, source, history, animation, maps, channelCanvases])
 
+  const autoRegenerate = channel?.id === 'height' && generator.auto && editedMap !== null
   const commit = useCallback(
     (command: Command | null) => {
-      history.push(command)
+      // Painting the height with "update while painting": normals (and AO) follow in the same step.
+      const follow =
+        command && autoRegenerate && editedMap
+          ? generateFromHeight(
+              editedMap,
+              mapGrid(editedMap),
+              generator.normals,
+              generator.withOcclusion ? generator.occlusion : null
+            )
+          : null
+      history.push(follow ? combine([command, follow]) : command)
       refresh()
     },
-    [history, refresh]
+    [history, refresh, autoRegenerate, editedMap, mapGrid, generator]
   )
   /** Puts down a moved/pasted piece (one undo step) before anything else changes the layer. */
   const settle = useCallback(() => {
-    if (doc?.floating) commit(selectionActions.drop(doc))
-  }, [doc, commit])
+    if (editDoc?.floating) commit(selectionActions.drop(editDoc))
+  }, [editDoc, commit])
   const undo = useCallback(() => {
     // While moving, Ctrl+Z cancels the move instead of undoing the previous step.
-    if (doc?.floating) {
-      selectionActions.cancel(doc)
+    if (editDoc?.floating) {
+      selectionActions.cancel(editDoc)
       refresh()
       return
     }
     if (history.undo()) refresh()
-  }, [doc, history, refresh])
+  }, [editDoc, history, refresh])
   const redo = useCallback(() => {
     settle()
     if (history.redo()) refresh()
@@ -217,7 +342,8 @@ export function TextureEditor({
   const runSelectionAction = useCallback(
     (action: SelectionAction) => {
       // Read-only packs: selections could still change pixels in memory (Canc, flip…).
-      if (!doc || target.readOnly) return
+      const doc = editDoc
+      if (!doc || target.readOnly || (channel && !channel.paintable)) return
       const actions = selectionActions
       switch (action) {
         case 'all':
@@ -261,7 +387,7 @@ export function TextureEditor({
           break
       }
     },
-    [doc, commit, refresh, target.readOnly]
+    [editDoc, channel, commit, refresh, target.readOnly]
   )
 
   useEffect(() => {
@@ -306,10 +432,17 @@ export function TextureEditor({
 
   useEffect(() => {
     let cancelled = false
-    loadDocument(target.url, target.mcmetaUrl).then(
+    loadDocument(target.url, target.mcmetaUrl, { normal: normalUrl, specular: specularUrl }).then(
       (value) => {
         if (cancelled) return
         setLoaded({ status: 'ready', ...value })
+        savedAlbedo.current = new Uint8Array(value.doc.composite.data)
+        // Regenerating normals while painting is safe only when there is nothing hand-made.
+        const normal = value.maps.normal
+        setGenerator((g) => ({
+          ...g,
+          auto: normal !== undefined && (!normal.existed || normalsAreFlat(normal.buffer))
+        }))
         const read = animationFromMcmeta(value.mcmeta, value.doc.width, value.doc.height)
         if (read.kind === 'editable') {
           setAnimation(read.settings)
@@ -332,7 +465,7 @@ export function TextureEditor({
     return () => {
       cancelled = true
     }
-  }, [target.url, target.mcmetaUrl])
+  }, [target.url, target.mcmetaUrl, normalUrl, specularUrl])
 
   const canSave = doc !== null && !target.readOnly
   const save = useCallback(async () => {
@@ -344,16 +477,36 @@ export function TextureEditor({
     try {
       // The composite = all visible layers flattened. A copy: the user may keep painting.
       const rgba = new Uint8Array(doc.composite.data)
-      const result = await window.api.invoke(
-        'texture:save',
-        target.path,
-        doc.width,
-        doc.height,
-        rgba
-      )
-      if (!result.ok) {
-        setSaveError(result.error)
-        return
+      if (!sameBytes(rgba, savedAlbedo.current)) {
+        const result = await window.api.invoke(
+          'texture:save',
+          target.path,
+          doc.width,
+          doc.height,
+          rgba
+        )
+        if (!result.ok) {
+          setSaveError(result.error)
+          return
+        }
+        savedAlbedo.current = rgba
+      }
+      // Maps: only the painted ones (a new map is created on its first save).
+      for (const map of Object.values(maps ?? {})) {
+        if (!map.dirty) continue
+        const bytes = new Uint8Array(map.buffer.data)
+        const written = await window.api.invoke(
+          'texture:save',
+          mapPath(target.path, map.kind),
+          map.width,
+          map.height,
+          bytes
+        )
+        if (!written.ok) {
+          setSaveError(written.error)
+          return
+        }
+        map.markSaved(bytes)
       }
       // The .png.mcmeta follows the animation (kept untouched for textures never animated).
       const hadAnimation = mcmetaOnDisk.frames > 1 || isAnimated(mcmetaOnDisk.value)
@@ -383,7 +536,7 @@ export function TextureEditor({
     } finally {
       setSaving(false)
     }
-  }, [doc, target, saving, history, settle, animation, mcmetaOnDisk])
+  }, [doc, maps, target, saving, history, settle, animation, mcmetaOnDisk])
 
   useEffect(() => {
     if (suspended) return
@@ -419,7 +572,7 @@ export function TextureEditor({
       } else if (event.key.toLowerCase() === 'x') swap()
       else if (event.key.toLowerCase() === 't' && !target.readOnly) {
         setTools((t) => ({ ...t, tiling: !t.tiling }))
-      } else if ((event.key === ',' || event.key === '.') && animation && doc) {
+      } else if ((event.key === ',' || event.key === '.') && animation && doc && !channel) {
         const count = Math.round(doc.height / animation.frameHeight)
         const current = Math.floor(doc.view.y0 / animation.frameHeight)
         const next = (current + (event.key === '.' ? 1 : -1) + count) % count
@@ -447,7 +600,8 @@ export function TextureEditor({
     doc,
     refresh,
     target,
-    suspended
+    suspended,
+    channel
   ])
 
   // Offer a draft left by an earlier session (crash, closed without saving).
@@ -501,6 +655,40 @@ export function TextureEditor({
       if (history.modified) return
     }
     onSwitch(targetFor(target, path))
+  }
+
+  function changeSurface(next: Surface): void {
+    settle()
+    setSurface(next)
+  }
+
+  function setValue(slot: 'primary' | 'secondary', color: Rgba): void {
+    if (!channel) return
+    const id = channel.id
+    const value = color[3] === 0 ? channel.neutral : Math.min(channel.max, color[0])
+    setChannelValues((all) => ({ ...all, [id]: { ...all[id], [slot]: value } }))
+  }
+
+  function generate(action: GenerateAction): void {
+    const map = maps?.normal
+    if (!map || !doc) return
+    settle()
+    const grid = mapGrid(map)
+    const commands: Array<Command | null> = []
+    if (action !== 'fromHeight')
+      commands.push(generateHeight(map, doc.composite, grid, generator.height))
+    if (action !== 'height') {
+      commands.push(
+        generateFromHeight(
+          map,
+          grid,
+          generator.normals,
+          generator.withOcclusion ? generator.occlusion : null
+        )
+      )
+    }
+    history.push(combine(commands))
+    refresh()
   }
 
   function close(): void {
@@ -598,7 +786,8 @@ export function TextureEditor({
                   canvas: source,
                   // An animation the editor cannot handle keeps playing from the file.
                   animation: animationNote ? undefined : animation,
-                  pixels: doc.composite
+                  pixels: doc.composite,
+                  maps: liveMaps
                 })
               }}
             >
@@ -646,6 +835,24 @@ export function TextureEditor({
           })}
         </div>
       )}
+      {maps && (
+        <MapTabs
+          surface={surface}
+          channel={channel?.id ?? null}
+          maps={(['normal', 'specular'] as const).map((kind) => ({
+            kind,
+            error: loaded.status === 'ready' ? (loaded.mapErrors[kind] ?? null) : null,
+            existed: maps[kind]?.existed ?? false,
+            dirty: maps[kind]?.dirty ?? false
+          }))}
+          onSurface={changeSurface}
+          onChannel={(id) => {
+            if (surface === 'color') return
+            settle()
+            setChannelOf((all) => ({ ...all, [surface]: id }))
+          }}
+        />
+      )}
       {showShortcuts && <ShortcutsHelp pro={pro} onClose={() => setShowShortcuts(false)} />}
       {creatingPath && (
         <NewTextureDialog
@@ -664,7 +871,7 @@ export function TextureEditor({
       )}
       {loaded.status === 'loading' && <p className="muted">Caricamento della texture…</p>}
       {loaded.status === 'error' && <p className="field-error">{loaded.message}</p>}
-      {doc && source && (
+      {doc && source && editDoc && editSource && (
         <div className={bigPreview ? 'editor-main big-preview' : 'editor-main'}>
           <EditorTools
             tool={tools.tool}
@@ -686,6 +893,24 @@ export function TextureEditor({
               canPaste
             }}
             onSelectionAction={runSelectionAction}
+            {...(channel && values
+              ? {
+                  valuePanel: (
+                    <ValuePanel
+                      channel={channel}
+                      values={values}
+                      onValues={(next) =>
+                        setChannelValues((all) => ({ ...all, [channel.id]: next }))
+                      }
+                      rampStep={rampStep}
+                      onRampStep={setRampStep}
+                      overlay={colorOverlay}
+                      onOverlay={setColorOverlay}
+                      readOnly={target.readOnly}
+                    />
+                  )
+                }
+              : {})}
             rampPanel={
               <>
                 <RampPanel
@@ -727,15 +952,27 @@ export function TextureEditor({
             recent={recent}
             palette={palette}
             onSwap={swap}
-            disabled={target.readOnly}
+            disabled={target.readOnly || (channel !== null && !channel.paintable)}
             pro={pro}
             showTips={showTips}
           />
           <div className="editor-center">
             <PixelCanvas
-              doc={doc}
-              source={source}
-              tools={target.readOnly ? null : { ...tools, ramp }}
+              doc={editDoc}
+              source={editSource}
+              tools={
+                target.readOnly || (channel && !channel.paintable)
+                  ? null
+                  : channel && values
+                    ? {
+                        ...tools,
+                        primary: gray(values.primary),
+                        secondary: gray(values.secondary),
+                        ramp: grayRamp(values.primary, rampStep, channel.max),
+                        eraseColor: gray(channel.neutral)
+                      }
+                    : { ...tools, ramp }
+              }
               revision={revision}
               canUndo={history.canUndo}
               canRedo={history.canRedo}
@@ -744,17 +981,26 @@ export function TextureEditor({
               onPainted={refresh}
               onCommit={commit}
               trace={
-                reference && traceOpacity > 0
-                  ? { canvas: reference.canvas, opacity: traceOpacity / 100 }
-                  : null
+                channel
+                  ? colorOverlay > 0
+                    ? { canvas: source, opacity: colorOverlay / 100 }
+                    : null
+                  : reference && traceOpacity > 0
+                    ? { canvas: reference.canvas, opacity: traceOpacity / 100 }
+                    : null
               }
-              onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
-              onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
-              onRampUsed={lockRamp}
+              onPickColor={(slot, color) =>
+                channel ? setValue(slot, color) : setTools((t) => ({ ...t, [slot]: color }))
+              }
+              onColorUsed={(color) => !channel && setRecent((list) => addRecent(list, color))}
+              onRampUsed={() => !channel && lockRamp()}
+              {...(channel
+                ? { describePixel: (color: Rgba) => describeValue(channel, color) }
+                : {})}
               onSettle={settle}
               onShowShortcuts={() => setShowShortcuts(true)}
               onionY={
-                animation && onionSkin && doc.view.y0 > 0
+                !channel && animation && onionSkin && doc.view.y0 > 0
                   ? doc.view.y0 - animation.frameHeight
                   : null
               }
@@ -762,7 +1008,7 @@ export function TextureEditor({
                 ? {}
                 : { onTiling: (tiling: boolean) => setTools((t) => ({ ...t, tiling })) })}
             />
-            {animation && (
+            {animation && !channel && (
               <FramesPanel
                 doc={doc}
                 source={source}
@@ -802,7 +1048,7 @@ export function TextureEditor({
                 Animazione non modificabile qui: {animationNote}
               </p>
             )}
-            {!animation && !animationNote && pro && !target.readOnly && (
+            {!animation && !animationNote && pro && !target.readOnly && !channel && (
               <button
                 type="button"
                 className="small-button animate-button"
@@ -840,13 +1086,27 @@ export function TextureEditor({
                 url: target.url,
                 canvas: source,
                 revision,
+                maps: liveMaps,
                 // An animation the editor cannot handle keeps playing from the file.
                 ...(animationNote ? {} : { animation })
               }}
               initialShape="block"
               onBlockTextures={setBlockTextures}
+              effects={surface === 'color' ? null : DEFAULT_EFFECTS}
             />
-            {(pro || doc.layers.length > 1) && !target.readOnly && (
+            {surface === 'normal' && maps?.normal && !target.readOnly && (
+              <GeneratorPanel
+                settings={generator}
+                onSettings={setGenerator}
+                onGenerate={generate}
+                heightFromColor={
+                  maps.normal.width === doc.width && maps.normal.height === doc.height
+                    ? null
+                    : `L’altezza dai colori serve una mappa grande come la texture (${maps.normal.width}×${maps.normal.height} contro ${doc.width}×${doc.height}).`
+                }
+              />
+            )}
+            {!channel && (pro || doc.layers.length > 1) && !target.readOnly && (
               <LayersPanel
                 doc={doc}
                 onCommand={commit}
@@ -891,12 +1151,16 @@ function isAnimated(mcmeta: unknown): boolean {
 
 async function loadDocument(
   url: string,
-  mcmetaUrl: string | null
+  mcmetaUrl: string | null,
+  mapUrls: Record<MapKind, string | null>
 ): Promise<{
   doc: EditorDocument
   source: HTMLCanvasElement
   reducedFrom16Bit: boolean
   mcmeta: unknown
+  maps: Partial<Record<MapKind, EditedMap>>
+  mapErrors: Partial<Record<MapKind, string>>
+  channelCanvases: Partial<Record<ChannelId, HTMLCanvasElement>>
 }> {
   // no-store: the file may have been saved moments ago under the same versioned URL.
   const response = await fetch(url, { cache: 'no-store' })
@@ -918,7 +1182,53 @@ async function loadDocument(
       // Unreadable mcmeta: the texture still opens; the 3D preview reports the problem.
     }
   }
-  return { doc, source, reducedFrom16Bit, mcmeta }
+  const maps: Partial<Record<MapKind, EditedMap>> = {}
+  const mapErrors: Partial<Record<MapKind, string>> = {}
+  for (const kind of ['normal', 'specular'] as const) {
+    const mapUrl = mapUrls[kind]
+    if (!mapUrl) {
+      maps[kind] = new EditedMap(kind, false, newMap(kind, width, height))
+      continue
+    }
+    try {
+      const answer = await fetch(mapUrl, { cache: 'no-store' })
+      if (!answer.ok) throw new Error(`HTTP ${answer.status}`)
+      const map = decodePng(new Uint8Array(await answer.arrayBuffer()))
+      if (!map.ok) throw new Error(map.error)
+      const { width: w, height: h, data: bytes } = map.image
+      maps[kind] = new EditedMap(kind, true, {
+        width: w,
+        height: h,
+        data: new Uint8ClampedArray(bytes)
+      })
+    } catch (error) {
+      mapErrors[kind] = error instanceof Error ? error.message : String(error)
+    }
+  }
+  // Every channel gets its proxy and display canvas now: undo steps keep pointing at them.
+  const channelCanvases: Partial<Record<ChannelId, HTMLCanvasElement>> = {}
+  for (const def of CHANNELS) {
+    const map = maps[def.map]
+    if (!map) continue
+    const canvas = document.createElement('canvas')
+    canvas.width = map.width
+    canvas.height = map.height
+    putBuffer(canvas, map.proxy(def).composite)
+    channelCanvases[def.id] = canvas
+  }
+  return { doc, source, reducedFrom16Bit, mcmeta, maps, mapErrors, channelCanvases }
+}
+
+function sameBytes(a: Uint8Array, b: Uint8Array | null): boolean {
+  if (!b || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+  return true
+}
+
+/** Status-bar text of a hovered channel pixel. */
+function describeValue(channel: ChannelDef, color: Rgba): string {
+  if (channel.id === 'normal') return `Normale X ${color[0]} · Y ${color[1]}`
+  return `${channel.label}: ${color[3] === 0 ? channel.neutral : color[0]}`
 }
 
 /** Editor target for another PNG of the same pack (the file may have just been created). */

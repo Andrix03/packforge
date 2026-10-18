@@ -177,6 +177,8 @@ interface LoadedPart {
   animation: TextureAnimation | null
   /** Drawn from a live canvas (the texture being edited) instead of its file. */
   live: boolean
+  /** Its maps drawn from the editor's bytes (re-uploaded with the live texture). */
+  liveMaps: THREE.Texture[]
   /** Depth-only material for the shadow pass (null: translucent, casts no shadow). */
   shadowMaterial: THREE.ShaderMaterial | null
 }
@@ -397,14 +399,19 @@ export class BlockPreview {
   setLiveTexture(
     url: string | null,
     canvas: HTMLCanvasElement | null,
-    animation: LiveAnimation | null | undefined = undefined
+    animation: LiveAnimation | null | undefined = undefined,
+    maps: LiveMaps | null = null
   ): void {
     this.liveTextures.clear()
-    if (url && canvas) this.liveTextures.set(withoutQuery(url), { canvas, animation })
+    if (url && canvas) this.liveTextures.set(withoutQuery(url), { canvas, animation, maps })
   }
 
   refreshLiveTextures(): void {
-    for (const part of this.allParts()) if (part.live) part.texture.needsUpdate = true
+    for (const part of this.allParts()) {
+      if (!part.live) continue
+      part.texture.needsUpdate = true
+      for (const map of part.liveMaps) map.needsUpdate = true
+    }
   }
 
   setScene(kind: PreviewScene): void {
@@ -622,11 +629,14 @@ export class BlockPreview {
   private async loadPart(part: MeshPart): Promise<{ loaded: LoadedPart; report: PartReport }> {
     let problem: string | null = null
     let texture: THREE.Texture
-    const mapsLoading = Promise.all([
-      part.normalUrl ? loadMap(part.normalUrl) : null,
-      part.specularUrl ? loadMap(part.specularUrl) : null
-    ])
     const live = part.url ? this.liveTextures.get(withoutQuery(part.url)) : undefined
+    // Maps being painted in the editor win over their files.
+    const liveNormal = live?.maps?.normal ?? null
+    const liveSpecular = live?.maps?.specular ?? null
+    const mapsLoading = Promise.all([
+      liveNormal ? liveMap(liveNormal) : part.normalUrl ? loadMap(part.normalUrl) : null,
+      liveSpecular ? liveMap(liveSpecular) : part.specularUrl ? loadMap(part.specularUrl) : null
+    ])
     const liveCanvas = live?.canvas
     if (liveCanvas) {
       texture = new THREE.CanvasTexture(liveCanvas)
@@ -751,6 +761,9 @@ export class BlockPreview {
       imageSize,
       animation,
       live: liveCanvas !== undefined,
+      liveMaps: [liveNormal && normalMap, liveSpecular && specularMap].filter(
+        (map): map is THREE.Texture => Boolean(map)
+      ),
       shadowMaterial
     }
     setStaticFrame(loaded)
@@ -1323,10 +1336,23 @@ export interface LiveAnimation {
   interpolate: boolean
 }
 
+/** LabPBR maps being edited (straight RGBA, updated in place); null = use the file. */
+export interface LiveMaps {
+  normal: LiveMapPixels | null
+  specular: LiveMapPixels | null
+}
+
+export interface LiveMapPixels {
+  width: number
+  height: number
+  data: Uint8ClampedArray
+}
+
 interface LiveSource {
   canvas: HTMLCanvasElement
   /** undefined = use the file's .png.mcmeta. */
   animation: LiveAnimation | null | undefined
+  maps: LiveMaps | null
 }
 
 function withoutQuery(url: string): string {
@@ -1372,6 +1398,20 @@ async function loadMap(url: string): Promise<MapResult> {
   const { width, height, data } = decoded.image
   const texture = new THREE.DataTexture(data, width, height)
   // Same orientation as the albedo (TextureLoader images are flipped on upload).
+  texture.flipY = true
+  texture.magFilter = THREE.NearestFilter
+  texture.minFilter = THREE.NearestMipmapLinearFilter
+  texture.generateMipmaps = true
+  texture.colorSpace = THREE.NoColorSpace
+  texture.needsUpdate = true
+  return { ok: true, texture }
+}
+
+/** A map being edited: a texture over the editor's own bytes (refreshLiveTextures re-uploads). */
+function liveMap(pixels: LiveMapPixels): MapResult {
+  const { width, height, data } = pixels
+  const view = new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+  const texture = new THREE.DataTexture(view, width, height)
   texture.flipY = true
   texture.magFilter = THREE.NearestFilter
   texture.minFilter = THREE.NearestMipmapLinearFilter

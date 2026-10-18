@@ -43,6 +43,8 @@ export interface Tools {
   secondary: Rgba
   shapeFilled: boolean
   mirror: { x: boolean; y: boolean }
+  /** What the eraser paints (default transparent; a channel's neutral gray when painting maps). */
+  eraseColor?: Rgba
   /** Seamless mode: painting and fills continue across the edges. */
   tiling: boolean
 }
@@ -87,6 +89,8 @@ interface PixelCanvasProps {
   onShowShortcuts: () => void
   /** Onion skin: row where the previous animation frame starts (null = off). */
   onionY: number | null
+  /** Status-bar text for the hovered pixel (default: its color). */
+  describePixel?: (color: Rgba) => string
   /** Turns seamless mode on/off (absent when read-only). */
   onTiling?: (tiling: boolean) => void
 }
@@ -402,7 +406,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
         bounds: area
       })
     } else {
-      const color = tool === 'eraser' ? TRANSPARENT : tools[slot]
+      const color = tool === 'eraser' ? (tools.eraseColor ?? TRANSPARENT) : tools[slot]
       props.onColorUsed(color)
       current = new Stroke(layer.pixels, color, {
         pixelPerfect: tool === 'pencil' && tools.pixelPerfect,
@@ -638,7 +642,9 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
               x {hover.x}, y {hover.y}
             </span>
             <span className="status-swatch" style={{ background: cssColor(hoverColor) }} />
-            <span>{formatColor(hoverColor)}</span>
+            <span>
+              {props.describePixel ? props.describePixel(hoverColor) : formatColor(hoverColor)}
+            </span>
           </>
         ) : (
           <span>Passa sopra la texture per vedere coordinate e colore.</span>

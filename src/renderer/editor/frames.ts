@@ -108,3 +108,21 @@ export function buildMcmeta(
   }
   return Object.keys(root).length === 0 ? null : `${JSON.stringify(root, null, 2)}\n`
 }
+
+/**
+ * The `.png.mcmeta` of a LabPBR map (`_n`/`_s`) of an animated texture: Iris reads a map's
+ * animation from the map's own file (without it the whole strip becomes one squeezed frame), so
+ * the maps get the texture's animation section, with explicit frame sizes scaled to the map's
+ * resolution. null = no animation (delete the map's file).
+ */
+export function mapMcmeta(textureMcmeta: string | null, scale: number): string | null {
+  if (textureMcmeta === null) return null
+  const root = JSON.parse(textureMcmeta) as Record<string, unknown>
+  const section = root['animation']
+  if (typeof section !== 'object' || section === null) return null
+  const animation = { ...(section as Record<string, unknown>) }
+  for (const key of ['width', 'height']) {
+    if (typeof animation[key] === 'number') animation[key] = Math.round(animation[key] * scale)
+  }
+  return `${JSON.stringify({ animation }, null, 2)}\n`
+}

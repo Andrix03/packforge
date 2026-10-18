@@ -125,7 +125,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 - [x] Height and normal generator from albedo (depth, blur, steps, invert; normals Sobel/Scharr + strength; AO from height; tiling edges)
 - [x] Material presets → `_s` (stone, polished, wood, soil, wool, leaves SSS, glass, ice, metal, ore with gem pixels found by color, emissive from lightness; selection = mask; one undo step)
 - [x] Channel painting with the editor brushes (`_n` / `_s` channels in gray, values and typical presets; selections act as masks; live in the 3D preview and Test)
-- [ ] Validator (sizes, emissive alpha, orphan files)
+- [x] Validator (sizes and animation as Iris reads them, emission/height values, orphan maps and .mcmeta; "Controlla mappe" in the workspace) — also: saving an animated texture now writes the maps' own .png.mcmeta
 - [ ] Batch apply a preset or generator to many textures at once
 - [ ] Batch hue variants (e.g. all wool colors from one texture)
 - [ ] Coverage report: which textures still miss `_n` / `_s` maps

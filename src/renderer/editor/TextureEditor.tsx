@@ -15,7 +15,7 @@ import type { SavedPalette } from '../../shared/settings'
 import { EditorDocument } from './document'
 import { FramesPanel } from './FramesPanel'
 import { ShortcutsHelp } from './ShortcutsHelp'
-import { animationFromMcmeta, buildMcmeta, type AnimationSettings } from './frames'
+import { animationFromMcmeta, buildMcmeta, mapMcmeta, type AnimationSettings } from './frames'
 import { EditorTools, type SelectionAction } from './EditorTools'
 import type { Floating } from './selection'
 import * as selectionActions from './selectionActions'
@@ -534,6 +534,19 @@ export function TextureEditor({
         }
         setMcmetaOnDisk({ value: content === null ? null : JSON.parse(content), frames })
         animationDirty.current = false
+        // Iris animates `_n` / `_s` from their own .png.mcmeta: keep them in step.
+        for (const map of Object.values(maps ?? {})) {
+          if (!map.present || map.width * doc.height !== map.height * doc.width) continue
+          const mapWritten = await window.api.invoke(
+            'texture:saveMcmeta',
+            mapPath(target.path, map.kind),
+            mapMcmeta(content, map.width / doc.width)
+          )
+          if (!mapWritten.ok) {
+            setSaveError(mapWritten.error)
+            return
+          }
+        }
       }
       // If something changed during the save, the file holds the older state: stay modified.
       if (history.version === version) history.markSaved()

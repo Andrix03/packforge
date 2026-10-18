@@ -1981,3 +1981,45 @@ kbd {
   border-color: var(--accent);
   background: var(--border);
 }
+
+.modal.validator {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(720px, 100%);
+}
+
+.validator-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.validator-issue {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.validator-issue p {
+  margin: 2px 0 0;
+}
+
+.validator-issue.error .validator-icon {
+  color: var(--error);
+}
+
+.validator-issue.warning .validator-icon {
+  color: var(--warning);
+}
+
+.validator-issue.info .validator-icon {
+  color: var(--muted);
+}

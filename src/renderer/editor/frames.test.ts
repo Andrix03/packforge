@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { animationFromMcmeta, buildMcmeta, frameBounds, spliceRows } from './frames'
+import { animationFromMcmeta, buildMcmeta, frameBounds, mapMcmeta, spliceRows } from './frames'
 
 describe('animationFromMcmeta', () => {
   it('reads a standard vertical strip', () => {
@@ -86,5 +86,27 @@ describe('buildMcmeta', () => {
     ).toEqual({
       texture: { clamp: true }
     })
+  })
+})
+
+describe('mapMcmeta', () => {
+  it('copies only the animation section', () => {
+    const texture = JSON.stringify({
+      animation: { frametime: 4, frames: [0, 1] },
+      texture: { blur: true }
+    })
+    expect(JSON.parse(mapMcmeta(texture, 1)!)).toEqual({
+      animation: { frametime: 4, frames: [0, 1] }
+    })
+  })
+
+  it('scales explicit frame sizes to the map resolution', () => {
+    const texture = JSON.stringify({ animation: { width: 16, height: 8 } })
+    expect(JSON.parse(mapMcmeta(texture, 2)!)).toEqual({ animation: { width: 32, height: 16 } })
+  })
+
+  it('is null without an animation', () => {
+    expect(mapMcmeta(null, 1)).toBeNull()
+    expect(mapMcmeta(JSON.stringify({ texture: { blur: true } }), 1)).toBeNull()
   })
 })

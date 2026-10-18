@@ -10,6 +10,8 @@ import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { FileTree } from './FileTree'
 import { NewTextureDialog, type NewTextureRequest } from './NewTextureDialog'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
+import { ValidatorDialog } from './ValidatorDialog'
+import type { ValidatorSource } from './runValidator'
 
 const DEFAULT_FOLDER = 'assets/minecraft/textures/block'
 const MAX_SEARCH_RESULTS = 500
@@ -189,6 +191,7 @@ function Workspace({
   const [query, setQuery] = useState('')
   const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null)
   const [creating, setCreating] = useState<NewTextureRequest | null>(null)
+  const [validating, setValidating] = useState(false)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
     previewSelection?.isPack && previewSelection.mcmeta
@@ -225,6 +228,19 @@ function Workspace({
     }),
     [packFiles.assetBase, packFileSet, fileVersions, jarBase, jarFileSet]
   )
+  const validatorPack = useMemo<ValidatorSource>(
+    () => ({ base: packFiles.assetBase, files: packFileSet, versions: fileVersions }),
+    [packFiles.assetBase, packFileSet, fileVersions]
+  )
+  const validatorVanilla = useMemo<ValidatorSource | null>(
+    () => (jarBase && jarFileSet ? { base: jarBase, files: jarFileSet } : null),
+    [jarBase, jarFileSet]
+  )
+  /** The pack texture a validator issue is about (a map opens its texture). */
+  const textureOfIssue = (path: string): TextureEntry | null => {
+    const albedo = path.replace(/_[ns]\.png$/i, '.png')
+    return packTextures.find((t) => t.albedo === albedo && albedo !== path) ?? null
+  }
 
   const vanillaReady = jar.status === 'ready'
   const activeMode: Mode = mode === 'vanilla' && vanillaReady ? 'vanilla' : 'pack'
@@ -264,6 +280,14 @@ function Workspace({
           </button>
         </div>
         <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
+        <button
+          type="button"
+          className="small-button"
+          title="Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani"
+          onClick={() => setValidating(true)}
+        >
+          🔍 Controlla mappe
+        </button>
       </div>
 
       <div className="workspace-row">
@@ -332,6 +356,20 @@ function Workspace({
           onTest={testable ? () => onTestTexture(testable, previewSources) : null}
         />
       </div>
+      {validating && (
+        <ValidatorDialog
+          pack={validatorPack}
+          vanilla={validatorVanilla}
+          canOpen={(path) => textureOfIssue(path) !== null}
+          onOpen={(path) => {
+            const texture = textureOfIssue(path)
+            if (!texture) return
+            setValidating(false)
+            onEditTexture(texture, previewSources)
+          }}
+          onClose={() => setValidating(false)}
+        />
+      )}
       {creating && (
         <NewTextureDialog
           request={creating}

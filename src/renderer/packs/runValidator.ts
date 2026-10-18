@@ -77,7 +77,9 @@ async function checkPair(
     }
   }
   const issues =
-    pair.kind === 'normal' ? checkNormal(pair.path, map) : checkSpecular(pair.path, map, albedo)
+    pair.kind === 'normal'
+      ? checkNormal(pair.path, map, albedo)
+      : checkSpecular(pair.path, map, albedo)
   if (albedo) {
     const mapMcmeta = await loadMcmeta([pack], pair.path)
     issues.push(

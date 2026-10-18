@@ -174,3 +174,29 @@ describe('sortIssues', () => {
     expect(sorted.map((i) => i.severity)).toEqual(['error', 'warning', 'info'])
   })
 })
+
+describe('pixels under transparent texture pixels', () => {
+  // 2×1 texture: left opaque, right transparent.
+  const albedo = solid(2, 1, [100, 100, 100, 255])
+  ;(albedo.data as Uint8Array).set([0, 0, 0, 0], 4)
+
+  it('are ignored by the _n checks, also on a map at twice the resolution', () => {
+    const map = solid(4, 2, [128, 128, 255, 255])
+    const data = map.data as Uint8Array
+    // Right half (under the hole): height 0 and an impossible normal.
+    for (const i of [2, 3, 6, 7]) data.set([0, 0, 0, 0], i * 4)
+    expect(checkNormal('x_n.png', map, albedo)).toEqual([])
+    expect(checkNormal('x_n.png', map, null).length).toBe(2)
+  })
+
+  it('are ignored by the wiped / metal checks of _s', () => {
+    const map = solid(2, 1, [40, 10, 0, 255])
+    ;(map.data as Uint8Array).set([0, 0, 0, 0], 4)
+    expect(checkSpecular('x_s.png', map, albedo)).toEqual([])
+  })
+
+  it('still count when every visible pixel has height 0', () => {
+    const map = solid(2, 1, [128, 128, 255, 0])
+    expect(checkNormal('x_n.png', map, albedo)[0]?.severity).toBe('error')
+  })
+})

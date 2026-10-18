@@ -123,7 +123,11 @@ export function checkMapShape(
 ): Issue[] {
   const issue = (severity: Severity, message: string): Issue[] => [{ severity, path, message }]
   const own = frameOf(map.width, map.height, map.mcmeta)
-  if (typeof own === 'string') return issue('error', `Animazione della mappa non valida: ${own}`)
+  if (typeof own === 'string') {
+    // parseAnimation speaks of textures (missing texture); a broken map is just not used.
+    const reason = own.replace(/: il gioco mostrerà la texture mancante\.$/, '.')
+    return issue('error', `Animazione della mappa non valida, Iris non la usa. ${reason}`)
+  }
   const base = frameOf(albedo.width, albedo.height, albedo.mcmeta)
   if (typeof base === 'string') return []
 
@@ -167,13 +171,32 @@ export function checkMapShape(
   return issues
 }
 
+/**
+ * Which map pixels lie under a fully transparent texture pixel (invisible in game: other editors
+ * often save them as 0, which is fine). Maps of another size are compared by scaling, when the
+ * proportions match; otherwise no pixel counts as a hole.
+ */
+function holesOf(image: Image, albedo: Image | null): (index: number) => boolean {
+  if (!albedo || albedo.width * image.height !== albedo.height * image.width) return () => false
+  const sx = albedo.width / image.width
+  const sy = albedo.height / image.height
+  return (index) => {
+    const x = Math.floor((index % image.width) * sx)
+    const y = Math.floor(Math.floor(index / image.width) * sy)
+    return albedo.data[(y * albedo.width + x) * 4 + 3]! === 0
+  }
+}
+
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
-/** Values of a `_s`: emission everywhere, wiped pixels, undefined metal codes, light on holes. */
+/**
+ * Values of a `_s`: emission everywhere, wiped pixels, undefined metal codes (only where the
+ * texture is visible), and light on its transparent pixels.
+ */
 export function checkSpecular(path: string, image: Image, albedo: Image | null): Issue[] {
   const { data } = image
   const pixels = image.width * image.height
-  const sameSize = albedo !== null && albedo.width === image.width && albedo.height === image.height
+  const isHole = holesOf(image, albedo)
   let emitting = 0
   let opaque = 0
   let wiped = 0
@@ -181,12 +204,12 @@ export function checkSpecular(path: string, image: Image, albedo: Image | null):
   let lightOnHoles = 0
   for (let i = 0; i < pixels; i++) {
     const [r, g, b, a] = [data[i * 4]!, data[i * 4 + 1]!, data[i * 4 + 2]!, data[i * 4 + 3]!]
-    const hole = sameSize && albedo.data[i * 4 + 3]! === 0
-    if (!hole) opaque++
-    if (a > 0 && a < 255) {
-      if (hole) lightOnHoles++
-      else emitting++
+    if (isHole(i)) {
+      if (a > 0 && a < 255) lightOnHoles++
+      continue
     }
+    opaque++
+    if (a > 0 && a < 255) emitting++
     if (a === 0 && r === 0 && g === 0 && b === 0) wiped++
     if (g >= 238 && g <= 254) undefinedMetal++
   }
@@ -224,12 +247,16 @@ export function checkSpecular(path: string, image: Image, albedo: Image | null):
 }
 
 /** Values of a `_n`: height 0 (the spec advises ≥ 1), normals longer than 1. */
-export function checkNormal(path: string, image: Image): Issue[] {
+export function checkNormal(path: string, image: Image, albedo: Image | null = null): Issue[] {
   const { data } = image
   const pixels = image.width * image.height
+  const isHole = holesOf(image, albedo)
+  let visible = 0
   let zero = 0
   let invalid = 0
   for (let i = 0; i < pixels; i++) {
+    if (isHole(i)) continue
+    visible++
     if (data[i * 4 + 3]! === 0) zero++
     const x = (data[i * 4]! / 255) * 2 - 1
     const y = (data[i * 4 + 1]! / 255) * 2 - 1
@@ -237,7 +264,7 @@ export function checkNormal(path: string, image: Image): Issue[] {
     if (x * x + y * y > 1.05) invalid++
   }
   const issues: Issue[] = []
-  if (zero === pixels) {
+  if (visible > 0 && zero === visible) {
     issues.push({
       severity: 'error',
       path,

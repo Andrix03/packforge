@@ -14,6 +14,8 @@ export interface CanvasOverlays {
   trace: { canvas: HTMLCanvasElement; opacity: number } | null
   /** Symmetry axes to show (mirror drawing). */
   mirror: { x: boolean; y: boolean } | null
+  /** Selection outline as unit edges in pixel coordinates. */
+  selection: ReadonlyArray<readonly [number, number, number, number]> | null
 }
 
 export function drawCanvas(
@@ -49,7 +51,7 @@ export function drawCanvas(
 
   context.imageSmoothingEnabled = false
   context.drawImage(source, x, y, width, height)
-  const { trace, hover, showGrid, mirror } = overlays
+  const { trace, hover, showGrid, mirror, selection } = overlays
   if (trace) {
     // Scaled to the texture size (a 16× reference over a 32× texture still lines up).
     context.globalAlpha = trace.opacity
@@ -82,6 +84,23 @@ export function drawCanvas(
       context.moveTo(x - 8, y + height / 2)
       context.lineTo(x + width + 8, y + height / 2)
     }
+    context.stroke()
+    context.restore()
+  }
+
+  if (selection && selection.length > 0) {
+    // "Marching ants": a dark line under a dashed light one, visible on any color.
+    context.save()
+    context.beginPath()
+    for (const [x1, y1, x2, y2] of selection) {
+      context.moveTo(x + x1 * zoom + 0.5, y + y1 * zoom + 0.5)
+      context.lineTo(x + x2 * zoom + 0.5, y + y2 * zoom + 0.5)
+    }
+    context.lineWidth = 1
+    context.strokeStyle = 'rgba(0, 0, 0, 0.9)'
+    context.stroke()
+    context.setLineDash([4, 4])
+    context.strokeStyle = 'rgba(255, 255, 255, 0.95)'
     context.stroke()
     context.restore()
   }

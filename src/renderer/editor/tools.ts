@@ -1,7 +1,18 @@
 // Editor tool definitions (data only, shared by the tool panel and the shortcuts).
 
 export type ToolId =
-  'pencil' | 'eraser' | 'fill' | 'picker' | 'shade' | 'noise' | 'line' | 'rect' | 'ellipse'
+  | 'pencil'
+  | 'eraser'
+  | 'fill'
+  | 'picker'
+  | 'shade'
+  | 'noise'
+  | 'line'
+  | 'rect'
+  | 'ellipse'
+  | 'select'
+  | 'wand'
+  | 'move'
 
 /** Tools that paint with the square brush (size applies). */
 export const BRUSH_TOOLS: ReadonlySet<ToolId> = new Set([
@@ -15,6 +26,9 @@ export const BRUSH_TOOLS: ReadonlySet<ToolId> = new Set([
 
 /** Shape tools: drag from one corner (or end) to the other. */
 export const SHAPE_TOOLS: ReadonlySet<ToolId> = new Set(['line', 'rect', 'ellipse'])
+
+/** Tools that work on the selection instead of painting. */
+export const SELECTION_TOOLS: ReadonlySet<ToolId> = new Set(['select', 'wand', 'move'])
 
 /** Tools whose strokes can be mirrored. */
 export const MIRROR_TOOLS: ReadonlySet<ToolId> = new Set([
@@ -100,6 +114,27 @@ export const TOOLS: readonly ToolInfo[] = [
     label: 'Ellisse',
     shortcut: 'O',
     tip: 'Trascina il riquadro che contiene l’ellisse. Maiusc = cerchio. "Pieno" la riempie.',
+    pro: true
+  },
+  {
+    id: 'select',
+    label: 'Selezione',
+    shortcut: 'M',
+    tip: 'Trascina un rettangolo. Poi: Ctrl+C/X/V, Canc, Maiusc+H/V rifletti, Maiusc+R ruota. Esc deseleziona.',
+    pro: true
+  },
+  {
+    id: 'wand',
+    label: 'Bacchetta',
+    shortcut: 'W',
+    tip: 'Seleziona i pixel dello stesso colore (Area o Globale). Utile per ricolorare o spostare un dettaglio.',
+    pro: true
+  },
+  {
+    id: 'move',
+    label: 'Sposta',
+    shortcut: 'V',
+    tip: 'Trascina la selezione (o tutto il livello). Invio la appoggia, Esc annulla lo spostamento.',
     pro: true
   }
 ]

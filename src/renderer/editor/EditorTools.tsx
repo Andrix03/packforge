@@ -1,7 +1,28 @@
 import type { UsedColor } from './color'
 import { ColorPanel } from './ColorPanel'
 import type { FillMode, Rgba } from './pixels'
-import { BRUSH_TOOLS, maxBrushSize, MIRROR_TOOLS, TOOLS, visibleTools, type ToolId } from './tools'
+
+export type SelectionAction =
+  | 'all'
+  | 'none'
+  | 'copy'
+  | 'cut'
+  | 'paste'
+  | 'flipH'
+  | 'flipV'
+  | 'rotate'
+  | 'delete'
+  | 'drop'
+  | 'cancel'
+import {
+  BRUSH_TOOLS,
+  maxBrushSize,
+  MIRROR_TOOLS,
+  SELECTION_TOOLS,
+  TOOLS,
+  visibleTools,
+  type ToolId
+} from './tools'
 
 interface EditorToolsProps {
   tool: ToolId
@@ -14,6 +35,9 @@ interface EditorToolsProps {
   onShapeFilled: (filled: boolean) => void
   mirror: { x: boolean; y: boolean }
   onMirror: (mirror: { x: boolean; y: boolean }) => void
+  /** Selection buttons (shown with the selection tools or when something is selected). */
+  selection: { active: boolean; floating: boolean; canPaste: boolean }
+  onSelectionAction: (action: SelectionAction) => void
   /** The shading ramp section, shown under the colors. */
   rampPanel: React.ReactNode
   fillMode: FillMode
@@ -116,7 +140,36 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
         </div>
       )}
 
-      {(props.tool === 'fill' || props.tool === 'noise') && (
+      {props.pro && (SELECTION_TOOLS.has(props.tool) || props.selection.active) && (
+        <div className="selection-actions" role="group" aria-label="Selezione">
+          {(
+            [
+              ['all', 'Tutto', 'Seleziona tutto (Ctrl+A)', true],
+              ['none', 'Deseleziona', 'Togli la selezione (Ctrl+D)', props.selection.active],
+              ['copy', 'Copia', 'Copia (Ctrl+C)', props.selection.active],
+              ['cut', 'Taglia', 'Taglia (Ctrl+X)', props.selection.active],
+              ['paste', 'Incolla', 'Incolla (Ctrl+V)', props.selection.canPaste],
+              ['flipH', '↔', 'Rifletti orizzontalmente (Maiusc+H)', true],
+              ['flipV', '↕', 'Rifletti verticalmente (Maiusc+V)', true],
+              ['rotate', '⟳ 90°', 'Ruota di 90° (Maiusc+R)', true],
+              ['delete', 'Elimina', 'Cancella i pixel selezionati (Canc)', props.selection.active],
+              ['drop', 'Appoggia', 'Appoggia il pezzo spostato (Invio)', props.selection.floating]
+            ] as const
+          ).map(([action, label, title, enabled]) => (
+            <button
+              key={action}
+              type="button"
+              title={title}
+              disabled={!enabled}
+              onClick={() => props.onSelectionAction(action)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {(props.tool === 'fill' || props.tool === 'noise' || props.tool === 'wand') && (
         <div className="tabs small-tabs" role="radiogroup" aria-label="Modalità del secchiello">
           {(
             [

@@ -5,6 +5,17 @@
 
 import type { Command } from './history'
 import type { PixelBuffer } from './pixels'
+import { stampFloating, type Floating, type Selection } from './selection'
+
+/** Pixels lifted out of a layer (moving/pasting), shown above it until dropped. */
+export interface FloatingState {
+  layerId: number
+  piece: Floating
+  /** The layer's pixels before the lift: dropping records one step against them. */
+  snapshot: Uint8ClampedArray
+  /** Selection before the lift, restored if the move is cancelled. */
+  selectionBefore: Selection | null
+}
 
 export interface Layer {
   id: number
@@ -22,6 +33,9 @@ export class EditorDocument {
   layers: Layer[]
   activeId: number
   readonly composite: PixelBuffer
+  /** Current selection (not part of the undo history, like in most paint programs). */
+  selection: Selection | null = null
+  floating: FloatingState | null = null
   private nextId = 1
 
   constructor(
@@ -54,7 +68,13 @@ export class EditorDocument {
     out.fill(0)
     for (const layer of this.layers) {
       if (!layer.visible || layer.opacity <= 0) continue
-      const src = layer.pixels.data
+      let src = layer.pixels.data
+      if (this.floating?.layerId === layer.id) {
+        // The floating piece is shown as part of its layer.
+        const withPiece = { ...layer.pixels, data: new Uint8ClampedArray(src) }
+        stampFloating(withPiece, this.floating.piece)
+        src = withPiece.data
+      }
       for (let i = 0; i < out.length; i += 4) {
         const sa = (src[i + 3]! / 255) * layer.opacity
         if (sa === 0) continue

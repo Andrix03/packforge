@@ -1540,3 +1540,18 @@ kbd {
   align-items: center;
   gap: 10px;
 }
+
+.selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.selection-actions button {
+  padding: 3px 8px;
+  font-size: 0.8rem;
+}
+
+.editor-canvas.moving {
+  cursor: move;
+}

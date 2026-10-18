@@ -10,7 +10,9 @@ import { AdvicePanel } from './AdvicePanel'
 import { isTyping, putBuffer } from './canvasDraw'
 import { addRecent, usedColors } from './color'
 import { EditorDocument } from './document'
-import { EditorTools } from './EditorTools'
+import { EditorTools, type SelectionAction } from './EditorTools'
+import type { Floating } from './selection'
+import * as selectionActions from './selectionActions'
 import { History, pixelCommand, type Command } from './history'
 import { LayersPanel } from './LayersPanel'
 import { replacePixels, TRANSPARENT, type Rgba } from './pixels'
@@ -47,6 +49,9 @@ type Loaded =
       source: HTMLCanvasElement
       reducedFrom16Bit: boolean
     }
+
+/** Copied pixels, shared by every texture opened in this session. */
+let clipboard: Floating | null = null
 
 /** Autosave delay after the last change. */
 const DRAFT_DELAY_MS = 2000
@@ -135,7 +140,8 @@ export function TextureEditor({
     doc.recomposite()
     putBuffer(source, doc.composite)
     setRevision((r) => r + 1)
-    setModified(history.modified)
+    // A moved piece not yet put down is a change too.
+    setModified(history.modified || doc.floating !== null)
   }, [doc, source, history])
 
   const commit = useCallback(
@@ -145,8 +151,73 @@ export function TextureEditor({
     },
     [history, refresh]
   )
-  const undo = useCallback(() => history.undo() && refresh(), [history, refresh])
-  const redo = useCallback(() => history.redo() && refresh(), [history, refresh])
+  /** Puts down a moved/pasted piece (one undo step) before anything else changes the layer. */
+  const settle = useCallback(() => {
+    if (doc?.floating) commit(selectionActions.drop(doc))
+  }, [doc, commit])
+  const undo = useCallback(() => {
+    // While moving, Ctrl+Z cancels the move instead of undoing the previous step.
+    if (doc?.floating) {
+      selectionActions.cancel(doc)
+      refresh()
+      return
+    }
+    if (history.undo()) refresh()
+  }, [doc, history, refresh])
+  const redo = useCallback(() => {
+    settle()
+    if (history.redo()) refresh()
+  }, [history, refresh, settle])
+  const [canPaste, setCanPaste] = useState(clipboard !== null)
+
+  const runSelectionAction = useCallback(
+    (action: SelectionAction) => {
+      if (!doc) return
+      const actions = selectionActions
+      switch (action) {
+        case 'all':
+          commit(actions.selectAll(doc))
+          break
+        case 'none':
+          commit(actions.deselect(doc))
+          break
+        case 'copy':
+          clipboard = actions.copy(doc)
+          setCanPaste(clipboard !== null)
+          break
+        case 'cut': {
+          const { piece, command } = actions.cut(doc)
+          clipboard = piece
+          setCanPaste(clipboard !== null)
+          commit(command)
+          break
+        }
+        case 'paste':
+          if (!clipboard) return
+          commit(actions.paste(doc, clipboard))
+          setTools((t) => ({ ...t, tool: 'move' }))
+          break
+        case 'flipH':
+        case 'flipV':
+        case 'rotate':
+          actions.transform(doc, action)
+          refresh()
+          break
+        case 'delete':
+          commit(actions.erase(doc))
+          break
+        case 'drop':
+          commit(actions.drop(doc))
+          break
+        case 'cancel':
+          if (doc.floating) actions.cancel(doc)
+          else actions.clearSelection(doc)
+          refresh()
+          break
+      }
+    },
+    [doc, commit, refresh]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -193,6 +264,7 @@ export function TextureEditor({
   const canSave = doc !== null && !target.readOnly
   const save = useCallback(async () => {
     if (!doc || target.readOnly || saving) return
+    settle()
     const version = history.version
     setSaving(true)
     setSaveError(null)
@@ -219,7 +291,7 @@ export function TextureEditor({
     } finally {
       setSaving(false)
     }
-  }, [doc, target, saving, history])
+  }, [doc, target, saving, history, settle])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -228,10 +300,21 @@ export function TextureEditor({
         void save()
         return
       }
-      if (isTyping(event) || event.ctrlKey || event.altKey || event.metaKey) return
+      if (isTyping(event)) return
+      if (pro) {
+        const action = selectionShortcut(event)
+        if (action) {
+          event.preventDefault()
+          runSelectionAction(action)
+          return
+        }
+      }
+      if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return
       const tool = toolByShortcut(event.key, pro)
-      if (tool) setTools((t) => ({ ...t, tool }))
-      else if (event.key.toLowerCase() === 'x') swap()
+      if (tool) {
+        if (tool !== 'move' && tool !== 'select') settle()
+        setTools((t) => ({ ...t, tool }))
+      } else if (event.key.toLowerCase() === 'x') swap()
       else if (event.key === '[' || event.key === ']') {
         const step = event.key === ']' ? 1 : -1
         setTools((t) => ({
@@ -242,7 +325,7 @@ export function TextureEditor({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [swap, save, pro])
+  }, [swap, save, pro, runSelectionAction, settle])
 
   // Offer a draft left by an earlier session (crash, closed without saving).
   useEffect(() => {
@@ -444,7 +527,10 @@ export function TextureEditor({
         <div className="editor-main">
           <EditorTools
             tool={tools.tool}
-            onTool={(tool) => setTools((t) => ({ ...t, tool }))}
+            onTool={(tool) => {
+              if (tool !== 'move' && tool !== 'select') settle()
+              setTools((t) => ({ ...t, tool }))
+            }}
             pixelPerfect={tools.pixelPerfect}
             onPixelPerfect={(pixelPerfect) => setTools((t) => ({ ...t, pixelPerfect }))}
             brushSize={tools.brushSize}
@@ -453,6 +539,12 @@ export function TextureEditor({
             onShapeFilled={(shapeFilled) => setTools((t) => ({ ...t, shapeFilled }))}
             mirror={tools.mirror}
             onMirror={(mirror) => setTools((t) => ({ ...t, mirror }))}
+            selection={{
+              active: doc.selection !== null,
+              floating: doc.floating !== null,
+              canPaste
+            }}
+            onSelectionAction={runSelectionAction}
             rampPanel={
               <RampPanel
                 ramp={ramp}
@@ -498,12 +590,14 @@ export function TextureEditor({
             onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
             onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
             onRampUsed={lockRamp}
+            onSettle={settle}
           />
           <div className="editor-side">
             {(pro || doc.layers.length > 1) && !target.readOnly && (
               <LayersPanel
                 doc={doc}
                 onCommand={commit}
+                onBeforeChange={settle}
                 onSelect={(id) => {
                   doc.setActive(id)
                   setRevision((r) => r + 1)
@@ -573,6 +667,30 @@ function targetFor(current: EditorTarget, path: string): EditorTarget {
       : null,
     sources: { ...current.sources, pack: { ...pack, files } }
   }
+}
+
+/** Keyboard shortcut → selection action (Pro mode). */
+function selectionShortcut(event: KeyboardEvent): SelectionAction | null {
+  const key = event.key.toLowerCase()
+  if (event.ctrlKey || event.metaKey) {
+    const byKey: Record<string, SelectionAction> = {
+      a: 'all',
+      d: 'none',
+      c: 'copy',
+      x: 'cut',
+      v: 'paste'
+    }
+    return byKey[key] ?? null
+  }
+  if (event.shiftKey && !event.altKey) {
+    if (key === 'h') return 'flipH'
+    if (key === 'v') return 'flipV'
+    if (key === 'r') return 'rotate'
+  }
+  if (event.key === 'Delete' || event.key === 'Backspace') return 'delete'
+  if (event.key === 'Enter') return 'drop'
+  if (event.key === 'Escape') return 'cancel'
+  return null
 }
 
 function formatTime(iso: string): string {

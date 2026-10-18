@@ -5,6 +5,7 @@ import { pixelCommand, type Command } from './history'
 import {
   diffPixels,
   fill,
+  fillRegion,
   getPixel,
   Stroke,
   TRANSPARENT,
@@ -13,8 +14,10 @@ import {
   type Rgba
 } from './pixels'
 import { noiseFill, shiftAlongRamp } from './ramp'
+import { isSelected, maskSelection, outlineSegments, rectSelection } from './selection'
+import { lift, moveBy } from './selectionActions'
 import { constrainEnd, shapePoints, type ShapeKind } from './shapes'
-import { BRUSH_TOOLS, MIRROR_TOOLS, SHAPE_TOOLS, type ToolId } from './tools'
+import { BRUSH_TOOLS, MIRROR_TOOLS, SELECTION_TOOLS, SHAPE_TOOLS, type ToolId } from './tools'
 import {
   clampViewport,
   fitViewport,
@@ -50,6 +53,7 @@ interface ShapeDrag {
   color: Rgba
   /** Layer pixels before the shape. */
   snapshot: Uint8ClampedArray
+  clip: ((x: number, y: number) => boolean) | null
 }
 
 interface PixelCanvasProps {
@@ -75,6 +79,8 @@ interface PixelCanvasProps {
   onColorUsed: (color: Rgba) => void
   /** The shade or noise tool used the ramp: it must stop following the primary color. */
   onRampUsed: () => void
+  /** Drops a floating (moved/pasted) piece before another tool changes the layer. */
+  onSettle: () => void
 }
 
 export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
@@ -99,6 +105,9 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
   const drag = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null)
   const stroke = useRef<{ pointerId: number; stroke: Stroke } | null>(null)
   const shape = useRef<ShapeDrag | null>(null)
+  /** Rectangle selection being dragged, or the move tool's last pixel. */
+  const selectDrag = useRef<{ pointerId: number; start: Point; moved: boolean } | null>(null)
+  const moveDrag = useRef<{ pointerId: number; last: Point } | null>(null)
 
   const frame = useMemo<Frame | null>(
     () =>
@@ -149,13 +158,17 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     canvas.height = viewSize.height
     const size = tools && BRUSH_TOOLS.has(tools.tool) ? tools.brushSize : 1
     const mirror = tools && MIRROR_TOOLS.has(tools.tool) ? tools.mirror : null
+    const outline = doc.selection
+      ? outlineSegments(doc.selection.mask, doc.width, doc.height)
+      : null
     drawCanvas(canvas, source, viewport, {
       showGrid,
-      hover: tools && hover ? { ...hover, size } : null,
+      hover: tools && hover && !SELECTION_TOOLS.has(tools.tool) ? { ...hover, size } : null,
       trace,
-      mirror
+      mirror,
+      selection: outline
     })
-  }, [source, viewSize, viewport, showGrid, hover, tools, revision, trace])
+  }, [source, viewSize, viewport, showGrid, hover, tools, revision, trace, doc])
 
   const zoomCentered = useCallback(
     (direction: 1 | -1) =>
@@ -190,7 +203,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       if ((event.ctrlKey || event.metaKey) && (key === 'z' || key === 'y')) {
         event.preventDefault()
         // Not in the middle of a stroke: it isn't in the history yet.
-        if (stroke.current || shape.current) return
+        if (stroke.current || shape.current || moveDrag.current) return
         if (key === 'y' || event.shiftKey) onRedo()
         else onUndo()
       } else if (event.key === 'Alt') {
@@ -221,7 +234,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
   }, [zoomCentered, onUndo, onRedo])
 
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>): void {
-    if (drag.current || stroke.current || shape.current) return
+    if (drag.current || stroke.current || shape.current || selectDrag.current || moveDrag.current)
+      return
     // Middle button, or Space + left button, pans. Left/right draw with primary/secondary.
     const wantsPan = event.button === 1 || (event.button === 0 && spaceHeld.current)
     if (wantsPan) {
@@ -244,6 +258,43 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       if (pixel) props.onPickColor(slot, getPixel(doc.composite, pixel.x, pixel.y))
       return
     }
+    if (tool === 'select') {
+      props.onSettle()
+      event.currentTarget.setPointerCapture(event.pointerId)
+      const start = screenToImage(viewport, point.x, point.y)
+      selectDrag.current = { pointerId: event.pointerId, start, moved: false }
+      doc.selection = rectSelection(doc.width, doc.height, start, start)
+      props.onPainted()
+      return
+    }
+    if (tool === 'wand') {
+      props.onSettle()
+      if (pixel) {
+        const region = fillRegion(doc.active.pixels, pixel.x, pixel.y, tools.fillMode)
+        doc.selection = maskSelection(doc.width, doc.height, region)
+        props.onPainted()
+      }
+      return
+    }
+    if (tool === 'move') {
+      if (!doc.active.visible) {
+        showNotice('Il livello attivo è nascosto: rendilo visibile per spostarne i pixel.')
+        return
+      }
+      event.currentTarget.setPointerCapture(event.pointerId)
+      lift(doc)
+      moveDrag.current = {
+        pointerId: event.pointerId,
+        last: screenToImage(viewport, point.x, point.y)
+      }
+      props.onPainted()
+      return
+    }
+    // Painting tools put down a moved piece first and stay inside the selection.
+    props.onSettle()
+    const selection = doc.selection
+    const clip = selection ? (x: number, y: number) => isSelected(selection, x, y) : null
+    const clipIndex = selection ? (index: number) => selection.mask[index] === 1 : null
     const layer = doc.active
     if (!layer.visible) {
       showNotice('Il livello attivo è nascosto: rendilo visibile per disegnarci sopra.')
@@ -255,8 +306,16 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       else props.onRampUsed()
       const changes =
         tool === 'fill'
-          ? fill(layer.pixels, pixel.x, pixel.y, tools[slot], tools.fillMode)
-          : noiseFill(layer.pixels, pixel.x, pixel.y, tools.ramp, tools.fillMode)
+          ? fill(layer.pixels, pixel.x, pixel.y, tools[slot], tools.fillMode, clipIndex)
+          : noiseFill(
+              layer.pixels,
+              pixel.x,
+              pixel.y,
+              tools.ramp,
+              tools.fillMode,
+              Math.random,
+              clipIndex
+            )
       props.onCommit(pixelCommand(layer.pixels, changes))
       return
     }
@@ -269,7 +328,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
         kind: tool as ShapeKind,
         start: screenToImage(viewport, point.x, point.y),
         color,
-        snapshot: new Uint8ClampedArray(layer.pixels.data)
+        snapshot: new Uint8ClampedArray(layer.pixels.data),
+        clip
       }
       drawShape(screenToImage(viewport, point.x, point.y), event.shiftKey)
       return
@@ -281,7 +341,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       const direction = slot === 'primary' ? -1 : 1
       current = new Stroke(layer.pixels, (before) => shiftAlongRamp(ramp, before, direction), {
         size: tools.brushSize,
-        mirror: tools.mirror
+        mirror: tools.mirror,
+        clip
       })
     } else {
       const color = tool === 'eraser' ? TRANSPARENT : tools[slot]
@@ -289,7 +350,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       current = new Stroke(layer.pixels, color, {
         pixelPerfect: tool === 'pencil' && tools.pixelPerfect,
         size: tools.brushSize,
-        mirror: tools.mirror
+        mirror: tools.mirror,
+        clip
       })
     }
     stroke.current = { pointerId: event.pointerId, stroke: current }
@@ -304,9 +366,11 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     pixels.data.set(current.snapshot)
     const to = constrain ? constrainEnd(current.kind, current.start, end) : end
     const points = shapePoints(current.kind, current.start, to, tools.shapeFilled)
-    new Stroke(pixels, current.color, { size: tools.brushSize, mirror: tools.mirror }).addPoints(
-      points
-    )
+    new Stroke(pixels, current.color, {
+      size: tools.brushSize,
+      mirror: tools.mirror,
+      clip: current.clip
+    }).addPoints(points)
     props.onPainted()
   }
 
@@ -315,6 +379,20 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     const point = toDevice(event)
     if (shape.current?.pointerId === event.pointerId) {
       drawShape(screenToImage(viewport, point.x, point.y), event.shiftKey)
+    }
+    const selecting = selectDrag.current
+    if (selecting?.pointerId === event.pointerId) {
+      const end = screenToImage(viewport, point.x, point.y)
+      if (end.x !== selecting.start.x || end.y !== selecting.start.y) selecting.moved = true
+      doc.selection = rectSelection(doc.width, doc.height, selecting.start, end)
+      props.onPainted()
+    }
+    const moving = moveDrag.current
+    if (moving?.pointerId === event.pointerId) {
+      const now = screenToImage(viewport, point.x, point.y)
+      moveBy(doc, now.x - moving.last.x, now.y - moving.last.y)
+      moving.last = now
+      props.onPainted()
     }
     const current = drag.current
     if (current && current.pointerId === event.pointerId) {
@@ -353,6 +431,13 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       stroke.current = null
       props.onCommit(pixelCommand(doc.active.pixels, finished.stroke.changes()))
     }
+    if (selectDrag.current?.pointerId === event.pointerId) {
+      // A click without dragging clears the selection.
+      if (!selectDrag.current.moved) doc.selection = null
+      selectDrag.current = null
+      props.onPainted()
+    }
+    if (moveDrag.current?.pointerId === event.pointerId) moveDrag.current = null
     if (shape.current?.pointerId === event.pointerId) {
       const finished = shape.current
       shape.current = null
@@ -418,7 +503,13 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
         )}
         <canvas
           ref={canvasRef}
-          className={panning ? 'editor-canvas panning' : 'editor-canvas'}
+          className={
+            panning
+              ? 'editor-canvas panning'
+              : tools?.tool === 'move'
+                ? 'editor-canvas moving'
+                : 'editor-canvas'
+          }
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endPointer}

@@ -252,9 +252,12 @@ export function fill(
   x: number,
   y: number,
   color: Rgba,
-  mode: FillMode
+  mode: FillMode,
+  /** Restricts the fill (selection): pixels for which it returns false are left alone. */
+  clip: ((index: number) => boolean) | null = null
 ): PixelChange[] {
-  return paintPixels(buffer, fillRegion(buffer, x, y, mode), () => color)
+  const region = fillRegion(buffer, x, y, mode)
+  return paintPixels(buffer, clip ? region.filter(clip) : region, () => color)
 }
 
 /** Indices of the pixels the bucket would fill from (x, y); empty outside the buffer. */

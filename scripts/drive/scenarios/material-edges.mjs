@@ -97,6 +97,33 @@ export default async function edges(app) {
   app.check(num(await app.editor.color(1, 1)) === 245, 'inside the selection: glass')
   app.check(num(await app.editor.color(10, 10)) === 70, 'outside the selection: unchanged')
   await app.key('Escape')
+
+  // A selection made on Colore carries over to the channels.
+  await app.click('Colore', '.map-tabs [role=tab]')
+  await app.sleep(200)
+  await app.key('m')
+  await app.editor.draw([
+    [8, 8],
+    [11, 11]
+  ])
+  await app.sleep(200)
+  await app.click('Materiale _s', '.map-tabs [role=tab]')
+  await app.sleep(200)
+  await channel(app, 'Riflettanza')
+  await channel(app, 'Levigatezza')
+  const carried = await app.ev(
+    `[...document.querySelectorAll('.generator-panel button')].find((b) => b.textContent.startsWith('Applica'))?.textContent`
+  )
+  app.check(
+    carried?.includes('alla selezione'),
+    `the Colore selection is active on _s (${carried})`
+  )
+  await apply(app, 'Ghiaccio')
+  app.check(num(await app.editor.color(9, 9)) > 200, 'inside the Colore selection: ice')
+  app.check(num(await app.editor.color(13, 13)) === 70, 'outside it: unchanged')
+  app.check(num(await app.editor.color(1, 1)) === 245, 'the earlier glass is kept')
+  await app.shot('03-selection-from-color')
+  await app.key('Escape')
   await close(app)
 
   // 512×512: switching to Minerale and hovering must stay fast.

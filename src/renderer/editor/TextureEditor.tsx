@@ -665,8 +665,20 @@ export function TextureEditor({
     onSwitch(targetFor(target, path))
   }
 
+  /**
+   * The selection follows the user across Colore and the channels (same pixels, same size), so
+   * pixels picked by color on the albedo can be painted or given a material on `_n` / `_s`.
+   */
+  function carrySelection(to: EditorDocument | null): void {
+    if (!editDoc || !to || to === editDoc) return
+    if (to.width !== editDoc.width || to.height !== editDoc.height) return
+    to.selection = editDoc.selection
+  }
+
   function changeSurface(next: Surface): void {
     settle()
+    const map = next === 'color' ? null : maps?.[next]
+    carrySelection(next === 'color' ? doc : (map?.proxy(channelDef(channelOf[next])) ?? null))
     setSurface(next)
   }
 
@@ -868,6 +880,7 @@ export function TextureEditor({
           onChannel={(id) => {
             if (surface === 'color') return
             settle()
+            carrySelection(editedMap?.proxy(channelDef(id)) ?? null)
             setChannelOf((all) => ({ ...all, [surface]: id }))
           }}
         />

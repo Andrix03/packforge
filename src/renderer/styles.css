@@ -2087,3 +2087,41 @@ kbd {
   image-rendering: pixelated;
   background: repeating-conic-gradient(#3a3d45 0 25%, #2c2f36 0 50%) 0 0 / 12px 12px;
 }
+
+.coverage-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.coverage-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.coverage-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.coverage-table th,
+.coverage-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.coverage-table th:first-child,
+.coverage-table td:first-child {
+  text-align: left;
+}
+
+.coverage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+}

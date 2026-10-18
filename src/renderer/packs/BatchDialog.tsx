@@ -21,6 +21,8 @@ export function BatchDialog({
   pack,
   textures,
   initialFolder,
+  initialSelection = null,
+  initialMaps = { specular: true, normal: false },
   onClose
 }: {
   pack: ValidatorSource
@@ -28,14 +30,21 @@ export function BatchDialog({
   textures: readonly TextureEntry[]
   /** Its textures start selected. */
   initialFolder: string
+  /** Albedo paths to start with instead of the folder (from the coverage report). */
+  initialSelection?: readonly string[] | null
+  /** Which maps start ticked. */
+  initialMaps?: { specular: boolean; normal: boolean }
   onClose: () => void
 }): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<ReadonlySet<string>>(
-    () => new Set(textures.filter((t) => t.folder === initialFolder).map((t) => t.albedo))
+    () =>
+      new Set(
+        initialSelection ?? textures.filter((t) => t.folder === initialFolder).map((t) => t.albedo)
+      )
   )
-  const [doSpecular, setDoSpecular] = useState(true)
-  const [doNormal, setDoNormal] = useState(false)
+  const [doSpecular, setDoSpecular] = useState(initialMaps.specular)
+  const [doNormal, setDoNormal] = useState(initialMaps.normal)
   const [overwrite, setOverwrite] = useState(false)
   const [material, setMaterial] = useState<MaterialOptions>(DEFAULT_MATERIAL)
   const [depth, setDepth] = useState(DEFAULT_HEIGHT.depth)

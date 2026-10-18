@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, findFolder, parentPath } from '../../shared/fileTree'
 import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../shared/ipc'
+import { mapKindOf } from '../../shared/labpbr'
 import { compatibleReleases } from '../../shared/mcmeta'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
@@ -12,6 +13,7 @@ import { NewTextureDialog, type NewTextureRequest } from './NewTextureDialog'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
 import { ValidatorDialog } from './ValidatorDialog'
 import { BatchDialog } from './BatchDialog'
+import { CoverageDialog } from './CoverageDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 
@@ -180,6 +182,11 @@ function Workspace({
   const packTextures = useMemo(() => groupTextures(packFiles.files), [packFiles.files])
   const jarFiles = jar.status === 'ready' ? jar.value.files : null
   const vanillaTextures = useMemo(() => (jarFiles ? groupTextures(jarFiles) : []), [jarFiles])
+  /** Pack textures that can get maps (not a `_n` / `_s` of a game texture listed on its own). */
+  const mapLessTextures = useMemo(
+    () => packTextures.filter((t) => mapKindOf(t.albedo) === null),
+    [packTextures]
+  )
   const packKeys = useMemo(() => new Set(packTextures.map((t) => t.key)), [packTextures])
   const vanillaKeys = useMemo(() => new Set(vanillaTextures.map((t) => t.key)), [vanillaTextures])
 
@@ -194,7 +201,12 @@ function Workspace({
   const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null)
   const [creating, setCreating] = useState<NewTextureRequest | null>(null)
   const [validating, setValidating] = useState(false)
-  const [batching, setBatching] = useState(false)
+  /** The batch dialog, with the textures and maps it starts with (null selection = the folder). */
+  const [batching, setBatching] = useState<{
+    selection: string[] | null
+    maps: { specular: boolean; normal: boolean }
+  } | null>(null)
+  const [covering, setCovering] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
@@ -292,12 +304,22 @@ function Workspace({
         >
           🔍 Controlla mappe
         </button>
+        <button
+          type="button"
+          className="small-button"
+          title="Quante texture del pack hanno già _n e _s, e quali mancano"
+          onClick={() => setCovering(true)}
+        >
+          📊 Copertura
+        </button>
         {canCreate && (
           <button
             type="button"
             className="small-button"
             title="Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo"
-            onClick={() => setBatching(true)}
+            onClick={() =>
+              setBatching({ selection: null, maps: { specular: true, normal: false } })
+            }
           >
             ⚙ Applica in blocco
           </button>
@@ -306,7 +328,7 @@ function Workspace({
           <button
             type="button"
             className="small-button"
-            disabled={!testable}
+            disabled={!testable || mapKindOf(testable.albedo) !== null}
             title={
               testable
                 ? `Crea le versioni di ${testable.name} in tutti i colori (lana, cemento, vetro colorato…)`
@@ -396,9 +418,26 @@ function Workspace({
       {batching && (
         <BatchDialog
           pack={validatorPack}
-          textures={packTextures}
+          textures={mapLessTextures}
           initialFolder={selectedFolder}
-          onClose={() => setBatching(false)}
+          initialSelection={batching.selection}
+          initialMaps={batching.maps}
+          onClose={() => setBatching(null)}
+        />
+      )}
+      {covering && (
+        <CoverageDialog
+          files={packFiles.files}
+          canCreate={canCreate}
+          onOpen={(texture) => {
+            setCovering(false)
+            onEditTexture(texture, previewSources)
+          }}
+          onBatch={(textures, maps) => {
+            setCovering(false)
+            setBatching({ selection: textures.map((t) => t.albedo), maps })
+          }}
+          onClose={() => setCovering(false)}
         />
       )}
       {validating && (

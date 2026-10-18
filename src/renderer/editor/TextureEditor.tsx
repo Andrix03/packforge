@@ -28,7 +28,7 @@ import { RampPanel } from './RampPanel'
 import { ReferencePanel, type LoadedReference } from './ReferencePanel'
 import { TilingPreview } from './TilingPreview'
 import { maxBrushSize, toolByShortcut, visibleTools } from './tools'
-import { mapPath, type MapKind } from '../../shared/labpbr'
+import { mapKindOf, mapPath, type MapKind } from '../../shared/labpbr'
 import type { MapGrid } from '../../shared/pbrGenerator'
 import { DEFAULT_HEIGHT, DEFAULT_NORMALS, DEFAULT_OCCLUSION } from '../../shared/pbrGenerator'
 import { DEFAULT_EFFECTS } from '../preview/effects'
@@ -182,6 +182,8 @@ export function TextureEditor({
     auto: false
   })
   const [material, setMaterial] = useState<MaterialOptions>(DEFAULT_MATERIAL)
+  /** The file is itself a `_n` / `_s` (of a game texture): it has no maps of its own. */
+  const isMapFile = mapKindOf(target.path) !== null
   const normalPath = mapPath(target.path, 'normal')
   const specularPath = mapPath(target.path, 'specular')
   const packFiles = target.sources.pack
@@ -879,7 +881,7 @@ export function TextureEditor({
           })}
         </div>
       )}
-      {maps && (
+      {maps && !isMapFile && (
         <MapTabs
           surface={surface}
           channel={channel?.id ?? null}

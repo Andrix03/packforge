@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { assetUrl } from '../../shared/ipc'
+import { mapKindOf } from '../../shared/labpbr'
 import type { TextureEntry } from '../../shared/textures'
 
 interface TextureGridProps {
@@ -67,8 +68,20 @@ export function TextureGrid({
               <span className="texture-name">{texture.name}</span>
               {showFolder && <span className="texture-folder">{texture.folder}</span>}
               <span className="texture-badges">
-                <Badge on={texture.normal !== null} label="N" title="Mappa normal (_n)" />
-                <Badge on={texture.specular !== null} label="S" title="Mappa specular (_s)" />
+                {mapKindOf(texture.albedo) ? (
+                  // A map whose texture is not in the pack (the game's): no maps of its own.
+                  <span
+                    className="map-badge on"
+                    title="Mappa LabPBR di una texture che il pack non contiene (di solito quella del gioco): si modifica come immagine"
+                  >
+                    mappa
+                  </span>
+                ) : (
+                  <>
+                    <Badge on={texture.normal !== null} label="N" title="Mappa normal (_n)" />
+                    <Badge on={texture.specular !== null} label="S" title="Mappa specular (_s)" />
+                  </>
+                )}
                 {marker?.keys.has(texture.key) && (
                   <span className="map-badge marker" title={marker.title}>
                     {marker.label}

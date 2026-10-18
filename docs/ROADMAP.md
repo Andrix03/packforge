@@ -127,7 +127,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 - [x] Channel painting with the editor brushes (`_n` / `_s` channels in gray, values and typical presets; selections act as masks; live in the 3D preview and Test)
 - [x] Validator (sizes and animation as Iris reads them, emission/height values, orphan maps and .mcmeta; "Controlla mappe" in the workspace) — also: saving an animated texture now writes the maps' own .png.mcmeta
 - [x] Batch apply a preset or generator to many textures at once ("⚙ Applica in blocco": filter + select, material and/or relief, existing maps skipped unless overwrite is confirmed)
-- [ ] Batch hue variants (e.g. all wool colors from one texture)
+- [x] Batch hue variants (e.g. all wool colors from one texture) — "🎨 Varianti di colore": 16 dyes, OKLab recolor, game colors when the jar has the variant, maps and .mcmeta copied
 - [ ] Coverage report: which textures still miss `_n` / `_s` maps
 - [ ] Compare my texture against the vanilla one (side by side, diff)
 - [ ] Nearest-neighbour resize for different resolutions (16×, 32×, 64×…)

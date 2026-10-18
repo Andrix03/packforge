@@ -10,10 +10,9 @@ import {
   type BatchPlanEntry,
   type ReliefOptions
 } from '../../shared/batchMaps'
-import { assetUrl } from '../../shared/ipc'
 import { mapPath, type MapKind } from '../../shared/labpbr'
 import type { MaterialOptions } from '../../shared/materialPresets'
-import { decodePng, type DecodedPng } from '../../shared/pngCodec'
+import { errorMessage, fetchBytes, loadPng } from './packFetch'
 import { mapMcmeta } from '../editor/frames'
 import type { ValidatorSource } from './runValidator'
 
@@ -28,20 +27,6 @@ export interface BatchResult {
   written: number
   errors: Array<{ path: string; message: string }>
 }
-
-async function fetchBytes(pack: ValidatorSource, path: string): Promise<Uint8Array> {
-  const response = await fetch(assetUrl(pack.base, path, pack.versions?.[path] ?? 0))
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return new Uint8Array(await response.arrayBuffer())
-}
-
-async function loadPng(pack: ValidatorSource, path: string): Promise<DecodedPng> {
-  const decoded = decodePng(await fetchBytes(pack, path))
-  if (!decoded.ok) throw new Error(decoded.error)
-  return decoded.image
-}
-
-const message = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
 async function applyEntry(
   pack: ValidatorSource,
@@ -113,7 +98,7 @@ export async function runBatch(
     try {
       result.written += await applyEntry(pack, entry, settings)
     } catch (error) {
-      result.errors.push({ path: entry.albedo, message: message(error) })
+      result.errors.push({ path: entry.albedo, message: errorMessage(error) })
     }
     onProgress(index + 1, plan.length)
   }

@@ -2053,3 +2053,37 @@ kbd {
   padding: 8px;
   border-left: 2px solid var(--border);
 }
+
+.variant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.variant {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.variant.original {
+  opacity: 0.7;
+}
+
+.variant span.small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.variant-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: repeating-conic-gradient(#3a3d45 0 25%, #2c2f36 0 50%) 0 0 / 12px 12px;
+}

@@ -1,7 +1,6 @@
 // Loads the pack's LabPBR maps (and their textures) through pack:// and runs the pure checks of
 // shared/packValidator. Vanilla textures are only read for their size and transparency.
 
-import { assetUrl } from '../../shared/ipc'
 import {
   checkMapShape,
   checkNormal,
@@ -15,13 +14,9 @@ import {
   type Issue,
   type MapPair
 } from '../../shared/packValidator'
-import { decodePng } from '../../shared/pngCodec'
+import { fetchBytes, loadPng, type FileSource } from './packFetch'
 
-export interface ValidatorSource {
-  base: string
-  files: ReadonlySet<string>
-  versions?: Readonly<Record<string, number>>
-}
+export type ValidatorSource = FileSource
 
 export interface ValidatorResult {
   issues: Issue[]
@@ -30,18 +25,6 @@ export interface ValidatorResult {
 }
 
 const PARALLEL = 6
-
-async function fetchBytes(source: ValidatorSource, path: string): Promise<Uint8Array> {
-  const response = await fetch(assetUrl(source.base, path, source.versions?.[path] ?? 0))
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return new Uint8Array(await response.arrayBuffer())
-}
-
-async function loadImage(source: ValidatorSource, path: string): Promise<Image> {
-  const decoded = decodePng(await fetchBytes(source, path))
-  if (!decoded.ok) throw new Error(decoded.error)
-  return decoded.image
-}
 
 /** Parsed `.png.mcmeta` next to `png` (the pack's wins), null when missing or not JSON. */
 async function loadMcmeta(sources: ValidatorSource[], png: string): Promise<unknown> {
@@ -62,7 +45,7 @@ async function checkPair(
 ): Promise<Issue[]> {
   let map: Image
   try {
-    map = await loadImage(pack, pair.path)
+    map = await loadPng(pack, pair.path)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     return [{ severity: 'error', path: pair.path, message: `PNG non leggibile: ${detail}` }]
@@ -72,7 +55,7 @@ async function checkPair(
   const albedoSource = pair.albedoSource === 'pack' ? pack : vanilla
   if (pair.albedo && albedoSource) {
     try {
-      albedo = await loadImage(albedoSource, pair.albedo)
+      albedo = await loadPng(albedoSource, pair.albedo)
       albedoMcmeta = await loadMcmeta(vanilla ? [pack, vanilla] : [pack], pair.albedo)
     } catch {
       albedo = null
@@ -108,7 +91,7 @@ async function checkGameMcmeta(
     return [{ severity: 'error', path, message: 'Il file .mcmeta non è un JSON valido.' }]
   }
   try {
-    return checkTextureMcmeta(path, await loadImage(vanilla, png), mcmeta)
+    return checkTextureMcmeta(path, await loadPng(vanilla, png), mcmeta)
   } catch {
     return []
   }

@@ -12,6 +12,7 @@ import { NewTextureDialog, type NewTextureRequest } from './NewTextureDialog'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
 import { ValidatorDialog } from './ValidatorDialog'
 import { BatchDialog } from './BatchDialog'
+import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 
 const DEFAULT_FOLDER = 'assets/minecraft/textures/block'
@@ -194,6 +195,7 @@ function Workspace({
   const [creating, setCreating] = useState<NewTextureRequest | null>(null)
   const [validating, setValidating] = useState(false)
   const [batching, setBatching] = useState(false)
+  const [varying, setVarying] = useState<TextureEntry | null>(null)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
     previewSelection?.isPack && previewSelection.mcmeta
@@ -300,6 +302,21 @@ function Workspace({
             ⚙ Applica in blocco
           </button>
         )}
+        {canCreate && (
+          <button
+            type="button"
+            className="small-button"
+            disabled={!testable}
+            title={
+              testable
+                ? `Crea le versioni di ${testable.name} in tutti i colori (lana, cemento, vetro colorato…)`
+                : 'Seleziona prima una texture del pack'
+            }
+            onClick={() => setVarying(testable)}
+          >
+            🎨 Varianti di colore
+          </button>
+        )}
       </div>
 
       <div className="workspace-row">
@@ -368,6 +385,14 @@ function Workspace({
           onTest={testable ? () => onTestTexture(testable, previewSources) : null}
         />
       </div>
+      {varying && (
+        <VariantsDialog
+          source={varying}
+          pack={validatorPack}
+          vanilla={validatorVanilla}
+          onClose={() => setVarying(null)}
+        />
+      )}
       {batching && (
         <BatchDialog
           pack={validatorPack}

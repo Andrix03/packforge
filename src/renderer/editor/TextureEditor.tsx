@@ -52,6 +52,8 @@ import {
   normalsAreFlat
 } from './mapGenerate'
 import { MaterialPanel } from './MaterialPanel'
+import { CompareDialog } from './CompareDialog'
+import type { Image } from '../../shared/textureCompare'
 import { accentMask, DEFAULT_MATERIAL, type MaterialOptions } from '../../shared/materialPresets'
 
 export interface EditorTarget {
@@ -134,6 +136,8 @@ export function TextureEditor({
   const [mode, setMode] = useState<EditorMode>('beginner')
   const [proTips, setProTips] = useState(false)
   const [reference, setReference] = useState<LoadedReference | null>(null)
+  /** Snapshot of my texture for the vanilla comparison (null = closed). */
+  const [comparing, setComparing] = useState<Image | null>(null)
   /** Textures of the block shown in the 3D preview, for the face tabs. */
   const [blockTextures, setBlockTextures] = useState<string[]>([])
   const [creatingPath, setCreatingPath] = useState<string | null>(null)
@@ -900,6 +904,14 @@ export function TextureEditor({
           }}
         />
       )}
+      {comparing && reference && (
+        <CompareDialog
+          name={target.name}
+          mine={comparing}
+          vanilla={reference.pixels}
+          onClose={() => setComparing(null)}
+        />
+      )}
       {showShortcuts && <ShortcutsHelp pro={pro} onClose={() => setShowShortcuts(false)} />}
       {creatingPath && (
         <NewTextureDialog
@@ -1196,6 +1208,19 @@ export function TextureEditor({
               onLoaded={setReference}
               onPick={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
             />
+            {reference && (
+              <button
+                type="button"
+                className="small-button"
+                title="La tua texture accanto a quella vanilla, con i pixel cambiati evidenziati"
+                onClick={() => {
+                  const { width, height, data } = doc.composite
+                  setComparing({ width, height, data: new Uint8ClampedArray(data) })
+                }}
+              >
+                ⇆ Confronta con vanilla
+              </button>
+            )}
             <TilingPreview
               source={source}
               revision={revision}

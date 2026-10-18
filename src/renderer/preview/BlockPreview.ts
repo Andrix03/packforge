@@ -2,7 +2,8 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
-import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
+import { FullScreenQuad, Pass } from 'three/examples/jsm/postprocessing/Pass.js'
+import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import fragmentShader from '../shaders/block.frag.glsl?raw'
 import shadowFragmentShader from '../shaders/shadow.frag.glsl?raw'
@@ -108,7 +109,7 @@ const BLOOM_RADIUS = 0.15
 const SHADOW_MAP_SIZE = 2048
 
 /** Face size of the reflection captures (the PMREM blurs it for rough surfaces). */
-const ENV_CUBE_SIZE = 128
+const ENV_CUBE_SIZE = 256
 /** Captures are redone at most this often (ms) while the light or the camera keeps changing. */
 const ENV_MIN_INTERVAL = 150
 /** The capture follows the camera once its probe moved this far (blocks). */
@@ -235,7 +236,15 @@ export class BlockPreview {
     shadowRange: { value: 1 },
     // Reflections: 0 = the analytic sky gradient, 1 = the captured scene (envMap, CubeUV).
     envMode: { value: 0 },
-    envMap: { value: null as THREE.Texture | null }
+    envMap: { value: null as THREE.Texture | null },
+    // Screen-space reflections: this frame's depth (prepass) to march in, last frame's HDR color
+    // to take the reflected color from (reprojected with last frame's view-projection).
+    ssrOn: { value: false },
+    ssrDepth: { value: null as THREE.Texture | null },
+    ssrColor: { value: null as THREE.Texture | null },
+    ssrViewProj: { value: new THREE.Matrix4() },
+    ssrPrevViewProj: { value: new THREE.Matrix4() },
+    ssrClip: { value: new THREE.Vector2() }
   }
   private capture: {
     cube: THREE.WebGLCubeRenderTarget
@@ -793,6 +802,7 @@ export class BlockPreview {
         s.hand.visible = false
       }
       u.envMode.value = 0
+      u.ssrOn.value = false
       this.skyDome.position.copy(probe)
       camera.position.copy(probe)
       camera.update(this.renderer, this.scene)
@@ -868,6 +878,20 @@ export class BlockPreview {
       s.world.visible = s === side
       s.hand.visible = false
     }
+    this.drawDepth(side, target, camera)
+
+    u.shadowMap.value = target.depthTexture
+    u.shadowMatrix.value.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+    u.shadowFromSun.value = fromSun
+    u.shadowRange.value = camera.far - camera.near
+    u.shadowMode.value = mode === 'pixel' ? 2 : 1
+  }
+
+  /**
+   * Draws only the depth of a side's world into `target` (shadow map, SSR prepass): opaque and
+   * cutout parts with their depth material, translucent ones left out. Visibility is the caller's.
+   */
+  private drawDepth(side: Side, target: THREE.WebGLRenderTarget, camera: THREE.Camera): void {
     const swapped: Array<[THREE.Mesh, THREE.Material]> = []
     for (const child of side.world.children) {
       if (!(child instanceof THREE.Mesh)) continue
@@ -876,23 +900,44 @@ export class BlockPreview {
       if (caster) child.material = caster
       else child.visible = false
     }
-    const background = this.scene.background
-    this.scene.background = null
+    const dome = this.skyDome.visible
+    this.skyDome.visible = false
     this.renderer.setRenderTarget(target)
     this.renderer.clear()
     this.renderer.render(this.scene, camera)
     this.renderer.setRenderTarget(null)
-    this.scene.background = background
+    this.skyDome.visible = dome
     for (const [mesh, material] of swapped) {
       mesh.material = material
       mesh.visible = true
     }
+  }
 
-    u.shadowMap.value = target.depthTexture
-    u.shadowMatrix.value.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
-    u.shadowFromSun.value = fromSun
-    u.shadowRange.value = camera.far - camera.near
-    u.shadowMode.value = mode === 'pixel' ? 2 : 1
+  /**
+   * Screen-space reflections for one half: depth prepass from the camera, then points the SSR
+   * uniforms at it and at the composer's previous frame. Off for raw views, "sky only" or when
+   * there is no previous frame yet.
+   */
+  private prepareSsr(side: Side, composer: Composer): void {
+    const u = this.sharedUniforms
+    const raw = DEBUG_VIEWS[this.effects?.view ?? 0]?.raw ?? false
+    if (raw || this.effects?.reflections !== 'scene') {
+      u.ssrOn.value = false
+      return
+    }
+    side.hand.visible = false
+    this.drawDepth(side, composer.depth, this.camera)
+    side.hand.visible = true
+    this.camera.updateMatrixWorld()
+    u.ssrViewProj.value.multiplyMatrices(
+      this.camera.projectionMatrix,
+      this.camera.matrixWorldInverse
+    )
+    u.ssrPrevViewProj.value.copy(composer.previousViewProj)
+    u.ssrDepth.value = composer.depth.depthTexture
+    u.ssrColor.value = composer.history.texture
+    u.ssrClip.value.set(this.camera.near, this.camera.far)
+    u.ssrOn.value = composer.hasHistory
   }
 
   private *allParts(): Generator<LoadedPart> {
@@ -1001,8 +1046,18 @@ export class BlockPreview {
         this.camera.updateProjectionMatrix()
       }
       const composer = this.composers?.[i]
-      if (composer) composer.render(width, size.y)
-      else this.renderer.render(this.scene, this.camera)
+      if (composer) {
+        composer.setSize(width, size.y)
+        this.prepareSsr(side, composer)
+        composer.render()
+        this.camera.updateMatrixWorld()
+        composer.previousViewProj.multiplyMatrices(
+          this.camera.projectionMatrix,
+          this.camera.matrixWorldInverse
+        )
+      } else {
+        this.renderer.render(this.scene, this.camera)
+      }
     })
     this.renderer.setScissorTest(false)
   }
@@ -1026,32 +1081,73 @@ export class BlockPreview {
  */
 class Composer {
   readonly bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0, BLOOM_RADIUS, BLOOM_THRESHOLD)
+  /** Depth of this frame from the camera (SSR prepass). */
+  readonly depth = new THREE.WebGLRenderTarget(1, 1, { depthTexture: new THREE.DepthTexture(1, 1) })
+  /** Last frame's HDR image before bloom, with mipmaps (blurrier reflections on rough surfaces). */
+  readonly history = new THREE.WebGLRenderTarget(1, 1, {
+    type: THREE.HalfFloatType,
+    generateMipmaps: true,
+    minFilter: THREE.LinearMipmapLinearFilter
+  })
+  readonly previousViewProj = new THREE.Matrix4()
+  hasHistory = false
   private readonly composer: EffectComposer
   private readonly output = new OutputPass()
+  private readonly copy = new FullScreenQuad(
+    new THREE.ShaderMaterial({
+      ...CopyShader,
+      uniforms: THREE.UniformsUtils.clone(CopyShader.uniforms)
+    })
+  )
   private readonly size = new THREE.Vector2()
 
-  constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
+  constructor(
+    private readonly renderer: THREE.WebGLRenderer,
+    scene: THREE.Scene,
+    camera: THREE.Camera
+  ) {
     // Half floats keep lights and emission above 1 for the bloom; 4× MSAA like the screen.
     const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 })
     this.composer = new EffectComposer(renderer, target)
-    this.composer.addPass(new DrawPass(scene, camera))
+    this.composer.addPass(new DrawPass(scene, camera, (drawn) => this.keep(drawn)))
     this.composer.addPass(this.bloom)
     this.composer.addPass(this.output)
   }
 
   /** `width` × `height` in CSS pixels, the size of the viewport it ends in. */
-  render(width: number, height: number): void {
-    if (this.size.x !== width || this.size.y !== height) {
-      this.size.set(width, height)
-      this.composer.setSize(width, height)
-    }
+  setSize(width: number, height: number): void {
+    if (this.size.x === width && this.size.y === height) return
+    this.size.set(width, height)
+    this.composer.setSize(width, height)
+    const ratio = this.renderer.getPixelRatio()
+    const w = Math.max(1, Math.floor(width * ratio))
+    const h = Math.max(1, Math.floor(height * ratio))
+    this.depth.setSize(w, h)
+    this.history.setSize(w, h)
+    this.hasHistory = false
+  }
+
+  render(): void {
     this.composer.render()
+  }
+
+  /** Copies the frame just drawn into the history (mipmaps are rebuilt by the renderer). */
+  private keep(drawn: THREE.WebGLRenderTarget): void {
+    ;(this.copy.material as THREE.ShaderMaterial).uniforms['tDiffuse']!.value = drawn.texture
+    this.renderer.setRenderTarget(this.history)
+    this.copy.render(this.renderer)
+    this.hasHistory = true
   }
 
   dispose(): void {
     this.bloom.dispose()
     this.output.dispose()
     this.composer.dispose()
+    this.depth.depthTexture?.dispose()
+    this.depth.dispose()
+    this.history.dispose()
+    this.copy.material.dispose()
+    this.copy.dispose()
   }
 }
 
@@ -1059,7 +1155,8 @@ class Composer {
 class DrawPass extends Pass {
   constructor(
     private readonly scene: THREE.Scene,
-    private readonly camera: THREE.Camera
+    private readonly camera: THREE.Camera,
+    private readonly after: (drawn: THREE.WebGLRenderTarget) => void
   ) {
     super()
     this.needsSwap = false
@@ -1072,6 +1169,7 @@ class DrawPass extends Pass {
   ): void {
     renderer.setRenderTarget(readBuffer)
     renderer.render(this.scene, this.camera)
+    this.after(readBuffer)
   }
 }
 

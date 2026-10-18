@@ -51,6 +51,83 @@ uniform sampler2D envMap;
 
 #include <cube_uv_reflection_fragment>
 
+// Screen-space reflections (like the shader packs' SSR): march the reflected ray in this frame's
+// depth, take the color it hits from the previous frame. ssrClip = camera near, far.
+uniform bool ssrOn;
+uniform sampler2D ssrDepth;
+uniform sampler2D ssrColor;
+uniform mat4 ssrViewProj;
+uniform mat4 ssrPrevViewProj;
+uniform vec2 ssrClip;
+
+// Distance from the camera plane of a depth buffer value (perspective).
+float viewDistance(float depth) {
+  float n = ssrClip.x;
+  float f = ssrClip.y;
+  return n * f / (f - depth * (f - n));
+}
+
+vec2 screenOf(vec4 clip) {
+  return clip.xy / clip.w * 0.5 + 0.5;
+}
+
+bool onScreen(vec2 uv) {
+  return all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)));
+}
+
+// Reflected color (rgb) and how much to trust it (a, 0 = use the capture instead).
+vec4 traceReflection(vec3 origin, vec3 dir, vec3 toCamera, float roughness) {
+  if (!ssrOn || roughness > 0.6) return vec4(0.0);
+  vec3 previous = origin;
+  // Per-pixel jitter of the first step (interleaved gradient noise, Jimenez 2014): steps fall at
+  // different depths on neighbouring pixels, so step bands become fine noise.
+  float jitter = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  float stepLength = 0.06;
+  vec3 p = origin + dir * stepLength * jitter;
+  // How far in front of the depth buffer the previous sample was (negative = behind it).
+  float previousGap = 1.0;
+  float previousDistance = (ssrViewProj * vec4(p, 1.0)).w;
+  // Steps grow but stay short (max 0.25 block, ~20 blocks in all): long steps accept false hits
+  // behind thin geometry and smear streaks.
+  for (int i = 0; i < 96; i++) {
+    previous = p;
+    p += dir * stepLength;
+    stepLength = min(stepLength * 1.06, 0.25);
+    vec4 clip = ssrViewProj * vec4(p, 1.0);
+    if (clip.w <= ssrClip.x) break;
+    vec2 uv = screenOf(clip);
+    if (!onScreen(uv)) break;
+    float scene = viewDistance(texture(ssrDepth, uv).r);
+    // clip.w is the ray's distance from the camera plane. A hit is where the ray goes from in
+    // front of the depth buffer to behind it, by no more than its own depth step (seen edge-on, a
+    // surface's depth jumps between pixels): deeper means it passed behind an object.
+    float gap = scene - clip.w;
+    float depthStep = abs(clip.w - previousDistance);
+    bool crossed = gap < 0.0 && previousGap >= 0.0;
+    previousGap = gap;
+    previousDistance = clip.w;
+    if (crossed && -gap < max(0.15, depthStep * 4.0)) {
+      vec3 a = previous;
+      vec3 b = p;
+      for (int j = 0; j < 6; j++) {
+        vec3 m = 0.5 * (a + b);
+        vec4 c = ssrViewProj * vec4(m, 1.0);
+        if (c.w > viewDistance(texture(ssrDepth, screenOf(c)).r)) b = m;
+        else a = m;
+      }
+      vec2 hit = screenOf(ssrPrevViewProj * vec4(b, 1.0));
+      if (!onScreen(hit)) return vec4(0.0);
+      vec2 edge = smoothstep(vec2(0.0), vec2(0.06), hit) * smoothstep(vec2(0.0), vec2(0.06), 1.0 - hit);
+      // Rays coming back towards the camera hit surfaces seen edge-on: unreliable.
+      float facing = 1.0 - smoothstep(0.3, 0.7, dot(dir, toCamera));
+      float trust = edge.x * edge.y * facing * (1.0 - smoothstep(0.3, 0.6, roughness));
+      vec3 color = textureLod(ssrColor, hit, roughness * 8.0).rgb;
+      return vec4(color, trust);
+    }
+  }
+  return vec4(0.0);
+}
+
 in vec2 vUv;
 in vec3 vNormal;
 in vec3 vTint;
@@ -303,9 +380,15 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   if (metalKind == 0) color += albedo * (irradiance + lamps) * ao * (1.0 - s.f0);
   // Reflections of the sky, blurred towards the ambient light as roughness grows.
   vec3 R = reflect(-s.view, N);
+  // Block light (torches, glowstone…) has no direction: it reaches reflections from all around,
+  // so metals, which have no diffuse light, still shine near a torch (like the shader packs).
+  // The capture is taken from one probe: the corner's own block light is a floor for it.
+  // Smooth metals keep their contrast: the flat block-light floor only for rough surfaces.
   vec3 reflected = envMode == 1
-    ? textureCubeUV(envMap, R, s.perceptualRoughness).rgb
-    : mix(skyRadiance(R) * sky, irradiance, sqrt(roughness)) + lamps * roughness;
+    ? max(textureCubeUV(envMap, R, s.perceptualRoughness).rgb, lamps * s.perceptualRoughness)
+    : mix(skyRadiance(R) * sky, irradiance, sqrt(roughness)) + lamps;
+  vec4 traced = traceReflection(vWorldPosition + face * 0.01, R, s.view, s.perceptualRoughness);
+  reflected = mix(reflected, traced.rgb, traced.a);
   reflected *= smoothstep(-0.25, 0.15, dot(R, face));
   vec3 f0 = metalKind == 1 ? METAL_F0[metalId] * albedo : (metalKind == 2 ? albedo : vec3(s.f0));
   color += reflected * environmentBrdf(f0, s.perceptualRoughness, NoV) * ao;

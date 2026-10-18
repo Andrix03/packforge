@@ -10,32 +10,21 @@ export function LayersPanel({
   doc,
   onCommand,
   onSelect,
-  onLiveChange,
   onBeforeChange
 }: {
   doc: EditorDocument
   /** An applied structural change to record (or null when nothing changed). */
   onCommand: (command: Command | null) => void
   onSelect: (id: number) => void
-  /** Redraw after a live (not yet recorded) change, e.g. while dragging the opacity slider. */
-  onLiveChange: () => void
   /** Called before any change (puts down a floating piece). */
   onBeforeChange: () => void
 }): React.JSX.Element {
   const [renaming, setRenaming] = useState<number | null>(null)
-  const [opacityDrag, setOpacityDrag] = useState<{ id: number; from: number } | null>(null)
   const active = doc.active
   const activeIndex = doc.indexOf(active.id)
   const run = (change: () => Command | null): void => {
     onBeforeChange()
     onCommand(change())
-  }
-
-  function commitOpacity(): void {
-    if (!opacityDrag) return
-    const layer = doc.layers[doc.indexOf(opacityDrag.id)]
-    if (layer) onCommand(doc.setOpacity(layer.id, layer.opacity, opacityDrag.from))
-    setOpacityDrag(null)
   }
 
   return (
@@ -102,17 +91,10 @@ export function LayersPanel({
           min={0}
           max={100}
           value={Math.round(active.opacity * 100)}
-          onPointerDown={() => setOpacityDrag({ id: active.id, from: active.opacity })}
-          onChange={(event) => {
-            // Applied live; recorded as one undo step when the drag (or key press) ends.
-            const from = opacityDrag?.id === active.id ? opacityDrag.from : active.opacity
-            if (!opacityDrag) setOpacityDrag({ id: active.id, from })
-            doc.setOpacity(active.id, Number(event.target.value) / 100)
-            onLiveChange()
-          }}
-          onPointerUp={commitOpacity}
-          onKeyUp={commitOpacity}
-          onBlur={commitOpacity}
+          // Every value is an undo command; consecutive ones merge into one step (History).
+          onChange={(event) =>
+            run(() => doc.setOpacity(active.id, Number(event.target.value) / 100))
+          }
         />
       </label>
       <div className="layer-actions">

@@ -529,7 +529,16 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
 
   const ratio = window.devicePixelRatio || 1
   const zoomPercent = viewport ? Math.round((viewport.zoom / ratio) * 100) : null
-  const hoverColor = hover ? getPixel(doc.composite, hover.x, hover.y) : null
+  // The last hovered pixel can fall outside the image after an undo removed a frame (or inside
+  // another frame after switching): only read it while it is inside the editable area.
+  const hoverInside =
+    hover !== null &&
+    hover.x >= area.x0 &&
+    hover.x <= area.x1 &&
+    hover.y >= area.y0 &&
+    hover.y <= area.y1 &&
+    hover.y < doc.height
+  const hoverColor = hoverInside ? getPixel(doc.composite, hover.x, hover.y) : null
 
   return (
     <div className="editor-body">

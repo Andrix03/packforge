@@ -151,10 +151,11 @@ export class EditorDocument {
     return this.setProperty(id, 'visible', visible)
   }
 
-  /** `from` is the opacity before a slider drag started (the drag applied values live). */
+  /** Slider values pushed one after another merge into one undo step (see History). */
   setOpacity(id: number, opacity: number, from?: number): Command | null {
     const value = Math.min(1, Math.max(0, opacity))
-    return this.setProperty(id, 'opacity', value, from)
+    const command = this.setProperty(id, 'opacity', value, from)
+    return command && { ...command, mergeKey: `opacity:${id}` }
   }
 
   rename(id: number, name: string): Command | null {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { AppInfo, PackSummary } from '../shared/ipc'
 import { TextureEditor, type EditorTarget } from './editor/TextureEditor'
+import { ErrorBoundary } from './ErrorBoundary'
 import { NewPackForm } from './packs/NewPackForm'
 import { OpenPackCard } from './packs/OpenPackCard'
 import { PackOverview } from './packs/PackOverview'
@@ -72,12 +73,9 @@ export function App(): React.JSX.Element {
     <>
       {/* Full-screen editor; the workspace below stays mounted (hidden) to keep its state. */}
       {editorOpen && (
-        <TextureEditor
-          key={editing.url}
-          target={editing}
-          onClose={() => setEditing(null)}
-          onSwitch={setEditing}
-        />
+        <ErrorBoundary key={editing.url} what="L'editor" onReset={() => setEditing(null)}>
+          <TextureEditor target={editing} onClose={() => setEditing(null)} onSwitch={setEditing} />
+        </ErrorBoundary>
       )}
       <main className={pack && !showSettings ? 'app wide' : 'app'} hidden={editorOpen}>
         <header className="app-header">

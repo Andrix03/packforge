@@ -106,6 +106,44 @@ describe('History', () => {
     expect(history.modified).toBe(true)
   })
 
+  it('merges consecutive commands with the same key into one step', () => {
+    let clock = 0
+    const history = new History(200, () => clock)
+    const log: string[] = []
+    const step = (n: number): Command => ({
+      undo: () => log.push(`undo ${n}`),
+      redo: () => log.push(`redo ${n}`),
+      mergeKey: 'opacity:1'
+    })
+    history.push(step(1))
+    clock = 500
+    history.push(step(2))
+    clock = 900
+    history.push(step(3))
+    expect(history.undo()).toBe(true)
+    expect(history.canUndo).toBe(false)
+    // Undone newest first, back to the state before the first value.
+    expect(log).toEqual(['undo 3', 'undo 2', 'undo 1'])
+    history.redo()
+    expect(log.slice(3)).toEqual(['redo 1', 'redo 2', 'redo 3'])
+  })
+
+  it('does not merge after a pause, another key, an undo or a save', () => {
+    let clock = 0
+    const history = new History(200, () => clock)
+    const command = (key: string): Command => ({ undo: () => {}, redo: () => {}, mergeKey: key })
+    history.push(command('a'))
+    clock = 5000
+    history.push(command('a'))
+    history.push(command('b'))
+    expect(history.undo() && history.undo() && history.undo()).toBe(true)
+    history.redo()
+    history.push(command('a'))
+    history.markSaved()
+    history.push(command('a'))
+    expect(history.modified).toBe(true)
+  })
+
   it('keeps at most `limit` steps, dropping the oldest', () => {
     const b = buffer(1)
     const history = new History(3)

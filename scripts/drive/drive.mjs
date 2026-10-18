@@ -67,6 +67,9 @@ const child = spawn(
 )
 
 const results = []
+/** Messages of window.confirm/alert dialogs seen, and how to answer the next ones. */
+const dialogs = []
+const dialogAnswer = { accept: true }
 let exitCode = 0
 let socket
 let app = null
@@ -121,12 +124,25 @@ async function connect() {
       pending.get(data.id)(data)
       pending.delete(data.id)
     } else if (data.method === 'Runtime.exceptionThrown') {
-      console.log(
-        `PAGE ERROR: ${data.params.exceptionDetails?.exception?.description ?? data.params.exceptionDetails?.text}`
-      )
+      // Uncaught errors in the page fail the run: a crash must never pass silently.
+      const text =
+        data.params.exceptionDetails?.exception?.description ?? data.params.exceptionDetails?.text
+      results.push({ ok: false, label: `page error: ${text}` })
+      console.log(`FAIL PAGE ERROR: ${text}`)
     } else if (data.method === 'Runtime.consoleAPICalled' && data.params.type === 'error') {
-      console.log(
-        `PAGE CONSOLE ERROR: ${data.params.args.map((a) => a.value ?? a.description).join(' ')}`
+      const text = data.params.args.map((a) => a.value ?? a.description).join(' ')
+      results.push({ ok: false, label: `console error: ${text}` })
+      console.log(`FAIL PAGE CONSOLE ERROR: ${text}`)
+    } else if (data.method === 'Page.javascriptDialogOpening') {
+      // window.confirm/alert would block the page: answer as the scenario asked (default: OK).
+      dialogs.push(data.params.message)
+      console.log(`DIALOG: ${data.params.message} → ${dialogAnswer.accept ? 'OK' : 'Annulla'}`)
+      socket.send(
+        JSON.stringify({
+          id: ++id,
+          method: 'Page.handleJavaScriptDialog',
+          params: { accept: dialogAnswer.accept }
+        })
       )
     }
   })
@@ -173,6 +189,12 @@ function createApp(send) {
 
   const app = {
     paths,
+    /** Messages of the dialogs shown so far. */
+    dialogs,
+    /** Answer for the next confirm dialogs (true = OK). */
+    answerDialogs(accept) {
+      dialogAnswer.accept = accept
+    },
     ev,
     send,
     sleep,
@@ -297,11 +319,21 @@ function createApp(send) {
       },
       /** Color of texture pixel (x, y) as shown in the status bar: '#rrggbb', 'trasparente'… */
       async color(x, y) {
+        // The status bar shows image coordinates: the editable area's offset + (x, y). Wait until
+        // it really shows this pixel (a fixed delay read stale colors under load).
+        const [x0, y0] = (await ev(`document.querySelector('.editor-canvas').dataset.view`))
+          .split(',')
+          .map(Number)
+        const expected = `x ${x0 + x}, y ${y0 + y}`
         await mouse('mouseMoved', await app.editor.pixel(x, y))
-        await sleep(50)
-        return (await ev(`document.querySelector('.editor-status').textContent`))
-          .replace(/^x \d+, y \d+/, '')
-          .trim()
+        const text = await app.waitFor(
+          `(() => {
+            const t = document.querySelector('.editor-status').textContent
+            return t.startsWith(${JSON.stringify(expected)}) && t
+          })()`,
+          3000
+        )
+        return text.slice(expected.length).trim()
       },
       /** Types a hex color into the color panel (selected slot). */
       async setHex(hex) {

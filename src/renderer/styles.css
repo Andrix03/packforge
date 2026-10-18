@@ -1720,3 +1720,25 @@ kbd {
 .shortcut-list dd {
   margin: 0;
 }
+
+.error-boundary {
+  max-width: 560px;
+  margin: 48px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.error-boundary h2 {
+  margin: 0;
+  color: var(--error);
+}
+
+.error-boundary pre {
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.error-boundary button {
+  align-self: flex-start;
+}

@@ -794,7 +794,6 @@ export function TextureEditor({
                   doc.setActive(id)
                   setRevision((r) => r + 1)
                 }}
-                onLiveChange={refresh}
               />
             )}
             {showTips && <AdvicePanel advice={advice} />}

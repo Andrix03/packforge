@@ -1,0 +1,130 @@
+// Drawing of the main editor canvas: checkerboard, the composite, overlays, grid and cursor.
+
+import type { PixelBuffer, Rgba } from './pixels'
+import { GRID_MIN_ZOOM, majorGridStep, type Viewport } from './viewport'
+
+/** Size of the transparency checkerboard squares, in CSS pixels. */
+const CHECKER_SIZE = 8
+
+export interface CanvasOverlays {
+  showGrid: boolean
+  /** Pixel under the cursor and the brush size drawn around it. */
+  hover: { x: number; y: number; size: number } | null
+  /** Vanilla texture drawn over the canvas for tracing. */
+  trace: { canvas: HTMLCanvasElement; opacity: number } | null
+}
+
+export function drawCanvas(
+  canvas: HTMLCanvasElement,
+  source: HTMLCanvasElement,
+  viewport: Viewport,
+  overlays: CanvasOverlays
+): void {
+  const context = canvas.getContext('2d')
+  if (!context) return
+  const { zoom, x, y } = viewport
+  const width = source.width * zoom
+  const height = source.height * zoom
+  const style = getComputedStyle(canvas)
+  context.fillStyle = style.getPropertyValue('--bg').trim() || '#1b1d22'
+  context.fillRect(0, 0, canvas.width, canvas.height)
+
+  // Checkerboard under the texture so transparent pixels are visible.
+  const check = Math.max(1, Math.round(CHECKER_SIZE * (window.devicePixelRatio || 1)))
+  context.save()
+  context.beginPath()
+  context.rect(x, y, width, height)
+  context.clip()
+  context.fillStyle = '#8c8c8c'
+  context.fillRect(x, y, width, height)
+  context.fillStyle = '#707070'
+  for (let row = 0; row * check < height; row++) {
+    for (let col = row % 2; col * check < width; col += 2) {
+      context.fillRect(x + col * check, y + row * check, check, check)
+    }
+  }
+  context.restore()
+
+  context.imageSmoothingEnabled = false
+  context.drawImage(source, x, y, width, height)
+  const { trace, hover, showGrid } = overlays
+  if (trace) {
+    // Scaled to the texture size (a 16× reference over a 32× texture still lines up).
+    context.globalAlpha = trace.opacity
+    context.drawImage(trace.canvas, x, y, width, height)
+    context.globalAlpha = 1
+  }
+
+  if (showGrid && zoom >= GRID_MIN_ZOOM) {
+    strokeGrid(context, viewport, source.width, source.height, 1, 'rgba(0, 0, 0, 0.22)')
+  }
+  const major = majorGridStep(source.width)
+  if (showGrid && major !== null && zoom * major >= GRID_MIN_ZOOM) {
+    strokeGrid(context, viewport, source.width, source.height, major, 'rgba(0, 0, 0, 0.5)')
+  }
+  context.strokeStyle = 'rgba(255, 255, 255, 0.25)'
+  context.lineWidth = 1
+  context.strokeRect(x - 0.5, y - 0.5, width + 1, height + 1)
+
+  // Outline of the pixels the tool will paint (same footprint as Stroke's brush): dark + light so
+  // it shows on any color.
+  if (hover) {
+    const offset = Math.floor((hover.size - 1) / 2)
+    const hx = x + (hover.x - offset) * zoom
+    const hy = y + (hover.y - offset) * zoom
+    const side = hover.size * zoom
+    context.strokeStyle = 'rgba(0, 0, 0, 0.8)'
+    context.strokeRect(hx + 0.5, hy + 0.5, side - 1, side - 1)
+    if (zoom >= 4) {
+      context.strokeStyle = 'rgba(255, 255, 255, 0.9)'
+      context.strokeRect(hx + 1.5, hy + 1.5, side - 3, side - 3)
+    }
+  }
+}
+
+function strokeGrid(
+  context: CanvasRenderingContext2D,
+  { zoom, x, y }: Viewport,
+  columns: number,
+  rows: number,
+  step: number,
+  color: string
+): void {
+  context.beginPath()
+  for (let col = step; col < columns; col += step) {
+    context.moveTo(x + col * zoom + 0.5, y)
+    context.lineTo(x + col * zoom + 0.5, y + rows * zoom)
+  }
+  for (let row = step; row < rows; row += step) {
+    context.moveTo(x, y + row * zoom + 0.5)
+    context.lineTo(x + columns * zoom, y + row * zoom + 0.5)
+  }
+  context.strokeStyle = color
+  context.lineWidth = 1
+  context.stroke()
+}
+
+/** Copies a buffer into a display canvas (never read back: canvases store premultiplied alpha). */
+export function putBuffer(canvas: HTMLCanvasElement, buffer: PixelBuffer): void {
+  const data = new Uint8ClampedArray(buffer.data)
+  canvas.getContext('2d')?.putImageData(new ImageData(data, buffer.width, buffer.height), 0, 0)
+}
+
+export function cssColor([r, g, b, a]: Rgba): string {
+  return `rgba(${r}, ${g}, ${b}, ${a / 255})`
+}
+
+export function formatColor([r, g, b, a]: Rgba): string {
+  const hex = [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')
+  return a === 255 ? `#${hex}` : a === 0 ? 'trasparente' : `#${hex} · alpha ${a}`
+}
+
+/** Shortcuts are ignored while typing in a text field (checkboxes and color inputs don't count). */
+export function isTyping(event: KeyboardEvent): boolean {
+  const target = event.target
+  if (target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) return true
+  return (
+    target instanceof HTMLInputElement &&
+    !['checkbox', 'radio', 'color', 'range', 'button'].includes(target.type)
+  )
+}

@@ -73,7 +73,7 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 
 ## Phase 4 — Draw: Pro tools
 
-- [ ] Layers (add, reorder, hide, opacity), flattened on save
+- [x] Layers (add, reorder, hide, opacity, duplicate, merge, rename), flattened on save
 - [ ] Selections: rectangle, magic wand; move, copy, paste, flip, rotate
 - [ ] Lines, rectangles, ellipses; mirror (symmetry) drawing
 - [ ] Seamless tiling mode: paint across the edges of a repeating texture

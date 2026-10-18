@@ -1,15 +1,19 @@
-// Undo/redo for the pixel editor. Each edit stores only the pixels it changed (before/after),
-// so hundreds of steps cost little memory even on 64× textures.
+// Undo/redo for the pixel editor, as a list of commands. A command is applied when it is created;
+// the history only replays it backward (undo) and forward (redo). Pixel edits store only the
+// pixels they changed (before/after), so hundreds of steps cost little memory even on 64× textures.
 
 import { setPixel, type PixelBuffer, type PixelChange } from './pixels'
 
-export type Edit = readonly PixelChange[]
+export interface Command {
+  undo(): void
+  redo(): void
+}
 
 export const HISTORY_LIMIT = 200
 
 export class History {
-  private readonly edits: Edit[] = []
-  /** Number of edits currently applied (edits after it can be redone). */
+  private readonly commands: Command[] = []
+  /** Number of commands currently applied (those after it can be redone). */
   private position = 0
   /** Position matching the file on disk; null once that state can no longer be reached. */
   private savedPosition: number | null = 0
@@ -17,16 +21,16 @@ export class History {
 
   constructor(private readonly limit = HISTORY_LIMIT) {}
 
-  /** Records an edit that was already applied to the buffer. Discards the redo steps. */
-  push(edit: Edit): void {
-    if (edit.length === 0) return
-    this.edits.splice(this.position)
+  /** Records a command that was already applied. Discards the redo steps. Null is ignored. */
+  push(command: Command | null): void {
+    if (!command) return
+    this.commands.splice(this.position)
     if (this.savedPosition !== null && this.savedPosition > this.position) this.savedPosition = null
-    this.edits.push(edit)
+    this.commands.push(command)
     this.position++
     this.changeCount++
-    if (this.edits.length > this.limit) {
-      this.edits.shift()
+    if (this.commands.length > this.limit) {
+      this.commands.shift()
       this.position--
       if (this.savedPosition !== null) {
         this.savedPosition = this.savedPosition > 0 ? this.savedPosition - 1 : null
@@ -34,17 +38,17 @@ export class History {
     }
   }
 
-  undo(buffer: PixelBuffer): boolean {
+  undo(): boolean {
     if (!this.canUndo) return false
     this.position--
     this.changeCount++
-    apply(buffer, this.edits[this.position]!, 'before')
+    this.commands[this.position]!.undo()
     return true
   }
 
-  redo(buffer: PixelBuffer): boolean {
+  redo(): boolean {
     if (!this.canRedo) return false
-    apply(buffer, this.edits[this.position]!, 'after')
+    this.commands[this.position]!.redo()
     this.position++
     this.changeCount++
     return true
@@ -55,10 +59,10 @@ export class History {
   }
 
   get canRedo(): boolean {
-    return this.position < this.edits.length
+    return this.position < this.commands.length
   }
 
-  /** True when the buffer differs from the last saved (or loaded) state. */
+  /** True when the document differs from the last saved (or loaded) state. */
   get modified(): boolean {
     return this.savedPosition !== this.position
   }
@@ -73,13 +77,32 @@ export class History {
   }
 }
 
-function apply(buffer: PixelBuffer, edit: Edit, side: 'before' | 'after'): void {
-  for (const change of edit) {
-    setPixel(
-      buffer,
-      change.index % buffer.width,
-      Math.floor(change.index / buffer.width),
-      change[side]
-    )
+/** Command for pixels already changed in `buffer`; null when nothing changed. */
+export function pixelCommand(buffer: PixelBuffer, changes: readonly PixelChange[]): Command | null {
+  if (changes.length === 0) return null
+  const apply = (side: 'before' | 'after'): void => {
+    for (const change of changes) {
+      setPixel(
+        buffer,
+        change.index % buffer.width,
+        Math.floor(change.index / buffer.width),
+        change[side]
+      )
+    }
+  }
+  return { undo: () => apply('before'), redo: () => apply('after') }
+}
+
+/** Several commands as one undo step (e.g. a move = cut + paste). */
+export function combine(commands: ReadonlyArray<Command | null>): Command | null {
+  const list = commands.filter((c): c is Command => c !== null)
+  if (list.length === 0) return null
+  return {
+    undo: () => {
+      for (let i = list.length - 1; i >= 0; i--) list[i]!.undo()
+    },
+    redo: () => {
+      for (const command of list) command.redo()
+    }
   }
 }

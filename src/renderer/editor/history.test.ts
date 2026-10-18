@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { History } from './history'
+import { History, pixelCommand, type Command } from './history'
 import { getPixel, Stroke, type PixelBuffer, type Rgba } from './pixels'
 
 const RED: Rgba = [255, 0, 0, 255]
@@ -16,7 +16,7 @@ function buffer(width: number, fill: Rgba = GRAY): PixelBuffer {
 function paint(history: History, b: PixelBuffer, x: number, color: Rgba): void {
   const stroke = new Stroke(b, color, false)
   stroke.add({ x, y: 0 })
-  history.push(stroke.changes())
+  history.push(pixelCommand(b, stroke.changes()))
 }
 
 describe('History', () => {
@@ -25,25 +25,25 @@ describe('History', () => {
     const history = new History()
     paint(history, b, 0, RED)
     paint(history, b, 0, BLUE)
-    expect(history.undo(b)).toBe(true)
+    expect(history.undo()).toBe(true)
     expect(getPixel(b, 0, 0)).toEqual(RED)
-    expect(history.undo(b)).toBe(true)
+    expect(history.undo()).toBe(true)
     expect(getPixel(b, 0, 0)).toEqual(GRAY)
-    expect(history.undo(b)).toBe(false)
-    expect(history.redo(b)).toBe(true)
-    expect(history.redo(b)).toBe(true)
+    expect(history.undo()).toBe(false)
+    expect(history.redo()).toBe(true)
+    expect(history.redo()).toBe(true)
     expect(getPixel(b, 0, 0)).toEqual(BLUE)
-    expect(history.redo(b)).toBe(false)
+    expect(history.redo()).toBe(false)
   })
 
   it('drops the redo steps when a new stroke is made', () => {
     const b = buffer(2)
     const history = new History()
     paint(history, b, 0, RED)
-    history.undo(b)
+    history.undo()
     paint(history, b, 1, BLUE)
     expect(history.canRedo).toBe(false)
-    history.undo(b)
+    history.undo()
     expect(getPixel(b, 0, 0)).toEqual(GRAY)
     expect(getPixel(b, 1, 0)).toEqual(GRAY)
   })
@@ -56,18 +56,28 @@ describe('History', () => {
     expect(history.modified).toBe(false)
   })
 
+  it('replays any command, not only pixel edits', () => {
+    const log: string[] = []
+    const command: Command = { undo: () => log.push('undo'), redo: () => log.push('redo') }
+    const history = new History()
+    history.push(command)
+    history.undo()
+    history.redo()
+    expect(log).toEqual(['undo', 'redo'])
+  })
+
   it('knows when the image is back to the saved state', () => {
     const b = buffer(1)
     const history = new History()
     expect(history.modified).toBe(false)
     paint(history, b, 0, RED)
     expect(history.modified).toBe(true)
-    history.undo(b)
+    history.undo()
     expect(history.modified).toBe(false)
-    history.redo(b)
+    history.redo()
     history.markSaved()
     expect(history.modified).toBe(false)
-    history.undo(b)
+    history.undo()
     expect(history.modified).toBe(true)
   })
 
@@ -76,11 +86,11 @@ describe('History', () => {
     const history = new History()
     const start = history.version
     paint(history, b, 0, RED)
-    history.undo(b)
-    history.redo(b)
+    history.undo()
+    history.redo()
     expect(history.version).toBe(start + 3)
-    history.undo(b)
-    history.undo(b) // nothing left: no change
+    history.undo()
+    history.undo() // nothing left: no change
     expect(history.version).toBe(start + 4)
   })
 
@@ -89,9 +99,9 @@ describe('History', () => {
     const history = new History()
     paint(history, b, 0, RED)
     history.markSaved()
-    history.undo(b)
+    history.undo()
     paint(history, b, 1, BLUE)
-    history.undo(b)
+    history.undo()
     // Same pixels as before the save? No: the saved state had pixel 0 red.
     expect(history.modified).toBe(true)
   })
@@ -101,7 +111,7 @@ describe('History', () => {
     const history = new History(3)
     for (const color of [RED, BLUE, RED, BLUE] as const) paint(history, b, 0, color)
     let undone = 0
-    while (history.undo(b)) undone++
+    while (history.undo()) undone++
     expect(undone).toBe(3)
     // The first stroke (gray → red) can no longer be undone.
     expect(getPixel(b, 0, 0)).toEqual(RED)

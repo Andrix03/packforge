@@ -1,6 +1,6 @@
 // Editor tool definitions (data only, shared by the tool panel and the shortcuts).
 
-export type ToolId = 'pencil' | 'eraser'
+export type ToolId = 'pencil' | 'eraser' | 'fill' | 'picker'
 
 export interface ToolInfo {
   id: ToolId
@@ -22,6 +22,18 @@ export const TOOLS: readonly ToolInfo[] = [
     label: 'Gomma',
     shortcut: 'E',
     tip: 'Rende i pixel trasparenti. Sui blocchi pieni (pietra, terra) di solito non serve: usala per foglie, vetro, fiori.'
+  },
+  {
+    id: 'fill',
+    label: 'Secchiello',
+    shortcut: 'G',
+    tip: 'Riempie l’area dello stesso colore. "Globale" cambia quel colore in tutta la texture: utile per ricolorare.'
+  },
+  {
+    id: 'picker',
+    label: 'Contagocce',
+    shortcut: 'I',
+    tip: 'Sinistro prende il colore primario, destro il secondario. Con gli altri strumenti tieni premuto Alt.'
   }
 ]
 

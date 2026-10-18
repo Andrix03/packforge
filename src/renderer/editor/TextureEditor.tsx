@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { EditorTools } from './EditorTools'
 import { History } from './history'
-import { getPixel, Stroke, TRANSPARENT, type Rgba } from './pixels'
+import { fill, getPixel, Stroke, TRANSPARENT, type FillMode, type Rgba } from './pixels'
 import { toolByShortcut, type ToolId } from './tools'
 import {
   clampViewport,
@@ -33,6 +33,7 @@ type Loaded =
 interface Tools {
   tool: ToolId
   pixelPerfect: boolean
+  fillMode: FillMode
   primary: Rgba
   secondary: Rgba
 }
@@ -51,6 +52,7 @@ export function TextureEditor({
   const [tools, setTools] = useState<Tools>({
     tool: 'pencil',
     pixelPerfect: false,
+    fillMode: 'contiguous',
     primary: [255, 255, 255, 255],
     // Secondary defaults to transparent: right click erases.
     secondary: TRANSPARENT
@@ -129,6 +131,8 @@ export function TextureEditor({
             onTool={(tool) => setTools((t) => ({ ...t, tool }))}
             pixelPerfect={tools.pixelPerfect}
             onPixelPerfect={(pixelPerfect) => setTools((t) => ({ ...t, pixelPerfect }))}
+            fillMode={tools.fillMode}
+            onFillMode={(fillMode) => setTools((t) => ({ ...t, fillMode }))}
             primary={tools.primary}
             secondary={tools.secondary}
             onPrimary={(primary) => setTools((t) => ({ ...t, primary }))}
@@ -141,6 +145,7 @@ export function TextureEditor({
             source={loaded.source}
             tools={target.readOnly ? null : tools}
             onModifiedChange={setModified}
+            onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
           />
         </div>
       )}
@@ -152,7 +157,8 @@ function PixelCanvas({
   pixels,
   source,
   tools,
-  onModifiedChange
+  onModifiedChange,
+  onPickColor
 }: {
   pixels: ImageData
   source: HTMLCanvasElement
@@ -160,6 +166,7 @@ function PixelCanvas({
   tools: Tools | null
   /** Called when the image starts or stops differing from the file (undo can go back to it). */
   onModifiedChange: (modified: boolean) => void
+  onPickColor: (slot: 'primary' | 'secondary', color: Rgba) => void
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -283,6 +290,9 @@ function PixelCanvas({
       if ((event.ctrlKey || event.metaKey) && (key === 'z' || key === 'y')) {
         event.preventDefault()
         undoRedo(key === 'y' || event.shiftKey ? 'redo' : 'undo')
+      } else if (event.key === 'Alt') {
+        // Alt is the temporary color picker: don't let it focus the window menu.
+        event.preventDefault()
       } else if (event.code === 'Space') {
         spaceHeld.current = true
         event.preventDefault()
@@ -317,14 +327,28 @@ function PixelCanvas({
       setPanning(true)
       return
     }
-    if (!tools || !viewport || (event.button !== 0 && event.button !== 2)) return
+    if (!tools || !viewport || !frame || (event.button !== 0 && event.button !== 2)) return
     event.preventDefault()
-    event.currentTarget.setPointerCapture(event.pointerId)
-    const color =
-      tools.tool === 'eraser' ? TRANSPARENT : event.button === 0 ? tools.primary : tools.secondary
-    const current = new Stroke(pixels, color, tools.tool === 'pencil' && tools.pixelPerfect)
-    stroke.current = { pointerId: event.pointerId, stroke: current }
     const point = toDevice(event)
+    const pixel = screenToPixel(viewport, point.x, point.y, frame)
+    const slot = event.button === 0 ? 'primary' : 'secondary'
+    // Alt turns any tool into the color picker while held.
+    const tool = event.altKey ? 'picker' : tools.tool
+    if (tool === 'picker') {
+      if (pixel) onPickColor(slot, getPixel(pixels, pixel.x, pixel.y))
+      return
+    }
+    if (tool === 'fill') {
+      if (!pixel) return
+      history.push(fill(pixels, pixel.x, pixel.y, tools[slot], tools.fillMode))
+      showChanges()
+      syncHistory()
+      return
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    const color = tool === 'eraser' ? TRANSPARENT : tools[slot]
+    const current = new Stroke(pixels, color, tool === 'pencil' && tools.pixelPerfect)
+    stroke.current = { pointerId: event.pointerId, stroke: current }
     if (current.add(screenToImage(viewport, point.x, point.y))) showChanges()
   }
 

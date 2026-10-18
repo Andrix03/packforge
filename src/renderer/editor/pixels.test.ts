@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  fill,
+  fromHex,
   getPixel,
   linePoints,
   setPixel,
-  fromHex,
   Stroke,
   toHex,
   TRANSPARENT,
@@ -201,5 +202,61 @@ describe('toHex / fromHex', () => {
     expect(fromHex('ff08a0')).toBeNull()
     expect(fromHex('#fff')).toBeNull()
     expect(fromHex('#gg0000')).toBeNull()
+  })
+})
+
+describe('fill', () => {
+  // Two gray regions split by a red wall; the right one touches the left only diagonally.
+  function walled(): PixelBuffer {
+    const b = buffer(4, 3, GRAY)
+    for (const [x, y] of [
+      [1, 0],
+      [1, 1],
+      [2, 1],
+      [2, 2]
+    ] as const) {
+      setPixel(b, x, y, RED)
+    }
+    return b
+  }
+  const BLUE: Rgba = [0, 0, 255, 255]
+
+  it('fills only the 4-connected area in contiguous mode', () => {
+    const b = walled()
+    const changes = fill(b, 0, 0, BLUE, 'contiguous')
+    expect(render(b, BLUE)).toEqual(['#...', '#...', '##..'])
+    expect(changes).toHaveLength(4)
+    expect(changes[0]!.before).toEqual(GRAY)
+  })
+
+  it('replaces the color everywhere in global mode', () => {
+    const b = walled()
+    fill(b, 0, 0, BLUE, 'global')
+    expect(render(b, BLUE)).toEqual(['#.##', '#..#', '##.#'])
+  })
+
+  it('does nothing when the color is already the same', () => {
+    const b = walled()
+    expect(fill(b, 0, 0, GRAY, 'contiguous')).toEqual([])
+  })
+
+  it('fills transparent areas whatever their stored RGB', () => {
+    const b = buffer(2, 1, TRANSPARENT)
+    b.data.set([9, 9, 9, 0], 4)
+    fill(b, 0, 0, RED, 'contiguous')
+    expect(render(b)).toEqual(['##'])
+  })
+
+  it('does not wrap around the left/right edges', () => {
+    const b = buffer(2, 2, GRAY)
+    setPixel(b, 1, 0, RED)
+    setPixel(b, 0, 1, RED)
+    // (1,1) is gray but touches (0,0) only diagonally.
+    fill(b, 0, 0, BLUE, 'contiguous')
+    expect(render(b, BLUE)).toEqual(['#.', '..'])
+  })
+
+  it('ignores clicks outside the buffer', () => {
+    expect(fill(buffer(2, 2), 5, 0, RED, 'global')).toEqual([])
   })
 })

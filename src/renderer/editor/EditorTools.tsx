@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { fromHex, toHex, type Rgba } from './pixels'
+import { fromHex, toHex, type FillMode, type Rgba } from './pixels'
 import { TOOLS, type ToolId } from './tools'
 
 interface EditorToolsProps {
@@ -7,6 +7,8 @@ interface EditorToolsProps {
   onTool: (tool: ToolId) => void
   pixelPerfect: boolean
   onPixelPerfect: (value: boolean) => void
+  fillMode: FillMode
+  onFillMode: (mode: FillMode) => void
   primary: Rgba
   secondary: Rgba
   onPrimary: (color: Rgba) => void
@@ -48,6 +50,29 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
           />
           Pixel-perfect
         </label>
+      )}
+
+      {props.tool === 'fill' && (
+        <div className="tabs small-tabs" role="radiogroup" aria-label="Modalità del secchiello">
+          {(
+            [
+              ['contiguous', 'Area', 'Solo i pixel uguali collegati a quello cliccato'],
+              ['global', 'Globale', 'Tutti i pixel di quel colore nella texture']
+            ] as const
+          ).map(([mode, label, title]) => (
+            <button
+              key={mode}
+              type="button"
+              role="radio"
+              aria-checked={props.fillMode === mode}
+              className={props.fillMode === mode ? 'tab active' : 'tab'}
+              title={title}
+              onClick={() => props.onFillMode(mode)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       )}
 
       <p className="tool-tip small muted">{active.tip}</p>

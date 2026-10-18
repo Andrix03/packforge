@@ -154,3 +154,68 @@ export function fromHex(hex: string): Rgba | null {
   if (!match) return null
   return [parseInt(match[1]!, 16), parseInt(match[2]!, 16), parseInt(match[3]!, 16), 255]
 }
+
+export type FillMode = 'contiguous' | 'global'
+
+/**
+ * Paint bucket. `contiguous` fills the 4-connected area of exactly the same color as (x, y)
+ * (diagonals don't leak, as in pixel-art editors); `global` replaces that color everywhere.
+ * Applies the fill and returns the changed pixels for the undo history.
+ */
+export function fill(
+  buffer: PixelBuffer,
+  x: number,
+  y: number,
+  color: Rgba,
+  mode: FillMode
+): PixelChange[] {
+  if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) return []
+  const target = getPixel(buffer, x, y)
+  const changes: PixelChange[] = []
+  const paint = (index: number): void => {
+    const px = index % buffer.width
+    const py = Math.floor(index / buffer.width)
+    if (setPixel(buffer, px, py, color)) {
+      changes.push({ index, before: target, after: getPixel(buffer, px, py) })
+    }
+  }
+  const total = buffer.width * buffer.height
+  const matches = (index: number): boolean => sameColor(buffer, index, target)
+
+  if (mode === 'global') {
+    for (let index = 0; index < total; index++) if (matches(index)) paint(index)
+    return changes
+  }
+
+  const visited = new Uint8Array(total)
+  const stack = [y * buffer.width + x]
+  visited[stack[0]!] = 1
+  while (stack.length > 0) {
+    const index = stack.pop()!
+    const px = index % buffer.width
+    const neighbors = [
+      px > 0 ? index - 1 : -1,
+      px < buffer.width - 1 ? index + 1 : -1,
+      index - buffer.width,
+      index + buffer.width
+    ]
+    for (const n of neighbors) {
+      if (n < 0 || n >= total || visited[n] || !matches(n)) continue
+      visited[n] = 1
+      stack.push(n)
+    }
+    // Painted after its neighbors were checked, so the new color can't confuse `matches`.
+    paint(index)
+  }
+  return changes
+}
+
+/** Exact RGBA match; every fully transparent pixel counts as the same color. */
+function sameColor(buffer: PixelBuffer, index: number, color: Rgba): boolean {
+  const d = buffer.data
+  const i = index * 4
+  if (color[3] === 0) return d[i + 3] === 0
+  return (
+    d[i] === color[0] && d[i + 1] === color[1] && d[i + 2] === color[2] && d[i + 3] === color[3]
+  )
+}

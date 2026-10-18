@@ -51,7 +51,7 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 
 - [x] Pixel canvas with zoom, pan and pixel grid
 - [x] Pencil (optional pixel-perfect stroke) and eraser
-- [ ] Fill bucket (contiguous or global) and color picker
+- [x] Fill bucket (contiguous or global) and color picker (also Alt + click with any tool)
 - [ ] Hard-pixel brush only (no soft edges / anti-aliasing), size 1–3 px in Beginner, free in Pro
 - [x] Primary/secondary color on left/right click (secondary defaults to transparent), X swaps them
 - [ ] Color picker panel: hex/RGB/HSV input, alpha, recent colors (full panel in Pro)

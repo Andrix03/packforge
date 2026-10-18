@@ -73,6 +73,8 @@ export type LoadVanillaResult =
 export type PickImageResult =
   { ok: true; name: string; dataUrl: string } | { ok: false; error: string } | null
 
+export type SaveTextureResult = { ok: true } | { ok: false; error: string }
+
 export type SettingsUpdateResult = { ok: true; view: SettingsView } | { ok: false; error: string }
 
 /** Asset URL; a non-zero version is appended so changed files bypass caches. */
@@ -108,6 +110,14 @@ export interface IpcContract {
   'pack:pickIconSource': { args: []; result: PickImageResult }
   /** Folder packs only: writes base64 PNG data (square, 16–1024 px) as pack.png. */
   'pack:setIcon': { args: [pngBase64: string]; result: OpenPackResult }
+  /**
+   * Folder packs only: writes straight RGBA8 pixels as a PNG at a pack-relative path (folders are
+   * created). Main re-validates everything and encodes the PNG itself.
+   */
+  'texture:save': {
+    args: [path: string, width: number, height: number, rgba: Uint8Array]
+    result: SaveTextureResult
+  }
   /** Installed game versions with a client jar (reference textures). */
   'vanilla:listVersions': { args: []; result: ListVanillaVersionsResult }
   /** Loads a jar in memory, read-only; textures are never copied anywhere. */
@@ -141,6 +151,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:updateVersions': true,
   'pack:pickIconSource': true,
   'pack:setIcon': true,
+  'texture:save': true,
   'vanilla:listVersions': true,
   'vanilla:load': true,
   'settings:get': true,

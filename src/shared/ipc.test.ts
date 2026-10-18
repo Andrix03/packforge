@@ -85,6 +85,7 @@ describe('registerHandlers', () => {
       'pack:updateVersions': () => ({ ok: false, error: 'unused' }),
       'pack:pickIconSource': () => null,
       'pack:setIcon': () => ({ ok: false, error: 'unused' }),
+      'texture:save': () => ({ ok: false, error: 'unused' }),
       'recent:list': () => [],
       'recent:remove': () => []
     }

@@ -71,6 +71,19 @@ describe('History', () => {
     expect(history.modified).toBe(true)
   })
 
+  it('counts every change in version', () => {
+    const b = buffer(1)
+    const history = new History()
+    const start = history.version
+    paint(history, b, 0, RED)
+    history.undo(b)
+    history.redo(b)
+    expect(history.version).toBe(start + 3)
+    history.undo(b)
+    history.undo(b) // nothing left: no change
+    expect(history.version).toBe(start + 4)
+  })
+
   it('stays modified when the saved state was in a discarded redo branch', () => {
     const b = buffer(2)
     const history = new History()

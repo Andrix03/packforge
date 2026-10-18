@@ -13,6 +13,7 @@ export class History {
   private position = 0
   /** Position matching the file on disk; null once that state can no longer be reached. */
   private savedPosition: number | null = 0
+  private changeCount = 0
 
   constructor(private readonly limit = HISTORY_LIMIT) {}
 
@@ -23,6 +24,7 @@ export class History {
     if (this.savedPosition !== null && this.savedPosition > this.position) this.savedPosition = null
     this.edits.push(edit)
     this.position++
+    this.changeCount++
     if (this.edits.length > this.limit) {
       this.edits.shift()
       this.position--
@@ -35,6 +37,7 @@ export class History {
   undo(buffer: PixelBuffer): boolean {
     if (!this.canUndo) return false
     this.position--
+    this.changeCount++
     apply(buffer, this.edits[this.position]!, 'before')
     return true
   }
@@ -43,6 +46,7 @@ export class History {
     if (!this.canRedo) return false
     apply(buffer, this.edits[this.position]!, 'after')
     this.position++
+    this.changeCount++
     return true
   }
 
@@ -57,6 +61,11 @@ export class History {
   /** True when the buffer differs from the last saved (or loaded) state. */
   get modified(): boolean {
     return this.savedPosition !== this.position
+  }
+
+  /** Bumped by every push/undo/redo: tells whether the image changed during an async save. */
+  get version(): number {
+    return this.changeCount
   }
 
   markSaved(): void {

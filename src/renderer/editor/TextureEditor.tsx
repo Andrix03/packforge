@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { decodePng } from '../../shared/pngCodec'
 import { EditorTools } from './EditorTools'
 import { History } from './history'
 import { fill, getPixel, Stroke, TRANSPARENT, type FillMode, type Rgba } from './pixels'
@@ -28,7 +29,7 @@ export interface EditorTarget {
 type Loaded =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; pixels: ImageData; source: HTMLCanvasElement }
+  | { status: 'ready'; pixels: ImageData; source: HTMLCanvasElement; reducedFrom16Bit: boolean }
 
 interface Tools {
   tool: ToolId
@@ -58,6 +59,10 @@ export function TextureEditor({
     secondary: TRANSPARENT
   })
   const [modified, setModified] = useState(false)
+  const [history] = useState(() => new History())
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [savedOnce, setSavedOnce] = useState(false)
   const swap = useCallback(
     () => setTools((t) => ({ ...t, primary: t.secondary, secondary: t.primary })),
     []
@@ -67,15 +72,59 @@ export function TextureEditor({
     let cancelled = false
     loadPixels(target.url).then(
       (value) => !cancelled && setLoaded({ status: 'ready', ...value }),
-      () => !cancelled && setLoaded({ status: 'error', message: 'Impossibile leggere la texture.' })
+      (error: unknown) =>
+        !cancelled &&
+        setLoaded({
+          status: 'error',
+          message:
+            'Impossibile leggere la texture: ' +
+            (error instanceof Error ? error.message : String(error))
+        })
     )
     return () => {
       cancelled = true
     }
   }, [target.url])
 
+  const canSave = loaded.status === 'ready' && !target.readOnly
+  const save = useCallback(async () => {
+    if (loaded.status !== 'ready' || target.readOnly || saving) return
+    const { pixels } = loaded
+    const version = history.version
+    setSaving(true)
+    setSaveError(null)
+    try {
+      // A copy: the user may keep painting while main writes the file.
+      const rgba = new Uint8Array(pixels.data)
+      const result = await window.api.invoke(
+        'texture:save',
+        target.path,
+        pixels.width,
+        pixels.height,
+        rgba
+      )
+      if (!result.ok) {
+        setSaveError(result.error)
+        return
+      }
+      // If something changed during the save, the file holds the older state: stay modified.
+      if (history.version === version) history.markSaved()
+      setModified(history.modified)
+      setSavedOnce(true)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSaving(false)
+    }
+  }, [loaded, target, saving, history])
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault()
+        void save()
+        return
+      }
       if (isTyping(event) || event.ctrlKey || event.altKey || event.metaKey) return
       const tool = toolByShortcut(event.key)
       if (tool) setTools((t) => ({ ...t, tool }))
@@ -83,11 +132,10 @@ export function TextureEditor({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [swap])
+  }, [swap, save])
 
   function close(): void {
-    // Saving arrives with the "save PNGs in the pack" roadmap item; until then edits are lost.
-    if (modified && !window.confirm('Le modifiche non sono salvate e andranno perse. Chiudere?')) {
+    if (modified && !window.confirm('Ci sono modifiche non salvate: andranno perse. Chiudere?')) {
       return
     }
     onClose()
@@ -105,11 +153,17 @@ export function TextureEditor({
             </span>
           )}
           {modified && (
-            <span
-              className="badge unsaved"
-              title="Le modifiche sono solo in memoria: il salvataggio nel pack arriva nei prossimi passi."
-            >
+            <span className="badge unsaved" title="Ci sono modifiche non salvate (Ctrl+S)">
               ● modificata
+            </span>
+          )}
+          {!modified && savedOnce && <span className="success small">Salvata nel pack</span>}
+          {loaded.status === 'ready' && loaded.reducedFrom16Bit && (
+            <span
+              className="badge"
+              title="Il file originale ha canali a 16 bit: salvando diventa a 8 bit, come le texture vanilla."
+            >
+              16 bit → 8 bit
             </span>
           )}
           {target.readOnly && (
@@ -118,9 +172,23 @@ export function TextureEditor({
             </span>
           )}
         </div>
-        <button type="button" onClick={close}>
-          Chiudi editor
-        </button>
+        <div className="row">
+          {saveError && <span className="field-error small">{saveError}</span>}
+          {canSave && (
+            <button
+              type="button"
+              className="primary"
+              onClick={() => void save()}
+              disabled={saving || !modified}
+              title="Salva la texture nel pack (Ctrl+S)"
+            >
+              {saving ? 'Salvataggio…' : 'Salva'}
+            </button>
+          )}
+          <button type="button" onClick={close}>
+            Chiudi editor
+          </button>
+        </div>
       </header>
       {loaded.status === 'loading' && <p className="muted">Caricamento della texture…</p>}
       {loaded.status === 'error' && <p className="field-error">{loaded.message}</p>}
@@ -144,6 +212,7 @@ export function TextureEditor({
             pixels={loaded.pixels}
             source={loaded.source}
             tools={target.readOnly ? null : tools}
+            history={history}
             onModifiedChange={setModified}
             onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
           />
@@ -157,6 +226,7 @@ function PixelCanvas({
   pixels,
   source,
   tools,
+  history,
   onModifiedChange,
   onPickColor
 }: {
@@ -164,6 +234,7 @@ function PixelCanvas({
   source: HTMLCanvasElement
   /** Null when read-only: the canvas can only be zoomed and panned. */
   tools: Tools | null
+  history: History
   /** Called when the image starts or stops differing from the file (undo can go back to it). */
   onModifiedChange: (modified: boolean) => void
   onPickColor: (slot: 'primary' | 'secondary', color: Rgba) => void
@@ -178,7 +249,6 @@ function PixelCanvas({
   const [panning, setPanning] = useState(false)
   /** Bumped after each painted change so the canvas redraws. */
   const [revision, setRevision] = useState(0)
-  const [history] = useState(() => new History())
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
   const spaceHeld = useRef(false)
@@ -565,27 +635,23 @@ function strokeGrid(
 }
 
 /**
- * Decodes the PNG into editable pixels plus a canvas used to draw them scaled. `pixels` is the
- * source of truth for the tools; the canvas is only a display copy.
- * TODO(save): a 2D canvas stores premultiplied alpha, so semi-transparent pixels can be off by a
- * few units; decode exactly before edits are written back to the pack.
+ * Decodes the PNG exactly (shared codec, straight alpha) into the editable pixels, plus a canvas
+ * used only to draw them scaled: a 2D canvas stores premultiplied alpha, so it is never read back.
  */
-async function loadPixels(url: string): Promise<{ pixels: ImageData; source: HTMLCanvasElement }> {
+async function loadPixels(
+  url: string
+): Promise<{ pixels: ImageData; source: HTMLCanvasElement; reducedFrom16Bit: boolean }> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  // No color management: texture pixels must keep their stored values.
-  const bitmap = await createImageBitmap(await response.blob(), {
-    colorSpaceConversion: 'none',
-    premultiplyAlpha: 'none'
-  })
+  const decoded = decodePng(new Uint8Array(await response.arrayBuffer()))
+  if (!decoded.ok) throw new Error(decoded.error)
+  const { width, height, data, reducedFrom16Bit } = decoded.image
+  const pixels = new ImageData(new Uint8ClampedArray(data), width, height)
   const source = document.createElement('canvas')
-  source.width = bitmap.width
-  source.height = bitmap.height
-  const context = source.getContext('2d', { willReadFrequently: true })
-  if (!context) throw new Error('2D canvas unavailable')
-  context.drawImage(bitmap, 0, 0)
-  bitmap.close()
-  return { pixels: context.getImageData(0, 0, source.width, source.height), source }
+  source.width = width
+  source.height = height
+  source.getContext('2d')?.putImageData(pixels, 0, 0)
+  return { pixels, source, reducedFrom16Bit }
 }
 
 /** Shortcuts are ignored while typing in a text field (checkboxes and color inputs don't count). */

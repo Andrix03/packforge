@@ -27,6 +27,7 @@ import { editPackObject } from './editMcmeta'
 import { openPack } from './openPack'
 import { ICON_IMAGE_EXTENSIONS, readIconSource, writePackIcon } from './packIcon'
 import { createPack } from './pack'
+import { saveTexture } from './textureFile'
 import { assetBase } from './packProtocol'
 import { listPackFiles } from './packSource'
 import { PackWatcher } from './packWatcher'
@@ -273,6 +274,12 @@ const handlers: IpcHandlers = {
     if (!written.ok) return written
     const reopened = await openPack(current.source.root)
     return reopened.ok ? { ok: true, pack: reopened.pack } : reopened
+  },
+
+  'texture:save': async (path, width, height, rgba) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    return saveTexture(current.source, path, width, height, rgba)
   },
 
   'pack:updateVersions': async (request) => {

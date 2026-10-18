@@ -114,6 +114,7 @@ export function TextureEditor({
   })
   const [onionSkin, setOnionSkin] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [bigPreview, setBigPreview] = useState(false)
   /** Animation settings changed since the last save (frame edits are in the history). */
   const animationDirty = useRef(false)
   const vanilla = target.sources.vanilla
@@ -627,7 +628,7 @@ export function TextureEditor({
       {loaded.status === 'loading' && <p className="muted">Caricamento della texture…</p>}
       {loaded.status === 'error' && <p className="field-error">{loaded.message}</p>}
       {doc && source && (
-        <div className="editor-main">
+        <div className={bigPreview ? 'editor-main big-preview' : 'editor-main'}>
           <EditorTools
             tool={tools.tool}
             onTool={(tool) => {
@@ -786,6 +787,28 @@ export function TextureEditor({
             )}
           </div>
           <div className="editor-side">
+            <button
+              type="button"
+              className="small-button preview-size"
+              aria-pressed={bigPreview}
+              onClick={() => setBigPreview((big) => !big)}
+              title="Allarga la colonna di destra per vedere meglio il blocco"
+            >
+              {bigPreview ? '⤡ 3D piccolo' : '⤢ 3D grande'}
+            </button>
+            <PreviewPanel
+              target={previewTarget}
+              sources={target.sources}
+              live={{
+                url: target.url,
+                canvas: source,
+                revision,
+                // An animation the editor cannot handle keeps playing from the file.
+                ...(animationNote ? {} : { animation })
+              }}
+              initialShape="block"
+              onBlockTextures={setBlockTextures}
+            />
             {(pro || doc.layers.length > 1) && !target.readOnly && (
               <LayersPanel
                 doc={doc}
@@ -798,13 +821,7 @@ export function TextureEditor({
               />
             )}
             {showTips && <AdvicePanel advice={advice} />}
-            <PreviewPanel
-              target={previewTarget}
-              sources={target.sources}
-              live={{ url: target.url, canvas: source, revision }}
-              initialShape="block"
-              onBlockTextures={setBlockTextures}
-            />
+
             <ReferencePanel
               url={referenceUrl}
               label={vanilla ? '' : 'jar non caricato'}

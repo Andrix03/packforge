@@ -75,6 +75,14 @@ describe('listBlocks / guessBlockForTexture', () => {
     expect(guessBlockForTexture(`${V}/textures/block/furnace_front_on`, blocks)).toBeNull()
     expect(guessBlockForTexture(`${V}/textures/item/stick`, blocks)).toBeNull()
   })
+
+  it('tries "<name>_block" for textures named after the material', () => {
+    const blocks = ['magma_block', 'slime_block', 'stone']
+    expect(guessBlockForTexture(`${V}/textures/block/magma`, blocks)).toBe('magma_block')
+    expect(guessBlockForTexture(`${V}/textures/block/slime`, blocks)).toBe('slime_block')
+    // An exact match still wins.
+    expect(guessBlockForTexture(`${V}/textures/block/stone`, blocks)).toBe('stone')
+  })
 })
 
 describe('cubeMesh', () => {

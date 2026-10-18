@@ -77,7 +77,7 @@ export class BlockPreview {
   }
   private parts: LoadedPart[] = []
   /** Canvases shown instead of the file at a URL (query string ignored). */
-  private readonly liveTextures = new Map<string, HTMLCanvasElement>()
+  private readonly liveTextures = new Map<string, LiveSource>()
   private sceneKind: PreviewScene = 'block'
   private animationStart = performance.now()
   private meshRequest = 0
@@ -122,9 +122,13 @@ export class BlockPreview {
    * Shows `canvas` wherever the model uses the texture at `url` (the texture being edited).
    * Applies to meshes set afterwards; call refreshLiveTextures() after painting on the canvas.
    */
-  setLiveTexture(url: string | null, canvas: HTMLCanvasElement | null): void {
+  setLiveTexture(
+    url: string | null,
+    canvas: HTMLCanvasElement | null,
+    animation: LiveAnimation | null | undefined = undefined
+  ): void {
     this.liveTextures.clear()
-    if (url && canvas) this.liveTextures.set(withoutQuery(url), canvas)
+    if (url && canvas) this.liveTextures.set(withoutQuery(url), { canvas, animation })
   }
 
   refreshLiveTextures(): void {
@@ -169,7 +173,8 @@ export class BlockPreview {
   private async loadPart(part: MeshPart): Promise<{ loaded: LoadedPart; report: PartReport }> {
     let problem: string | null = null
     let texture: THREE.Texture
-    const liveCanvas = part.url ? this.liveTextures.get(withoutQuery(part.url)) : undefined
+    const live = part.url ? this.liveTextures.get(withoutQuery(part.url)) : undefined
+    const liveCanvas = live?.canvas
     if (liveCanvas) {
       texture = new THREE.CanvasTexture(liveCanvas)
     } else if (part.url) {
@@ -192,7 +197,18 @@ export class BlockPreview {
     const imageSize = { width: image.width, height: image.height }
 
     let animation: TextureAnimation | null = null
-    if (part.mcmetaUrl && problem === null) {
+    if (live && live.animation !== undefined) {
+      // The editor's animation (even unsaved) wins over the file on disk.
+      if (live.animation) {
+        const { frameHeight, frametime, interpolate } = live.animation
+        const parsed = parseAnimation(
+          { animation: { frametime, interpolate, width: imageSize.width, height: frameHeight } },
+          imageSize.width,
+          imageSize.height
+        )
+        if (parsed.ok) animation = parsed.animation
+      }
+    } else if (part.mcmetaUrl && problem === null) {
       try {
         const parsed = parseAnimation(
           await (await fetch(part.mcmetaUrl)).json(),
@@ -324,6 +340,19 @@ function setAnimatedFrame(part: LoadedPart, ticks: number): void {
 
 function srgbToLinear(c: number): number {
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+}
+
+/** Animation settings of a texture being edited (null = not animated). */
+export interface LiveAnimation {
+  frameHeight: number
+  frametime: number
+  interpolate: boolean
+}
+
+interface LiveSource {
+  canvas: HTMLCanvasElement
+  /** undefined = use the file's .png.mcmeta. */
+  animation: LiveAnimation | null | undefined
 }
 
 function withoutQuery(url: string): string {

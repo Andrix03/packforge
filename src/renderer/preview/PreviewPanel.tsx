@@ -1,7 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { BIOMES, DEFAULT_BIOME } from '../../shared/biomeTint'
 import type { BlockstateVariant } from '../../shared/blockModel'
-import { BlockPreview, type PartReport, type PreviewScene } from './BlockPreview'
+import {
+  BlockPreview,
+  type LiveAnimation,
+  type PartReport,
+  type PreviewScene
+} from './BlockPreview'
 import { loadColormaps, tintFor, type ColormapPixels } from './colormaps'
 import { normalizeHour } from './dayNight'
 import {
@@ -27,6 +32,8 @@ export interface PreviewTarget {
 /** A texture being edited: shown from its canvas instead of the file, updated on each stroke. */
 export interface LiveTexture {
   url: string
+  /** The animation being edited (null = static); omitted = use the file's .png.mcmeta. */
+  animation?: LiveAnimation | null
   canvas: HTMLCanvasElement
   /** Bumped after every change painted on the canvas. */
   revision: number
@@ -98,8 +105,26 @@ export function PreviewPanel({
   const liveUrl = live?.url ?? null
   const liveCanvas = live?.canvas ?? null
   const liveRevision = live?.revision ?? 0
+  const liveAnimation = live?.animation
+  // Size and animation of the live texture: when they change the mesh is rebuilt (a GPU texture
+  // can't grow in place, and the frames must be re-sliced).
+  const liveShape =
+    live === null
+      ? ''
+      : `${liveCanvas?.width}x${liveCanvas?.height}|${
+          liveAnimation === undefined
+            ? 'file'
+            : liveAnimation === null
+              ? 'static'
+              : `${liveAnimation.frameHeight}/${liveAnimation.frametime}/${liveAnimation.interpolate}`
+        }`
   // Declared before the mesh effect so the override is in place when the mesh loads.
-  useEffect(() => previewRef.current?.setLiveTexture(liveUrl, liveCanvas), [liveUrl, liveCanvas])
+  useEffect(
+    () => previewRef.current?.setLiveTexture(liveUrl, liveCanvas, liveAnimation),
+    // liveShape stands for the animation object (a new object on every render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [liveUrl, liveCanvas, liveShape]
+  )
   useEffect(() => previewRef.current?.refreshLiveTextures(), [liveRevision])
 
   useEffect(() => previewRef.current?.setScene(scene), [scene])
@@ -175,7 +200,18 @@ export function PreviewPanel({
       current = false
     }
     // liveUrl/liveCanvas: the mesh must reload to pick up a new live texture.
-  }, [shape, target, sources, block, variantKey, biome, liveUrl, liveCanvas, onBlockTextures])
+  }, [
+    shape,
+    target,
+    sources,
+    block,
+    variantKey,
+    biome,
+    liveUrl,
+    liveCanvas,
+    liveShape,
+    onBlockTextures
+  ])
 
   // Day/night cycle: advance the hour on animation frames while playing.
   useEffect(() => {

@@ -64,7 +64,9 @@ export function guessBlockForTexture(textureKey: string, blocks: readonly string
   if (!match) return null
   const name = match[1]!
   const known = new Set(blocks)
-  for (const candidate of [name, name.replace(TEXTURE_SUFFIXES, ''), name.replace(/_\d+$/, '')]) {
+  const bases = [name, name.replace(TEXTURE_SUFFIXES, ''), name.replace(/_\d+$/, '')]
+  // Some blocks add "_block" to their texture's name (magma → magma_block, slime → slime_block).
+  for (const candidate of [...bases, ...bases.map((base) => `${base}_block`)]) {
     if (known.has(candidate)) return candidate
   }
   return null

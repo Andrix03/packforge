@@ -1742,3 +1742,11 @@ kbd {
 .error-boundary button {
   align-self: flex-start;
 }
+
+.editor-main.big-preview {
+  grid-template-columns: 240px minmax(0, 1fr) minmax(420px, 42%);
+}
+
+.preview-size {
+  align-self: flex-end;
+}

@@ -11,6 +11,13 @@ export interface PixelBuffer {
   readonly data: Uint8ClampedArray
 }
 
+export interface PixelChange {
+  /** Pixel index: y * width + x. */
+  index: number
+  before: Rgba
+  after: Rgba
+}
+
 export interface Point {
   x: number
   y: number
@@ -96,17 +103,18 @@ export class Stroke {
     return changed
   }
 
-  /** True if the stroke changed at least one pixel compared to before it started. */
-  get modified(): boolean {
+  /** Pixels whose color differs from before the stroke, for the undo history. */
+  changes(): PixelChange[] {
+    const changes: PixelChange[] = []
     for (const [index, before] of this.originals) {
-      const now = getPixel(
+      const after = getPixel(
         this.buffer,
         index % this.buffer.width,
         Math.floor(index / this.buffer.width)
       )
-      if (now.some((value, i) => value !== before[i])) return true
+      if (after.some((value, i) => value !== before[i])) changes.push({ index, before, after })
     }
-    return false
+    return changes
   }
 
   private paint(p: Point): boolean {

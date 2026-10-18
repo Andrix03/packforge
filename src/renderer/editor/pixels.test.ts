@@ -167,14 +167,27 @@ describe('Stroke', () => {
     expect(render(b)).toEqual(['###'])
   })
 
-  it('reports whether the stroke really changed the image', () => {
-    const b = buffer(2, 1, RED)
+  it('lists only the pixels that really changed', () => {
+    const b = buffer(3, 1, RED)
     const same = new Stroke(b, RED, false)
     same.add({ x: 0, y: 0 })
-    expect(same.modified).toBe(false)
+    expect(same.changes()).toEqual([])
     const erase = new Stroke(b, TRANSPARENT, false)
     erase.add({ x: 1, y: 0 })
-    expect(erase.modified).toBe(true)
+    erase.add({ x: 2, y: 0 })
+    expect(erase.changes()).toEqual([
+      { index: 1, before: RED, after: TRANSPARENT },
+      { index: 2, before: RED, after: TRANSPARENT }
+    ])
+  })
+
+  it('does not list a pixel-perfect corner that was restored', () => {
+    const b = buffer(2, 2, GRAY)
+    const stroke = new Stroke(b, RED, true)
+    stroke.add({ x: 0, y: 0 })
+    stroke.add({ x: 1, y: 0 })
+    stroke.add({ x: 1, y: 1 })
+    expect(stroke.changes().map((c) => c.index)).toEqual([0, 3])
   })
 })
 

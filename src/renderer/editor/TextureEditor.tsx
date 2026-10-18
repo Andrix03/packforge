@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { EditorTools } from './EditorTools'
+import { History } from './history'
 import { getPixel, Stroke, TRANSPARENT, type Rgba } from './pixels'
 import { toolByShortcut, type ToolId } from './tools'
 import {
@@ -139,7 +140,7 @@ export function TextureEditor({
             pixels={loaded.pixels}
             source={loaded.source}
             tools={target.readOnly ? null : tools}
-            onModified={() => setModified(true)}
+            onModifiedChange={setModified}
           />
         </div>
       )}
@@ -151,13 +152,14 @@ function PixelCanvas({
   pixels,
   source,
   tools,
-  onModified
+  onModifiedChange
 }: {
   pixels: ImageData
   source: HTMLCanvasElement
   /** Null when read-only: the canvas can only be zoomed and panned. */
   tools: Tools | null
-  onModified: () => void
+  /** Called when the image starts or stops differing from the file (undo can go back to it). */
+  onModifiedChange: (modified: boolean) => void
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -169,6 +171,9 @@ function PixelCanvas({
   const [panning, setPanning] = useState(false)
   /** Bumped after each painted change so the canvas redraws. */
   const [revision, setRevision] = useState(0)
+  const [history] = useState(() => new History())
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
   const spaceHeld = useRef(false)
   const drag = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null)
   const stroke = useRef<{ pointerId: number; stroke: Stroke } | null>(null)
@@ -247,10 +252,38 @@ function PixelCanvas({
     return () => canvas.removeEventListener('wheel', onWheel)
   }, [updateViewport, toDevice])
 
+  /** Copies the edited pixels to the canvas used for display and schedules a redraw. */
+  const showChanges = useCallback(() => {
+    source.getContext('2d')?.putImageData(pixels, 0, 0)
+    setRevision((r) => r + 1)
+  }, [source, pixels])
+
+  const syncHistory = useCallback(() => {
+    setCanUndo(history.canUndo)
+    setCanRedo(history.canRedo)
+    onModifiedChange(history.modified)
+  }, [history, onModifiedChange])
+
+  const undoRedo = useCallback(
+    (action: 'undo' | 'redo') => {
+      // Not in the middle of a stroke: it isn't in the history yet.
+      if (stroke.current) return
+      const done = action === 'undo' ? history.undo(pixels) : history.redo(pixels)
+      if (!done) return
+      showChanges()
+      syncHistory()
+    },
+    [history, pixels, showChanges, syncHistory]
+  )
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (isTyping(event)) return
-      if (event.code === 'Space') {
+      const key = event.key.toLowerCase()
+      if ((event.ctrlKey || event.metaKey) && (key === 'z' || key === 'y')) {
+        event.preventDefault()
+        undoRedo(key === 'y' || event.shiftKey ? 'redo' : 'undo')
+      } else if (event.code === 'Space') {
         spaceHeld.current = true
         event.preventDefault()
       } else if (event.key === '+' || event.key === '=') {
@@ -270,13 +303,7 @@ function PixelCanvas({
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [zoomCentered])
-
-  /** Copies the edited pixels to the canvas used for display and schedules a redraw. */
-  function showChanges(): void {
-    source.getContext('2d')?.putImageData(pixels, 0, 0)
-    setRevision((r) => r + 1)
-  }
+  }, [zoomCentered, undoRedo])
 
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>): void {
     if (drag.current || stroke.current) return
@@ -337,8 +364,9 @@ function PixelCanvas({
       setPanning(false)
     }
     if (stroke.current?.pointerId === event.pointerId) {
-      if (stroke.current.stroke.modified) onModified()
+      history.push(stroke.current.stroke.changes())
       stroke.current = null
+      syncHistory()
     }
   }
 
@@ -372,6 +400,22 @@ function PixelCanvas({
           aria-label="Ingrandisci"
         >
           +
+        </button>
+        <button
+          type="button"
+          onClick={() => undoRedo('undo')}
+          disabled={!canUndo}
+          title="Annulla (Ctrl+Z)"
+        >
+          ↶ Annulla
+        </button>
+        <button
+          type="button"
+          onClick={() => undoRedo('redo')}
+          disabled={!canRedo}
+          title="Ripeti (Ctrl+Y)"
+        >
+          ↷ Ripeti
         </button>
         <label className="inline-check">
           <input

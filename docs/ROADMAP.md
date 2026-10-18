@@ -62,7 +62,7 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 - [ ] Texture palette: the colors already used, sorted by brightness, with a color counter
 - [ ] Soft warnings in Beginner mode: too many colors (> ~10), darkest next to lightest, too much contrast
 - [ ] Beginner / Pro mode switch (remembered in settings), tool tips with shortcut and one-line advice
-- [ ] Undo/redo history (100+ steps), unsaved-changes indicator
+- [x] Undo/redo history (100+ steps), unsaved-changes indicator
 - [ ] Draft autosave and recovery after a crash
 - [ ] Block-centric editing: open a block and switch between its textures (top / side / bottom) as tabs
 - [ ] New texture wizard (pick the block, size 16×/32×/64×…, start empty / base color / noise) and save PNGs in the pack

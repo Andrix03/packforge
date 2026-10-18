@@ -45,7 +45,14 @@ import {
 } from './channels'
 import { MapTabs, ValuePanel, type ChannelValues, type Surface } from './ChannelPanel'
 import { GeneratorPanel, type GenerateAction, type GeneratorSettings } from './GeneratorPanel'
-import { generateFromHeight, generateHeight, normalsAreFlat } from './mapGenerate'
+import {
+  applyMaterialPreset,
+  generateFromHeight,
+  generateHeight,
+  normalsAreFlat
+} from './mapGenerate'
+import { MaterialPanel } from './MaterialPanel'
+import { accentMask, DEFAULT_MATERIAL, type MaterialOptions } from '../../shared/materialPresets'
 
 export interface EditorTarget {
   /** Pack-relative path of the albedo PNG. */
@@ -174,6 +181,7 @@ export function TextureEditor({
     wrap: true,
     auto: false
   })
+  const [material, setMaterial] = useState<MaterialOptions>(DEFAULT_MATERIAL)
   const normalPath = mapPath(target.path, 'normal')
   const specularPath = mapPath(target.path, 'specular')
   const packFiles = target.sources.pack
@@ -691,6 +699,16 @@ export function TextureEditor({
     refresh()
   }
 
+  function applyMaterial(): void {
+    const map = maps?.specular
+    if (!map || !doc) return
+    settle()
+    history.push(
+      applyMaterialPreset(map, doc.composite, material, editDoc?.selection?.mask ?? null)
+    )
+    refresh()
+  }
+
   function close(): void {
     if (modified && !window.confirm('Ci sono modifiche non salvate: andranno perse. Chiudere?')) {
       return
@@ -1103,6 +1121,28 @@ export function TextureEditor({
                   maps.normal.width === doc.width && maps.normal.height === doc.height
                     ? null
                     : `L’altezza dai colori serve una mappa grande come la texture (${maps.normal.width}×${maps.normal.height} contro ${doc.width}×${doc.height}).`
+                }
+              />
+            )}
+            {surface === 'specular' && maps?.specular && !target.readOnly && (
+              <MaterialPanel
+                options={material}
+                onOptions={setMaterial}
+                onApply={applyMaterial}
+                disabled={
+                  maps.specular.width === doc.width && maps.specular.height === doc.height
+                    ? null
+                    : `I materiali dai colori servono una mappa grande come la texture (${maps.specular.width}×${maps.specular.height} contro ${doc.width}×${doc.height}).`
+                }
+                selectionActive={editDoc?.selection != null}
+                accentCount={
+                  material.preset === 'ore'
+                    ? accentMask(
+                        doc.composite.data,
+                        doc.width * doc.height,
+                        material.accentThreshold
+                      ).reduce((sum, v) => sum + v, 0)
+                    : null
                 }
               />
             )}

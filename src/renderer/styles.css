@@ -1976,3 +1976,8 @@ kbd {
 .generator-panel select {
   min-width: 0;
 }
+
+.material-presets button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--border);
+}

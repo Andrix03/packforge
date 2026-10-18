@@ -191,7 +191,7 @@ export function GeneratorPanel({
   )
 }
 
-function Range({
+export function Range({
   label,
   value,
   unit,

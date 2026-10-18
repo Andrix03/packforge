@@ -1,6 +1,7 @@
-// Generator actions on an edited `_n` map: each writes through the channel proxies, so it is an
-// ordinary undo step and the other channels stay as they are.
+// Generator actions on an edited `_n` map and material presets on `_s`: each writes through the
+// channel proxies, so it is an ordinary undo step and the other channels stay as they are.
 
+import { applyMaterial, type MaterialOptions } from '../../shared/materialPresets'
 import {
   heightFromAlbedo,
   normalsFromHeight,
@@ -10,7 +11,14 @@ import {
   type NormalOptions,
   type OcclusionOptions
 } from '../../shared/pbrGenerator'
-import { channelDef, normalBlue, toGray, type ChannelDef, type EditedMap } from './channels'
+import {
+  channelDef,
+  normalBlue,
+  toGray,
+  type ChannelDef,
+  type ChannelId,
+  type EditedMap
+} from './channels'
 import { combine, pixelCommand, type Command } from './history'
 import { replacePixels, type PixelBuffer } from './pixels'
 
@@ -83,4 +91,26 @@ export function normalsAreFlat(map: PixelBuffer): boolean {
     if (Math.abs(d[i]! - 128) > 1 || Math.abs(d[i + 1]! - 128) > 1) return false
   }
   return true
+}
+
+/**
+ * A material preset on an edited `_s` map (`albedo` of the same size). Only pixels in `mask` (null
+ * = all) change; emission is written only by the emissive preset. One undo step.
+ */
+export function applyMaterialPreset(
+  map: EditedMap,
+  albedo: PixelBuffer,
+  options: MaterialOptions,
+  mask: Uint8Array | null
+): Command | null {
+  map.sync()
+  const next = applyMaterial(albedo.data, map.buffer.data, options, mask)
+  const ids: ChannelId[] = ['smoothness', 'reflectance', 'porosity']
+  if (options.preset === 'emissive') ids.push('emission')
+  return combine(
+    ids.map((id) => {
+      const channel = channelDef(id)
+      return writeChannel(map, channel, (i) => next[i * 4 + channel.index]!)
+    })
+  )
 }

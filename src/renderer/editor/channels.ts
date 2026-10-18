@@ -6,6 +6,7 @@
 // Erased (transparent) proxy pixels go back to the channel's neutral value.
 
 import { METALS, type MapKind } from '../../shared/labpbr'
+import { f0Byte } from '../../shared/materialPresets'
 import { EditorDocument } from './document'
 import type { PixelBuffer, Rgba } from './pixels'
 
@@ -34,11 +35,6 @@ export interface ChannelDef {
   presets: readonly ValuePreset[]
   /** False for the normal: generated from the height, shown in color. */
   paintable: boolean
-}
-
-/** F0 byte for a dielectric with refractive index n: ((n−1)/(n+1))² × 255 (linear, as the spec). */
-function f0Byte(n: number): number {
-  return Math.round(((n - 1) / (n + 1)) ** 2 * 255)
 }
 
 export const CHANNELS: readonly ChannelDef[] = [

@@ -123,7 +123,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 ## Phase 8 — Effects: PBR tools
 
 - [x] Height and normal generator from albedo (depth, blur, steps, invert; normals Sobel/Scharr + strength; AO from height; tiling edges)
-- [ ] Material presets → `_s` (stone, wood, metal, ore, glass, emissive)
+- [x] Material presets → `_s` (stone, polished, wood, soil, wool, leaves SSS, glass, ice, metal, ore with gem pixels found by color, emissive from lightness; selection = mask; one undo step)
 - [x] Channel painting with the editor brushes (`_n` / `_s` channels in gray, values and typical presets; selections act as masks; live in the 3D preview and Test)
 - [ ] Validator (sizes, emissive alpha, orphan files)
 - [ ] Batch apply a preset or generator to many textures at once

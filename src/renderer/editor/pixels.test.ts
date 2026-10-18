@@ -376,3 +376,31 @@ describe('fill', () => {
     expect(fill(buffer(2, 2), 5, 0, RED, 'global')).toEqual([])
   })
 })
+
+describe('bounds (animation frames)', () => {
+  const RED_B: Rgba = [255, 0, 0, 255]
+
+  it('keeps strokes, mirror and wrap inside the bounds', () => {
+    // 4×4 image, editable area = rows 2..3 (second "frame").
+    const bounds = { x0: 0, y0: 2, x1: 3, y1: 3 }
+    const b = buffer(4, 4)
+    new Stroke(b, RED_B, { bounds, mirror: { x: false, y: true } }).add({ x: 1, y: 2 })
+    expect(render(b, RED_B)).toEqual(['....', '....', '.#..', '.#..'])
+    const w = buffer(4, 4)
+    const wrapped = new Stroke(w, RED_B, { bounds, wrap: true })
+    wrapped.add({ x: 0, y: 3 })
+    wrapped.add({ x: 0, y: 4 })
+    expect(getPixel(w, 0, 2)).toEqual(RED_B)
+    expect(getPixel(w, 0, 0)).toEqual(TRANSPARENT)
+  })
+
+  it('does not let fills leak into other frames', () => {
+    const b = buffer(2, 4)
+    const bounds = { x0: 0, y0: 0, x1: 1, y1: 1 }
+    fill(b, 0, 0, RED_B, 'contiguous', null, false, bounds)
+    expect(render(b, RED_B)).toEqual(['##', '##', '..', '..'])
+    const g = buffer(2, 4)
+    fill(g, 0, 3, RED_B, 'global', null, false, { x0: 0, y0: 2, x1: 1, y1: 3 })
+    expect(render(g, RED_B)).toEqual(['..', '..', '##', '##'])
+  })
+})

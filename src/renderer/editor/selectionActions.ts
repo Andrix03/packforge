@@ -6,27 +6,28 @@ import type { EditorDocument } from './document'
 import { pixelCommand, type Command } from './history'
 import { diffPixels } from './pixels'
 import {
-  allSelection,
   clearSelected,
   extract,
   flipFloating,
   floatingSelection,
   moveFloating,
+  rectSelection,
   rotateFloating,
   stampFloating,
-  type Floating
+  type Floating,
+  type Selection
 } from './selection'
 
 /** Lifts the selected pixels of the active layer (everything if nothing is selected). */
 export function lift(doc: EditorDocument): void {
   if (doc.floating) return
   const layer = doc.active
-  const selection = doc.selection ?? allSelection(doc.width, doc.height)
+  const selection = doc.selection ?? viewSelection(doc)
   const snapshot = new Uint8ClampedArray(layer.pixels.data)
   const piece = extract(layer.pixels, selection)
   clearSelected(layer.pixels, selection)
   doc.floating = { layerId: layer.id, piece, snapshot, selectionBefore: doc.selection }
-  doc.selection = floatingSelection(piece, doc.width, doc.height)
+  doc.selection = floatingSelection(piece, doc.width, doc.height, doc.view)
   doc.recomposite()
 }
 
@@ -55,7 +56,7 @@ export function drop(doc: EditorDocument): Command | null {
     doc.recomposite()
     return null
   }
-  stampFloating(layer.pixels, floating.piece)
+  stampFloating(layer.pixels, floating.piece, doc.view)
   doc.recomposite()
   return pixelCommand(layer.pixels, diffPixels(layer.pixels, floating.snapshot))
 }
@@ -81,7 +82,7 @@ export function deselect(doc: EditorDocument): Command | null {
 
 export function selectAll(doc: EditorDocument): Command | null {
   const command = drop(doc)
-  doc.selection = allSelection(doc.width, doc.height)
+  doc.selection = viewSelection(doc)
   return command
 }
 
@@ -114,17 +115,22 @@ export function cut(doc: EditorDocument): { piece: Floating | null; command: Com
 }
 
 /**
- * Pastes a piece as floating content on the active layer, at its original position when it fits,
- * else at the top-left corner. Drops any current floating piece first (returned command).
+ * Pastes a piece as floating content on the active layer: at its original position when it fits
+ * the editable area, else at the same spot inside the current animation frame, else at the area's
+ * top-left corner. Drops any current floating piece first (returned command).
  */
 export function paste(doc: EditorDocument, piece: Floating): Command | null {
   const command = drop(doc)
-  const fits =
-    piece.x >= 0 &&
-    piece.y >= 0 &&
-    piece.x + piece.width <= doc.width &&
-    piece.y + piece.height <= doc.height
-  const placed = fits ? piece : { ...piece, x: 0, y: 0 }
+  const { x0, y0, x1, y1 } = doc.view
+  const fits = (p: Floating): boolean =>
+    p.x >= x0 && p.y >= y0 && p.x + p.width - 1 <= x1 && p.y + p.height - 1 <= y1
+  const viewHeight = y1 - y0 + 1
+  const sameSpotInFrame = { ...piece, y: y0 + (((piece.y % viewHeight) + viewHeight) % viewHeight) }
+  const placed = fits(piece)
+    ? piece
+    : fits(sameSpotInFrame)
+      ? sameSpotInFrame
+      : { ...piece, x: x0, y: y0 }
   const layer = doc.active
   doc.floating = {
     layerId: layer.id,
@@ -132,18 +138,24 @@ export function paste(doc: EditorDocument, piece: Floating): Command | null {
     snapshot: new Uint8ClampedArray(layer.pixels.data),
     selectionBefore: doc.selection
   }
-  doc.selection = floatingSelection(placed, doc.width, doc.height)
+  doc.selection = floatingSelection(placed, doc.width, doc.height, doc.view)
   doc.recomposite()
   return command
 }
 
 function setPiece(doc: EditorDocument, piece: Floating): void {
   doc.floating = { ...doc.floating!, piece }
-  doc.selection = floatingSelection(piece, doc.width, doc.height)
+  doc.selection = floatingSelection(piece, doc.width, doc.height, doc.view)
   doc.recomposite()
 }
 
 /** Drops the selection without touching pixels (Esc with nothing floating). */
 export function clearSelection(doc: EditorDocument): void {
   doc.selection = null
+}
+
+/** The whole editable area (the image, or the animation frame being edited). */
+function viewSelection(doc: EditorDocument): Selection {
+  const { x0, y0, x1, y1 } = doc.view
+  return rectSelection(doc.width, doc.height, { x: x0, y: y0 }, { x: x1, y: y1 })!
 }

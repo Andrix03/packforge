@@ -5,7 +5,8 @@
 
 import type { Command } from './history'
 import type { PixelBuffer } from './pixels'
-import { stampFloating, type Floating, type Selection } from './selection'
+import { frameBounds, spliceRows } from './frames'
+import { stampFloating, type Bounds, type Floating, type Selection } from './selection'
 
 /** Pixels lifted out of a layer (moving/pasting), shown above it until dropped. */
 export interface FloatingState {
@@ -32,7 +33,9 @@ export class EditorDocument {
   /** Bottom layer first. */
   layers: Layer[]
   activeId: number
-  readonly composite: PixelBuffer
+  composite: PixelBuffer
+  /** Editable area: the whole image, or the animation frame being edited. */
+  view: Bounds
   /** Current selection (not part of the undo history, like in most paint programs). */
   selection: Selection | null = null
   floating: FloatingState | null = null
@@ -40,9 +43,10 @@ export class EditorDocument {
 
   constructor(
     readonly width: number,
-    readonly height: number,
+    public height: number,
     data?: Uint8Array | Uint8ClampedArray
   ) {
+    this.view = { x0: 0, y0: 0, x1: width - 1, y1: height - 1 }
     const first = this.createLayer('Livello 1')
     if (data) first.pixels.data.set(data)
     this.layers = [first]
@@ -72,7 +76,7 @@ export class EditorDocument {
       if (this.floating?.layerId === layer.id) {
         // The floating piece is shown as part of its layer.
         const withPiece = { ...layer.pixels, data: new Uint8ClampedArray(src) }
-        stampFloating(withPiece, this.floating.piece)
+        stampFloating(withPiece, this.floating.piece, this.view)
         src = withPiece.data
       }
       for (let i = 0; i < out.length; i += 4) {
@@ -190,6 +194,87 @@ export class EditorDocument {
       },
       redo: merge
     }
+  }
+
+  // --- animation frames (vertical strip of `frameHeight`-tall frames) -------------------------
+
+  /** Edits only frame `index` (null = the whole image). Not an undo step. */
+  setFrameView(frameHeight: number | null, index = 0): void {
+    this.view =
+      frameHeight === null
+        ? { x0: 0, y0: 0, x1: this.width - 1, y1: this.height - 1 }
+        : frameBounds(this.width, frameHeight, index)
+    this.selection = null
+  }
+
+  /** New frame at `at`: a copy of frame `copyFrom`, or empty. */
+  insertFrame(frameHeight: number, at: number, copyFrom: number | null): Command {
+    return this.restructure((data) => {
+      const rowBytes = this.width * 4
+      const insert =
+        copyFrom === null
+          ? new Uint8ClampedArray(frameHeight * rowBytes)
+          : data.slice(copyFrom * frameHeight * rowBytes, (copyFrom + 1) * frameHeight * rowBytes)
+      return spliceRows(data, this.width, at * frameHeight, 0, insert)
+    })
+  }
+
+  /** Removes frame `index` (callers keep at least one). */
+  removeFrame(frameHeight: number, index: number): Command {
+    return this.restructure((data) =>
+      spliceRows(data, this.width, index * frameHeight, frameHeight, null)
+    )
+  }
+
+  /** Swaps frame `index` with its neighbor (-1 = earlier, +1 = later). */
+  moveFrame(frameHeight: number, index: number, direction: 1 | -1): Command | null {
+    const other = index + direction
+    if (other < 0 || other >= this.height / frameHeight) return null
+    const first = Math.min(index, other)
+    return this.restructure((data) => {
+      const rowBytes = this.width * 4
+      const a = data.slice(first * frameHeight * rowBytes, (first + 1) * frameHeight * rowBytes)
+      const b = data.slice(
+        (first + 1) * frameHeight * rowBytes,
+        (first + 2) * frameHeight * rowBytes
+      )
+      const swapped = new Uint8ClampedArray(a.length + b.length)
+      swapped.set(b)
+      swapped.set(a, b.length)
+      return spliceRows(data, this.width, first * frameHeight, 2 * frameHeight, swapped)
+    })
+  }
+
+  /**
+   * Replaces every layer's pixels with `change(data)` (whole rows added/removed, same width). The
+   * buffers are updated IN PLACE so earlier pixel commands keep pointing at them; the history is
+   * linear, so they are only replayed once this command has been undone.
+   */
+  private restructure(change: (data: Uint8ClampedArray) => Uint8ClampedArray): Command {
+    const before = this.layers.map((layer) => ({ layer, data: layer.pixels.data }))
+    const after = before.map(({ layer, data }) => ({ layer, data: change(data) }))
+    const heightBefore = this.height
+    const heightAfter = after[0]!.data.length / (this.width * 4)
+    const apply = (states: typeof before, height: number): void => {
+      for (const { layer, data } of states) {
+        const pixels = layer.pixels as { height: number; data: Uint8ClampedArray }
+        pixels.height = height
+        pixels.data = data
+      }
+      this.height = height
+      this.composite = blank(this.width, height)
+      this.selection = null
+      this.floating = null
+      this.view = {
+        x0: 0,
+        y0: Math.min(this.view.y0, height - 1),
+        x1: this.width - 1,
+        y1: Math.min(this.view.y1, height - 1)
+      }
+      this.recomposite()
+    }
+    apply(after, heightAfter)
+    return { undo: () => apply(before, heightBefore), redo: () => apply(after, heightAfter) }
   }
 
   /** Makes a layer active (not an undo step: like selecting a tool). */

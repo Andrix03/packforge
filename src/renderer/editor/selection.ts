@@ -41,11 +41,19 @@ export interface Floating {
 }
 
 /** Rectangle between two points, clamped to the texture; null when it misses the texture. */
-export function rectSelection(width: number, height: number, a: Point, b: Point): Selection | null {
-  const x0 = Math.max(0, Math.min(a.x, b.x))
-  const y0 = Math.max(0, Math.min(a.y, b.y))
-  const x1 = Math.min(width - 1, Math.max(a.x, b.x))
-  const y1 = Math.min(height - 1, Math.max(a.y, b.y))
+export function rectSelection(
+  width: number,
+  height: number,
+  a: Point,
+  b: Point,
+  /** Clamp to this area instead of the whole texture (an animation frame). */
+  area: Bounds | null = null
+): Selection | null {
+  const limit = area ?? { x0: 0, y0: 0, x1: width - 1, y1: height - 1 }
+  const x0 = Math.max(limit.x0, Math.min(a.x, b.x))
+  const y0 = Math.max(limit.y0, Math.min(a.y, b.y))
+  const x1 = Math.min(limit.x1, Math.max(a.x, b.x))
+  const y1 = Math.min(limit.y1, Math.max(a.y, b.y))
   if (x0 > x1 || y0 > y1) return null
   const mask = new Uint8Array(width * height)
   for (let y = y0; y <= y1; y++) mask.fill(1, y * width + x0, y * width + x1 + 1)
@@ -127,14 +135,20 @@ export function clearSelected(buffer: PixelBuffer, selection: Selection): PixelC
  * Writes the floating piece into a buffer: its pixels REPLACE what is below (pixel art; fully
  * transparent pixels of the piece leave the layer unchanged). Parts outside the texture are dropped.
  */
-export function stampFloating(buffer: PixelBuffer, floating: Floating): void {
+export function stampFloating(
+  buffer: PixelBuffer,
+  floating: Floating,
+  /** Only pixels inside this area are written (an animation frame). */
+  area: Bounds | null = null
+): void {
+  const limit = area ?? { x0: 0, y0: 0, x1: buffer.width - 1, y1: buffer.height - 1 }
   for (let y = 0; y < floating.height; y++) {
     for (let x = 0; x < floating.width; x++) {
       const i = y * floating.width + x
       if (!floating.mask[i] || floating.data[i * 4 + 3] === 0) continue
       const tx = floating.x + x
       const ty = floating.y + y
-      if (tx < 0 || ty < 0 || tx >= buffer.width || ty >= buffer.height) continue
+      if (tx < limit.x0 || ty < limit.y0 || tx > limit.x1 || ty > limit.y1) continue
       const d = floating.data
       setPixel(buffer, tx, ty, [d[i * 4]!, d[i * 4 + 1]!, d[i * 4 + 2]!, d[i * 4 + 3]!])
     }
@@ -145,15 +159,19 @@ export function stampFloating(buffer: PixelBuffer, floating: Floating): void {
 export function floatingSelection(
   floating: Floating,
   width: number,
-  height: number
+  height: number,
+  area: Bounds | null = null
 ): Selection | null {
+  const limit = area ?? { x0: 0, y0: 0, x1: width - 1, y1: height - 1 }
   const indices: number[] = []
   for (let y = 0; y < floating.height; y++) {
     for (let x = 0; x < floating.width; x++) {
       if (!floating.mask[y * floating.width + x]) continue
       const tx = floating.x + x
       const ty = floating.y + y
-      if (tx >= 0 && ty >= 0 && tx < width && ty < height) indices.push(ty * width + tx)
+      if (tx >= limit.x0 && ty >= limit.y0 && tx <= limit.x1 && ty <= limit.y1) {
+        indices.push(ty * width + tx)
+      }
     }
   }
   return maskSelection(width, height, indices)

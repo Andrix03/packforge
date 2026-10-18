@@ -73,6 +73,8 @@ export function linePoints(from: Point, to: Point): Point[] {
  * the stroke (shade tool; null leaves the pixel alone). A function is applied once per pixel per
  * stroke, so going back and forth over a pixel doesn't keep darkening it.
  */
+import type { Bounds } from './selection'
+
 export type StrokePaint = Rgba | ((before: Rgba) => Rgba | null)
 
 export interface StrokeOptions {
@@ -86,6 +88,11 @@ export interface StrokeOptions {
   clip?: ((x: number, y: number) => boolean) | null
   /** Seamless mode: coordinates outside the texture wrap around to the opposite edge. */
   wrap?: boolean
+  /**
+   * Editable area (an animation frame): painting stays inside it, and wrapping and mirroring
+   * happen within it. Default: the whole buffer.
+   */
+  bounds?: Bounds | null
 }
 
 /**
@@ -167,13 +174,21 @@ export class Stroke {
   }
 
   /** Texture pixel for stroke coordinates (wrapped in seamless mode), or null outside/clipped. */
+  private get area(): Bounds {
+    return (
+      this.options.bounds ?? { x0: 0, y0: 0, x1: this.buffer.width - 1, y1: this.buffer.height - 1 }
+    )
+  }
+
   private resolve(x: number, y: number): Point | null {
-    const { width, height } = this.buffer
+    const { x0, y0, x1, y1 } = this.area
     if (this.options.wrap) {
-      x = ((x % width) + width) % width
-      y = ((y % height) + height) % height
+      const w = x1 - x0 + 1
+      const h = y1 - y0 + 1
+      x = x0 + ((((x - x0) % w) + w) % w)
+      y = y0 + ((((y - y0) % h) + h) % h)
     }
-    if (x < 0 || y < 0 || x >= width || y >= height) return null
+    if (x < x0 || y < y0 || x > x1 || y > y1) return null
     if (this.options.clip && !this.options.clip(x, y)) return null
     return { x, y }
   }
@@ -182,12 +197,12 @@ export class Stroke {
   private paint(x: number, y: number): boolean {
     const target = this.resolve(x, y)
     if (!target) return false
-    const { width, height } = this.buffer
+    const { x0, y0, x1, y1 } = this.area
     const mirror = this.options.mirror
     const spots = [target]
-    if (mirror?.x) spots.push({ x: width - 1 - target.x, y: target.y })
-    if (mirror?.y) spots.push({ x: target.x, y: height - 1 - target.y })
-    if (mirror?.x && mirror.y) spots.push({ x: width - 1 - target.x, y: height - 1 - target.y })
+    if (mirror?.x) spots.push({ x: x0 + x1 - target.x, y: target.y })
+    if (mirror?.y) spots.push({ x: target.x, y: y0 + y1 - target.y })
+    if (mirror?.x && mirror.y) spots.push({ x: x0 + x1 - target.x, y: y0 + y1 - target.y })
     let changed = false
     for (const spot of spots) {
       if (spot !== target && this.options.clip && !this.options.clip(spot.x, spot.y)) continue
@@ -256,9 +271,10 @@ export function fill(
   /** Restricts the fill (selection): pixels for which it returns false are left alone. */
   clip: ((index: number) => boolean) | null = null,
   /** Seamless mode: the area continues across the edges. */
-  wrap = false
+  wrap = false,
+  bounds: Bounds | null = null
 ): PixelChange[] {
-  const region = fillRegion(buffer, x, y, mode, wrap)
+  const region = fillRegion(buffer, x, y, mode, wrap, bounds)
   return paintPixels(buffer, clip ? region.filter(clip) : region, () => color)
 }
 
@@ -271,37 +287,46 @@ export function fillRegion(
   x: number,
   y: number,
   mode: FillMode,
-  wrap = false
+  wrap = false,
+  /** Restricts the region to this rectangle (an animation frame); wrapping happens inside it. */
+  bounds: Bounds | null = null
 ): number[] {
-  if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) return []
+  const { x0, y0, x1, y1 } = bounds ?? { x0: 0, y0: 0, x1: buffer.width - 1, y1: buffer.height - 1 }
+  if (x < x0 || y < y0 || x > x1 || y > y1) return []
+  const w = buffer.width
   const target = getPixel(buffer, x, y)
-  const total = buffer.width * buffer.height
   const matches = (index: number): boolean => sameColor(buffer, index, target)
   const region: number[] = []
 
   if (mode === 'global') {
-    for (let index = 0; index < total; index++) if (matches(index)) region.push(index)
+    for (let py = y0; py <= y1; py++) {
+      for (let px = x0; px <= x1; px++) if (matches(py * w + px)) region.push(py * w + px)
+    }
     return region
   }
 
-  const visited = new Uint8Array(total)
-  const stack = [y * buffer.width + x]
+  const visited = new Uint8Array(w * buffer.height)
+  const stack = [y * w + x]
   visited[stack[0]!] = 1
   while (stack.length > 0) {
     const index = stack.pop()!
     region.push(index)
-    const px = index % buffer.width
-    const w = buffer.width
-    const neighbors = wrap
-      ? [
-          px > 0 ? index - 1 : index + w - 1,
-          px < w - 1 ? index + 1 : index - w + 1,
-          (index - w + total) % total,
-          (index + w) % total
-        ]
-      : [px > 0 ? index - 1 : -1, px < w - 1 ? index + 1 : -1, index - w, index + w]
-    for (const n of neighbors) {
-      if (n < 0 || n >= total || visited[n] || !matches(n)) continue
+    const px = index % w
+    const py = Math.floor(index / w)
+    const steps: Array<[number, number]> = [
+      [px - 1, py],
+      [px + 1, py],
+      [px, py - 1],
+      [px, py + 1]
+    ]
+    for (let [nx, ny] of steps) {
+      if (wrap) {
+        nx = nx < x0 ? x1 : nx > x1 ? x0 : nx
+        ny = ny < y0 ? y1 : ny > y1 ? y0 : ny
+      }
+      if (nx < x0 || ny < y0 || nx > x1 || ny > y1) continue
+      const n = ny * w + nx
+      if (visited[n] || !matches(n)) continue
       visited[n] = 1
       stack.push(n)
     }

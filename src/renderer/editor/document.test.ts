@@ -127,3 +127,65 @@ describe('EditorDocument layer commands', () => {
     expect(doc.addLayer()).toBeNull()
   })
 })
+
+describe('EditorDocument animation frames', () => {
+  /** 1×1 frames, one per alpha value: frame i has alpha = values[i]. */
+  function strip(values: number[]): EditorDocument {
+    return new EditorDocument(
+      1,
+      values.length,
+      Uint8Array.from(values.flatMap((a) => [0, 0, 0, a]))
+    )
+  }
+  const alphas = (doc: EditorDocument): number[] =>
+    [...doc.active.pixels.data].filter((_, i) => i % 4 === 3)
+
+  it('inserts an empty frame or a copy, undoably', () => {
+    const doc = strip([10, 20])
+    const history = new History()
+    history.push(doc.insertFrame(1, 1, null))
+    expect(alphas(doc)).toEqual([10, 0, 20])
+    expect(doc.height).toBe(3)
+    expect(doc.composite.data.length).toBe(12)
+    history.push(doc.insertFrame(1, 0, 2))
+    expect(alphas(doc)).toEqual([20, 10, 0, 20])
+    history.undo()
+    history.undo()
+    expect(alphas(doc)).toEqual([10, 20])
+    expect(doc.height).toBe(2)
+  })
+
+  it('removes and moves frames', () => {
+    const doc = strip([10, 20, 30])
+    const remove = doc.removeFrame(1, 0)
+    expect(alphas(doc)).toEqual([20, 30])
+    remove.undo()
+    doc.moveFrame(1, 0, 1)
+    expect(alphas(doc)).toEqual([20, 10, 30])
+    expect(doc.moveFrame(1, 2, 1)).toBeNull()
+  })
+
+  it('keeps earlier pixel edits undoable across a frame change', () => {
+    const doc = strip([10, 20])
+    const history = new History()
+    const before = doc.active.pixels
+    const edit = {
+      undo: () => before.data.set([0, 0, 0, 10], 0),
+      redo: () => before.data.set([0, 0, 0, 99], 0)
+    }
+    edit.redo()
+    history.push(edit)
+    history.push(doc.insertFrame(1, 0, null))
+    history.undo()
+    history.undo()
+    expect(alphas(doc)).toEqual([10, 20])
+  })
+
+  it('limits the editable view to one frame', () => {
+    const doc = strip([10, 20, 30])
+    doc.setFrameView(1, 2)
+    expect(doc.view).toEqual({ x0: 0, y0: 2, x1: 0, y1: 2 })
+    doc.setFrameView(null)
+    expect(doc.view.y1).toBe(2)
+  })
+})

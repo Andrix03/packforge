@@ -3,6 +3,7 @@
 // instead of only changing brightness (which looks "muddy").
 
 import { hsvToRgb, rgbToHsv, sameColor, type Hsv } from './color'
+import type { Bounds } from './selection'
 import {
   fillRegion,
   paintPixels,
@@ -104,10 +105,11 @@ export function noiseFill(
   mode: FillMode,
   random: () => number = Math.random,
   clip: ((index: number) => boolean) | null = null,
-  wrap = false
+  wrap = false,
+  bounds: Bounds | null = null
 ): PixelChange[] {
   if (ramp.length === 0) return []
-  const region = fillRegion(buffer, x, y, mode, wrap)
+  const region = fillRegion(buffer, x, y, mode, wrap, bounds)
   return paintPixels(buffer, clip ? region.filter(clip) : region, () => noiseColor(ramp, random))
 }
 

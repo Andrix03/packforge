@@ -8,6 +8,7 @@ import type { EditorTarget } from '../editor/TextureEditor'
 import type { AssetSources } from '../preview/modelSource'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { FileTree } from './FileTree'
+import { NewTextureDialog, type NewTextureRequest } from './NewTextureDialog'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
 
 const DEFAULT_FOLDER = 'assets/minecraft/textures/block'
@@ -116,8 +117,19 @@ export function PackWorkspace({
       vanilla={vanilla}
       jar={jar}
       onSelectVersion={(id) => void loadJar(id)}
-      onEditTexture={(texture, sources) => {
+      canCreate={pack.kind === 'folder'}
+      onEditTexture={(texture, previewSources) => {
         const base = packFiles.value.assetBase
+        // A texture just created may not be listed yet: the 3D preview must still find it in the pack.
+        const sources = previewSources.pack.files.has(texture.albedo)
+          ? previewSources
+          : {
+              ...previewSources,
+              pack: {
+                ...previewSources.pack,
+                files: new Set([...previewSources.pack.files, texture.albedo])
+              }
+            }
         onEditTexture({
           path: texture.albedo,
           textureKey: texture.key,
@@ -140,6 +152,7 @@ function Workspace({
   vanilla,
   jar,
   onSelectVersion,
+  canCreate,
   onEditTexture
 }: {
   packFiles: SourceFiles
@@ -148,6 +161,8 @@ function Workspace({
   jar: Loadable<VanillaJar>
   onSelectVersion: (versionId: string) => void
   onEditTexture: (texture: TextureEntry, sources: AssetSources) => void
+  /** Folder packs can get new textures; zip packs are read-only. */
+  canCreate: boolean
 }): React.JSX.Element {
   const packTextures = useMemo(() => groupTextures(packFiles.files), [packFiles.files])
   const jarFiles = jar.status === 'ready' ? jar.value.files : null
@@ -164,6 +179,7 @@ function Workspace({
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null)
+  const [creating, setCreating] = useState<NewTextureRequest | null>(null)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
     previewSelection?.isPack && previewSelection.mcmeta
@@ -262,9 +278,28 @@ function Workspace({
                   : 'Pack'
             })
           }
-          // Only pack textures are editable: vanilla pixels never enter the pack.
-          onOpenTexture={
-            activeMode === 'pack' ? (texture) => onEditTexture(texture, previewSources) : undefined
+          // Only pack textures are editable: vanilla pixels never enter the pack. Double-clicking
+          // a vanilla texture opens the pack's version, or offers to create one with that name.
+          onOpenTexture={(texture) => {
+            if (activeMode === 'pack') {
+              onEditTexture(texture, previewSources)
+              return
+            }
+            const own = packTextures.find((entry) => entry.key === texture.key)
+            if (own) onEditTexture(own, previewSources)
+            else if (canCreate) {
+              setCreating({ folder: texture.folder, name: texture.name, fromVanilla: true })
+            }
+          }}
+          onNewTexture={
+            canCreate
+              ? () =>
+                  setCreating({
+                    folder: selectedFolder.startsWith('assets/') ? selectedFolder : DEFAULT_FOLDER,
+                    name: '',
+                    fromVanilla: false
+                  })
+              : undefined
           }
           source={source}
           textures={textures}
@@ -280,6 +315,30 @@ function Workspace({
         {/* Outside the browser so it survives Pack/Vanilla switches. */}
         <PreviewPanel target={previewTarget} sources={previewSources} />
       </div>
+      {creating && (
+        <NewTextureDialog
+          request={creating}
+          existing={packFileSet}
+          onCancel={() => setCreating(null)}
+          onCreated={(path) => {
+            setCreating(null)
+            const key = path.replace(/\.png$/, '')
+            const slash = key.lastIndexOf('/')
+            onEditTexture(
+              {
+                key,
+                folder: key.slice(0, slash),
+                name: key.slice(slash + 1),
+                albedo: path,
+                normal: null,
+                specular: null,
+                mcmeta: null
+              },
+              previewSources
+            )
+          }}
+        />
+      )}
     </section>
   )
 }
@@ -349,8 +408,10 @@ interface TextureBrowserProps {
   onQuery: (query: string) => void
   selectedKey: string | null
   onSelectTexture: (texture: TextureEntry) => void
-  /** Pack only: double-click opens the editor. */
-  onOpenTexture: ((texture: TextureEntry) => void) | undefined
+  /** Double-click: edit (pack) or create the pack's version (vanilla). */
+  onOpenTexture: (texture: TextureEntry) => void
+  /** Opens the new-texture wizard; undefined for read-only packs. */
+  onNewTexture: (() => void) | undefined
   /** Pack only: file version for cache-busting URLs. */
   versionOf: ((path: string) => number) | undefined
 }
@@ -430,6 +491,15 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
             placeholder="Cerca texture…"
             aria-label="Cerca texture"
           />
+          {props.onNewTexture && (
+            <button
+              type="button"
+              onClick={props.onNewTexture}
+              title="Crea una nuova texture nel pack"
+            >
+              + Nuova texture
+            </button>
+          )}
           <span className="muted small">
             {summary}
             {detail}

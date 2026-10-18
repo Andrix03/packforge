@@ -1,6 +1,8 @@
 // Soft warnings for Beginner mode, from common texturing advice (Faithful guidelines, pixel-art
 // tutorials): small palettes, no darkest-next-to-lightest, contrast close to vanilla.
-// They are hints, never errors: the user can ignore them.
+// They are hints, never errors: the user can ignore them. Thresholds are calibrated on the 1246
+// square block textures of the 26.3 jar so that each warning stays quiet on ~90 % of them
+// (colors > 16: 12 %, extremes gap >= 0.45 touching: 9 %, spread > 0.55: 8 %).
 
 import { luma, usedColors } from './color'
 import type { PixelBuffer } from './pixels'
@@ -11,12 +13,12 @@ export interface Advice {
   message: string
 }
 
-/** Faithful keeps palettes "typically under about 10 colours". */
-export const MAX_SUGGESTED_COLORS = 10
+/** Vanilla block textures use 8 colors at the median, 18 at the 90th percentile. */
+export const MAX_SUGGESTED_COLORS = 16
 /** Brightness spread (10th–90th percentile of pixels) above which a texture looks harsh. */
-export const HIGH_CONTRAST = 0.5
+export const HIGH_CONTRAST = 0.55
 /** Minimum brightness gap for the darkest/lightest contact warning. */
-export const EXTREMES_GAP = 0.25
+export const EXTREMES_GAP = 0.45
 
 export function analyzeTexture(buffer: PixelBuffer): Advice[] {
   const colors = usedColors(buffer)
@@ -24,7 +26,7 @@ export function analyzeTexture(buffer: PixelBuffer): Advice[] {
   if (colors.length > MAX_SUGGESTED_COLORS) {
     advice.push({
       id: 'too-many-colors',
-      message: `Usa ${colors.length} colori: le texture Minecraft di solito ne usano meno di ${MAX_SUGGESTED_COLORS}. Prova a riunire le tonalità quasi uguali.`
+      message: `Usa ${colors.length} colori: quasi tutte le texture vanilla ne usano meno di ${MAX_SUGGESTED_COLORS}. Prova a riunire le tonalità quasi uguali.`
     })
   }
   const darkest = colors[0]

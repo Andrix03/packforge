@@ -21,9 +21,9 @@ describe('analyzeTexture', () => {
     expect(ids(image(4, pixels))).toEqual([])
   })
 
-  it('warns about more than 10 colors', () => {
-    const pixels = Array.from({ length: 12 }, (_, i) => gray(100 + i * 2))
-    expect(ids(image(12, pixels))).toContain('too-many-colors')
+  it('warns about more than 16 colors', () => {
+    const pixels = Array.from({ length: 18 }, (_, i) => gray(100 + i * 2))
+    expect(ids(image(18, pixels))).toContain('too-many-colors')
   })
 
   it('counts every place where the darkest touches the lightest', () => {

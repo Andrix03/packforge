@@ -1,5 +1,5 @@
 // Block preview fragment shader: albedo with sun/moon diffuse + ambient.
-// Phase 5 extends this with LabPBR (_n / _s); keep the uniforms stable.
+// Phase 6 extends this with LabPBR (_n / _s); keep the uniforms stable.
 
 uniform sampler2D albedoMap;
 // Animation frames as (x, y, width, height) fractions of the image, y from the

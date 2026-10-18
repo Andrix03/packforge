@@ -1,5 +1,15 @@
 # PackForge Roadmap
 
+PackForge is meant to be distributed to everyone, from first-time texture makers to pros.
+The workflow is split into three sections, and the user can jump between them at any time:
+
+1. **Draw** — the texture editor (Phases 3–4), with a Beginner and a Pro mode.
+2. **Test** — the block in action: scenes, distance, vanilla comparison (Phase 5).
+3. **Effects** — making it realistic: LabPBR, POM, CTM (Phases 6–9).
+
+Beginner and Pro are ONE editor on the same files: the mode only decides which tools are visible
+and how much guidance is shown. Switching mode never loses work.
+
 ## Phase 0 — Setup
 
 - [x] Scaffold Electron + electron-vite + React + TypeScript (strict)
@@ -30,36 +40,58 @@
 - [x] 3×3 tiling view to spot seams on repeating textures
 - [x] Preview scenes: single block, small wall, flat floor
 
-## Phase 3 — Texture editor (basics)
+## Phase 3 — Draw: texture editor (basics + Beginner mode)
 
-So I can draw textures from start to finish inside PackForge, seeing them on the 3D block while I paint.
-It opens as a dedicated screen (double-click a texture in the grid), with the canvas in the middle,
-tools on the left and colors, live 3D and the vanilla reference on the right.
+So anyone can draw textures from start to finish inside PackForge, seeing them on the 3D block while
+painting. It opens as a dedicated screen (double-click a texture in the grid), with the canvas in the
+middle, tools on the left and colors, live 3D and the vanilla reference on the right.
+
+Beginner mode shows only the essential tools (pencil, eraser, fill, picker, shade, noise), the guided
+ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everything.
 
 - [ ] Pixel canvas with zoom, pan and pixel grid
 - [ ] Tools: pencil (optional pixel-perfect stroke), eraser, fill bucket (contiguous or global), color picker
+- [ ] Hard-pixel brush only (no soft edges / anti-aliasing), size 1–3 px in Beginner, free in Pro
 - [ ] Primary/secondary color on left/right click (secondary defaults to transparent), X swaps them
-- [ ] Color picker panel: hex/RGB/HSV input, alpha, recent colors
+- [ ] Color picker panel: hex/RGB/HSV input, alpha, recent colors (full panel in Pro)
 - [ ] Ramp generator: 5 shades from a base color with hue shifting (cool shadows, warm highlights)
-- [ ] Shade tool: each click moves a pixel one step lighter/darker along the ramp
+- [ ] Shade tool: left click one step darker, right click one step lighter along the ramp
 - [ ] Noise fill: fill an area with random shades of the ramp (base for stone, dirt, gravel)
-- [ ] Texture palette: the colors already used, sorted by brightness
+- [ ] Replace color: swap one color for another across the whole texture
+- [ ] Texture palette: the colors already used, sorted by brightness, with a color counter
+- [ ] Soft warnings in Beginner mode: too many colors (> ~10), darkest next to lightest, too much contrast
+- [ ] Beginner / Pro mode switch (remembered in settings), tool tips with shortcut and one-line advice
 - [ ] Undo/redo history (100+ steps), unsaved-changes indicator
+- [ ] Draft autosave and recovery after a crash
+- [ ] Block-centric editing: open a block and switch between its textures (top / side / bottom) as tabs
 - [ ] New texture wizard (pick the block, size 16×/32×/64×…, start empty / base color / noise) and save PNGs in the pack
 - [ ] Vanilla texture as a side-by-side or traced reference (color picking allowed, pixels never copied into the pack)
 - [ ] Live 3D preview and 3×3 tiling preview of the texture being edited
 - [ ] Keyboard shortcuts for the basic tools (B, E, G, I, S, X, Ctrl+Z / Ctrl+Y)
 
-## Phase 4 — Texture editor (advanced)
+## Phase 4 — Draw: Pro tools
 
 - [ ] Layers (add, reorder, hide, opacity), flattened on save
 - [ ] Selections: rectangle, magic wand; move, copy, paste, flip, rotate
 - [ ] Lines, rectangles, ellipses; mirror (symmetry) drawing
 - [ ] Seamless tiling mode: paint across the edges of a repeating texture
+- [ ] Custom ramps and saved palettes
 - [ ] Animation frames editor that writes the strip and `.png.mcmeta`
 - [ ] Keyboard shortcuts for every tool
 
-## Phase 5 — LabPBR shader
+## Phase 5 — Test: the block in action
+
+A dedicated screen to judge a finished texture as it will look in game, one click away from the editor
+("back to drawing" opens the same texture).
+
+- [ ] Test screen reusing the Phase 2 preview (scenes, day/night, biomes, animations)
+- [ ] Distance view: the block seen from far away, to spot noise that turns into a blur
+- [ ] Side-by-side comparison with the vanilla block
+- [ ] Mixed scene: my block next to other blocks (pack first, then vanilla) to check colors fit together
+- [ ] Small built scenes (house corner, cave, path) with a free-fly camera
+- [ ] Held item / inventory slot view for item textures
+
+## Phase 6 — Effects: LabPBR shader
 
 - [ ] Decode `_n` (normal, AO, height) and `_s` (smoothness, F0/metals, porosity/SSS, emission)
 - [ ] PBR lighting (GGX) and predefined metals
@@ -69,24 +101,31 @@ tools on the left and colors, live 3D and the vanilla reference on the right.
 - [ ] Emission bloom
 - [ ] Environment lighting presets (overworld noon, sunset, cave, nether)
 
-## Phase 6 — POM
+## Phase 7 — Effects: POM
 
 - [ ] Parallax occlusion mapping using height from `_n.a`
 - [ ] Depth/sample count sliders, self-shadowing
 - [ ] Side-by-side comparison with and without POM
 
-## Phase 7 — PBR tools
+## Phase 8 — Effects: PBR tools
 
 - [ ] Height and normal generator from albedo (strength, blur, invert)
 - [ ] Material presets → `_s` (stone, wood, metal, ore, glass, emissive)
 - [ ] Channel painting and masks with the editor brushes (`_n` / `_s` channels)
 - [ ] Validator (sizes, emissive alpha, orphan files)
 - [ ] Batch apply a preset or generator to many textures at once
+- [ ] Batch hue variants (e.g. all wool colors from one texture)
 - [ ] Coverage report: which textures still miss `_n` / `_s` maps
 - [ ] Compare my texture against the vanilla one (side by side, diff)
 - [ ] Nearest-neighbour resize for different resolutions (16×, 32×, 64×…)
 
-## Phase 8 — Hot reload and in-game testing
+## Phase 9 — Effects: connected textures (CTM)
+
+- [ ] Research the formats (OptiFine CTM properties, Continuity) and which loaders read them
+- [ ] CTM preview on walls and floors in the Test scenes
+- [ ] CTM template generator (full set of connection tiles from one texture)
+
+## Phase 10 — Hot reload and in-game testing
 
 - [x] Watch the pack folder (done with the Phase 2 live update)
 - [ ] Automatic sync into `resourcepacks` (copy or link)
@@ -94,7 +133,7 @@ tools on the left and colors, live 3D and the vanilla reference on the right.
 - [ ] Reminder / shortcut panel for testing in game (F3+T, Iris shader reload)
 - [ ] Undo history and automatic backups before destructive operations
 
-## Phase 9 — Patreon export
+## Phase 11 — Export (Patreon and public)
 
 - [ ] Versioned zip
 - [ ] Free/premium variants (e.g. base vs PBR, different resolutions)
@@ -105,9 +144,11 @@ tools on the left and colors, live 3D and the vanilla reference on the right.
 - [ ] Export checklist: no vanilla files, valid `pack.mcmeta`, no stray files (e.g. `.psd`, `Thumbs.db`)
 - [ ] Optional builds for Modrinth / CurseForge
 
-## Phase 10 — Polish
+## Phase 12 — Polish and public release
 
 - [ ] UI/UX pass, keyboard shortcuts
+- [ ] First-run guided tutorial (draw your first block) for Beginner mode
+- [ ] English UI option
 - [ ] Windows installer
 - [ ] Bug fixing
 - [ ] GitHub Actions CI (typecheck, lint, tests on every push)
@@ -116,9 +157,8 @@ tools on the left and colors, live 3D and the vanilla reference on the right.
 
 ## Ideas for later
 
-- Connected textures (CTM) preview for OptiFine/Continuity-style packs
+- Paint directly on the 3D block (click a face in the preview)
 - Custom item models and item model definitions
 - Font and GUI texture editing
 - Sound replacement with an in-app player
 - Multiple language files (`lang/*.json`) editor
-- English UI option

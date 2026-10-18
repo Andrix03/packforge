@@ -7,6 +7,8 @@ import {
   checkNormal,
   checkOrphans,
   checkSpecular,
+  checkTextureMcmeta,
+  mcmetaForGameTextures,
   findMapPairs,
   sortIssues,
   type Image,
@@ -93,6 +95,25 @@ async function checkPair(
   return issues
 }
 
+async function checkGameMcmeta(
+  path: string,
+  pack: ValidatorSource,
+  vanilla: ValidatorSource
+): Promise<Issue[]> {
+  const png = path.slice(0, -'.mcmeta'.length)
+  let mcmeta: unknown
+  try {
+    mcmeta = JSON.parse(new TextDecoder().decode(await fetchBytes(pack, path))) as unknown
+  } catch {
+    return [{ severity: 'error', path, message: 'Il file .mcmeta non è un JSON valido.' }]
+  }
+  try {
+    return checkTextureMcmeta(path, await loadImage(vanilla, png), mcmeta)
+  } catch {
+    return []
+  }
+}
+
 export async function runValidator(
   pack: ValidatorSource,
   vanilla: ValidatorSource | null,
@@ -100,17 +121,23 @@ export async function runValidator(
 ): Promise<ValidatorResult> {
   const files = [...pack.files]
   const pairs = findMapPairs(files, vanilla?.files ?? null)
-  const issues = checkOrphans(files, pairs, vanilla !== null)
+  const issues = checkOrphans(files, pairs, vanilla?.files ?? null)
+  // The pack's .png.mcmeta files that animate a game texture (valid: packs stack).
+  const gameMcmeta = vanilla ? mcmetaForGameTextures(files, vanilla.files) : []
+  const jobs: Array<() => Promise<Issue[]>> = [
+    ...pairs.map((pair) => () => checkPair(pair, pack, vanilla)),
+    ...gameMcmeta.map((path) => () => checkGameMcmeta(path, pack, vanilla!))
+  ]
   let done = 0
-  onProgress(0, pairs.length)
+  onProgress(0, jobs.length)
   let next = 0
   async function worker(): Promise<void> {
-    while (next < pairs.length) {
-      const pair = pairs[next++]!
-      issues.push(...(await checkPair(pair, pack, vanilla)))
-      onProgress(++done, pairs.length)
+    while (next < jobs.length) {
+      const job = jobs[next++]!
+      issues.push(...(await job()))
+      onProgress(++done, jobs.length)
     }
   }
-  await Promise.all(Array.from({ length: Math.min(PARALLEL, pairs.length) }, worker))
+  await Promise.all(Array.from({ length: Math.min(PARALLEL, jobs.length) }, worker))
   return { issues: sortIssues(issues), maps: pairs.length }
 }

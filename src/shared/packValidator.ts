@@ -58,39 +58,79 @@ export function findMapPairs(
   return pairs
 }
 
-/** Orphans that need no image: maps without a texture, `.png.mcmeta` without its PNG. */
+/**
+ * Orphans that need no image: maps without a texture, `.png.mcmeta` without a PNG. The game
+ * stacks packs: a `.png.mcmeta` (and a map) applies to the PNG of the same pack or of any pack
+ * BELOW it, vanilla included (FallbackResourceManager in 26.3: listResources keeps the topmost
+ * .mcmeta when its pack index ≥ the PNG's; getResource searches from the top down to the PNG's
+ * pack). So a lone .mcmeta for a game texture is valid: it changes the game's animation.
+ */
 export function checkOrphans(
   packFiles: readonly string[],
   pairs: readonly MapPair[],
-  vanillaLoaded: boolean
+  vanillaFiles: ReadonlySet<string> | null
 ): Issue[] {
   const pack = new Set(packFiles)
   const issues: Issue[] = []
-  for (const pair of pairs) {
-    if (pair.albedo) continue
-    const name = pair.path
-      .replace(/_[ns]\.png$/i, '.png')
-      .split('/')
-      .pop()
-    issues.push({
-      severity: vanillaLoaded ? 'warning' : 'info',
-      path: pair.path,
-      message: vanillaLoaded
-        ? `Mappa orfana: né il pack né il gioco hanno ${name}, quindi non viene usata.`
-        : `Il pack non ha ${name}: va bene solo se esiste nel gioco (carica il jar vanilla per verificarlo).`
-    })
+  const orphan = (path: string, png: string, what: string): Issue => {
+    const name = png.split('/').pop()
+    return vanillaFiles
+      ? {
+          severity: 'warning',
+          path,
+          message: `${what}: né il pack né il gioco hanno ${name}. Funziona solo se un altro pack attivo sotto questo la fornisce.`
+        }
+      : {
+          severity: 'info',
+          path,
+          message: `Il pack non ha ${name}: va bene se esiste nel gioco o in un pack sotto questo (carica il jar vanilla per verificarlo).`
+        }
   }
-  for (const path of packFiles) {
-    if (!/\.png\.mcmeta$/i.test(path)) continue
-    if (!pack.has(path.slice(0, -'.mcmeta'.length))) {
-      issues.push({
-        severity: 'warning',
-        path,
-        message: 'File .mcmeta orfano: la PNG accanto non esiste, il gioco lo ignora.'
-      })
+  for (const pair of pairs) {
+    if (!pair.albedo) {
+      issues.push(orphan(pair.path, pair.path.replace(/_[ns].png$/i, '.png'), 'Mappa orfana'))
     }
   }
+  for (const path of packFiles) {
+    if (!/.png.mcmeta$/i.test(path)) continue
+    const png = path.slice(0, -'.mcmeta'.length)
+    if (!pack.has(png) && !vanillaFiles?.has(png))
+      issues.push(orphan(path, png, 'File .mcmeta orfano'))
+  }
   return issues
+}
+
+/**
+ * The pack's `.png.mcmeta` files whose PNG comes from the game (they animate the game's
+ * texture): checked against that PNG's size by `checkTextureMcmeta`.
+ */
+export function mcmetaForGameTextures(
+  packFiles: readonly string[],
+  vanillaFiles: ReadonlySet<string> | null
+): string[] {
+  const pack = new Set(packFiles)
+  return packFiles.filter((path) => {
+    if (!/.png.mcmeta$/i.test(path)) return false
+    const png = path.slice(0, -'.mcmeta'.length)
+    return !pack.has(png) && vanillaFiles?.has(png) === true
+  })
+}
+
+/** An animation that does not fit its PNG: the game shows the missing texture. */
+export function checkTextureMcmeta(
+  path: string,
+  png: { width: number; height: number },
+  mcmeta: unknown
+): Issue[] {
+  const parsed = parseAnimation(mcmeta, png.width, png.height)
+  if (parsed.ok) return []
+  return [
+    {
+      severity: 'error',
+      path,
+      message: `Animazione non valida per la texture del gioco (${png.width}×${png.height}): ${parsed.error}`
+    }
+  ]
 }
 
 interface Frame {

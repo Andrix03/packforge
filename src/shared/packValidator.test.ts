@@ -4,6 +4,8 @@ import {
   checkNormal,
   checkOrphans,
   checkSpecular,
+  checkTextureMcmeta,
+  mcmetaForGameTextures,
   findMapPairs,
   sortIssues,
   type Image
@@ -36,6 +38,7 @@ describe('findMapPairs / checkOrphans', () => {
     `${B}dirt_s.png`,
     `${B}ghost_n.png`,
     `${B}lost.png.mcmeta`,
+    `${B}dirt.png.mcmeta`,
     `${B}stone.png.mcmeta`,
     'assets/minecraft/textures/particle/sga_n.png',
     'assets/minecraft/models/block/odd_s.png'
@@ -55,8 +58,8 @@ describe('findMapPairs / checkOrphans', () => {
     ])
   })
 
-  it('reports maps without a texture and .mcmeta without PNG', () => {
-    const issues = checkOrphans(pack, findMapPairs(pack, vanilla), true)
+  it('reports maps without a texture and .mcmeta without PNG (a game PNG counts: packs stack)', () => {
+    const issues = checkOrphans(pack, findMapPairs(pack, vanilla), vanilla)
     expect(issues.map((i) => [i.severity, i.path.split('/').pop()])).toEqual([
       ['warning', 'ghost_n.png'],
       ['warning', 'lost.png.mcmeta']
@@ -64,8 +67,21 @@ describe('findMapPairs / checkOrphans', () => {
   })
 
   it('only hints when the game jar is not loaded', () => {
-    const issues = checkOrphans(pack, findMapPairs(pack, null), false)
+    const issues = checkOrphans(pack, findMapPairs(pack, null), null)
     expect(issues.filter((i) => i.path.endsWith('_s.png'))[0]?.severity).toBe('info')
+    expect(issues.filter((i) => i.path.endsWith('dirt.png.mcmeta'))[0]?.severity).toBe('info')
+  })
+
+  it('lists the .mcmeta files that animate a game texture, and checks them against its size', () => {
+    expect(mcmetaForGameTextures(pack, vanilla)).toEqual([`${B}dirt.png.mcmeta`])
+    const path = `${B}dirt.png.mcmeta`
+    expect(checkTextureMcmeta(path, { width: 16, height: 48 }, { animation: {} })).toEqual([])
+    const broken = checkTextureMcmeta(
+      path,
+      { width: 16, height: 16 },
+      { animation: { height: 10 } }
+    )
+    expect(broken[0]?.severity).toBe('error')
   })
 })
 

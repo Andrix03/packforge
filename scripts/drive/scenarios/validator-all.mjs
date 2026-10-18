@@ -109,6 +109,10 @@ export default async function validatorAll(app) {
     'cobblestone_n.png',
     png(16, 32, () => [128, 128, 255, 255])
   )
+  // 9. A .mcmeta alone applies to the game's PNG (packs stack): valid for dirt (16×16, one
+  // frame), broken for andesite (frames of 10 px do not divide 16).
+  await write(block, 'dirt.png.mcmeta', '{"animation":{"frametime":3}}')
+  await write(block, 'andesite.png.mcmeta', '{"animation":{"height":10}}')
 
   await app.openPack()
   await app.click('Controlla mappe')
@@ -159,6 +163,14 @@ export default async function validatorAll(app) {
   app.check(
     has(list, 'cobblestone_n.png', 'Proporzioni', 'error'),
     `8. vanilla texture size is used (${describe(list, 'cobblestone_n.png')})`
+  )
+  app.check(
+    of(list, 'dirt.png.mcmeta').length === 0,
+    `9a. a .mcmeta for a game texture is not an orphan (${describe(list, 'dirt.png.mcmeta')})`
+  )
+  app.check(
+    has(list, 'andesite.png.mcmeta', 'texture del gioco (16×16)', 'error'),
+    `9b. it is checked against the game PNG (${describe(list, 'andesite.png.mcmeta')})`
   )
   const good = ['stone_n.png', 'stone_s.png', 'gold_block_s.png', 'glowstone_s.png', 'sand_s.png']
   app.check(

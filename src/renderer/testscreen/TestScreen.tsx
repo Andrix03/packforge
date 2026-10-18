@@ -6,10 +6,12 @@ import { loadColormaps, tintFor, type ColormapPixels } from '../preview/colormap
 import { formatHour, normalizeHour } from '../preview/dayNight'
 import {
   DEBUG_VIEWS,
+  REFLECTION_MODES,
   SHADOW_MODES,
   DEFAULT_EFFECTS,
   TONE_MAPPINGS,
   type EffectSettings,
+  type ReflectionMode,
   type ShadowMode,
   type ToneMappingId
 } from '../preview/effects'
@@ -499,7 +501,29 @@ export function TestScreen({
                   </select>
                 </label>
                 <span className="muted small">{preset.hint}</span>
-                <label className="inline-select" title="Ombre del sole (di notte della luna)">
+                <label
+                  className="inline-select"
+                  title="Cosa riflettono le superfici lisce e i metalli («Solo cielo» è più leggero)"
+                >
+                  <span className="muted small">Riflessi</span>
+                  <select
+                    value={effects.reflections}
+                    aria-label="Riflessi"
+                    onChange={(event) =>
+                      updateEffects({ reflections: event.target.value as ReflectionMode })
+                    }
+                  >
+                    {REFLECTION_MODES.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label
+                  className="inline-select"
+                  title="Ombre del sole (di notte della luna); «A pixel» come gli shader pack"
+                >
                   <span className="muted small">Ombre</span>
                   <select
                     value={effects.shadows}

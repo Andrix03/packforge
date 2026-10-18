@@ -1860,7 +1860,14 @@ kbd {
   flex-direction: column;
   gap: 16px;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+}
+
+/* Long option labels must not widen the side panel. */
+.test-side select {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .test-section,

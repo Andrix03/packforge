@@ -6,6 +6,8 @@ import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import fragmentShader from '../shaders/block.frag.glsl?raw'
 import shadowFragmentShader from '../shaders/shadow.frag.glsl?raw'
+import skyFragmentShader from '../shaders/sky.frag.glsl?raw'
+import skyVertexShader from '../shaders/sky.vert.glsl?raw'
 import vertexShader from '../shaders/block.vert.glsl?raw'
 import {
   frameAt,
@@ -105,6 +107,28 @@ const BLOOM_RADIUS = 0.15
 /** Shadow map side in texels: the scenes are small, so one map covers the whole world. */
 const SHADOW_MAP_SIZE = 2048
 
+/** Face size of the reflection captures (the PMREM blurs it for rough surfaces). */
+const ENV_CUBE_SIZE = 128
+/** Captures are redone at most this often (ms) while the light or the camera keeps changing. */
+const ENV_MIN_INTERVAL = 150
+/** The capture follows the camera once its probe moved this far (blocks). */
+const ENV_PROBE_MOVE = 0.75
+
+/**
+ * Defines for three's textureCubeUV (cube_uv_reflection_fragment) on a PMREM made from a
+ * ENV_CUBE_SIZE cube: the same formula as three's WebGLProgram (PMREM height = 4 × cube size).
+ */
+const ENV_DEFINES = (() => {
+  const height = 4 * ENV_CUBE_SIZE
+  const maxMip = Math.log2(height) - 2
+  return {
+    ENVMAP_TYPE_CUBE_UV: '',
+    CUBEUV_TEXEL_WIDTH: String(1 / (3 * Math.max(2 ** maxMip, 7 * 16))),
+    CUBEUV_TEXEL_HEIGHT: String(1 / height),
+    CUBEUV_MAX_MIP: maxMip.toFixed(1)
+  }
+})()
+
 const TONE_MAPPING: Record<ToneMappingId, THREE.ToneMapping> = {
   neutral: THREE.NeutralToneMapping,
   aces: THREE.ACESFilmicToneMapping,
@@ -170,6 +194,10 @@ interface Side {
   geometries: THREE.BufferGeometry[]
   /** Sphere around the world, to fit the shadow camera. */
   bounds: THREE.Sphere
+  /** Which blocks are solid (from layout), to keep the reflection probe out of them. */
+  grid: LightGrid | null
+  /** Reflections of this side's world (Effects view), prefiltered by roughness. */
+  env: { target: THREE.WebGLRenderTarget | null; probe: THREE.Vector3; dirty: boolean; at: number }
 }
 
 /**
@@ -204,8 +232,32 @@ export class BlockPreview {
     shadowMatrix: { value: new THREE.Matrix4() },
     shadowFromSun: { value: true },
     shadowTexel: { value: 1 / SHADOW_MAP_SIZE },
-    shadowRange: { value: 1 }
+    shadowRange: { value: 1 },
+    // Reflections: 0 = the analytic sky gradient, 1 = the captured scene (envMap, CubeUV).
+    envMode: { value: 0 },
+    envMap: { value: null as THREE.Texture | null }
   }
+  private capture: {
+    cube: THREE.WebGLCubeRenderTarget
+    camera: THREE.CubeCamera
+    pmrem: THREE.PMREMGenerator
+  } | null = null
+  /** Gradient sky of the Effects view, centered on whoever looks (camera or capture probe). */
+  private readonly skyDome = new THREE.Mesh(
+    new THREE.SphereGeometry(150, 32, 16),
+    new THREE.ShaderMaterial({
+      vertexShader: skyVertexShader,
+      fragmentShader: skyFragmentShader,
+      side: THREE.BackSide,
+      depthWrite: false,
+      depthTest: false,
+      uniforms: {
+        skyZenith: this.sharedUniforms.skyZenith,
+        skyHorizon: this.sharedUniforms.skyHorizon,
+        skyGround: this.sharedUniforms.skyGround
+      }
+    })
+  )
   private shadow: { target: THREE.WebGLRenderTarget; camera: THREE.OrthographicCamera } | null =
     null
   /** LabPBR view (HDR → bloom → tone mapping); null = the vanilla look straight to the screen. */
@@ -238,7 +290,10 @@ export class BlockPreview {
     this.renderer.setPixelRatio(window.devicePixelRatio)
     this.loader.setCrossOrigin('anonymous')
 
-    this.scene.add(this.main.world, this.other.world, this.camera)
+    this.scene.add(this.main.world, this.other.world, this.camera, this.skyDome)
+    this.skyDome.visible = false
+    this.skyDome.renderOrder = -1
+    this.skyDome.frustumCulled = false
     this.camera.add(this.main.hand, this.other.hand)
     this.controls = new OrbitControls(this.camera, canvas)
     this.controls.enableDamping = true
@@ -417,7 +472,14 @@ export class BlockPreview {
       this.renderer.toneMapping = THREE.NoToneMapping
       this.renderer.toneMappingExposure = 1
     }
+    this.skyDome.visible = settings !== null
+    this.invalidateReflections()
     this.applyLighting()
+  }
+
+  private invalidateReflections(): void {
+    this.main.env.dirty = true
+    this.other.env.dirty = true
   }
 
   private applyLighting(): void {
@@ -435,7 +497,11 @@ export class BlockPreview {
     u.moonDirection.value.set(...light.moonDirection)
     u.moonColor.value.setRGB(...light.moonColor)
     u.ambientColor.value.setRGB(...light.ambient)
-    this.scene.background = new THREE.Color().setRGB(...light.sky, THREE.SRGBColorSpace)
+    // The Effects view draws the gradient sky dome instead.
+    this.scene.background = this.effects
+      ? null
+      : new THREE.Color().setRGB(...light.sky, THREE.SRGBColorSpace)
+    this.invalidateReflections()
   }
 
   setAutoRotate(enabled: boolean): void {
@@ -458,6 +524,13 @@ export class BlockPreview {
       this.shadow.target.depthTexture?.dispose()
       this.shadow.target.dispose()
     }
+    if (this.capture) {
+      this.capture.cube.dispose()
+      this.capture.pmrem.dispose()
+    }
+    for (const side of [this.main, this.other]) side.env.target?.dispose()
+    this.skyDome.geometry.dispose()
+    this.skyDome.material.dispose()
     for (const part of this.allParts()) disposePart(part)
     for (const side of [this.main, this.other]) {
       for (const geometry of side.geometries) geometry.dispose()
@@ -606,6 +679,7 @@ export class BlockPreview {
       // the gl_FragColor output itself (with GLSL3 set, the shader must declare it).
       vertexShader,
       fragmentShader: METALS_GLSL + fragmentShader,
+      defines: ENV_DEFINES,
       transparent: part.translucent,
       depthWrite: !part.translucent,
       uniforms: {
@@ -669,6 +743,8 @@ export class BlockPreview {
       model.light ? model.positions.map((at) => ({ at, light: model.light! })) : []
     )
     const grid = lit.length > 0 ? new LightGrid(lit) : null
+    side.grid = grid
+    side.env.dirty = true
     for (const model of side.models) {
       for (const part of model.parts) {
         const geometry = buildGeometry(part.quads, model.positions, grid)
@@ -685,6 +761,73 @@ export class BlockPreview {
     }
     if (box.isEmpty()) side.bounds.set(new THREE.Vector3(), 0)
     else box.getBoundingSphere(side.bounds)
+  }
+
+  /**
+   * Captures what one side's world reflects: a cube map from a probe near what the camera looks at
+   * (moved out of solid blocks), lit like the final image but reflecting only the sky, then
+   * prefiltered by roughness (PMREM). Redone when the world, the light or the probe changes.
+   */
+  private renderReflections(side: Side, now: number): void {
+    const u = this.sharedUniforms
+    const view = this.effects?.view ?? 0
+    if (DEBUG_VIEWS[view]?.raw) return
+    if (this.effects?.reflections === 'sky') {
+      u.envMode.value = 0
+      return
+    }
+    const probe = this.probePoint(side)
+    if (side.env.probe.distanceTo(probe) > ENV_PROBE_MOVE) side.env.dirty = true
+    if (side.env.dirty && now - side.env.at >= ENV_MIN_INTERVAL) {
+      this.capture ??= (() => {
+        const cube = new THREE.WebGLCubeRenderTarget(ENV_CUBE_SIZE, { type: THREE.HalfFloatType })
+        return {
+          cube,
+          camera: new THREE.CubeCamera(0.05, 400, cube),
+          pmrem: new THREE.PMREMGenerator(this.renderer)
+        }
+      })()
+      const { cube, camera, pmrem } = this.capture
+      for (const s of [this.main, this.other]) {
+        s.world.visible = s === side
+        s.hand.visible = false
+      }
+      u.envMode.value = 0
+      this.skyDome.position.copy(probe)
+      camera.position.copy(probe)
+      camera.update(this.renderer, this.scene)
+      side.env.target = pmrem.fromCubemap(cube.texture, side.env.target)
+      if ((side.env.target.texture.image as { height: number }).height !== 4 * ENV_CUBE_SIZE) {
+        console.warn('PMREM size differs from ENV_DEFINES: reflections will be wrong.')
+      }
+      side.env.probe.copy(probe)
+      side.env.dirty = false
+      side.env.at = now
+    }
+    if (side.env.target) {
+      u.envMap.value = side.env.target.texture
+      u.envMode.value = 1
+    } else {
+      u.envMode.value = 0
+    }
+  }
+
+  /** Where reflections are captured from: the point looked at, pulled towards the camera out of solid blocks. */
+  private probePoint(side: Side): THREE.Vector3 {
+    const ahead = new THREE.Vector3()
+    this.camera.getWorldDirection(ahead)
+    const point = this.flying
+      ? this.camera.position.clone().addScaledVector(ahead, 3)
+      : this.controls.target.clone()
+    const back = this.camera.position.clone().sub(point)
+    const length = back.length()
+    if (length > 0) back.divideScalar(length)
+    const solid = (at: THREE.Vector3): boolean =>
+      side.grid?.propsAt(Math.round(at.x), Math.round(at.y), Math.round(at.z))?.opaque ?? false
+    for (let moved = 0; moved < length && solid(point); moved += 0.25)
+      point.addScaledVector(back, 0.25)
+    // A little further, so the probe doesn't sit on the face it reflects.
+    return point.addScaledVector(back, Math.min(0.3, length))
   }
 
   /**
@@ -829,7 +972,7 @@ export class BlockPreview {
    * Draws the scene, the two halves side by side when comparing. With the effects on, each half
    * goes through its own HDR composer, so one half's bloom can't spill into the other.
    */
-  private renderSides(): void {
+  private renderSides(now: number): void {
     const size = this.renderer.getSize(new THREE.Vector2())
     if (size.x <= 0 || size.y <= 0) return
     const half = Math.floor(size.x / 2)
@@ -841,7 +984,11 @@ export class BlockPreview {
       : [[this.main, 0, size.x]]
     this.renderer.setScissorTest(this.comparing)
     halves.forEach(([side, x, width], i) => {
-      if (this.composers) this.renderShadow(side)
+      if (this.composers) {
+        this.renderShadow(side)
+        this.renderReflections(side, now)
+        this.skyDome.position.copy(this.camera.position)
+      }
       this.renderer.setViewport(x, 0, width, size.y)
       this.renderer.setScissor(x, 0, width, size.y)
       this.main.world.visible = side === this.main
@@ -868,7 +1015,7 @@ export class BlockPreview {
     for (const part of this.allParts()) if (part.animation) setAnimatedFrame(part, ticks)
     if (this.flying) this.fly(seconds)
     else this.controls.update()
-    this.renderSides()
+    this.renderSides(now)
     this.frame = requestAnimationFrame(this.loop)
   }
 }
@@ -935,7 +1082,9 @@ function emptySide(): Side {
     world: new THREE.Group(),
     hand: new THREE.Group(),
     geometries: [],
-    bounds: new THREE.Sphere()
+    bounds: new THREE.Sphere(),
+    grid: null,
+    env: { target: null, probe: new THREE.Vector3(Infinity, 0, 0), dirty: true, at: 0 }
   }
 }
 

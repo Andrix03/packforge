@@ -45,6 +45,11 @@ uniform bool shadowFromSun;
 uniform float shadowTexel;
 // Depth covered by the map, in blocks (to turn the bias into map depth).
 uniform float shadowRange;
+// Reflections: 0 = the sky gradient below, 1 = the captured scene (PMREM, read with textureCubeUV).
+uniform int envMode;
+uniform sampler2D envMap;
+
+#include <cube_uv_reflection_fragment>
 
 in vec2 vUv;
 in vec3 vNormal;
@@ -298,7 +303,9 @@ vec3 shadePbr(vec4 albedoSample, vec4 normalSample, vec4 specularSample, out flo
   if (metalKind == 0) color += albedo * (irradiance + lamps) * ao * (1.0 - s.f0);
   // Reflections of the sky, blurred towards the ambient light as roughness grows.
   vec3 R = reflect(-s.view, N);
-  vec3 reflected = mix(skyRadiance(R) * sky, irradiance, sqrt(roughness)) + lamps * roughness;
+  vec3 reflected = envMode == 1
+    ? textureCubeUV(envMap, R, s.perceptualRoughness).rgb
+    : mix(skyRadiance(R) * sky, irradiance, sqrt(roughness)) + lamps * roughness;
   reflected *= smoothstep(-0.25, 0.15, dot(R, face));
   vec3 f0 = metalKind == 1 ? METAL_F0[metalId] * albedo : (metalKind == 2 ? albedo : vec3(s.f0));
   color += reflected * environmentBrdf(f0, s.perceptualRoughness, NoV) * ao;

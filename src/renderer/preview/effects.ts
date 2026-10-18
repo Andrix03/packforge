@@ -6,6 +6,8 @@ import type { LightingPresetId } from './lightingPresets'
 export type ToneMappingId = 'neutral' | 'aces' | 'agx' | 'reinhard' | 'none'
 /** Sun shadows: none, soft-edged, or snapped to the texture's pixels like the shader packs. */
 export type ShadowMode = 'off' | 'soft' | 'pixel'
+/** What smooth surfaces reflect: the captured scene, or only the sky gradient (cheaper). */
+export type ReflectionMode = 'scene' | 'sky'
 
 export interface EffectSettings {
   lighting: LightingPresetId
@@ -19,6 +21,7 @@ export interface EffectSettings {
   /** Brightness of 100% emission (×albedo, in HDR units). */
   emission: number
   shadows: ShadowMode
+  reflections: ReflectionMode
 }
 
 export const DEFAULT_EFFECTS: EffectSettings = {
@@ -28,7 +31,8 @@ export const DEFAULT_EFFECTS: EffectSettings = {
   toneMapping: 'neutral',
   bloom: 0.5,
   emission: 4,
-  shadows: 'pixel'
+  shadows: 'pixel',
+  reflections: 'scene'
 }
 
 export interface DebugView {
@@ -77,7 +81,12 @@ export const TONE_MAPPINGS: ReadonlyArray<{ id: ToneMappingId; label: string }> 
 ]
 
 export const SHADOW_MODES: ReadonlyArray<{ id: ShadowMode; label: string }> = [
-  { id: 'pixel', label: 'A pixel (come gli shader pack)' },
+  { id: 'pixel', label: 'A pixel' },
   { id: 'soft', label: 'Morbide' },
   { id: 'off', label: 'Spente' }
+]
+
+export const REFLECTION_MODES: ReadonlyArray<{ id: ReflectionMode; label: string }> = [
+  { id: 'scene', label: 'Scena e cielo' },
+  { id: 'sky', label: 'Solo cielo' }
 ]

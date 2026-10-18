@@ -174,8 +174,8 @@ export default async function effects(app) {
   await app.shot('10-glowstone-no-emission')
 
   // ---- Side by side with vanilla while the effects are on.
-  await app.setValue('input[aria-label=Bloom]', 0.6)
-  await app.setValue('input[aria-label="Forza emissione"]', 4)
+  await app.setValue('input[aria-label=Bloom]', 1)
+  await app.setValue('input[aria-label="Forza emissione"]', 8)
   await app.click('Confronta con vanilla', 'label')
   await app.waitFor(`document.querySelector('.test-label.right')`)
   await app.sleep(1500)

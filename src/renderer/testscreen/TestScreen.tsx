@@ -630,8 +630,8 @@ export function TestScreen({
                   <input
                     type="range"
                     min={0}
-                    max={10}
-                    step={0.5}
+                    max={40}
+                    step={1}
                     value={effects.emission}
                     aria-label="Forza emissione"
                     onChange={(event) => updateEffects({ emission: Number(event.target.value) })}

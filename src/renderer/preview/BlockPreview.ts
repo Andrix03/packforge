@@ -3,7 +3,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import fragmentShader from '../shaders/block.frag.glsl?raw'
 import shadowFragmentShader from '../shaders/shadow.frag.glsl?raw'
 import skyFragmentShader from '../shaders/sky.frag.glsl?raw'
@@ -30,6 +29,7 @@ import { cornerLight, LightGrid, type CornerLight, type LightProps } from '../..
 import { decodePng } from '../../shared/pngCodec'
 import { lightingAt, type Lighting } from './dayNight'
 import { DEBUG_VIEWS, type EffectSettings, type ToneMappingId } from './effects'
+import { MipBloomPass } from './bloomPass'
 import { environmentFor } from './lightingPresets'
 
 export type PreviewScene = 'block' | 'wall' | 'floor'
@@ -106,10 +106,6 @@ const FLY_KEYS = new Set([
 
 /** Where the right hand holds an item in first person (camera space, game constants). */
 const RIGHT_HAND_OFFSET: Vec3 = [0.56, -0.52, -0.72]
-
-/** Only HDR values above this glow (lit surfaces stay below it, strong emission goes over). */
-const BLOOM_THRESHOLD = 1.1
-const BLOOM_RADIUS = 0.15
 
 /** Shadow map side in texels: the scenes are small, so one map covers the whole world. */
 const SHADOW_MAP_SIZE = 2048
@@ -1091,7 +1087,7 @@ export class BlockPreview {
  * the renderer's current viewport (one half of the screen when comparing).
  */
 class Composer {
-  readonly bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0, BLOOM_RADIUS, BLOOM_THRESHOLD)
+  readonly bloom = new MipBloomPass()
   /**
    * The view without screen-space reflections (SSR reads it): HDR color with mipmaps (blurrier
    * reflections on rough surfaces) and depth.

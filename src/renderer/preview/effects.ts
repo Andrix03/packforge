@@ -17,7 +17,7 @@ export interface EffectSettings {
   /** Exposure in stops (0 = ×1). */
   exposure: number
   toneMapping: ToneMappingId
-  /** Bloom strength, 0 = off. */
+  /** Bloom strength, 0 = off, 1 = Photon's default (12% of the blurred image mixed in). */
   bloom: number
   /** Brightness of 100% emission (×albedo, in HDR units). */
   emission: number
@@ -32,8 +32,9 @@ export const DEFAULT_EFFECTS: EffectSettings = {
   view: 0,
   exposure: 0,
   toneMapping: 'neutral',
-  bloom: 0.5,
-  emission: 4,
+  bloom: 1,
+  // Photon: emission_scale 40 against blocklight 6, i.e. ~7× a torch-lit surface.
+  emission: 8,
   shadows: 'pixel',
   reflections: 'scene',
   metals: 'spec'

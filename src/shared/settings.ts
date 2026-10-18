@@ -1,5 +1,12 @@
 // User settings persisted by main in `<userData>/settings.json`.
 
+/** Beginner shows fewer tools plus tips and warnings; Pro shows everything. Same files either way. */
+export type EditorMode = 'beginner' | 'pro'
+
+export function isEditorMode(value: unknown): value is EditorMode {
+  return value === 'beginner' || value === 'pro'
+}
+
 export interface Settings {
   /** Custom `.minecraft` folder; null means the launcher default. */
   minecraftDir: string | null
@@ -7,6 +14,7 @@ export interface Settings {
   externalEditor: string | null
   /** Most recently opened packs, newest first. */
   recentPacks: RecentPack[]
+  editorMode: EditorMode
 }
 
 export interface RecentPack {
@@ -27,7 +35,9 @@ export const MAX_RECENT_PACKS = 10
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
   minecraftDir: null,
   externalEditor: null,
-  recentPacks: []
+  recentPacks: [],
+  // PackForge is for everyone: start simple.
+  editorMode: 'beginner'
 })
 
 /**
@@ -42,7 +52,8 @@ export function parseSettings(value: unknown): Settings {
     externalEditor: nonEmptyString(record['externalEditor']),
     recentPacks: Array.isArray(record['recentPacks'])
       ? record['recentPacks'].filter(isRecentPack).slice(0, MAX_RECENT_PACKS)
-      : []
+      : [],
+    editorMode: isEditorMode(record['editorMode']) ? record['editorMode'] : 'beginner'
   }
 }
 

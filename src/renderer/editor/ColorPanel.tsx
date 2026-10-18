@@ -13,6 +13,8 @@ interface ColorPanelProps {
   recent: readonly Rgba[]
   /** Colors used by the texture, darkest first. */
   palette: readonly UsedColor[]
+  /** Pro mode adds opacity and RGB fields. */
+  pro: boolean
 }
 
 /**
@@ -59,7 +61,12 @@ export function ColorPanel(props: ColorPanelProps): React.JSX.Element {
         </div>
       </div>
 
-      <ColorEditor key={slot} color={color} onChange={(value) => props.onChange(slot, value)} />
+      <ColorEditor
+        key={slot}
+        color={color}
+        pro={props.pro}
+        onChange={(value) => props.onChange(slot, value)}
+      />
 
       {props.recent.length > 0 && (
         <section>
@@ -117,9 +124,11 @@ function SlotButton({
 /** HSV + alpha sliders and hex/RGB fields; keeps the hue while saturation or value is zero. */
 function ColorEditor({
   color,
+  pro,
   onChange
 }: {
   color: Rgba
+  pro: boolean
   onChange: (color: Rgba) => void
 }): React.JSX.Element {
   const [hsv, setHsv] = useState<Hsv>(() => rgbToHsv(color))
@@ -170,14 +179,16 @@ function ColorEditor({
         background={`linear-gradient(to right, #000, ${css(hsvToRgb({ ...hsv, v: 1 }))})`}
         onChange={(v) => updateHsv({ ...hsv, v: v / 100 })}
       />
-      <Slider
-        label="Opacità"
-        value={alpha}
-        max={255}
-        background={`linear-gradient(to right, transparent, ${css(opaque)}), repeating-conic-gradient(#888 0% 25%, #666 0% 50%) 0 0 / 8px 8px`}
-        onChange={(a) => setChannel(3, a)}
-      />
-      <div className="color-fields">
+      {pro && (
+        <Slider
+          label="Opacità"
+          value={alpha}
+          max={255}
+          background={`linear-gradient(to right, transparent, ${css(opaque)}), repeating-conic-gradient(#888 0% 25%, #666 0% 50%) 0 0 / 8px 8px`}
+          onChange={(a) => setChannel(3, a)}
+        />
+      )}
+      <div className={pro ? 'color-fields' : 'color-fields hex-only'}>
         <label title="Esadecimale: #rrggbb oppure #rrggbbaa">
           Hex
           <input
@@ -198,18 +209,19 @@ function ColorEditor({
             }}
           />
         </label>
-        {(['R', 'G', 'B'] as const).map((name, index) => (
-          <label key={name}>
-            {name}
-            <input
-              type="number"
-              min={0}
-              max={255}
-              value={color[index]}
-              onChange={(event) => setChannel(index, Number(event.target.value))}
-            />
-          </label>
-        ))}
+        {pro &&
+          (['R', 'G', 'B'] as const).map((name, index) => (
+            <label key={name}>
+              {name}
+              <input
+                type="number"
+                min={0}
+                max={255}
+                value={color[index]}
+                onChange={(event) => setChannel(index, Number(event.target.value))}
+              />
+            </label>
+          ))}
       </div>
     </div>
   )

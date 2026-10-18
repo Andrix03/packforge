@@ -1,7 +1,7 @@
 import type { UsedColor } from './color'
 import { ColorPanel } from './ColorPanel'
 import type { FillMode, Rgba } from './pixels'
-import { BRUSH_TOOLS, MAX_BRUSH_SIZE, TOOLS, type ToolId } from './tools'
+import { BRUSH_TOOLS, maxBrushSize, TOOLS, type ToolId } from './tools'
 
 interface EditorToolsProps {
   tool: ToolId
@@ -21,6 +21,9 @@ interface EditorToolsProps {
   recent: readonly Rgba[]
   palette: readonly UsedColor[]
   disabled: boolean
+  /** Pro mode: bigger brushes, pixel-perfect, full color panel. */
+  pro: boolean
+  showTips: boolean
 }
 
 export function EditorTools(props: EditorToolsProps): React.JSX.Element {
@@ -52,14 +55,14 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
           <input
             type="range"
             min={1}
-            max={MAX_BRUSH_SIZE}
+            max={maxBrushSize(props.pro)}
             value={props.brushSize}
             onChange={(event) => props.onBrushSize(Number(event.target.value))}
           />
         </label>
       )}
 
-      {props.tool === 'pencil' && props.brushSize === 1 && (
+      {props.pro && props.tool === 'pencil' && props.brushSize === 1 && (
         <label
           className="inline-check small"
           title="Toglie gli angoli a L mentre disegni, così le linee restano spesse un pixel."
@@ -96,7 +99,7 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
         </div>
       )}
 
-      <p className="tool-tip small muted">{active.tip}</p>
+      {props.showTips && <p className="tool-tip small muted">{active.tip}</p>}
 
       <ColorPanel
         primary={props.primary}
@@ -105,6 +108,7 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
         onSwap={props.onSwap}
         recent={props.recent}
         palette={props.palette}
+        pro={props.pro}
       />
       {props.rampPanel}
     </aside>

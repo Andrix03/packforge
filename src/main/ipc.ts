@@ -11,6 +11,7 @@ import {
 } from '../shared/ipc'
 import {
   addRecentPack,
+  isEditorMode,
   removeRecentPack,
   type RecentPack,
   type RecentPackStatus,
@@ -347,7 +348,20 @@ const handlers: IpcHandlers = {
     ),
 
   'settings:setExternalEditor': (path) =>
-    updateSetting(path, validateEditorPath, (value) => settings().update({ externalEditor: value }))
+    updateSetting(path, validateEditorPath, (value) =>
+      settings().update({ externalEditor: value })
+    ),
+
+  'settings:setEditorMode': async (mode) => {
+    if (!isEditorMode(mode)) return { ok: false, error: 'Modalità non valida.' }
+    try {
+      await settings().update({ editorMode: mode })
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      return { ok: false, error: `Impossibile salvare le impostazioni: ${detail}` }
+    }
+    return { ok: true, view: await settingsView() }
+  }
 }
 
 export function registerIpcHandlers(): void {

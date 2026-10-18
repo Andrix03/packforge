@@ -6,6 +6,12 @@ export type ToolId = 'pencil' | 'eraser' | 'fill' | 'picker' | 'shade' | 'noise'
 export const BRUSH_TOOLS: ReadonlySet<ToolId> = new Set(['pencil', 'eraser', 'shade'])
 
 export const MAX_BRUSH_SIZE = 8
+/** Beginners get small brushes: pixel art is drawn pixel by pixel. */
+export const BEGINNER_MAX_BRUSH_SIZE = 3
+
+export function maxBrushSize(pro: boolean): number {
+  return pro ? MAX_BRUSH_SIZE : BEGINNER_MAX_BRUSH_SIZE
+}
 
 export interface ToolInfo {
   id: ToolId

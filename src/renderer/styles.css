@@ -1358,3 +1358,19 @@ kbd {
   font-size: 0.85rem;
   align-self: flex-start;
 }
+
+.color-fields.hex-only {
+  grid-template-columns: 1fr;
+}
+
+.advice-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+}
+
+.advice-panel p,
+.advice-panel .issues {
+  margin: 0;
+}

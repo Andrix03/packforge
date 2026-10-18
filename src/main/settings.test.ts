@@ -34,7 +34,8 @@ describe('SettingsStore', () => {
     expect(await store.get()).toEqual({
       minecraftDir: null,
       externalEditor: null,
-      recentPacks: []
+      recentPacks: [],
+      editorMode: 'beginner'
     })
 
     await store.update({ minecraftDir: 'D:\\mc' })
@@ -43,12 +44,14 @@ describe('SettingsStore', () => {
     expect(JSON.parse(await readFile(file, 'utf8'))).toEqual({
       minecraftDir: 'D:\\mc',
       externalEditor: 'C:\\a.exe',
-      recentPacks: []
+      recentPacks: [],
+      editorMode: 'beginner'
     })
     expect(await new SettingsStore(file).get()).toEqual({
       minecraftDir: 'D:\\mc',
       externalEditor: 'C:\\a.exe',
-      recentPacks: []
+      recentPacks: [],
+      editorMode: 'beginner'
     })
   })
 
@@ -62,7 +65,8 @@ describe('SettingsStore', () => {
     expect(await new SettingsStore(file).get()).toEqual({
       minecraftDir: 'D:\\mc',
       externalEditor: 'C:\\a.exe',
-      recentPacks: []
+      recentPacks: [],
+      editorMode: 'beginner'
     })
   })
 
@@ -87,7 +91,8 @@ describe('SettingsStore', () => {
     expect(await new SettingsStore(file).get()).toEqual({
       minecraftDir: null,
       externalEditor: null,
-      recentPacks: []
+      recentPacks: [],
+      editorMode: 'beginner'
     })
   })
 })

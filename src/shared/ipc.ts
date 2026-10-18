@@ -9,7 +9,7 @@
 
 import type { McmetaAnalysis } from './mcmeta'
 import type { PackVersion } from './packFormat'
-import type { RecentPackStatus, SettingsView } from './settings'
+import type { EditorMode, RecentPackStatus, SettingsView } from './settings'
 import type { CreatePackRequest } from './validate'
 import type { VersionRangeRequest } from './versionRange'
 
@@ -127,6 +127,7 @@ export interface IpcContract {
   'settings:setMinecraftDir': { args: [path: string | null]; result: SettingsUpdateResult }
   /** null removes the editor. */
   'settings:setExternalEditor': { args: [path: string | null]; result: SettingsUpdateResult }
+  'settings:setEditorMode': { args: [mode: EditorMode]; result: SettingsUpdateResult }
   /** Recently opened packs, newest first; `pack:open` adds to it. */
   'recent:list': { args: []; result: RecentPackStatus[] }
   'recent:remove': { args: [path: string]; result: RecentPackStatus[] }
@@ -157,6 +158,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:get': true,
   'settings:setMinecraftDir': true,
   'settings:setExternalEditor': true,
+  'settings:setEditorMode': true,
   'recent:list': true,
   'recent:remove': true
 }

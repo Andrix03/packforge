@@ -9,7 +9,10 @@ import { History } from './history'
 import { fill, getPixel, Stroke, TRANSPARENT, type FillMode, type Rgba } from './pixels'
 import { DEFAULT_RAMP, generateRamp, noiseFill, shiftAlongRamp, type RampOptions } from './ramp'
 import { RampPanel } from './RampPanel'
-import { BRUSH_TOOLS, MAX_BRUSH_SIZE, toolByShortcut, type ToolId } from './tools'
+import type { EditorMode } from '../../shared/settings'
+import { analyzeTexture } from './advice'
+import { AdvicePanel } from './AdvicePanel'
+import { BRUSH_TOOLS, maxBrushSize, toolByShortcut, type ToolId } from './tools'
 import {
   clampViewport,
   fitViewport,
@@ -82,6 +85,10 @@ export function TextureEditor({
   /** Bumped on every painted change, to refresh the live previews. */
   const [revision, setRevision] = useState(0)
   const [recent, setRecent] = useState<Rgba[]>([])
+  const [mode, setMode] = useState<EditorMode>('beginner')
+  const [proTips, setProTips] = useState(false)
+  const pro = mode === 'pro'
+  const showTips = !pro || proTips
   /** Ramp base color; null = follow the primary color until the ramp is used or picked from. */
   const [rampBase, setRampBase] = useState<Rgba | null>(null)
   const [rampOptions, setRampOptions] = useState<RampOptions>(DEFAULT_RAMP)
@@ -94,6 +101,12 @@ export function TextureEditor({
   // Recomputed after every change; cheap even at 64× (a single pass over the pixels).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const palette = useMemo(() => (pixels ? usedColors(pixels) : []), [pixels, revision])
+  const advice = useMemo(
+    () => (pixels && showTips ? analyzeTexture(pixels) : []),
+    // The pixels are mutated in place: `revision` is what tells us they changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pixels, revision, showTips]
+  )
   const previewTarget = useMemo<PreviewTarget>(
     () => ({
       key: `editor|${target.url}`,
@@ -109,6 +122,24 @@ export function TextureEditor({
     () => setTools((t) => ({ ...t, primary: t.secondary, secondary: t.primary })),
     []
   )
+
+  useEffect(() => {
+    let cancelled = false
+    void window.api.invoke('settings:get').then(
+      (view) => !cancelled && setMode(view.settings.editorMode),
+      () => undefined
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function changeMode(next: EditorMode): void {
+    setMode(next)
+    // Beginner brushes are small: shrink a bigger brush when switching.
+    setTools((t) => ({ ...t, brushSize: Math.min(t.brushSize, maxBrushSize(next === 'pro')) }))
+    void window.api.invoke('settings:setEditorMode', next)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -175,13 +206,13 @@ export function TextureEditor({
         const step = event.key === ']' ? 1 : -1
         setTools((t) => ({
           ...t,
-          brushSize: Math.min(MAX_BRUSH_SIZE, Math.max(1, t.brushSize + step))
+          brushSize: Math.min(maxBrushSize(pro), Math.max(1, t.brushSize + step))
         }))
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [swap, save])
+  }, [swap, save, pro])
 
   function close(): void {
     if (modified && !window.confirm('Ci sono modifiche non salvate: andranno perse. Chiudere?')) {
@@ -222,6 +253,39 @@ export function TextureEditor({
           )}
         </div>
         <div className="row">
+          <div className="tabs small-tabs" role="radiogroup" aria-label="Modalità dell'editor">
+            {(
+              [
+                ['beginner', 'Principiante', 'Meno strumenti, consigli e avvisi'],
+                ['pro', 'Pro', 'Tutti gli strumenti e le opzioni']
+              ] as const
+            ).map(([value, label, title]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={mode === value}
+                className={mode === value ? 'tab active' : 'tab'}
+                title={title}
+                onClick={() => changeMode(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {pro && (
+            <label
+              className="inline-check small"
+              title="Mostra consigli e avvisi anche in modalità Pro"
+            >
+              <input
+                type="checkbox"
+                checked={proTips}
+                onChange={(event) => setProTips(event.target.checked)}
+              />
+              Consigli
+            </label>
+          )}
           {saveError && <span className="field-error small">{saveError}</span>}
           {canSave && (
             <button
@@ -256,6 +320,7 @@ export function TextureEditor({
                 options={rampOptions}
                 onOptions={setRampOptions}
                 locked={rampBase !== null}
+                pro={pro}
                 onFromPrimary={() => setRampBase(tools.primary)}
                 onPick={(slot, color) => {
                   lockRamp()
@@ -272,6 +337,8 @@ export function TextureEditor({
             palette={palette}
             onSwap={swap}
             disabled={target.readOnly}
+            pro={pro}
+            showTips={showTips}
           />
           <PixelCanvas
             pixels={loaded.pixels}
@@ -285,6 +352,7 @@ export function TextureEditor({
             onPickColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
           />
           <div className="editor-side">
+            {showTips && <AdvicePanel advice={advice} />}
             <PreviewPanel
               target={previewTarget}
               sources={target.sources}

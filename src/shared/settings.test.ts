@@ -19,8 +19,14 @@ describe('parseSettings', () => {
     ).toEqual({
       minecraftDir: 'D:\\Games\\.minecraft',
       externalEditor: 'C:\\A\\Aseprite.exe',
-      recentPacks: []
+      recentPacks: [],
+      editorMode: 'beginner'
     })
+  })
+
+  it('reads the editor mode and rejects unknown ones', () => {
+    expect(parseSettings({ editorMode: 'pro' }).editorMode).toBe('pro')
+    expect(parseSettings({ editorMode: 'expert' }).editorMode).toBe('beginner')
   })
 
   it.each([null, undefined, 'text', 42, []])('falls back to defaults for %j', (value) => {

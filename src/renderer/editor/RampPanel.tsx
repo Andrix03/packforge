@@ -10,6 +10,8 @@ interface RampPanelProps {
   /** Rebuilds the ramp from the current primary color. */
   onFromPrimary: () => void
   onPick: (slot: 'primary' | 'secondary', color: Rgba) => void
+  /** Pro mode shows hue shift, contrast and the number of shades. */
+  pro: boolean
 }
 
 /**
@@ -48,54 +50,58 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
       >
         Nuova rampa dal primario
       </button>
-      <label
-        className="color-slider"
-        title="Quanto le ombre vanno verso il blu e le luci verso il giallo"
-      >
-        <span className="small muted">
-          Spostamento tinta <span className="slider-value">{options.hueShift}°</span>
-        </span>
-        <input
-          type="range"
-          min={0}
-          max={30}
-          value={options.hueShift}
-          onChange={(event) =>
-            props.onOptions({ ...options, hueShift: Number(event.target.value) })
-          }
-        />
-      </label>
-      <label
-        className="color-slider"
-        title="Differenza di luminosità tra due tonalità vicine. Le texture vanilla hanno poco contrasto."
-      >
-        <span className="small muted">
-          Contrasto <span className="slider-value">{Math.round(options.contrast * 100)}%</span>
-        </span>
-        <input
-          type="range"
-          min={3}
-          max={20}
-          value={Math.round(options.contrast * 100)}
-          onChange={(event) =>
-            props.onOptions({ ...options, contrast: Number(event.target.value) / 100 })
-          }
-        />
-      </label>
-      <div className="tabs small-tabs" role="radiogroup" aria-label="Numero di tonalità">
-        {[1, 2, 3].map((steps) => (
-          <button
-            key={steps}
-            type="button"
-            role="radio"
-            aria-checked={options.steps === steps}
-            className={options.steps === steps ? 'tab active' : 'tab'}
-            onClick={() => props.onOptions({ ...options, steps })}
+      {props.pro && (
+        <>
+          <label
+            className="color-slider"
+            title="Quanto le ombre vanno verso il blu e le luci verso il giallo"
           >
-            {steps * 2 + 1} tonalità
-          </button>
-        ))}
-      </div>
+            <span className="small muted">
+              Spostamento tinta <span className="slider-value">{options.hueShift}°</span>
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={30}
+              value={options.hueShift}
+              onChange={(event) =>
+                props.onOptions({ ...options, hueShift: Number(event.target.value) })
+              }
+            />
+          </label>
+          <label
+            className="color-slider"
+            title="Differenza di luminosità tra due tonalità vicine. Le texture vanilla hanno poco contrasto."
+          >
+            <span className="small muted">
+              Contrasto <span className="slider-value">{Math.round(options.contrast * 100)}%</span>
+            </span>
+            <input
+              type="range"
+              min={3}
+              max={20}
+              value={Math.round(options.contrast * 100)}
+              onChange={(event) =>
+                props.onOptions({ ...options, contrast: Number(event.target.value) / 100 })
+              }
+            />
+          </label>
+          <div className="tabs small-tabs" role="radiogroup" aria-label="Numero di tonalità">
+            {[1, 2, 3].map((steps) => (
+              <button
+                key={steps}
+                type="button"
+                role="radio"
+                aria-checked={options.steps === steps}
+                className={options.steps === steps ? 'tab active' : 'tab'}
+                onClick={() => props.onOptions({ ...options, steps })}
+              >
+                {steps * 2 + 1} tonalità
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   )
 }

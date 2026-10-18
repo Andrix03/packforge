@@ -60,8 +60,8 @@ ramp palette, a one-line tip per tool and soft warnings. Pro mode shows everythi
 - [x] Noise fill: fill an area with random shades of the ramp (base for stone, dirt, gravel)
 - [x] Replace color: swap one color for another across the whole texture (fill bucket, Globale mode)
 - [x] Texture palette: the colors already used, sorted by brightness, with a color counter
-- [ ] Soft warnings in Beginner mode: too many colors (> ~10), darkest next to lightest, too much contrast
-- [ ] Beginner / Pro mode switch (remembered in settings), tool tips with shortcut and one-line advice
+- [x] Soft warnings in Beginner mode: too many colors (> ~10), darkest next to lightest, too much contrast
+- [x] Beginner / Pro mode switch (remembered in settings), tool tips with shortcut and one-line advice
 - [x] Undo/redo history (100+ steps), unsaved-changes indicator
 - [ ] Draft autosave and recovery after a crash
 - [ ] Block-centric editing: open a block and switch between its textures (top / side / bottom) as tabs

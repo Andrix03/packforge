@@ -80,6 +80,7 @@ describe('registerHandlers', () => {
       },
       'settings:setMinecraftDir': () => ({ ok: false, error: 'unused' }),
       'settings:setExternalEditor': () => ({ ok: false, error: 'unused' }),
+      'settings:setEditorMode': () => ({ ok: false, error: 'unused' }),
       'pack:updateDescription': () => ({ ok: false, error: 'unused' }),
       'pack:refreshSummary': () => ({ ok: false, error: 'unused' }),
       'pack:updateVersions': () => ({ ok: false, error: 'unused' }),

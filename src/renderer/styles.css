@@ -1555,3 +1555,38 @@ kbd {
 .editor-canvas.moving {
   cursor: move;
 }
+
+.ramp-swatches.editing {
+  outline: 2px dashed var(--accent);
+  outline-offset: 2px;
+}
+
+.ramp-edit {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.palettes-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.palettes-panel .row {
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: space-between;
+}
+
+.palette-name {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+.saved-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

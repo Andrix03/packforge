@@ -87,3 +87,20 @@ export function addRecent(recent: readonly Rgba[], color: Rgba, limit = RECENT_L
   if (color[3] === 0) return [...recent]
   return [color, ...recent.filter((c) => !sameColor(c, color))].slice(0, limit)
 }
+
+/** `#rrggbbaa` (lowercase), the format of saved palettes. */
+export function toHex8([r, g, b, a]: Rgba): string {
+  return '#' + [r, g, b, a].map((c) => c.toString(16).padStart(2, '0')).join('')
+}
+
+export const MAX_RAMP_COLORS = 16
+
+/** Ramp from arbitrary colors: transparent and duplicates removed, darkest first, capped. */
+export function toRamp(colors: readonly Rgba[]): Rgba[] {
+  const unique: Rgba[] = []
+  for (const color of colors) {
+    if (color[3] === 0 || unique.some((c) => sameColor(c, color))) continue
+    unique.push(color)
+  }
+  return unique.sort((a, b) => luma(a) - luma(b)).slice(0, MAX_RAMP_COLORS)
+}

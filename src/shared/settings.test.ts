@@ -20,8 +20,21 @@ describe('parseSettings', () => {
       minecraftDir: 'D:\\Games\\.minecraft',
       externalEditor: 'C:\\A\\Aseprite.exe',
       recentPacks: [],
-      editorMode: 'beginner'
+      editorMode: 'beginner',
+      palettes: []
     })
+  })
+
+  it('keeps only valid palettes', () => {
+    const palettes = parseSettings({
+      palettes: [
+        { name: '  Pietra  ', colors: ['#7F7F7FFF', 'red', '#1234'] },
+        { name: '', colors: ['#000000ff'] },
+        { name: 'Vuota', colors: [] },
+        'nope'
+      ]
+    }).palettes
+    expect(palettes).toEqual([{ name: 'Pietra', colors: ['#7f7f7fff'] }])
   })
 
   it('reads the editor mode and rejects unknown ones', () => {

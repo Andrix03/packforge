@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addRecent, hsvToRgb, luma, rgbToHsv, sameColor, usedColors } from './color'
+import { addRecent, hsvToRgb, luma, rgbToHsv, sameColor, toHex8, toRamp, usedColors } from './color'
 import type { Rgba } from './pixels'
 
 describe('rgbToHsv / hsvToRgb', () => {
@@ -76,5 +76,24 @@ describe('luma / sameColor', () => {
   it('treats all transparent colors as equal', () => {
     expect(sameColor([1, 2, 3, 0], [9, 9, 9, 0])).toBe(true)
     expect(sameColor([1, 2, 3, 255], [1, 2, 3, 254])).toBe(false)
+  })
+})
+
+describe('toHex8 / toRamp', () => {
+  it('writes #rrggbbaa', () => {
+    expect(toHex8([255, 8, 160, 128])).toBe('#ff08a080')
+  })
+
+  it('builds a ramp: no transparent, no duplicates, darkest first', () => {
+    const ramp = toRamp([
+      [200, 200, 200, 255],
+      [10, 10, 10, 255],
+      [200, 200, 200, 255],
+      [1, 2, 3, 0]
+    ])
+    expect(ramp).toEqual([
+      [10, 10, 10, 255],
+      [200, 200, 200, 255]
+    ])
   })
 })

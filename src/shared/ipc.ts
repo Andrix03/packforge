@@ -9,7 +9,7 @@
 
 import type { McmetaAnalysis } from './mcmeta'
 import type { PackVersion } from './packFormat'
-import type { EditorMode, RecentPackStatus, SettingsView } from './settings'
+import type { EditorMode, RecentPackStatus, SavedPalette, SettingsView } from './settings'
 import type { CreatePackRequest } from './validate'
 import type { VersionRangeRequest } from './versionRange'
 
@@ -145,6 +145,8 @@ export interface IpcContract {
   /** null removes the editor. */
   'settings:setExternalEditor': { args: [path: string | null]; result: SettingsUpdateResult }
   'settings:setEditorMode': { args: [mode: EditorMode]; result: SettingsUpdateResult }
+  /** Replaces the saved palettes (main keeps only valid ones). */
+  'settings:setPalettes': { args: [palettes: SavedPalette[]]; result: SettingsUpdateResult }
   /** Recently opened packs, newest first; `pack:open` adds to it. */
   'recent:list': { args: []; result: RecentPackStatus[] }
   'recent:remove': { args: [path: string]; result: RecentPackStatus[] }
@@ -179,6 +181,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setMinecraftDir': true,
   'settings:setExternalEditor': true,
   'settings:setEditorMode': true,
+  'settings:setPalettes': true,
   'recent:list': true,
   'recent:remove': true
 }

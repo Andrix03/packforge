@@ -8,7 +8,9 @@ import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { analyzeTexture } from './advice'
 import { AdvicePanel } from './AdvicePanel'
 import { isTyping, putBuffer } from './canvasDraw'
-import { addRecent, usedColors } from './color'
+import { addRecent, toRamp, usedColors } from './color'
+import { PalettesPanel } from './PalettesPanel'
+import type { SavedPalette } from '../../shared/settings'
 import { EditorDocument } from './document'
 import { EditorTools, type SelectionAction } from './EditorTools'
 import type { Floating } from './selection'
@@ -103,10 +105,14 @@ export function TextureEditor({
   /** Ramp base color; null = follow the primary color until the ramp is used or picked from. */
   const [rampBase, setRampBase] = useState<Rgba | null>(null)
   const [rampOptions, setRampOptions] = useState<RampOptions>(DEFAULT_RAMP)
-  const ramp = useMemo(
+  /** A ramp edited by hand or taken from a palette (overrides the generated one). */
+  const [customRamp, setCustomRamp] = useState<Rgba[] | null>(null)
+  const [palettes, setPalettes] = useState<SavedPalette[]>([])
+  const generatedRamp = useMemo(
     () => generateRamp(rampBase ?? tools.primary, rampOptions),
     [rampBase, tools.primary, rampOptions]
   )
+  const ramp = customRamp ?? generatedRamp
   const lockRamp = (): void => setRampBase((base) => base ?? tools.primary)
   const doc = loaded.status === 'ready' ? loaded.doc : null
   const source = loaded.status === 'ready' ? loaded.source : null
@@ -223,13 +229,29 @@ export function TextureEditor({
   useEffect(() => {
     let cancelled = false
     void window.api.invoke('settings:get').then(
-      (view) => !cancelled && setMode(view.settings.editorMode),
+      (view) => {
+        if (cancelled) return
+        setMode(view.settings.editorMode)
+        setPalettes(view.settings.palettes)
+      },
       () => undefined
     )
     return () => {
       cancelled = true
     }
   }, [])
+
+  function savePalettes(next: SavedPalette[]): void {
+    setPalettes(next)
+    void window.api.invoke('settings:setPalettes', next)
+  }
+
+  function editRamp(index: number, action: 'replace' | 'remove'): void {
+    const next = [...ramp]
+    if (action === 'replace') next[index] = tools.primary
+    else if (next.length > 2) next.splice(index, 1)
+    setCustomRamp(toRamp(next))
+  }
 
   function changeMode(next: EditorMode): void {
     setMode(next)
@@ -547,18 +569,37 @@ export function TextureEditor({
             }}
             onSelectionAction={runSelectionAction}
             rampPanel={
-              <RampPanel
-                ramp={ramp}
-                options={rampOptions}
-                onOptions={setRampOptions}
-                locked={rampBase !== null}
-                pro={pro}
-                onFromPrimary={() => setRampBase(tools.primary)}
-                onPick={(slot, color) => {
-                  lockRamp()
-                  setTools((t) => ({ ...t, [slot]: color }))
-                }}
-              />
+              <>
+                <RampPanel
+                  ramp={ramp}
+                  options={rampOptions}
+                  onOptions={setRampOptions}
+                  locked={rampBase !== null}
+                  pro={pro}
+                  custom={customRamp !== null}
+                  onEditShade={editRamp}
+                  onAddShade={() => setCustomRamp(toRamp([...ramp, tools.primary]))}
+                  onResetAuto={() => setCustomRamp(null)}
+                  onFromPrimary={() => {
+                    setCustomRamp(null)
+                    setRampBase(tools.primary)
+                  }}
+                  onPick={(slot, color) => {
+                    lockRamp()
+                    setTools((t) => ({ ...t, [slot]: color }))
+                  }}
+                />
+                {pro && (
+                  <PalettesPanel
+                    palettes={palettes}
+                    onChange={savePalettes}
+                    ramp={ramp}
+                    textureColors={palette.map((entry) => entry.color)}
+                    onPick={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}
+                    onUseAsRamp={(colors) => setCustomRamp(toRamp(colors))}
+                  />
+                )}
+              </>
             }
             fillMode={tools.fillMode}
             onFillMode={(fillMode) => setTools((t) => ({ ...t, fillMode }))}

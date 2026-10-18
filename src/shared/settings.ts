@@ -7,6 +7,38 @@ export function isEditorMode(value: unknown): value is EditorMode {
   return value === 'beginner' || value === 'pro'
 }
 
+/** A named list of colors kept across textures and sessions (`#rrggbbaa`). */
+export interface SavedPalette {
+  name: string
+  colors: string[]
+}
+
+export const MAX_PALETTES = 30
+export const MAX_PALETTE_COLORS = 64
+const PALETTE_NAME_MAX = 40
+
+/**
+ * Keeps only well-formed palettes (untrusted JSON or renderer input): trimmed names up to 40
+ * characters, `#rrggbbaa` colors (lowercased), at most 30 palettes of 64 colors.
+ */
+export function parsePalettes(value: unknown): SavedPalette[] {
+  if (!Array.isArray(value)) return []
+  const palettes: SavedPalette[] = []
+  for (const entry of value) {
+    if (palettes.length >= MAX_PALETTES) break
+    if (typeof entry !== 'object' || entry === null) continue
+    const { name, colors } = entry as Record<string, unknown>
+    if (typeof name !== 'string' || !Array.isArray(colors)) continue
+    const trimmed = name.trim().slice(0, PALETTE_NAME_MAX)
+    const valid = colors
+      .filter((c): c is string => typeof c === 'string' && /^#[0-9a-f]{8}$/i.test(c))
+      .map((c) => c.toLowerCase())
+      .slice(0, MAX_PALETTE_COLORS)
+    if (trimmed && valid.length > 0) palettes.push({ name: trimmed, colors: valid })
+  }
+  return palettes
+}
+
 export interface Settings {
   /** Custom `.minecraft` folder; null means the launcher default. */
   minecraftDir: string | null
@@ -15,6 +47,7 @@ export interface Settings {
   /** Most recently opened packs, newest first. */
   recentPacks: RecentPack[]
   editorMode: EditorMode
+  palettes: SavedPalette[]
 }
 
 export interface RecentPack {
@@ -37,7 +70,8 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   externalEditor: null,
   recentPacks: [],
   // PackForge is for everyone: start simple.
-  editorMode: 'beginner'
+  editorMode: 'beginner',
+  palettes: []
 })
 
 /**
@@ -53,7 +87,8 @@ export function parseSettings(value: unknown): Settings {
     recentPacks: Array.isArray(record['recentPacks'])
       ? record['recentPacks'].filter(isRecentPack).slice(0, MAX_RECENT_PACKS)
       : [],
-    editorMode: isEditorMode(record['editorMode']) ? record['editorMode'] : 'beginner'
+    editorMode: isEditorMode(record['editorMode']) ? record['editorMode'] : 'beginner',
+    palettes: parsePalettes(record['palettes'])
   }
 }
 

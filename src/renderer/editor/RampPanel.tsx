@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Rgba } from './pixels'
 import type { RampOptions } from './ramp'
 
@@ -12,6 +13,12 @@ interface RampPanelProps {
   onPick: (slot: 'primary' | 'secondary', color: Rgba) => void
   /** Pro mode shows hue shift, contrast and the number of shades. */
   pro: boolean
+  /** True when the ramp was edited by hand (or taken from a palette). */
+  custom: boolean
+  /** Edit mode: left click replaces a shade with the primary color, right click removes it. */
+  onEditShade: (index: number, action: 'replace' | 'remove') => void
+  onAddShade: () => void
+  onResetAuto: () => void
 }
 
 /**
@@ -20,25 +27,34 @@ interface RampPanelProps {
  */
 export function RampPanel(props: RampPanelProps): React.JSX.Element {
   const { options } = props
-  const pick = (event: React.MouseEvent, color: Rgba): void => {
+  const [editing, setEditing] = useState(false)
+  const pick = (event: React.MouseEvent, color: Rgba, index: number): void => {
     event.preventDefault()
-    props.onPick(event.button === 2 ? 'secondary' : 'primary', color)
+    if (editing) props.onEditShade(index, event.button === 2 ? 'remove' : 'replace')
+    else props.onPick(event.button === 2 ? 'secondary' : 'primary', color)
   }
   return (
     <section className="ramp-panel">
       <h3 className="panel-title">
-        Rampa <span className="muted">{props.locked ? '' : '(segue il primario)'}</span>
+        Rampa{' '}
+        <span className="muted">
+          {props.custom ? '(personalizzata)' : props.locked ? '' : '(segue il primario)'}
+        </span>
       </h3>
-      <div className="ramp-swatches">
-        {props.ramp.map((color) => (
+      <div className={editing ? 'ramp-swatches editing' : 'ramp-swatches'}>
+        {props.ramp.map((color, index) => (
           <button
-            key={color.join(',')}
+            key={index}
             type="button"
             className="ramp-swatch"
             style={{ background: `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})` }}
-            title="Sinistro: primario, destro: secondario"
-            onClick={(event) => pick(event, color)}
-            onContextMenu={(event) => pick(event, color)}
+            title={
+              editing
+                ? 'Sinistro: sostituisci con il colore primario · destro: togli'
+                : 'Sinistro: primario, destro: secondario'
+            }
+            onClick={(event) => pick(event, color, index)}
+            onContextMenu={(event) => pick(event, color, index)}
           />
         ))}
       </div>
@@ -51,6 +67,39 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
         Nuova rampa dal primario
       </button>
       {props.pro && (
+        <div className="row ramp-edit">
+          <button
+            type="button"
+            className="small-button"
+            aria-pressed={editing}
+            onClick={() => setEditing((e) => !e)}
+            title="Modifica le tonalità una per una"
+          >
+            {editing ? 'Fine' : '✎ Modifica'}
+          </button>
+          {editing && (
+            <button
+              type="button"
+              className="small-button"
+              onClick={props.onAddShade}
+              title="Aggiungi il colore primario alla rampa"
+            >
+              + Primario
+            </button>
+          )}
+          {props.custom && (
+            <button
+              type="button"
+              className="small-button"
+              onClick={props.onResetAuto}
+              title="Torna alla rampa automatica con hue shifting"
+            >
+              ↺ Automatica
+            </button>
+          )}
+        </div>
+      )}
+      {props.pro && !props.custom && (
         <>
           <label
             className="color-slider"

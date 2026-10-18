@@ -12,6 +12,7 @@ import {
 import {
   addRecentPack,
   isEditorMode,
+  parsePalettes,
   removeRecentPack,
   type RecentPack,
   type RecentPackStatus,
@@ -380,6 +381,16 @@ const handlers: IpcHandlers = {
     updateSetting(path, validateEditorPath, (value) =>
       settings().update({ externalEditor: value })
     ),
+
+  'settings:setPalettes': async (palettes) => {
+    try {
+      await settings().update({ palettes: parsePalettes(palettes) })
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      return { ok: false, error: `Impossibile salvare le palette: ${detail}` }
+    }
+    return { ok: true, view: await settingsView() }
+  },
 
   'settings:setEditorMode': async (mode) => {
     if (!isEditorMode(mode)) return { ok: false, error: 'Modalità non valida.' }

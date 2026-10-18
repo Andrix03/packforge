@@ -116,7 +116,10 @@ export default async function tour(app) {
   await ask('2 · Gli altri canali restano intatti e annulla/ripeti funzionano?')
 
   // ---- 3. Generator on a texture without maps
-  await say('Ora una texture senza mappe: grass_block_top. Le schede col + sono mappe nuove.', 5000)
+  await say(
+    'Ora una texture senza mappe. Chiudo la pietra SENZA salvare (il solco era una prova): la conferma «modifiche non salvate» che vedi è voluta.',
+    6500
+  )
   app.answerDialogs(true)
   await closeEditor()
   await openEditor('grass_block_top.png')

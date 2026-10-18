@@ -75,6 +75,15 @@ export type PickImageResult =
 
 export type SaveTextureResult = { ok: true } | { ok: false; error: string }
 
+/** Unsaved editor work kept outside the pack (see main/drafts.ts). */
+export interface TextureDraft {
+  /** ISO timestamp of the autosave. */
+  savedAt: string
+  width: number
+  height: number
+  rgba: Uint8Array
+}
+
 export type SettingsUpdateResult = { ok: true; view: SettingsView } | { ok: false; error: string }
 
 /** Asset URL; a non-zero version is appended so changed files bypass caches. */
@@ -118,6 +127,14 @@ export interface IpcContract {
     args: [path: string, width: number, height: number, rgba: Uint8Array]
     result: SaveTextureResult
   }
+  /** Autosaves editor pixels as a draft for this pack texture (folder packs only). */
+  'draft:save': {
+    args: [path: string, width: number, height: number, rgba: Uint8Array]
+    result: SaveTextureResult
+  }
+  /** The draft for this texture of the open pack, or null. */
+  'draft:load': { args: [path: string]; result: TextureDraft | null }
+  'draft:discard': { args: [path: string]; result: void }
   /** Installed game versions with a client jar (reference textures). */
   'vanilla:listVersions': { args: []; result: ListVanillaVersionsResult }
   /** Loads a jar in memory, read-only; textures are never copied anywhere. */
@@ -153,6 +170,9 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:pickIconSource': true,
   'pack:setIcon': true,
   'texture:save': true,
+  'draft:save': true,
+  'draft:load': true,
+  'draft:discard': true,
   'vanilla:listVersions': true,
   'vanilla:load': true,
   'settings:get': true,

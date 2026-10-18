@@ -231,6 +231,28 @@ export function fillRegion(buffer: PixelBuffer, x: number, y: number, mode: Fill
   return region
 }
 
+/** Replaces the whole image with `data` (same size); returns what changed, for the undo history. */
+export function replacePixels(buffer: PixelBuffer, data: Uint8Array): PixelChange[] {
+  const changed: number[] = []
+  for (let i = 0; i < buffer.width * buffer.height; i++) {
+    const o = i * 4
+    if (
+      buffer.data[o] !== data[o] ||
+      buffer.data[o + 1] !== data[o + 1] ||
+      buffer.data[o + 2] !== data[o + 2] ||
+      buffer.data[o + 3] !== data[o + 3]
+    ) {
+      changed.push(i)
+    }
+  }
+  return paintPixels(buffer, changed, (i) => [
+    data[i * 4]!,
+    data[i * 4 + 1]!,
+    data[i * 4 + 2]!,
+    data[i * 4 + 3]!
+  ])
+}
+
 /** Sets each pixel to `colorFor(index)`; returns what changed (with the real previous colors). */
 export function paintPixels(
   buffer: PixelBuffer,

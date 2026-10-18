@@ -4,6 +4,7 @@ import {
   fromHex,
   getPixel,
   linePoints,
+  replacePixels,
   setPixel,
   Stroke,
   toHex,
@@ -302,6 +303,13 @@ describe('fill', () => {
     b.data.set([9, 9, 9, 0])
     const [change] = fill(b, 0, 0, RED, 'contiguous')
     expect(change!.before).toEqual([9, 9, 9, 0])
+  })
+
+  it('replaces a whole image, listing only the changed pixels', () => {
+    const b = buffer(2, 1, GRAY)
+    const changes = replacePixels(b, Uint8Array.from([...GRAY, ...RED]))
+    expect(changes).toEqual([{ index: 1, before: GRAY, after: RED }])
+    expect(getPixel(b, 1, 0)).toEqual(RED)
   })
 
   it('ignores clicks outside the buffer', () => {

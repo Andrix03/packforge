@@ -6,7 +6,16 @@ import { addRecent, usedColors } from './color'
 import { EditorTools } from './EditorTools'
 import { TilingPreview } from './TilingPreview'
 import { History } from './history'
-import { fill, getPixel, Stroke, TRANSPARENT, type FillMode, type Rgba } from './pixels'
+import type { TextureDraft } from '../../shared/ipc'
+import {
+  fill,
+  getPixel,
+  replacePixels,
+  Stroke,
+  TRANSPARENT,
+  type FillMode,
+  type Rgba
+} from './pixels'
 import { DEFAULT_RAMP, generateRamp, noiseFill, shiftAlongRamp, type RampOptions } from './ramp'
 import { RampPanel } from './RampPanel'
 import { ReferencePanel, type LoadedReference } from './ReferencePanel'
@@ -60,6 +69,8 @@ interface Tools {
 
 /** Size of the transparency checkerboard squares, in CSS pixels. */
 const CHECKER_SIZE = 8
+/** Autosave delay after the last change. */
+const DRAFT_DELAY_MS = 2000
 
 export function TextureEditor({
   target,
@@ -90,6 +101,8 @@ export function TextureEditor({
   const [mode, setMode] = useState<EditorMode>('beginner')
   const [proTips, setProTips] = useState(false)
   const [reference, setReference] = useState<LoadedReference | null>(null)
+  /** A draft found for this texture, waiting for the user to restore or discard it. */
+  const [draftOffer, setDraftOffer] = useState<TextureDraft | null>(null)
   const [traceOpacity, setTraceOpacity] = useState(0)
   const vanilla = target.sources.vanilla
   const referenceUrl = vanilla?.files.has(target.path) ? assetUrl(vanilla.base, target.path) : null
@@ -220,10 +233,63 @@ export function TextureEditor({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [swap, save, pro])
 
+  // Offer a draft left by an earlier session (crash, closed without saving).
+  const readyPixels = loaded.status === 'ready' ? loaded.pixels : null
+  useEffect(() => {
+    if (!readyPixels || target.readOnly) return
+    let cancelled = false
+    void window.api.invoke('draft:load', target.path).then((draft) => {
+      if (cancelled || !draft) return
+      if (draft.width === readyPixels.width && draft.height === readyPixels.height)
+        setDraftOffer(draft)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [readyPixels, target.path, target.readOnly])
+
+  // Autosave a draft a moment after the last change; drop it once the file is saved (or the
+  // changes were undone back to the file).
+  useEffect(() => {
+    if (!readyPixels || target.readOnly || draftOffer) return
+    const timer = window.setTimeout(() => {
+      if (modified) {
+        const rgba = new Uint8Array(readyPixels.data)
+        void window.api.invoke(
+          'draft:save',
+          target.path,
+          readyPixels.width,
+          readyPixels.height,
+          rgba
+        )
+      } else {
+        void window.api.invoke('draft:discard', target.path)
+      }
+    }, DRAFT_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [readyPixels, revision, modified, target.path, target.readOnly, draftOffer])
+
+  function restoreDraft(): void {
+    const draft = draftOffer
+    setDraftOffer(null)
+    if (!draft || loaded.status !== 'ready') return
+    // One undoable step, like any other edit.
+    history.push(replacePixels(loaded.pixels, draft.rgba))
+    loaded.source.getContext('2d')?.putImageData(loaded.pixels, 0, 0)
+    setModified(history.modified)
+    setRevision((r) => r + 1)
+  }
+
+  function discardDraft(): void {
+    setDraftOffer(null)
+    void window.api.invoke('draft:discard', target.path)
+  }
+
   function close(): void {
     if (modified && !window.confirm('Ci sono modifiche non salvate: andranno perse. Chiudere?')) {
       return
     }
+    if (modified) void window.api.invoke('draft:discard', target.path)
     onClose()
   }
 
@@ -309,6 +375,19 @@ export function TextureEditor({
           </button>
         </div>
       </header>
+      {draftOffer && (
+        <div className="draft-banner" role="status">
+          <span>
+            Trovata una bozza non salvata di questa texture ({formatTime(draftOffer.savedAt)}).
+          </span>
+          <button type="button" className="primary" onClick={restoreDraft}>
+            Ripristina
+          </button>
+          <button type="button" onClick={discardDraft}>
+            Scarta
+          </button>
+        </div>
+      )}
       {loaded.status === 'loading' && <p className="muted">Caricamento della texture…</p>}
       {loaded.status === 'error' && <p className="field-error">{loaded.message}</p>}
       {loaded.status === 'ready' && (
@@ -351,6 +430,7 @@ export function TextureEditor({
             source={loaded.source}
             tools={target.readOnly ? null : { ...tools, ramp }}
             history={history}
+            revision={revision}
             onModifiedChange={setModified}
             onPixelsChanged={() => setRevision((r) => r + 1)}
             onColorUsed={(color) => setRecent((list) => addRecent(list, color))}
@@ -391,6 +471,7 @@ function PixelCanvas({
   source,
   tools,
   history,
+  revision: externalRevision,
   trace,
   onModifiedChange,
   onPixelsChanged,
@@ -403,6 +484,8 @@ function PixelCanvas({
   /** Null when read-only: the canvas can only be zoomed and panned. */
   tools: Tools | null
   history: History
+  /** Bumped when the parent changed the pixels itself (draft restore): redraw. */
+  revision: number
   /** Vanilla texture drawn over the canvas for tracing (display only). */
   trace: { canvas: HTMLCanvasElement; opacity: number } | null
   /** Called when the image starts or stops differing from the file (undo can go back to it). */
@@ -424,8 +507,8 @@ function PixelCanvas({
   const [panning, setPanning] = useState(false)
   /** Bumped after each painted change so the canvas redraws. */
   const [revision, setRevision] = useState(0)
-  const [canUndo, setCanUndo] = useState(false)
-  const [canRedo, setCanRedo] = useState(false)
+  /** Bumped after history changes so the undo/redo buttons re-read it. */
+  const [, setHistoryTick] = useState(0)
   const spaceHeld = useRef(false)
   const drag = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null)
   const stroke = useRef<{ pointerId: number; stroke: Stroke } | null>(null)
@@ -478,7 +561,7 @@ function PixelCanvas({
     canvas.height = viewSize.height
     const brush = tools && BRUSH_TOOLS.has(tools.tool) ? tools.brushSize : 1
     drawCanvas(canvas, source, viewport, showGrid, tools ? hover : null, brush, trace)
-  }, [source, viewSize, viewport, showGrid, hover, tools, revision, trace])
+  }, [source, viewSize, viewport, showGrid, hover, tools, revision, externalRevision, trace])
 
   const zoomCentered = useCallback(
     (direction: 1 | -1) =>
@@ -513,8 +596,7 @@ function PixelCanvas({
   }, [source, pixels, onPixelsChanged])
 
   const syncHistory = useCallback(() => {
-    setCanUndo(history.canUndo)
-    setCanRedo(history.canRedo)
+    setHistoryTick((t) => t + 1)
     onModifiedChange(history.modified)
   }, [history, onModifiedChange])
 
@@ -695,7 +777,7 @@ function PixelCanvas({
         <button
           type="button"
           onClick={() => undoRedo('undo')}
-          disabled={!canUndo}
+          disabled={!history.canUndo}
           title="Annulla (Ctrl+Z)"
         >
           ↶ Annulla
@@ -703,7 +785,7 @@ function PixelCanvas({
         <button
           type="button"
           onClick={() => undoRedo('redo')}
-          disabled={!canRedo}
+          disabled={!history.canRedo}
           title="Ripeti (Ctrl+Y)"
         >
           ↷ Ripeti
@@ -863,6 +945,13 @@ async function loadPixels(
 }
 
 /** Shortcuts are ignored while typing in a text field (checkboxes and color inputs don't count). */
+function formatTime(iso: string): string {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime())
+    ? 'data sconosciuta'
+    : date.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })
+}
+
 function isTyping(event: KeyboardEvent): boolean {
   const target = event.target
   if (target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) return true

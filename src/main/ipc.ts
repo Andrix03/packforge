@@ -29,6 +29,7 @@ import { openPack } from './openPack'
 import { ICON_IMAGE_EXTENSIONS, readIconSource, writePackIcon } from './packIcon'
 import { createPack } from './pack'
 import { saveTexture } from './textureFile'
+import { DraftStore } from './drafts'
 import { assetBase } from './packProtocol'
 import { listPackFiles } from './packSource'
 import { PackWatcher } from './packWatcher'
@@ -74,6 +75,18 @@ async function pathExists(path: string): Promise<boolean> {
 }
 
 let packWatcher: PackWatcher | null = null
+let draftStore: DraftStore | null = null
+
+function drafts(): DraftStore {
+  draftStore ??= new DraftStore(join(app.getPath('userData'), 'drafts'))
+  return draftStore
+}
+
+/** Root of the open folder pack; drafts don't apply to read-only zip packs. */
+function folderPackRoot(): string | null {
+  const current = getSource('pack')
+  return current?.source.kind === 'folder' ? current.source.root : null
+}
 
 function sendEvent<C extends IpcEventChannel>(channel: C, payload: IpcEvents[C]): void {
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, payload)
@@ -281,6 +294,22 @@ const handlers: IpcHandlers = {
     const current = getSource('pack')
     if (!current) return { ok: false, error: 'Nessun pack aperto.' }
     return saveTexture(current.source, path, width, height, rgba)
+  },
+
+  'draft:save': async (path, width, height, rgba) => {
+    const root = folderPackRoot()
+    if (!root) return { ok: false, error: 'Nessun pack in cartella aperto.' }
+    return drafts().save(root, path, width, height, rgba)
+  },
+
+  'draft:load': async (path) => {
+    const root = folderPackRoot()
+    return root ? drafts().load(root, path) : null
+  },
+
+  'draft:discard': async (path) => {
+    const root = folderPackRoot()
+    if (root) await drafts().discard(root, path)
   },
 
   'pack:updateVersions': async (request) => {

@@ -87,6 +87,9 @@ describe('registerHandlers', () => {
       'pack:pickIconSource': () => null,
       'pack:setIcon': () => ({ ok: false, error: 'unused' }),
       'texture:save': () => ({ ok: false, error: 'unused' }),
+      'draft:save': () => ({ ok: false, error: 'unused' }),
+      'draft:load': () => null,
+      'draft:discard': () => undefined,
       'recent:list': () => [],
       'recent:remove': () => []
     }

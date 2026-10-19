@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { unzipSync, zipSync } from 'fflate'
@@ -128,6 +128,13 @@ describe('buildExport', () => {
     expect(again).toMatchObject({ ok: false, exists: true })
     expect((await buildExport(source(), options({ overwrite: true }))).ok).toBe(true)
     expect((await buildExport(source(), options({ dir: join(pack, 'exports') }))).ok).toBe(false)
+  })
+
+  it('sees through links: a folder that leads inside the pack is still inside', async () => {
+    const link = join(dir, 'link-to-pack')
+    await symlink(pack, link, 'junction')
+    const result = await buildExport(source(), options({ dir: join(link, 'exports') }))
+    expect(result.ok).toBe(false)
   })
 
   it('puts exports next to the pack by default', () => {

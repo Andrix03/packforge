@@ -133,7 +133,9 @@ export async function buildExport(
   if (!isAbsolute(options.dir)) return { ok: false, error: 'Cartella di destinazione non valida.' }
   const root = await realpath(source.root)
   const dir = resolve(options.dir)
-  const rel = relative(root, dir)
+  // Compare real paths on both sides: 8.3 short names (C:\Users\RUNNER~1) or junctions would
+  // otherwise make a folder inside the pack look like it's outside.
+  const rel = relative(root, await realpathOfExisting(dir))
   if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) {
     return {
       ok: false,
@@ -214,6 +216,15 @@ export async function buildExport(
 }
 
 /** Where exports go unless chosen: `<pack folder> - export` next to the pack. */
+/** Real path of `path`, resolving its nearest existing ancestor (the folder may not exist yet). */
+async function realpathOfExisting(path: string): Promise<string> {
+  const real = await realpath(path).catch(() => null)
+  if (real) return real
+  const parent = dirname(path)
+  if (parent === path) return path
+  return join(await realpathOfExisting(parent), relative(parent, path))
+}
+
 export function defaultExportDir(packRoot: string): string {
   return join(
     dirname(packRoot),

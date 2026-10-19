@@ -115,8 +115,9 @@ export default async function crops(app) {
       const r = document.querySelector('.test-canvas').getBoundingClientRect()
       return { x: r.x, y: r.y, width: r.width, height: r.height }
     })()`)
-    return (await app.send('Page.captureScreenshot', { format: 'png', clip: { ...rect, scale: 1 } }))
-      .result.data
+    return (
+      await app.send('Page.captureScreenshot', { format: 'png', clip: { ...rect, scale: 1 } })
+    ).result.data
   }
   const still = [await view(), await app.sleep(600).then(view)]
   app.check(still[0] === still[1], 'no wind: the field is still')

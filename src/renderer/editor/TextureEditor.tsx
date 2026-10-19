@@ -3,7 +3,8 @@ import { assetUrl, type TextureDraft } from '../../shared/ipc'
 import { decodePng } from '../../shared/pngCodec'
 import type { EditorMode } from '../../shared/settings'
 import { NewTextureDialog } from '../packs/NewTextureDialog'
-import type { AssetSources } from '../preview/modelSource'
+import type { AssetSources, GrowthStage } from '../preview/modelSource'
+import { GrowthTabs } from './GrowthTabs'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
@@ -56,7 +57,12 @@ import { backupBefore } from '../packs/backup'
 import { announceStep } from '../tutorialEvents'
 import { CompareDialog } from './CompareDialog'
 import type { Image } from '../../shared/textureCompare'
-import { accentMask, DEFAULT_MATERIAL, type MaterialOptions } from '../../shared/materialPresets'
+import {
+  accentMask,
+  cropParts,
+  DEFAULT_MATERIAL,
+  type MaterialOptions
+} from '../../shared/materialPresets'
 
 export interface EditorTarget {
   /** Pack-relative path of the albedo PNG. */
@@ -147,7 +153,11 @@ export function TextureEditor({
   const [comparing, setComparing] = useState<Image | null>(null)
   /** Textures of the block shown in the 3D preview, for the face tabs. */
   const [blockTextures, setBlockTextures] = useState<string[]>([])
+  /** Growth stages of the crop shown in the 3D preview, for the stage tabs. */
+  const [growthStages, setGrowthStages] = useState<GrowthStage[]>([])
   const [creatingPath, setCreatingPath] = useState<string | null>(null)
+  /** Pack texture the new one starts as a copy of (the previous growth stage). */
+  const [creatingFrom, setCreatingFrom] = useState<string | null>(null)
   /** A draft found for this texture, waiting for the user to restore or discard it. */
   const [draftOffer, setDraftOffer] = useState<TextureDraft | null>(null)
   const [traceOpacity, setTraceOpacity] = useState(0)
@@ -979,7 +989,11 @@ export function TextureEditor({
                 className={path === target.path ? 'tab active' : inPack ? 'tab' : 'tab missing'}
                 title={inPack ? path : `${path} — non è ancora nel pack: clicca per crearla`}
                 disabled={target.readOnly && !inPack}
-                onClick={() => (inPack ? void switchTo(path) : setCreatingPath(path))}
+                onClick={() => {
+                  if (inPack) return void switchTo(path)
+                  setCreatingFrom(null)
+                  setCreatingPath(path)
+                }}
               >
                 {inPack ? name : `+ ${name}`}
               </button>
@@ -987,6 +1001,26 @@ export function TextureEditor({
           })}
         </div>
       )}
+      <GrowthTabs
+        stages={growthStages}
+        current={target.path}
+        sources={target.sources}
+        readOnly={target.readOnly}
+        onOpen={(path) => void switchTo(path)}
+        onCreate={(path, previous) => {
+          // The copy is read from the file: save first when it is this texture.
+          if (previous === target.path && modified) {
+            if (!window.confirm('Salvare le modifiche prima di copiarle nel nuovo stadio?')) return
+            void save().then(() => {
+              setCreatingFrom(previous)
+              setCreatingPath(path)
+            })
+            return
+          }
+          setCreatingFrom(previous)
+          setCreatingPath(path)
+        }}
+      />
       {maps && !isMapFile && (
         <MapTabs
           surface={surface}
@@ -1020,7 +1054,17 @@ export function TextureEditor({
           request={{
             folder: creatingPath.slice(0, creatingPath.lastIndexOf('/')),
             name: creatingPath.slice(creatingPath.lastIndexOf('/') + 1, -'.png'.length),
-            fromVanilla: true
+            fromVanilla: true,
+            copyFrom: creatingFrom
+              ? {
+                  path: creatingFrom,
+                  url: assetUrl(
+                    target.sources.pack.base,
+                    creatingFrom,
+                    target.sources.pack.versions[creatingFrom] ?? 0
+                  )
+                }
+              : null
           }}
           existing={target.sources.pack.files}
           onCancel={() => setCreatingPath(null)}
@@ -1253,6 +1297,7 @@ export function TextureEditor({
               }}
               initialShape="block"
               onBlockTextures={setBlockTextures}
+              onGrowthStages={setGrowthStages}
               effects={surface === 'color' ? null : DEFAULT_EFFECTS}
             />
             {surface === 'normal' && maps?.normal && !target.readOnly && (
@@ -1285,6 +1330,17 @@ export function TextureEditor({
                         doc.width * doc.height,
                         material.accentThreshold
                       ).reduce((sum, v) => sum + v, 0)
+                    : null
+                }
+                cropCounts={
+                  material.preset === 'crop'
+                    ? cropParts(doc.composite.data, doc.width * doc.height).reduce(
+                        (counts, part) => {
+                          if (part > 0) counts[part - 1]! += 1
+                          return counts
+                        },
+                        [0, 0, 0]
+                      )
                     : null
                 }
               />

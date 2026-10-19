@@ -44,6 +44,17 @@ describe('test scenes', () => {
     expect(sceneBlocks(cave).sort()).toEqual(['coal_ore', 'gravel', 'torch'])
   })
 
+  it('grows the crop rows from seed (front) to ripe (back) on moist farmland', () => {
+    const farm = sceneByKind('farm').build([])
+    const crops = farm.filter((p) => p.block === MINE)
+    expect(crops).toHaveLength(49)
+    expect(crops.every((p) => p.at[1] === 1)).toBe(true)
+    expect(crops.find((p) => p.at[2] === 3)?.growth).toBe(0)
+    expect(crops.find((p) => p.at[2] === -3)?.growth).toBe(1)
+    const soil = farm.find((p) => p.at.join(',') === '0,0,0')
+    expect(soil).toEqual({ block: 'farmland', variant: 'moisture=7', at: [0, 0, 0] })
+  })
+
   it('has a lawn for items and default views for every scene', () => {
     expect(sceneBlocks(HAND_SCENE.build([]))).toEqual(['grass_block'])
     expect(sceneByKind('hand')).toBe(HAND_SCENE)

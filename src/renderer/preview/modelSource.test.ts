@@ -83,6 +83,18 @@ describe('listBlocks / guessBlockForTexture', () => {
     // An exact match still wins.
     expect(guessBlockForTexture(`${V}/textures/block/stone`, blocks)).toBe('stone')
   })
+
+  it('finds the crop of a growth stage texture', () => {
+    const blocks = ['wheat', 'carrots', 'torchflower_crop', 'pitcher_crop']
+    expect(guessBlockForTexture(`${V}/textures/block/wheat_stage5`, blocks)).toBe('wheat')
+    expect(guessBlockForTexture(`${V}/textures/block/carrots_stage0`, blocks)).toBe('carrots')
+    expect(guessBlockForTexture(`${V}/textures/block/torchflower_crop_stage1`, blocks)).toBe(
+      'torchflower_crop'
+    )
+    expect(guessBlockForTexture(`${V}/textures/block/pitcher_crop_top_stage_3`, blocks)).toBe(
+      'pitcher_crop'
+    )
+  })
 })
 
 describe('cubeMesh', () => {
@@ -94,6 +106,11 @@ describe('cubeMesh', () => {
 })
 
 describe('loadBlockMesh', () => {
+  const only = (files: Record<string, unknown>): AssetSources => ({
+    pack: { base: 'pack://p1/', files: new Set(), versions: {} },
+    vanilla: { base: 'pack://v2/', files: new Set(Object.keys(files)) }
+  })
+
   function stubFetch(files: Record<string, unknown>): void {
     vi.stubGlobal('fetch', async (url: string) => {
       const path = url.replace(/^pack:\/\/[pv]\d+\//, '').replace(/\?v=\d+$/, '')
@@ -138,5 +155,61 @@ describe('loadBlockMesh', () => {
     }
     const mesh = await loadBlockMesh(noTextures, 'oak_log', null)
     expect(mesh.parts.every((p) => p.url === null)).toBe(true)
+  })
+
+  it('shows the growth stage that draws the preferred texture, else the grown one', async () => {
+    const crop = (stage: number): Record<string, unknown> => ({
+      [`${V}/models/block/wheat_stage${stage}.json`]: {
+        textures: { crop: `block/wheat_stage${stage}` },
+        elements: [{ from: [4, -1, 0], to: [4, 15, 16], faces: { west: { texture: '#crop' } } }]
+      }
+    })
+    const files = {
+      [`${V}/blockstates/wheat.json`]: {
+        variants: {
+          'age=0': { model: 'block/wheat_stage0' },
+          'age=1': { model: 'block/wheat_stage0' },
+          'age=2': { model: 'block/wheat_stage1' }
+        }
+      },
+      ...crop(0),
+      ...crop(1)
+    }
+    stubFetch(files)
+    const wheat = only(files)
+    const stage1 = `${V}/textures/block/wheat_stage1.png`
+    const mesh = await loadBlockMesh(wheat, 'wheat', null, undefined, stage1)
+    expect(mesh.variant?.key).toBe('age=2')
+    expect(mesh.stages).toEqual([
+      { key: 'age=0', textures: [`${V}/textures/block/wheat_stage0.png`] },
+      { key: 'age=1', textures: [`${V}/textures/block/wheat_stage0.png`] },
+      { key: 'age=2', textures: [stage1] }
+    ])
+    const stage0 = `${V}/textures/block/wheat_stage0.png`
+    expect((await loadBlockMesh(wheat, 'wheat', null, undefined, stage0)).variant?.key).toBe(
+      'age=0'
+    )
+    expect((await loadBlockMesh(wheat, 'wheat', null)).variant?.key).toBe('age=2')
+    // Not a growing block: no stages.
+    stubFetch(vanillaJson)
+    expect((await loadBlockMesh(sources(), 'oak_log', null)).stages).toEqual([])
+  })
+
+  it('tints growing stems by age instead of the biome', async () => {
+    const files = {
+      [`${V}/blockstates/melon_stem.json`]: {
+        variants: { 'age=0': { model: 'block/stem' }, 'age=7': { model: 'block/stem' } }
+      },
+      [`${V}/models/block/stem.json`]: {
+        textures: { stem: 'block/melon_stem' },
+        elements: [
+          { from: [0, 0, 8], to: [16, 8, 8], faces: { north: { texture: '#stem', tintindex: 0 } } }
+        ]
+      }
+    }
+    stubFetch(files)
+    const young = await loadBlockMesh(only(files), 'melon_stem', 'age=0')
+    expect(young.warnings).toEqual([])
+    expect(young.parts[0]?.quads[0]?.tint).toEqual([0, 1, 0])
   })
 })

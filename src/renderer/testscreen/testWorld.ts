@@ -25,6 +25,8 @@ export interface MineMesh {
   parts: MeshPart[]
   warnings: string[]
   light: LightProps
+  /** A crop's growth stages (seed → ripe), for placements with a `growth`; absent otherwise. */
+  stages?: MeshPart[][]
 }
 
 /** Only the vanilla jar, for the comparison (null when it is not loaded). */
@@ -47,9 +49,19 @@ export async function loadMine(
   tintOf: TintOf
 ): Promise<MineMesh | null> {
   if (block) {
-    const mesh = await loadBlockMesh(sources, block, null, tintOf(block))
+    const mesh = await loadBlockMesh(sources, block, null, tintOf(block), texturePath)
     if (mesh.parts.length > 0 || sources.pack.files.size > 0) {
+      const stages =
+        mesh.stages.length > 1
+          ? await Promise.all(
+              mesh.stages.map(
+                async (stage) =>
+                  (await loadBlockMesh(sources, block, stage.key, tintOf(block))).parts
+              )
+            )
+          : undefined
       return {
+        ...(stages ? { stages } : {}),
         parts: mesh.parts,
         warnings: mesh.warnings,
         light: lightPropsFor(block, mesh.fullCube)
@@ -83,22 +95,36 @@ export async function buildWorld(
   tintOf: TintOf,
   ctm: { set: CtmSet; texturePath: string } | null = null
 ): Promise<WorldModel[]> {
+  // Grouped by block and variant; a growing MINE also by its stage (`@mine#2`).
   const byBlock = new Map<string, Vec3[]>()
-  for (const { block, at } of placements) {
+  for (const { block, at, variant, growth } of placements) {
     if (block === MINE && !mine) continue
-    byBlock.set(block, [...(byBlock.get(block) ?? []), at])
+    const stages = block === MINE ? (mine?.stages?.length ?? 0) : 0
+    const key =
+      stages > 1 && growth !== undefined
+        ? `${MINE}#${Math.round(Math.min(1, Math.max(0, growth)) * (stages - 1))}`
+        : variant
+          ? `${block}|${variant}`
+          : block
+    byBlock.set(key, [...(byBlock.get(key) ?? []), at])
   }
   const models = await Promise.all(
-    [...byBlock].map(async ([block, positions]): Promise<WorldModel[]> => {
+    [...byBlock].map(async ([key, positions]): Promise<WorldModel[]> => {
+      const stage = /^@mine#(\d+)$/.exec(key)
+      if (stage) {
+        const parts = mine!.stages![Number(stage[1])]!
+        return [{ key, positions, parts, light: mine!.light }]
+      }
+      const [block, variant] = key.split('|') as [string, string | undefined]
       if (block === MINE) {
         return ctm
           ? ctmModels(mine!, positions, ctm.set, ctm.texturePath, sources)
           : [{ key: block, positions, parts: mine!.parts, light: mine!.light }]
       }
-      const mesh = await loadBlockMesh(sources, block, null, tintOf(block))
+      const mesh = await loadBlockMesh(sources, block, variant ?? null, tintOf(block))
       return [
         {
-          key: block,
+          key,
           positions,
           parts: mesh.parts,
           light: lightPropsFor(block, mesh.fullCube)

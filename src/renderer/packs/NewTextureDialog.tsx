@@ -7,6 +7,7 @@ import {
   type TextureStart
 } from '../editor/newTexture'
 import { fromHex, toHex, type Rgba } from '../editor/pixels'
+import { decodePng } from '../../shared/pngCodec'
 import { useEscape } from '../useEscape'
 
 export interface NewTextureRequest {
@@ -14,6 +15,8 @@ export interface NewTextureRequest {
   name: string
   /** True when the user started from a vanilla texture (only its path is reused). */
   fromVanilla: boolean
+  /** A texture of the pack to offer as the starting point (e.g. the previous growth stage). */
+  copyFrom?: { path: string; url: string } | null
 }
 
 const STARTS: Array<{ value: TextureStart; label: string; hint: string }> = [
@@ -45,7 +48,8 @@ export function NewTextureDialog({
   const [folder, setFolder] = useState(request.folder)
   const [name, setName] = useState(request.name)
   const [size, setSize] = useState<number>(16)
-  const [start, setStart] = useState<TextureStart>('noise')
+  const copyFrom = request.copyFrom ?? null
+  const [start, setStart] = useState<TextureStart | 'copy'>(copyFrom ? 'copy' : 'noise')
   const [color, setColor] = useState<Rgba>([127, 127, 127, 255])
   const [busy, setBusy] = useState(false)
   useEscape(onCancel, !busy)
@@ -62,8 +66,28 @@ export function NewTextureDialog({
     setBusy(true)
     setError(null)
     try {
-      const rgba = createTexturePixels(size, start, color)
-      const result = await window.api.invoke('texture:save', path, size, size, rgba)
+      let image: { width: number; height: number; rgba: Uint8Array } = {
+        width: size,
+        height: size,
+        rgba: new Uint8Array()
+      }
+      if (start === 'copy' && copyFrom) {
+        // Only a texture of the pack is copied (never a vanilla one).
+        const response = await fetch(copyFrom.url, { cache: 'no-store' })
+        const decoded = decodePng(new Uint8Array(await response.arrayBuffer()))
+        if (!decoded.ok) throw new Error(`Non riesco a leggere ${copyFrom.path}.`)
+        const { width, height, data } = decoded.image
+        image = { width, height, rgba: new Uint8Array(data) }
+      } else if (start !== 'copy') {
+        image.rgba = createTexturePixels(size, start, color)
+      }
+      const result = await window.api.invoke(
+        'texture:save',
+        path,
+        image.width,
+        image.height,
+        image.rgba
+      )
       if (result.ok) onCreated(path)
       else setError(result.error)
     } catch (caught) {
@@ -109,7 +133,13 @@ export function NewTextureDialog({
             autoFocus
           />
         </label>
-        <div className="field">
+        {copyFrom && (
+          <p className="muted small">
+            «Copia» parte da {copyFrom.path.slice(copyFrom.path.lastIndexOf('/') + 1)} del tuo pack:
+            ritocchi solo quello che cambia crescendo.
+          </p>
+        )}
+        <div className="field" hidden={start === 'copy'}>
           Dimensione
           <div className="tabs small-tabs" role="radiogroup" aria-label="Dimensione">
             {TEXTURE_SIZES.map((value) => (
@@ -132,6 +162,18 @@ export function NewTextureDialog({
         <div className="field">
           Si parte da
           <div className="tabs small-tabs" role="radiogroup" aria-label="Punto di partenza">
+            {copyFrom && (
+              <button
+                type="button"
+                role="radio"
+                aria-checked={start === 'copy'}
+                className={start === 'copy' ? 'tab active' : 'tab'}
+                onClick={() => setStart('copy')}
+                title={`Copia di ${copyFrom.path} (stessa dimensione)`}
+              >
+                Copia dello stadio prima
+              </button>
+            )}
             {STARTS.map((option) => (
               <button
                 key={option.value}
@@ -147,7 +189,7 @@ export function NewTextureDialog({
             ))}
           </div>
         </div>
-        {start !== 'empty' && (
+        {start !== 'empty' && start !== 'copy' && (
           <label className="inline-check">
             <input
               type="color"

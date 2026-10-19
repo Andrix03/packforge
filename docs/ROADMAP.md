@@ -157,6 +157,26 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 - [x] Export checklist: no vanilla files, valid `pack.mcmeta`, no stray files (e.g. `.psd`, `Thumbs.db`) — vanilla copies by pixels, stray files kept out of the zip
 - [x] Optional builds for Modrinth / CurseForge — same zip + `listing/<version>/` (EN/IT descriptions, summary, game versions, Modrinth tags from its API, CurseForge categories)
 
+## Phase 11b — Crops (growing plants)
+
+Asked by Andrea on 2026-10-19. Crops have one texture per growth stage (`wheat_stage0…7`,
+`carrots_stage0…3`, potatoes, beetroots, nether wart, cocoa, sweet berries, torchflower, pitcher,
+pumpkin/melon stems). Research 2026-10-19: the popular crop packs (Vanilla+ Crops, Crops 3D, Bushy
+Crops) add custom 3D models, random variants at harvest and taller ripe plants.
+
+- [x] Stage textures recognised: the preview finds the crop and shows the stage of the open texture
+- [x] Growth stage tabs in the editor (thumbnails); a missing stage starts as a copy of the previous one
+- [x] "🌱 Crescita": the preview plays the stages in age order, slider to pick one
+- [x] Stem tint by age (pumpkin/melon: green → yellow, wiki values), attached stems
+- [x] "Campo coltivato" scene in Prova: moist farmland, rows from seed (front) to ripe (back)
+- [x] LabPBR "Coltura" material preset: leaves SSS, dry/ripe parts less SSS, fruit smooth (by hue,
+      checked on the vanilla crops); works in the editor and in batch apply
+- [ ] Plant shape generator: vanilla 4 planes, bushy cross (6 planes at ±22.5°/±45°), tall ripe
+      plant (16×32), writing model JSON + blockstate — proposal, to confirm with Andrea
+- [ ] Random variants per stage (vanilla blockstate arrays with weights + rotations, preview
+      picks per block like the game) — proposal, to confirm with Andrea
+- [ ] Wind sway in the preview (shader packs do it, not the pack) — to decide with Andrea
+
 ## Phase 12 — Polish and public release
 
 - [ ] UI/UX pass, keyboard shortcuts — started: grouped workspace toolbar, Esc closes every dialog, tutorial bar; still to review with Andrea

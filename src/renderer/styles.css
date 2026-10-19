@@ -1439,6 +1439,25 @@ kbd {
   font-size: 0.85rem;
 }
 
+.growth-thumb {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  vertical-align: middle;
+  image-rendering: pixelated;
+}
+
+.growth-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.growth-bar input[type='range'] {
+  flex: 1;
+  min-width: 60px;
+}
+
 .face-tabs .tab.missing {
   color: var(--muted);
   border: 1px dashed var(--border);

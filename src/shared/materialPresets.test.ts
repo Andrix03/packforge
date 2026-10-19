@@ -3,6 +3,7 @@ import { MAX_F0_VALUE, MAX_POROSITY_VALUE, METALS } from './labpbr'
 import {
   accentMask,
   applyMaterial,
+  cropParts,
   DEFAULT_MATERIAL,
   f0Byte,
   GEMS,
@@ -118,6 +119,43 @@ describe('applyMaterial', () => {
     expect(out[3]).toBe(255)
     expect(out[7]).toBeGreaterThanOrEqual(127)
     expect(out[7]).toBeLessThanOrEqual(254)
+  })
+  it('gives a crop leaves with SSS, dry parts less SSS, fruit no SSS and smoother', () => {
+    const albedo = rgba([
+      [79, 154, 47],
+      [214, 180, 70],
+      [232, 128, 42],
+      [0, 0, 0, 0]
+    ])
+    const out = applyMaterial(albedo, blankSpecular(4), options({ preset: 'crop' }))
+    expect([...out.slice(0, 3)]).toEqual([90, 10, 170])
+    expect([...out.slice(4, 7)]).toEqual([55, 10, 110])
+    expect([...out.slice(8, 11)]).toEqual([140, 10, 0])
+    // Transparent pixels are left alone.
+    expect([...out.slice(12, 16)]).toEqual([0, 10, 0, 255])
+  })
+})
+
+describe('cropParts', () => {
+  it('tells leaf, dry and fruit apart by hue', () => {
+    const albedo = rgba([
+      [79, 154, 47],
+      [214, 180, 70],
+      [232, 128, 42],
+      [140, 30, 40],
+      [200, 200, 195],
+      [0, 0, 0, 0]
+    ])
+    expect([...cropParts(albedo, 6)]).toEqual([1, 2, 3, 3, 2, 0])
+  })
+
+  it('reads an all-gray texture (tinted by the game, like stems) as leaves', () => {
+    const albedo = rgba([
+      [120, 120, 120],
+      [180, 180, 180],
+      [0, 0, 0, 0]
+    ])
+    expect([...cropParts(albedo, 3)]).toEqual([1, 1, 0])
   })
 })
 

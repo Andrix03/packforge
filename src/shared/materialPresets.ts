@@ -35,6 +35,7 @@ export type MaterialId =
   | 'ice'
   | 'metal'
   | 'ore'
+  | 'crop'
   | 'emissive'
 
 export interface MaterialPreset {
@@ -118,6 +119,13 @@ export const MATERIALS: readonly MaterialPreset[] = [
     variation: 0.5
   },
   {
+    id: 'crop',
+    label: 'Coltura',
+    hint: 'Grano, carote, bacche…: le foglie verdi lasciano passare la luce, le parti secche un po’, i frutti sono lisci e pieni',
+    values: { smoothness: 90, f0: COMMON_F0, porosity: 170 },
+    variation: 0.3
+  },
+  {
     id: 'emissive',
     label: 'Luminoso',
     hint: 'Pietra luminosa, lanterne, lampade: i pixel chiari emettono luce',
@@ -180,6 +188,56 @@ export const DEFAULT_MATERIAL: MaterialOptions = {
   variation: 0.5,
   accentThreshold: 0.2,
   glowThreshold: 0.55
+}
+
+/** Parts of a crop texture told apart by color (0 = transparent). */
+export const CROP_PARTS = [
+  { id: 'leaf', label: 'Foglie', values: { smoothness: 90, f0: COMMON_F0, porosity: 170 } },
+  { id: 'dry', label: 'Secco, maturo', values: { smoothness: 55, f0: COMMON_F0, porosity: 110 } },
+  { id: 'fruit', label: 'Frutto', values: { smoothness: 140, f0: COMMON_F0, porosity: 0 } }
+] as const satisfies ReadonlyArray<{ id: string; label: string; values: MaterialValues }>
+
+/**
+ * Crop part of each pixel by hue: green (65°–170°) is leaf (1), yellow or grayish is dry (2:
+ * ripe wheat, straw, pale flowers), other hues are fruit (3: carrot, beetroot, potato, berries).
+ * An all-gray texture is one the game tints (pumpkin and melon stems): its pixels are leaf.
+ * Checked on the vanilla crops: wheat goes from leaf to dry while growing, carrots, beetroots,
+ * potatoes and berries get their fruit pixels.
+ */
+export function cropParts(albedo: ArrayLike<number>, pixels: number): Uint8Array {
+  const out = new Uint8Array(pixels)
+  for (let i = 0; i < pixels; i++) {
+    if (albedo[i * 4 + 3]! === 0) continue
+    const r = albedo[i * 4]! / 255
+    const g = albedo[i * 4 + 1]! / 255
+    const b = albedo[i * 4 + 2]! / 255
+    const max = Math.max(r, g, b)
+    const range = max - Math.min(r, g, b)
+    const saturation = max === 0 ? 0 : range / max
+    if (saturation < 0.15) {
+      out[i] = 2
+      continue
+    }
+    const hue =
+      max === r
+        ? (60 * ((g - b) / range) + 360) % 360
+        : max === g
+          ? 60 * ((b - r) / range) + 120
+          : 60 * ((r - g) / range) + 240
+    out[i] = hue >= 65 && hue <= 170 ? 1 : hue >= 40 && hue < 65 ? 2 : 3
+  }
+  if (out.every((part) => part === 0 || part === 2)) {
+    // No colored pixel: a texture tinted by the game (or a pale one), drawn like leaves.
+    const colored = out.some((part, i) => part === 2 && saturationAt(albedo, i) >= 0.15)
+    if (!colored) for (let i = 0; i < pixels; i++) if (out[i] === 2) out[i] = 1
+  }
+  return out
+}
+
+function saturationAt(albedo: ArrayLike<number>, i: number): number {
+  const max = Math.max(albedo[i * 4]!, albedo[i * 4 + 1]!, albedo[i * 4 + 2]!)
+  const min = Math.min(albedo[i * 4]!, albedo[i * 4 + 1]!, albedo[i * 4 + 2]!)
+  return max === 0 ? 0 : (max - min) / max
 }
 
 /** Largest smoothness shift the lightness can cause (at variation 1). */
@@ -265,25 +323,34 @@ export function applyMaterial(
   const base: MaterialValues =
     preset.id === 'metal' ? { ...preset.values, f0: options.metal } : preset.values
   const gem = GEMS.find((g) => g.id === options.gem) ?? GEMS[0]!
-  const accents = preset.id === 'ore' ? accentMask(albedo, pixels, options.accentThreshold) : null
-  const valuesAt = (i: number): MaterialValues => (accents?.[i] ? gem.values : base)
+  // Pixel groups with their own values: ore 0 stone / 1 gem; crop 1 leaf / 2 dry / 3 fruit.
+  const groups =
+    preset.id === 'ore'
+      ? accentMask(albedo, pixels, options.accentThreshold)
+      : preset.id === 'crop'
+        ? cropParts(albedo, pixels)
+        : null
+  const valuesAt = (i: number): MaterialValues => {
+    if (preset.id === 'crop') return CROP_PARTS[(groups![i]! || 1) - 1]!.values
+    return groups?.[i] ? gem.values : base
+  }
 
   // Variation is relative to the mean lightness of the pixels of the same material.
-  const sums = [0, 0]
-  const counts = [0, 0]
+  const sums = [0, 0, 0, 0]
+  const counts = [0, 0, 0, 0]
   const targets: number[] = []
   for (let i = 0; i < pixels; i++) {
     if (albedo[i * 4 + 3]! === 0 || (mask && !mask[i])) continue
     targets.push(i)
-    const group = accents?.[i] ?? 0
+    const group = groups?.[i] ?? 0
     sums[group]! += lumaAt(albedo, i)
     counts[group]! += 1
   }
-  const means = [sums[0]! / (counts[0] || 1), sums[1]! / (counts[1] || 1)]
+  const means = sums.map((sum, group) => sum / (counts[group] || 1))
 
   for (const i of targets) {
     const values = valuesAt(i)
-    const shift = (lumaAt(albedo, i) - means[accents?.[i] ?? 0]!) * 2 * options.variation
+    const shift = (lumaAt(albedo, i) - means[groups?.[i] ?? 0]!) * 2 * options.variation
     out[i * 4] = Math.round(values.smoothness + shift * MAX_VARIATION)
     out[i * 4 + 1] = values.f0
     out[i * 4 + 2] = values.porosity

@@ -63,7 +63,10 @@ const FOLIAGE_BLOCKS = new Set([
 ])
 const FIXED_COLORS: Record<string, string> = {
   spruce_leaves: '#619961',
-  birch_leaves: '#80a755'
+  birch_leaves: '#80a755',
+  // Grown stems (https://minecraft.wiki/w/Block_colors); the growing ones: crops.ts stemTint.
+  attached_pumpkin_stem: '#e0c71c',
+  attached_melon_stem: '#e0c71c'
 }
 
 /** How a block's tinted faces are colored, or null when PackForge doesn't simulate it. */

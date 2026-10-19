@@ -10,6 +10,7 @@ import {
   type TextureRef
 } from '../../shared/blockModel'
 import { assetUrl } from '../../shared/ipc'
+import { growthVariants, stageBaseNames, stemTint } from '../../shared/crops'
 import { mapPath } from '../../shared/labpbr'
 import type { MeshPart, Rgb } from './BlockPreview'
 
@@ -76,7 +77,13 @@ export function guessBlockForTexture(textureKey: string, blocks: readonly string
   if (!match) return null
   const name = match[1]!
   const known = new Set(blocks)
-  const bases = [name, name.replace(TEXTURE_SUFFIXES, ''), name.replace(/_\d+$/, '')]
+  const bases = [
+    name,
+    name.replace(TEXTURE_SUFFIXES, ''),
+    name.replace(/_\d+$/, ''),
+    // Growth stages: wheat_stage3 → wheat, pitcher_crop_bottom_stage_2 → pitcher_crop.
+    ...stageBaseNames(name)
+  ]
   // Some blocks add "_block" to their texture's name (magma → magma_block, slime → slime_block).
   for (const candidate of [...bases, ...bases.map((base) => `${base}_block`)]) {
     if (known.has(candidate)) return candidate
@@ -124,18 +131,29 @@ export interface BlockMesh {
   warnings: string[]
   /** One of its models has an unrotated 16×16×16 element (a full cube, for light and AO). */
   fullCube: boolean
+  /** Growth stages (crops, stems, berries) in age order; empty when the block does not grow. */
+  stages: GrowthStage[]
+}
+
+export interface GrowthStage {
+  /** Variant key, e.g. `age=3`. */
+  key: string
+  /** Pack-relative paths of the textures this stage draws. */
+  textures: string[]
 }
 
 /**
  * Loads a block state and its models (pack first, then vanilla) and groups
  * the quads by texture. `tintOf` colors faces with a tintindex; null means
- * the tint is not simulated (drawn white, with a warning).
+ * the tint is not simulated (drawn white, with a warning). Without a variant key, a growing
+ * block shows the stage drawing `preferTexture` (a pack path), else its last stage.
  */
 export async function loadBlockMesh(
   sources: AssetSources,
   block: string,
   variantKey: string | null,
-  tintOf: (tintIndex: number) => Rgb | null = () => null
+  tintOf: (tintIndex: number) => Rgb | null = () => null,
+  preferTexture: string | null = null
 ): Promise<BlockMesh> {
   const state = await loadJson(sources, blockstatePath(block))
   const variants = blockstateVariants(state)
@@ -145,16 +163,44 @@ export async function loadBlockMesh(
       variants,
       variant: null,
       fullCube: false,
+      stages: [],
       warnings: [`Nessun blockstate valido per "${block}".`]
     }
   }
-  const variant = variants.find((v) => v.key === variantKey) ?? defaultVariant(variants)
+  const resolved = new Map<string, Promise<ResolvedModel>>()
+  const resolve = (id: string): Promise<ResolvedModel> => {
+    let model = resolved.get(id)
+    if (!model) {
+      model = resolveModel(id, (path) => loadJson(sources, path))
+      resolved.set(id, model)
+    }
+    return model
+  }
+  const fallback = defaultVariant(variants)
+  const stages: GrowthStage[] = []
+  for (const stage of growthVariants(variants, fallback)) {
+    const textures = new Set<string>()
+    for (const ref of stage.models) {
+      for (const element of (await resolve(ref.model)).elements) {
+        for (const face of Object.values(element.faces)) {
+          if (face?.texture) textures.add(texturePath(face.texture.id))
+        }
+      }
+    }
+    stages.push({ key: stage.key, textures: [...textures] })
+  }
+  const preferred = preferTexture
+    ? stages.find((stage) => stage.textures.includes(preferTexture))?.key
+    : undefined
+  const chosenKey = variantKey ?? preferred ?? stages.at(-1)?.key
+  const variant = variants.find((v) => v.key === chosenKey) ?? fallback
   const warnings: string[] = []
   let fullCube = false
   const groups = new Map<string, { texture: TextureRef | null; quads: MeshPart['quads'] }>()
+  const stem = variant ? stemTint(block, variant.key) : null
 
   for (const ref of variant?.models ?? []) {
-    const model = await resolveModel(ref.model, (path) => loadJson(sources, path))
+    const model = await resolve(ref.model)
     fullCube ||= model.elements.some(
       (e) => !e.rotation && e.from.every((v) => v === 0) && e.to.every((v) => v === 16)
     )
@@ -172,7 +218,7 @@ export async function loadBlockMesh(
       const group = groups.get(key) ?? { texture: quad.texture, quads: [] }
       let tint = WHITE
       if (quad.tintIndex >= 0) {
-        const color = tintOf(quad.tintIndex)
+        const color = stem ?? tintOf(quad.tintIndex)
         if (color) tint = color
         else {
           warnings.push(
@@ -199,5 +245,5 @@ export async function loadBlockMesh(
       quads: group.quads
     })
   }
-  return { parts, variants, variant, warnings: [...new Set(warnings)], fullCube }
+  return { parts, variants, variant, warnings: [...new Set(warnings)], fullCube, stages }
 }

@@ -16,7 +16,8 @@ import {
   guessBlockForTexture,
   listBlocks,
   loadBlockMesh,
-  type AssetSources
+  type AssetSources,
+  type GrowthStage
 } from './modelSource'
 
 export interface PreviewTarget {
@@ -53,6 +54,8 @@ const SCENES: Array<{ value: PreviewScene; label: string }> = [
 
 /** Game hours per real second while the day/night cycle plays. */
 const CYCLE_SPEED = 1.5
+/** Milliseconds per growth stage while the growth plays. */
+const GROWTH_STEP_MS = 900
 
 interface Status {
   text: string
@@ -65,9 +68,12 @@ export function PreviewPanel({
   live = null,
   initialShape = 'cube',
   onBlockTextures,
+  onGrowthStages,
   onTest = null,
   effects = null
 }: {
+  /** Growth stages of the block shown (crops, stems…): empty when it does not grow. */
+  onGrowthStages?: (stages: GrowthStage[]) => void
   /** LabPBR effects to render with (null = vanilla look). */
   effects?: EffectSettings | null
   target: PreviewTarget | null
@@ -90,6 +96,10 @@ export function PreviewPanel({
   const [blockInput, setBlockInput] = useState('')
   const [variantKey, setVariantKey] = useState<string | null>(null)
   const [variants, setVariants] = useState<BlockstateVariant[]>([])
+  const [stages, setStages] = useState<GrowthStage[]>([])
+  /** Variant actually shown (the chosen one, or the stage of the texture). */
+  const [shownVariant, setShownVariant] = useState<string | null>(null)
+  const [growing, setGrowing] = useState(false)
   const [status, setStatus] = useState<Status | null>(null)
   const [biomeId, setBiomeId] = useState(DEFAULT_BIOME.id)
   const biome = BIOMES.find((b) => b.id === biomeId) ?? DEFAULT_BIOME
@@ -186,12 +196,21 @@ export function PreviewPanel({
       }
       const colormaps = await colormapsRef.current.pixels
       if (!current) return
-      const mesh = await loadBlockMesh(sources, block, variantKey, tintFor(block, biome, colormaps))
+      const mesh = await loadBlockMesh(
+        sources,
+        block,
+        variantKey,
+        tintFor(block, biome, colormaps),
+        target ? `${target.textureKey}.png` : null
+      )
       if (!current) return
       const reports = await view.setMesh(mesh.parts)
       if (!current) return
       onBlockTextures?.([...new Set(mesh.parts.flatMap((part) => (part.path ? [part.path] : [])))])
+      onGrowthStages?.(mesh.stages)
       setVariants(mesh.variants)
+      setStages(mesh.stages)
+      setShownVariant(mesh.variant?.key ?? null)
       const animated = reports.filter((r) => r.animation).length
       setStatus({
         text: [
@@ -222,8 +241,22 @@ export function PreviewPanel({
     liveUrl,
     liveCanvas,
     liveShape,
-    onBlockTextures
+    onBlockTextures,
+    onGrowthStages
   ])
+
+  // Growth: step through the stages in age order, starting again from the seed.
+  const growthKeys = stages.map((stage) => stage.key).join('|')
+  useEffect(() => {
+    if (!growing || !growthKeys) return
+    const keys = growthKeys.split('|')
+    const timer = setInterval(() => {
+      setVariantKey((key) => keys[(keys.indexOf(key ?? '') + 1) % keys.length] ?? null)
+    }, GROWTH_STEP_MS)
+    return () => clearInterval(timer)
+  }, [growing, growthKeys])
+  const stageIndex = stages.findIndex((stage) => stage.key === shownVariant)
+  const showsGrowth = shape === 'block' && block !== null && stages.length > 1
 
   // Day/night cycle: advance the hour on animation frames while playing.
   useEffect(() => {
@@ -332,6 +365,34 @@ export function PreviewPanel({
               ))}
             </select>
           )}
+        </div>
+      )}
+
+      {showsGrowth && (
+        <div className="growth-bar" role="group" aria-label="Crescita">
+          <button
+            type="button"
+            className="small-button"
+            aria-pressed={growing}
+            onClick={() => setGrowing((on) => !on)}
+            title="Mostra gli stadi uno dopo l’altro, come cresce nel gioco"
+          >
+            {growing ? '⏸ Ferma' : '🌱 Crescita'}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={stages.length - 1}
+            value={Math.max(0, stageIndex)}
+            onChange={(event) => {
+              setGrowing(false)
+              setVariantKey(stages[Number(event.target.value)]?.key ?? null)
+            }}
+            aria-label="Stadio di crescita"
+          />
+          <span className="muted small">
+            Stadio {stageIndex + 1}/{stages.length}
+          </span>
         </div>
       )}
 

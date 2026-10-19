@@ -10,10 +10,14 @@ export interface Placement {
   /** Block state name (pack first, then vanilla), or MINE. */
   block: string
   at: Vec3
+  /** Block state variant (default when absent). */
+  variant?: string
+  /** For MINE: how grown a crop is, 0 (seed) to 1 (ripe); its growth stage is picked from it. */
+  growth?: number
 }
 
 export type SceneKind =
-  'block' | 'wall' | 'floor' | 'field' | 'mixed' | 'house' | 'cave' | 'path' | 'hand'
+  'block' | 'wall' | 'floor' | 'field' | 'farm' | 'mixed' | 'house' | 'cave' | 'path' | 'hand'
 
 export interface SceneDef {
   kind: SceneKind
@@ -68,6 +72,15 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
     camera: scaled([0, 0.45, 1], 24),
     fov: 70,
     build: () => square(33, (a, b) => [a, 0, b]).map((at) => ({ block: MINE, at }))
+  },
+  {
+    kind: 'farm',
+    label: 'Campo coltivato',
+    hint: 'Per le colture: file su terra arata, dal seme (davanti) alla pianta matura (in fondo).',
+    focus: [0, 1, 0],
+    camera: [5, 5, 8],
+    fov: 70,
+    build: farmScene
   },
   {
     kind: 'mixed',
@@ -143,6 +156,21 @@ function mixedScene(neighbours: readonly string[]): Placement[] {
   for (let x = -4; x <= 4; x++) {
     const block = x % 2 === 0 ? MINE : others[((x + 5) / 2) % others.length]!
     for (let y = 1; y <= 3; y++) placements.push({ block, at: [x, y, -4] })
+  }
+  return placements
+}
+
+function farmScene(): Placement[] {
+  const placements: Placement[] = []
+  for (const [x, , z] of square(11, (a, b) => [a, 0, b])) {
+    const field = Math.abs(x) <= 3 && Math.abs(z) <= 3
+    if (!field) {
+      placements.push({ block: 'grass_block', at: [x, 0, z] })
+      continue
+    }
+    placements.push({ block: 'farmland', variant: 'moisture=7', at: [x, 0, z] })
+    // Rows grow from the seed at the front (z = 3) to ripe at the back (z = -3).
+    placements.push({ block: MINE, at: [x, 1, z], growth: (3 - z) / 6 })
   }
   return placements
 }

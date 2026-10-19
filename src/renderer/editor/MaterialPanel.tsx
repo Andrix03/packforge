@@ -1,4 +1,5 @@
 import {
+  CROP_PARTS,
   GEMS,
   materialPreset,
   MATERIALS,
@@ -14,8 +15,11 @@ export function MaterialPanel({
   onApply,
   disabled,
   selectionActive,
-  accentCount
+  accentCount,
+  cropCounts = null
 }: {
+  /** Crop preset: pixels per part (leaf, dry, fruit). */
+  cropCounts?: readonly number[] | null
   options: MaterialOptions
   onOptions: (options: MaterialOptions) => void
   onApply: () => void
@@ -34,7 +38,12 @@ export function MaterialPanel({
         Riempie levigatezza, riflettanza e porosità partendo dai colori della texture. Sono valori
         di partenza scelti da noi: la specifica LabPBR non dà tabelle per materiale.
       </p>
-      <MaterialFields options={options} onOptions={onOptions} accentCount={accentCount} />
+      <MaterialFields
+        options={options}
+        onOptions={onOptions}
+        accentCount={accentCount}
+        cropCounts={cropCounts}
+      />
       <button
         type="button"
         className="primary"
@@ -57,8 +66,11 @@ export function MaterialPanel({
 export function MaterialFields({
   options,
   onOptions,
-  accentCount = null
+  accentCount = null,
+  cropCounts = null
 }: {
+  /** Crop preset: pixels per part (leaf, dry, fruit), null = not shown. */
+  cropCounts?: readonly number[] | null
   options: MaterialOptions
   onOptions: (options: MaterialOptions) => void
   /** Ore preset: how many pixels count as gem (null = not shown). */
@@ -126,6 +138,11 @@ export function MaterialFields({
             </p>
           )}
         </>
+      )}
+      {preset.id === 'crop' && cropCounts && (
+        <p className="small muted" data-testid="crop-parts">
+          {CROP_PARTS.map((part, i) => `${part.label}: ${cropCounts[i] ?? 0}`).join(' · ')}
+        </p>
       )}
       {preset.id === 'emissive' && (
         <Range

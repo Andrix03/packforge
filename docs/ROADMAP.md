@@ -164,7 +164,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 - [ ] English UI option
 - [ ] Windows installer
 - [ ] Bug fixing
-- [ ] GitHub Actions CI (typecheck, lint, tests on every push)
+- [x] GitHub Actions CI (typecheck, lint, tests on every push) — `.github/workflows/ci.yml`: windows-latest, Node 24, `npm ci` + `npm run check` (UI scenarios stay local)
 - [ ] End-to-end tests of the Electron app (Playwright)
 - [ ] Auto-update for new releases
 

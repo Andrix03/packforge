@@ -1,0 +1,27 @@
+# Every push and pull request: formatting, typecheck, lint (0 warnings) and unit tests — the same
+# `npm run check` used locally. The UI scenarios (scripts/drive) need a desktop session and the
+# user's Minecraft jar, so they stay local.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      # The checks never start Electron: skip its ~100 MB download.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check

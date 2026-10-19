@@ -3,7 +3,13 @@ import { assetUrl, type TextureDraft } from '../../shared/ipc'
 import { decodePng } from '../../shared/pngCodec'
 import type { EditorMode } from '../../shared/settings'
 import { NewTextureDialog } from '../packs/NewTextureDialog'
-import type { AssetSources, GrowthStage } from '../preview/modelSource'
+import {
+  guessBlockForTexture,
+  listBlocks,
+  type AssetSources,
+  type GrowthStage
+} from '../preview/modelSource'
+import { PlantShapeDialog } from './PlantShapeDialog'
 import { GrowthTabs } from './GrowthTabs'
 import { RandomVariantsDialog } from './RandomVariantsDialog'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
@@ -158,6 +164,15 @@ export function TextureEditor({
   const [growthStages, setGrowthStages] = useState<GrowthStage[]>([])
   const [creatingPath, setCreatingPath] = useState<string | null>(null)
   const [randomVariants, setRandomVariants] = useState(false)
+  const [plantShape, setPlantShape] = useState(false)
+  /** The crop drawn by this texture (for its plant shape), when it has growth stages. */
+  const crop = useMemo(
+    () =>
+      growthStages.length > 0
+        ? guessBlockForTexture(target.textureKey, listBlocks(target.sources))
+        : null,
+    [growthStages, target.textureKey, target.sources]
+  )
   /** Pack texture the new one starts as a copy of (the previous growth stage). */
   const [creatingFrom, setCreatingFrom] = useState<string | null>(null)
   /** A draft found for this texture, waiting for the user to restore or discard it. */
@@ -1054,6 +1069,19 @@ export function TextureEditor({
         />
       )}
       {showShortcuts && <ShortcutsHelp pro={pro} onClose={() => setShowShortcuts(false)} />}
+      {plantShape && crop && (
+        <PlantShapeDialog
+          block={crop}
+          path={target.path}
+          stages={growthStages}
+          sources={target.sources}
+          onClose={() => setPlantShape(false)}
+          onDone={(written) => {
+            setPlantShape(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
       {randomVariants && (
         <RandomVariantsDialog
           path={target.path}
@@ -1412,6 +1440,16 @@ export function TextureEditor({
                 🎲 Varianti casuali
               </button>
             )}
+            {crop && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title="Il modello 3D della pianta: vanilla, croce, cespuglio o alta"
+                onClick={() => setPlantShape(true)}
+              >
+                🌿 Forma della pianta
+              </button>
+            )}
             <TilingPreview
               source={source}
               revision={revision}
@@ -1530,6 +1568,19 @@ function reloadedTarget(current: EditorTarget, paths: readonly string[]): Editor
   return targetFor(
     { ...current, sources: { ...current.sources, pack: { ...pack, versions } } },
     current.path
+  )
+}
+
+/** The same texture, seeing files a dialog just wrote (new or changed: their URLs change). */
+function withWritten(current: EditorTarget, written: readonly string[]): EditorTarget {
+  const stamp = Date.now()
+  const { pack } = current.sources
+  const versions = { ...pack.versions }
+  for (const path of written) if (path !== current.path) versions[path] = stamp
+  return targetFor(
+    { ...current, sources: { ...current.sources, pack: { ...pack, versions } } },
+    current.path,
+    written
   )
 }
 

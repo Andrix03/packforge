@@ -27,6 +27,13 @@ export function GrowthTabs({
 }): React.JSX.Element | null {
   const textures = stageTextures(stages)
   if (textures.length < 2 || !textures.includes(current)) return null
+  // Random variants (`_v2`…) share their stage's number: `2·v2`.
+  const bases = [...new Set(textures.map((path) => path.replace(/_v\d+\.png$/, '.png')))]
+  const labelOf = (path: string): string => {
+    const stage = bases.indexOf(path.replace(/_v\d+\.png$/, '.png')) + 1
+    const variant = /_(v\d+)\.png$/.exec(path)?.[1]
+    return variant ? `${stage}·${variant}` : `${stage}`
+  }
   return (
     <div className="face-tabs growth-tabs" role="tablist" aria-label="Stadi di crescita">
       <span className="muted small">🌱 Stadi di crescita:</span>
@@ -48,14 +55,14 @@ export function GrowthTabs({
             className={path === current ? 'tab active' : inPack ? 'tab' : 'tab missing'}
             title={
               inPack
-                ? `${path} — stadio ${index + 1} di ${textures.length}`
+                ? `${path} — stadio ${labelOf(path)} di ${bases.length}`
                 : `${path} — non è ancora nel pack: clicca per crearla`
             }
             disabled={readOnly && !inPack}
             onClick={() => (inPack ? onOpen(path) : onCreate(path, previous))}
           >
             {url && <img src={url} alt="" className="growth-thumb" draggable={false} />}
-            {inPack ? `${index + 1}` : `+ ${index + 1}`}
+            {inPack ? labelOf(path) : `+ ${labelOf(path)}`}
             <span className="visually-hidden"> {name}</span>
           </button>
         )

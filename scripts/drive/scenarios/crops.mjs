@@ -118,12 +118,60 @@ export default async function crops(app) {
     `[...document.querySelectorAll('[aria-label="Stadi di crescita"] [role=tab]')].some((t) => t.textContent.includes('wheat_stage1_v3'))`,
     10000
   )
-  app.check(true, 'the variants appear among the growth stage tabs')
+  const labels = (await tabs(app)).map((t) => t.split(' ')[0])
+  app.check(
+    labels.slice(0, 4).join(' ') === '1 2 2·v2 2·v3',
+    `the variants appear as stage 2 among the tabs (${labels.join(' ')})`
+  )
   // Redraw the variant so the field shows it.
   await app.editor.setHex('#d0c040')
   for (const y of [2, 3, 4]) await app.editor.click(10, y)
   await app.key('s', ['ctrl'])
   await app.sleep(1000)
+
+  // Plant shape: bushy for this stage (the variant follows its stage model), then tall.
+  async function applyShape(label) {
+    await app.click('Forma della pianta')
+    await app.waitFor(`document.querySelector('[data-testid=shape-plan]')`, 10000)
+    await app.click(label, '[aria-label="Forma della pianta"] [role=radio]')
+    const shapePlan = await app.ev(`document.querySelector('[data-testid=shape-plan]').textContent`)
+    app.check(shapePlan === 'Modelli: block/wheat_stage1', `${label}: ${shapePlan}`)
+    await app.click('Applica la forma', '[aria-label="Forma della pianta"] button')
+    await app.waitFor(`document.querySelector('[data-testid=shape-result]')`, 10000)
+    const done = await app.ev(`document.querySelector('[data-testid=shape-result]').textContent`)
+    app.check(!done.includes('errori'), `${label}: ${done}`)
+    await app.click('Fatto', '[aria-label="Forma della pianta"] button')
+    await app.sleep(1500)
+  }
+  await applyShape('Cespuglio')
+  const bushy = JSON.parse(await readFile(pack('models', 'block', 'wheat_stage1.json'), 'utf8'))
+  app.check(
+    bushy.elements?.length === 6 && bushy.textures.crop === 'minecraft:block/wheat_stage1',
+    `bushy model: ${bushy.elements?.length} planes`
+  )
+  await app.waitFor(
+    `/Stadio 2\\/8/.test(document.querySelector('.growth-bar')?.textContent ?? '')`,
+    8000
+  )
+  app.check(true, 'the variant still shows its own stage after the new shape')
+  await app.click('3D', '.preview-size')
+  await app.sleep(1500)
+  await app.ev(`document.querySelector('.preview-canvas').scrollIntoView({ block: 'center' })`)
+  await app.shot('06-bushy')
+  await app.click('3D', '.preview-size')
+  await applyShape('Alta')
+  const tall = JSON.parse(await readFile(pack('models', 'block', 'wheat_stage1.json'), 'utf8'))
+  app.check(
+    tall.elements?.length === 8 && tall.textures.top === 'minecraft:block/wheat_stage1_top',
+    `tall model: ${tall.elements?.length} planes, top ${tall.textures?.top}`
+  )
+  const topPng = await readFile(join(app.paths.pack, ...BLOCK.split('/'), 'wheat_stage1_top.png'))
+  app.check(topPng.length > 0, 'the empty top texture was created')
+  const warningsNow = await app.ev(
+    `[...document.querySelectorAll('.preview-panel .warning-text')].map((w) => w.textContent)`
+  )
+  app.check(warningsNow.length === 0, `tall: no preview warnings (${warningsNow.join(' | ')})`)
+  await applyShape('Cespuglio')
 
   const problems = await app.ev(
     `[...document.querySelectorAll('.preview-panel .warning-text')].map((w) => w.textContent)`

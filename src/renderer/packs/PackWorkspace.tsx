@@ -18,6 +18,7 @@ import { ResizeDialog } from './ResizeDialog'
 import { CtmDialog } from './CtmDialog'
 import { InGameDialog } from './InGameDialog'
 import { BackupsDialog } from './BackupsDialog'
+import { ExportDialog } from './ExportDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 
@@ -218,6 +219,7 @@ function Workspace({
   const [connecting, setConnecting] = useState<TextureEntry | null>(null)
   const [inGame, setInGame] = useState(false)
   const [showBackups, setShowBackups] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
@@ -323,6 +325,16 @@ function Workspace({
             onClick={() => setShowBackups(true)}
           >
             🕘 Backup
+          </button>
+        )}
+        {canCreate && (
+          <button
+            type="button"
+            className="small-button"
+            title="Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti"
+            onClick={() => setExporting(true)}
+          >
+            📦 Esporta
           </button>
         )}
         <button
@@ -479,6 +491,7 @@ function Workspace({
           onClose={() => setBatching(null)}
         />
       )}
+      {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {showBackups && <BackupsDialog onClose={() => setShowBackups(false)} />}
       {inGame && <InGameDialog packName={packName} onClose={() => setInGame(false)} />}
       {connecting && (

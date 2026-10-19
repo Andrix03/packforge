@@ -2207,3 +2207,30 @@ kbd {
   border: 1px solid var(--warning);
   border-radius: 6px;
 }
+
+.export-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.modal.batch textarea {
+  font: inherit;
+}
+
+.export-grid label,
+.modal.batch > label.small:not(.inline-check) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.credits-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.export-rules summary {
+  cursor: pointer;
+}

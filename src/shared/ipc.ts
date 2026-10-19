@@ -7,6 +7,7 @@
 //   3. implement it in the main-process handlers
 //   4. validate renderer-provided args at runtime in main (they are untrusted)
 
+import type { ExportCheck, ExportResult, ExportVariant, ProjectInfo } from './exportPlan'
 import type { McmetaAnalysis } from './mcmeta'
 import type { PackVersion } from './packFormat'
 import type { EditorMode, RecentPackStatus, SavedPalette, SettingsView } from './settings'
@@ -97,7 +98,7 @@ export function encodePackPath(path: string): string {
 }
 
 /** Why a folder is being picked; main maps it to the dialog title. */
-export type DirectoryPurpose = 'packDestination' | 'openPack' | 'minecraftDir'
+export type DirectoryPurpose = 'packDestination' | 'openPack' | 'minecraftDir' | 'exportDestination'
 
 export interface IpcContract {
   'app:getInfo': { args: []; result: AppInfo }
@@ -177,6 +178,19 @@ export interface IpcContract {
     result: { ok: true; restored: number; removed: number } | { ok: false; error: string }
   }
   'backup:delete': { args: [id: string]; result: { ok: boolean } }
+  /** The open folder pack's packforge.json (defaults when missing). */
+  'project:get': { args: []; result: ProjectInfo }
+  'project:save': { args: [info: ProjectInfo]; result: { ok: boolean; error?: string } }
+  /** Problems to fix before publishing (vanilla copies need the jar loaded). */
+  'export:check': { args: []; result: ExportCheck }
+  /** Builds the zip of a variant into `dir` (null = next to the pack). */
+  'export:build': {
+    args: [variant: ExportVariant, dir: string | null, overwrite: boolean]
+    result: ExportResult
+  }
+  'export:defaultDir': { args: []; result: string | null }
+  /** Opens a folder that holds exports in the file manager. */
+  'export:openFolder': { args: [dir: string]; result: { ok: boolean } }
   /** The open pack's copy in resourcepacks. */
   'sync:status': { args: []; result: SyncStatus }
   /** Copies (mirrors) the open folder pack into resourcepacks now. */
@@ -223,6 +237,12 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setExternalEditor': true,
   'settings:setEditorMode': true,
   'settings:setPalettes': true,
+  'project:get': true,
+  'project:save': true,
+  'export:check': true,
+  'export:build': true,
+  'export:defaultDir': true,
+  'export:openFolder': true,
   'backup:create': true,
   'backup:list': true,
   'backup:restore': true,

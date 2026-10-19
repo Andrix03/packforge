@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { mkdir, stat } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, isAbsolute, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
   registerHandlers,
@@ -13,6 +13,8 @@ import {
 } from '../shared/ipc'
 import { mirrorPack, syncState, syncTargetFor } from './packSync'
 import { BackupStore } from './backups'
+import { buildExport, checkExport, defaultExportDir, readProject, saveProject } from './exporter'
+import { parseProject, parseVariant } from '../shared/exportPlan'
 import {
   addRecentPack,
   isEditorMode,
@@ -58,7 +60,8 @@ import {
 const DIRECTORY_TITLES: Record<DirectoryPurpose, string> = {
   packDestination: 'Scegli la cartella di destinazione',
   openPack: 'Apri la cartella di un resource pack',
-  minecraftDir: 'Scegli la cartella .minecraft'
+  minecraftDir: 'Scegli la cartella .minecraft',
+  exportDestination: 'Scegli dove salvare gli export'
 }
 
 const CASE_INSENSITIVE_PATHS = process.platform === 'win32'
@@ -495,6 +498,66 @@ const handlers: IpcHandlers = {
     updateSetting(path, validateEditorPath, (value) =>
       settings().update({ externalEditor: value })
     ),
+
+  'project:get': async () => {
+    const root = folderPackRoot()
+    return root ? readProject(root) : parseProject(null)
+  },
+
+  'project:save': async (info) => {
+    const root = folderPackRoot()
+    if (!root) return { ok: false, error: 'Solo i pack in cartella hanno un progetto.' }
+    return saveProject(root, info)
+  },
+
+  'export:check': async () => {
+    const current = getSource('pack')
+    if (!current) {
+      return {
+        errors: ['Nessun pack aperto.'],
+        warnings: [],
+        vanillaCopies: [],
+        stray: [],
+        files: 0
+      }
+    }
+    return checkExport(current.source, getSource('vanilla')?.source ?? null)
+  },
+
+  'export:build': async (variant, dir, overwrite) => {
+    const current = getSource('pack')
+    if (!current || current.source.kind !== 'folder') {
+      return { ok: false, error: 'Solo i pack in cartella si esportano.' }
+    }
+    const parsed = parseVariant(variant)
+    if (!parsed) return { ok: false, error: 'Variante non valida.' }
+    if (dir !== null && (typeof dir !== 'string' || !isAbsolute(dir))) {
+      return { ok: false, error: 'Cartella di destinazione non valida.' }
+    }
+    const root = current.source.root
+    return buildExport(current.source, {
+      packName: basename(root),
+      info: await readProject(root),
+      variant: parsed,
+      dir: dir ?? defaultExportDir(root),
+      overwrite: overwrite === true
+    })
+  },
+
+  'export:defaultDir': () => {
+    const root = folderPackRoot()
+    return root ? defaultExportDir(root) : null
+  },
+
+  'export:openFolder': async (dir) => {
+    if (typeof dir !== 'string' || !isAbsolute(dir)) return { ok: false }
+    try {
+      if (!(await stat(dir)).isDirectory()) return { ok: false }
+      return { ok: (await shell.openPath(dir)) === '' }
+    } catch {
+      return { ok: false }
+    }
+  },
 
   'backup:create': async (label, paths) => {
     const root = folderPackRoot()

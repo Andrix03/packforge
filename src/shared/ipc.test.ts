@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { DEFAULT_PROJECT } from './exportPlan'
 import {
   createInvoke,
   createSubscribe,
@@ -101,6 +102,12 @@ describe('registerHandlers', () => {
       'texture:saveMcmeta': () => ({ ok: false, error: 'unused' }),
       'ctm:saveProperties': () => ({ ok: false, error: 'unused' }),
       'texture:openExternal': () => ({ ok: false, error: 'unused' }),
+      'project:get': () => DEFAULT_PROJECT,
+      'project:save': () => ({ ok: false }),
+      'export:check': () => ({ errors: [], warnings: [], vanillaCopies: [], stray: [], files: 0 }),
+      'export:build': () => ({ ok: false, error: 'unused' }),
+      'export:defaultDir': () => null,
+      'export:openFolder': () => ({ ok: false }),
       'backup:create': () => ({ ok: false, error: 'unused' }),
       'backup:list': () => [],
       'backup:restore': () => ({ ok: false, error: 'unused' }),

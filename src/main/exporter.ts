@@ -1,0 +1,220 @@
+import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { unzipSync, zipSync, type Zippable } from 'fflate'
+import {
+  changelogText,
+  creditsText,
+  exportFileName,
+  filesForVariant,
+  licenseText,
+  parseProject,
+  PROJECT_FILE,
+  strayReason,
+  type ExportCheck,
+  type ExportResult,
+  type ExportVariant,
+  type ProjectInfo
+} from '../shared/exportPlan'
+import { analyzePackMcmeta } from '../shared/mcmeta'
+import { decodePng, encodePng } from '../shared/pngCodec'
+import { factorBetween, scaleMcmeta, scaleNearest } from '../shared/resize'
+import { listPackFiles, type PackSource } from './packSource'
+import { writePackBytes } from './textureFile'
+
+// Export of a folder pack to a versioned zip (see shared/exportPlan.ts for what goes in).
+
+export async function readProject(root: string): Promise<ProjectInfo> {
+  try {
+    return parseProject(JSON.parse(await readFile(join(root, PROJECT_FILE), 'utf8')))
+  } catch {
+    return parseProject(null)
+  }
+}
+
+export async function saveProject(
+  root: string,
+  info: unknown
+): Promise<{ ok: boolean; error?: string }> {
+  // Only what parseProject accepts is written.
+  const clean = parseProject(info)
+  const result = await writePackBytes(
+    root,
+    PROJECT_FILE,
+    Buffer.from(`${JSON.stringify(clean, null, 2)}\n`)
+  )
+  return result.ok ? { ok: true } : { ok: false, error: result.error }
+}
+
+/** Problems to fix before publishing. `vanilla` (the loaded jar) enables the copy check. */
+export async function checkExport(
+  source: PackSource,
+  vanilla: PackSource | null
+): Promise<ExportCheck> {
+  const check: ExportCheck = { errors: [], warnings: [], vanillaCopies: [], stray: [], files: 0 }
+  if (source.kind !== 'folder') {
+    check.errors.push('Solo i pack in cartella si esportano (un pack zip è già un export).')
+    return check
+  }
+  const { files } = await listPackFiles(source)
+  for (const path of files) {
+    const reason = strayReason(path)
+    if (reason) check.stray.push({ path, reason })
+  }
+  check.files = filesForVariant(files, { kind: 'full' }).length
+  if (!files.includes('pack.mcmeta')) {
+    check.errors.push('Manca pack.mcmeta: il gioco non riconosce il pack.')
+  } else {
+    const analysis = analyzePackMcmeta(await readFile(join(source.root, 'pack.mcmeta'), 'utf8'))
+    for (const issue of analysis.issues) {
+      if (issue.severity === 'error') check.errors.push(issue.message)
+      else check.warnings.push(issue.message)
+    }
+  }
+  if (!files.includes('pack.png')) check.warnings.push('Manca pack.png: il pack non avrà un’icona.')
+  if (vanilla?.kind === 'zip') {
+    const candidates = new Set(
+      files.filter((p) => p.endsWith('.png') && p.startsWith('assets/minecraft/'))
+    )
+    const entries = unzipSync(vanilla.data, { filter: (f) => candidates.has(f.name) })
+    for (const [path, theirs] of Object.entries(entries)) {
+      const mine = decodePng(await readFile(join(source.root, ...path.split('/'))))
+      const game = decodePng(theirs)
+      if (mine.ok && game.ok && samePixels(mine.image, game.image)) check.vanillaCopies.push(path)
+    }
+    check.vanillaCopies.sort()
+    if (check.vanillaCopies.length > 0) {
+      check.errors.push(
+        `${check.vanillaCopies.length} texture sono identiche a quelle del gioco: non si possono ridistribuire (e non servono, il gioco le ha già). Toglile dal pack.`
+      )
+    }
+  } else {
+    check.warnings.push(
+      'Carica un jar vanilla per controllare che il pack non contenga texture del gioco.'
+    )
+  }
+  if (check.stray.length > 0) {
+    check.warnings.push(
+      `${check.stray.length} file di lavoro o di sistema restano fuori dallo zip.`
+    )
+  }
+  return check
+}
+
+function samePixels(
+  a: { width: number; height: number; data: ArrayLike<number> },
+  b: { width: number; height: number; data: ArrayLike<number> }
+): boolean {
+  if (a.width !== b.width || a.height !== b.height) return false
+  for (let i = 0; i < a.data.length; i++) if (a.data[i] !== b.data[i]) return false
+  return true
+}
+
+/** Folders under textures/ whose PNGs follow the pack resolution (GUI sprites keep their size). */
+const SCALED =
+  /^assets\/[^/]+\/(textures\/(block|item|entity|particle|painting|trims)\/|optifine\/ctm\/)/
+
+export async function buildExport(
+  source: PackSource,
+  options: {
+    packName: string
+    info: ProjectInfo
+    variant: ExportVariant
+    dir: string
+    overwrite: boolean
+  }
+): Promise<ExportResult> {
+  if (source.kind !== 'folder') return { ok: false, error: 'Solo i pack in cartella si esportano.' }
+  const { packName, info, variant, overwrite } = options
+  if (!isAbsolute(options.dir)) return { ok: false, error: 'Cartella di destinazione non valida.' }
+  const root = await realpath(source.root)
+  const dir = resolve(options.dir)
+  const rel = relative(root, dir)
+  if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) {
+    return {
+      ok: false,
+      error: 'La destinazione non può stare dentro il pack (finirebbe nel prossimo export).'
+    }
+  }
+  const target = join(dir, exportFileName(packName, info.version, variant))
+  if (
+    !overwrite &&
+    (await stat(target).then(
+      () => true,
+      () => false
+    ))
+  ) {
+    return { ok: false, error: `${target} esiste già.`, exists: true }
+  }
+
+  const { files } = await listPackFiles(source)
+  const zip: Zippable = {}
+  /** Textures left at their size in a resolution variant (no integer ratio). */
+  const kept: string[] = []
+  const factors = new Map<string, ReturnType<typeof factorBetween>>()
+  for (const path of filesForVariant(files, variant)) {
+    let bytes: Uint8Array = await readFile(join(root, ...path.split('/')))
+    if (variant.kind === 'resolution' && SCALED.test(path) && path.endsWith('.png')) {
+      const decoded = decodePng(bytes)
+      const factor = decoded.ok ? factorBetween(decoded.image.width, variant.resolution) : null
+      const scaled = decoded.ok && factor ? scaleNearest(decoded.image, factor) : null
+      if (decoded.ok && factor && scaled) {
+        bytes = encodePng({
+          width: scaled.width,
+          height: scaled.height,
+          data: new Uint8Array(scaled.data)
+        })
+        factors.set(path, factor)
+      } else {
+        kept.push(path)
+      }
+    }
+    zip[path] = [bytes, { level: path.endsWith('.png') ? 0 : 6 }]
+  }
+  // Explicit animation frame sizes follow their PNG.
+  for (const [png, factor] of factors) {
+    const mcmeta = `${png}.mcmeta`
+    if (factor && zip[mcmeta]) {
+      const scaled = scaleMcmeta(
+        Buffer.from((zip[mcmeta] as [Uint8Array, unknown])[0]).toString('utf8'),
+        factor
+      )
+      if (scaled !== null) zip[mcmeta] = [Buffer.from(scaled), { level: 6 }]
+    }
+  }
+  const year = new Date().getFullYear()
+  zip['LICENSE.txt'] = Buffer.from(licenseText(info, packName, year))
+  zip['CREDITS.txt'] = Buffer.from(creditsText(info, packName))
+  zip['CHANGELOG.md'] = Buffer.from(changelogText(info, packName))
+
+  const data = zipSync(zip)
+  await mkdir(dir, { recursive: true })
+  const temp = `${target}.tmp`
+  await writeFile(temp, data)
+  try {
+    await rename(temp, target)
+  } catch (error) {
+    await rm(temp, { force: true })
+    return {
+      ok: false,
+      error: `Scrittura non riuscita: ${error instanceof Error ? error.message : String(error)}`
+    }
+  }
+  return {
+    ok: true,
+    path: target,
+    files: Object.keys(zip).length,
+    bytes: data.length,
+    kept: kept.sort()
+  }
+}
+
+/** Where exports go unless chosen: `<pack folder> - export` next to the pack. */
+export function defaultExportDir(packRoot: string): string {
+  return join(
+    dirname(packRoot),
+    `${packRoot
+      .replace(/[\\/]+$/, '')
+      .split(/[\\/]/)
+      .pop()} - export`
+  )
+}

@@ -148,13 +148,13 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 
 ## Phase 11 — Export (Patreon and public)
 
-- [ ] Versioned zip
-- [ ] Free/premium variants (e.g. base vs PBR, different resolutions)
+- [x] Versioned zip — "📦 Esporta": `<pack>-<version>[-variant].zip` next to the pack (or a chosen folder), never overwritten without asking
+- [x] Free/premium variants (e.g. base vs PBR, different resolutions) — full / base (no _n/_s) / another resolution; named neutrally (see the EULA note)
 - [ ] Screenshots rendered from the preview
-- [ ] Changelog
-- [ ] Check the Minecraft Usage Guidelines for monetization
-- [ ] License and credits file included in every export
-- [ ] Export checklist: no vanilla files, valid `pack.mcmeta`, no stray files (e.g. `.psd`, `Thumbs.db`)
+- [x] Changelog — notes per version in packforge.json → CHANGELOG.md
+- [x] Check the Minecraft Usage Guidelines for monetization — EULA: no selling / making money from mods; donations OK without exclusive rewards; disclaimer in CREDITS.txt; shown in the export dialog
+- [x] License and credits file included in every export — LICENSE.txt (7 licenses), CREDITS.txt
+- [x] Export checklist: no vanilla files, valid `pack.mcmeta`, no stray files (e.g. `.psd`, `Thumbs.db`) — vanilla copies by pixels, stray files kept out of the zip
 - [ ] Optional builds for Modrinth / CurseForge
 
 ## Phase 12 — Polish and public release

@@ -1,0 +1,378 @@
+import { useEffect, useState } from 'react'
+import {
+  DEFAULT_PROJECT,
+  LICENSES,
+  validVersion,
+  variantLabel,
+  type ExportCheck,
+  type ExportResult,
+  type ExportVariant,
+  type ProjectInfo
+} from '../../shared/exportPlan'
+import { RESOLUTIONS } from '../../shared/resize'
+
+type Phase =
+  | { status: 'setup' }
+  | { status: 'working'; text: string }
+  | { status: 'done'; results: Array<{ variant: ExportVariant; result: ExportResult }> }
+
+const today = (): string => new Date().toISOString().slice(0, 10)
+
+/** Versioned zips of the pack (variants), with license, credits, changelog and a checklist. */
+export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.Element {
+  const [info, setInfo] = useState<ProjectInfo | null>(null)
+  const [check, setCheck] = useState<ExportCheck | null>(null)
+  const [checkRun, setCheckRun] = useState(0)
+  const [dir, setDir] = useState<string | null>(null)
+  const [full, setFull] = useState(true)
+  const [base, setBase] = useState(false)
+  const [resolution, setResolution] = useState<number | null>(null)
+  const [phase, setPhase] = useState<Phase>({ status: 'setup' })
+
+  useEffect(() => {
+    let current = true
+    void window.api.invoke('project:get').then((p) => current && setInfo(p))
+    void window.api.invoke('export:defaultDir').then((d) => current && setDir((old) => old ?? d))
+    return () => {
+      current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let current = true
+    void window.api.invoke('export:check').then((c) => current && setCheck(c))
+    return () => {
+      current = false
+    }
+  }, [checkRun])
+
+  const project = info ?? DEFAULT_PROJECT
+  const set = (change: Partial<ProjectInfo>): void => setInfo({ ...project, ...change })
+  const notes = project.changelog.find((e) => e.version === project.version)?.notes ?? ''
+  const setNotes = (value: string): void =>
+    set({
+      changelog: [
+        ...project.changelog.filter((e) => e.version !== project.version),
+        { version: project.version, date: today(), notes: value }
+      ]
+    })
+  const variants: ExportVariant[] = [
+    ...(full ? [{ kind: 'full' } as const] : []),
+    ...(base ? [{ kind: 'no-pbr' } as const] : []),
+    ...(resolution ? [{ kind: 'resolution', resolution } as const] : [])
+  ]
+  const versionOk = validVersion(project.version)
+  const blocking = (check?.errors.length ?? 0) > 0
+
+  async function exportAll(): Promise<void> {
+    if (
+      blocking &&
+      !window.confirm('Il controllo ha trovato errori (vedi sopra). Esportare comunque?')
+    ) {
+      return
+    }
+    setPhase({ status: 'working', text: 'Salvo il progetto…' })
+    await window.api.invoke('project:save', project)
+    const results: Array<{ variant: ExportVariant; result: ExportResult }> = []
+    for (const variant of variants) {
+      setPhase({ status: 'working', text: `Creo lo zip ${variantLabel(variant)}…` })
+      let result = await window.api.invoke('export:build', variant, dir, false)
+      if (!result.ok && result.exists && window.confirm(`${result.error} Sovrascriverlo?`)) {
+        result = await window.api.invoke('export:build', variant, dir, true)
+      }
+      results.push({ variant, result })
+    }
+    setPhase({ status: 'done', results })
+  }
+
+  if (phase.status !== 'setup') {
+    return (
+      <div className="modal-backdrop" role="presentation">
+        <div className="card modal batch" role="dialog" aria-label="Esporta">
+          <h2>Esporta</h2>
+          {phase.status === 'working' ? (
+            <p className="small">{phase.text}</p>
+          ) : (
+            <>
+              <ul className="validator-issues" data-testid="export-results">
+                {phase.results.map(({ variant, result }) => (
+                  <li
+                    key={variantLabel(variant)}
+                    className={`validator-issue ${result.ok ? 'info' : 'error'}`}
+                  >
+                    <span className="validator-icon">{result.ok ? '✓' : '✗'}</span>
+                    <div>
+                      <strong>{variantLabel(variant)}</strong>
+                      <p className="small">
+                        {result.ok
+                          ? `${result.path} · ${result.files} file · ${(result.bytes / 1024).toFixed(0)} KB${result.kept.length > 0 ? ` · ${result.kept.length} texture lasciate alla loro risoluzione` : ''}`
+                          : result.error}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="row">
+                {dir && (
+                  <button
+                    type="button"
+                    onClick={() => void window.api.invoke('export:openFolder', dir)}
+                  >
+                    Apri la cartella
+                  </button>
+                )}
+                <button type="button" className="primary" onClick={onClose}>
+                  Chiudi
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        className="card modal batch"
+        role="dialog"
+        aria-label="Esporta"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2>Esporta il pack</h2>
+
+        <h3 className="panel-title">1. Progetto</h3>
+        <div className="export-grid">
+          <label className="small">
+            Versione
+            <input
+              aria-label="Versione"
+              value={project.version}
+              onChange={(event) => set({ version: event.target.value.trim() })}
+            />
+          </label>
+          <label className="small">
+            Autore
+            <input
+              aria-label="Autore"
+              value={project.author}
+              onChange={(event) => set({ author: event.target.value })}
+            />
+          </label>
+          <label className="small">
+            Licenza
+            <select
+              aria-label="Licenza"
+              value={project.license}
+              onChange={(event) => set({ license: event.target.value })}
+            >
+              {LICENSES.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {!versionOk && (
+          <p className="field-error small">Versione non valida (es. 1.0.0, 2.1-beta).</p>
+        )}
+        <label className="small">
+          Novità di questa versione (finiscono in CHANGELOG.md)
+          <textarea
+            aria-label="Novità"
+            rows={3}
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+        </label>
+        <CreditsEditor credits={project.credits} onChange={(credits) => set({ credits })} />
+
+        <h3 className="panel-title">2. Controllo</h3>
+        {!check ? (
+          <p className="small">Controllo…</p>
+        ) : (
+          <div data-testid="export-check">
+            {check.errors.map((e) => (
+              <p key={e} className="field-error small">
+                ✗ {e}
+              </p>
+            ))}
+            {check.vanillaCopies.length > 0 && (
+              <p className="small muted">
+                {check.vanillaCopies
+                  .slice(0, 10)
+                  .map((p) => p.split('/').pop())
+                  .join(', ')}
+                {check.vanillaCopies.length > 10 ? '…' : ''}
+              </p>
+            )}
+            {check.warnings.map((w) => (
+              <p key={w} className="small">
+                ⚠ {w}
+              </p>
+            ))}
+            {check.stray.length > 0 && (
+              <p className="small muted">
+                Fuori dallo zip:{' '}
+                {check.stray
+                  .slice(0, 8)
+                  .map((s) => `${s.path.split('/').pop()} (${s.reason})`)
+                  .join(', ')}
+                {check.stray.length > 8 ? '…' : ''}
+              </p>
+            )}
+            {check.errors.length === 0 && check.warnings.length === 0 && (
+              <p className="small">✓ Tutto a posto: {check.files} file.</p>
+            )}
+            <button
+              type="button"
+              className="small-button"
+              onClick={() => setCheckRun((r) => r + 1)}
+            >
+              Ricontrolla
+            </button>
+          </div>
+        )}
+
+        <h3 className="panel-title">3. Varianti</h3>
+        <label className="inline-check small">
+          <input
+            type="checkbox"
+            checked={full}
+            onChange={(event) => setFull(event.target.checked)}
+          />
+          Completo
+        </label>
+        <label className="inline-check small" title="Senza _n e _s: per chi non usa shader">
+          <input
+            type="checkbox"
+            checked={base}
+            onChange={(event) => setBase(event.target.checked)}
+          />
+          Senza PBR (file «-base»)
+        </label>
+        <label
+          className="inline-check small"
+          title="Texture di blocchi, oggetti ed entità a un’altra risoluzione (pixel netti); le GUI restano com’erano"
+        >
+          <input
+            type="checkbox"
+            checked={resolution !== null}
+            onChange={(event) => setResolution(event.target.checked ? 16 : null)}
+          />
+          Anche a
+          <select
+            aria-label="Risoluzione export"
+            value={resolution ?? 16}
+            disabled={resolution === null}
+            onChange={(event) => setResolution(Number(event.target.value))}
+          >
+            {RESOLUTIONS.map((r) => (
+              <option key={r} value={r}>
+                {r}×
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <h3 className="panel-title">4. Destinazione</h3>
+        <p className="small" data-testid="export-dir">
+          {dir}
+        </p>
+        <div className="row">
+          <button
+            type="button"
+            className="small-button"
+            onClick={() =>
+              void window.api
+                .invoke('dialog:pickDirectory', 'exportDestination')
+                .then((d) => d && setDir(d))
+            }
+          >
+            Cambia…
+          </button>
+        </div>
+
+        <details className="small export-rules">
+          <summary>Pubblicare e guadagnare: cosa dicono le regole di Minecraft</summary>
+          <p>
+            Dall’EULA di Minecraft: i contenuti che crei sono tuoi «purché tu non li venda / non
+            cerchi di guadagnarci». Le donazioni sono ammesse se il donatore non riceve qualcosa che
+            solo lui può usare: un pack riservato a chi paga (es. un livello Patreon) rischia di
+            violarle. Gli export includono sempre in CREDITS.txt l’avvertenza «NOT AN OFFICIAL
+            MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT». Non è un
+            parere legale: in caso di dubbio leggi le linee guida su minecraft.net.
+          </p>
+        </details>
+
+        <div className="row">
+          <button
+            type="button"
+            className="primary"
+            disabled={variants.length === 0 || !versionOk || !info}
+            onClick={() => void exportAll()}
+          >
+            Esporta {variants.length === 1 ? '1 zip' : `${variants.length} zip`}
+          </button>
+          <button type="button" onClick={onClose}>
+            Annulla
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CreditsEditor({
+  credits,
+  onChange
+}: {
+  credits: ProjectInfo['credits']
+  onChange: (credits: ProjectInfo['credits']) => void
+}): React.JSX.Element {
+  return (
+    <div className="credits-editor">
+      <span className="small">Crediti (CREDITS.txt)</span>
+      {credits.map((credit, index) => (
+        <div key={index} className="row">
+          <input
+            aria-label={`Nome ${index + 1}`}
+            placeholder="Nome"
+            value={credit.name}
+            onChange={(event) =>
+              onChange(
+                credits.map((c, i) => (i === index ? { ...c, name: event.target.value } : c))
+              )
+            }
+          />
+          <input
+            aria-label={`Contributo ${index + 1}`}
+            placeholder="Cosa ha fatto (es. suoni, CC BY 4.0)"
+            value={credit.what}
+            onChange={(event) =>
+              onChange(
+                credits.map((c, i) => (i === index ? { ...c, what: event.target.value } : c))
+              )
+            }
+          />
+          <button
+            type="button"
+            className="small-button"
+            onClick={() => onChange(credits.filter((_, i) => i !== index))}
+          >
+            Togli
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="small-button"
+        onClick={() => onChange([...credits, { name: '', what: '' }])}
+      >
+        + Credito
+      </button>
+    </div>
+  )
+}

@@ -244,7 +244,12 @@ function createApp(send) {
     async setValue(selector, value) {
       await ev(`(() => {
         const el = document.querySelector(${JSON.stringify(selector)})
-        const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype
+        const proto =
+          el instanceof HTMLSelectElement
+            ? HTMLSelectElement.prototype
+            : el instanceof HTMLTextAreaElement
+              ? HTMLTextAreaElement.prototype
+              : HTMLInputElement.prototype
         Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(String(value))})
         el.dispatchEvent(new Event('input', { bubbles: true }))
         el.dispatchEvent(new Event('change', { bubbles: true }))

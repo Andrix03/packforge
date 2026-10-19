@@ -149,6 +149,11 @@ export interface IpcContract {
    * Folder packs only: writes a CTM `.properties` (text) under `assets/<ns>/optifine/ctm/`.
    */
   'ctm:saveProperties': { args: [path: string, content: string]; result: SaveTextureResult }
+  /**
+   * Folder packs only: writes a block model or block state (JSON object as text) under
+   * `assets/<ns>/models/` or `assets/<ns>/blockstates/` (random variants, plant shapes).
+   */
+  'model:saveJson': { args: [path: string, content: string]; result: SaveTextureResult }
   /** Autosaves editor pixels as a draft for this pack texture (folder packs only). */
   'draft:save': {
     args: [path: string, width: number, height: number, rgba: Uint8Array]
@@ -246,6 +251,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'texture:save': true,
   'texture:saveMcmeta': true,
   'ctm:saveProperties': true,
+  'model:saveJson': true,
   'texture:openExternal': true,
   'draft:save': true,
   'draft:load': true,

@@ -45,7 +45,13 @@ import { editPackObject } from './editMcmeta'
 import { openPack } from './openPack'
 import { ICON_IMAGE_EXTENSIONS, readIconSource, writePackIcon } from './packIcon'
 import { createPack } from './pack'
-import { packPngFile, saveCtmProperties, saveTexture, saveTextureMcmeta } from './textureFile'
+import {
+  packPngFile,
+  saveCtmProperties,
+  saveModelJson,
+  saveTexture,
+  saveTextureMcmeta
+} from './textureFile'
 import { DraftStore } from './drafts'
 import { assetBase } from './packProtocol'
 import { listPackFiles } from './packSource'
@@ -430,6 +436,12 @@ const handlers: IpcHandlers = {
     const current = getSource('pack')
     if (!current) return { ok: false, error: 'Nessun pack aperto.' }
     return saveCtmProperties(current.source, path, content)
+  },
+
+  'model:saveJson': async (path, content) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    return saveModelJson(current.source, path, content)
   },
 
   'draft:save': async (path, width, height, rgba) => {

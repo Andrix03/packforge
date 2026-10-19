@@ -1,5 +1,6 @@
 import { mkdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
+import { isBlockJsonPath } from '../shared/blockModel'
 import { isCtmProperties } from '../shared/ctm'
 import { encodePng, MAX_IMAGE_PIXELS, MAX_IMAGE_SIDE } from '../shared/pngCodec'
 import type { EditResult } from './editMcmeta'
@@ -89,6 +90,33 @@ export async function saveCtmProperties(
     return { ok: false, error: 'Contenuto del file .properties non valido.' }
   }
   return writeInPack(source.root, path, Buffer.from(content, 'utf8'), 'il file .properties')
+}
+
+export const MAX_MODEL_JSON_BYTES = 256 * 1024
+
+/**
+ * Writes a block model or block state of a folder pack: the path must be under
+ * `assets/<ns>/models/` or `blockstates/`, the content a JSON object (written as given).
+ */
+export async function saveModelJson(
+  source: PackSource,
+  path: unknown,
+  content: unknown
+): Promise<EditResult> {
+  if (source.kind !== 'folder') return { ok: false, error: READ_ONLY }
+  if (typeof path !== 'string' || !isSafePackPath(path) || !isBlockJsonPath(path)) {
+    return { ok: false, error: 'Percorso del modello o blockstate non valido.' }
+  }
+  if (typeof content !== 'string' || Buffer.byteLength(content) > MAX_MODEL_JSON_BYTES) {
+    return { ok: false, error: 'Contenuto del modello non valido.' }
+  }
+  try {
+    const parsed: unknown = JSON.parse(content)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error()
+  } catch {
+    return { ok: false, error: 'Il modello non è un oggetto JSON valido.' }
+  }
+  return writeInPack(source.root, path, Buffer.from(content, 'utf8'), 'il modello')
 }
 
 /** Atomic write of a pack file, refusing paths that leave the pack (also via links). */

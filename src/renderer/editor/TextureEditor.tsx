@@ -5,6 +5,7 @@ import type { EditorMode } from '../../shared/settings'
 import { NewTextureDialog } from '../packs/NewTextureDialog'
 import type { AssetSources, GrowthStage } from '../preview/modelSource'
 import { GrowthTabs } from './GrowthTabs'
+import { RandomVariantsDialog } from './RandomVariantsDialog'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
@@ -156,6 +157,7 @@ export function TextureEditor({
   /** Growth stages of the crop shown in the 3D preview, for the stage tabs. */
   const [growthStages, setGrowthStages] = useState<GrowthStage[]>([])
   const [creatingPath, setCreatingPath] = useState<string | null>(null)
+  const [randomVariants, setRandomVariants] = useState(false)
   /** Pack texture the new one starts as a copy of (the previous growth stage). */
   const [creatingFrom, setCreatingFrom] = useState<string | null>(null)
   /** A draft found for this texture, waiting for the user to restore or discard it. */
@@ -742,7 +744,8 @@ export function TextureEditor({
     void window.api.invoke('draft:discard', target.path)
   }
 
-  async function switchTo(path: string): Promise<void> {
+  /** Opens another texture; `added`: pack files just written that the editor must see. */
+  async function switchTo(path: string, added: readonly string[] = []): Promise<void> {
     if (path === target.path) return
     if (modified) {
       if (!window.confirm('Ci sono modifiche non salvate. Salvarle prima di cambiare texture?'))
@@ -750,7 +753,7 @@ export function TextureEditor({
       await save()
       if (history.modified) return
     }
-    onSwitch(targetFor(target, path))
+    onSwitch(targetFor(target, path, added))
   }
 
   /**
@@ -1051,6 +1054,17 @@ export function TextureEditor({
         />
       )}
       {showShortcuts && <ShortcutsHelp pro={pro} onClose={() => setShowShortcuts(false)} />}
+      {randomVariants && (
+        <RandomVariantsDialog
+          path={target.path}
+          sources={target.sources}
+          onClose={() => setRandomVariants(false)}
+          onCreated={(path, written) => {
+            setRandomVariants(false)
+            void switchTo(path, written)
+          }}
+        />
+      )}
       {creatingPath && (
         <NewTextureDialog
           request={{
@@ -1381,6 +1395,23 @@ export function TextureEditor({
                 ⇆ Confronta con vanilla
               </button>
             )}
+            {target.path.includes('/textures/block/') && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title="Più versioni di questa texture: il gioco ne sceglie una a caso per ogni blocco"
+                onClick={() => {
+                  if (
+                    modified &&
+                    !window.confirm('Salvare le modifiche prima di creare le varianti?')
+                  )
+                    return
+                  void (modified ? save() : Promise.resolve()).then(() => setRandomVariants(true))
+                }}
+              >
+                🎲 Varianti casuali
+              </button>
+            )}
             <TilingPreview
               source={source}
               revision={revision}
@@ -1515,10 +1546,17 @@ function describeValue(channel: ChannelDef, color: Rgba): string {
 }
 
 /** Editor target for another PNG of the same pack (the file may have just been created). */
-function targetFor(current: EditorTarget, path: string): EditorTarget {
+function targetFor(
+  current: EditorTarget,
+  path: string,
+  added: readonly string[] = []
+): EditorTarget {
   const { pack } = current.sources
   const mcmeta = `${path}.mcmeta`
-  const files = pack.files.has(path) ? pack.files : new Set([...pack.files, path])
+  const files =
+    pack.files.has(path) && added.every((file) => pack.files.has(file))
+      ? pack.files
+      : new Set([...pack.files, path, ...added])
   return {
     ...current,
     path,

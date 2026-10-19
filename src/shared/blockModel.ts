@@ -77,6 +77,11 @@ export function texturePath(id: string): string {
   return `assets/${ns}/textures/${path}.png`
 }
 
+/** A block model or block state JSON of a pack: `assets/<ns>/{models,blockstates}/….json`. */
+export function isBlockJsonPath(path: string): boolean {
+  return /^assets\/[a-z0-9_.-]+\/(models|blockstates)\/[a-z0-9_./-]+\.json$/.test(path)
+}
+
 export function blockstatePath(block: string): string {
   const [ns, path] = splitId(block)
   return `assets/${ns}/blockstates/${path}.json`
@@ -217,6 +222,11 @@ export interface BlockstateVariant {
   key: string
   /** Models to draw together (one for variants, several for multipart). */
   models: BlockModelRef[]
+  /**
+   * A variant set to a list: the game picks one model per block, by weight (default 1). The
+   * first choice is also `models`. Absent for a single model and for multipart.
+   */
+  choices?: Array<{ model: BlockModelRef; weight: number }>
 }
 
 /**
@@ -228,8 +238,20 @@ export function blockstateVariants(json: unknown): BlockstateVariant[] {
   if (isRecord(json['variants'])) {
     const variants: BlockstateVariant[] = []
     for (const [key, value] of Object.entries(json['variants'])) {
-      const ref = firstModelRef(value)
-      if (ref) variants.push({ key, models: [ref] })
+      const choices = (Array.isArray(value) ? value : [value])
+        .map((entry) => {
+          const model = modelRef(entry)
+          if (!model) return null
+          const weight = isRecord(entry) ? entry['weight'] : undefined
+          return { model, weight: typeof weight === 'number' && weight > 0 ? weight : 1 }
+        })
+        .filter(isPresent)
+      if (choices.length === 0) continue
+      variants.push({
+        key,
+        models: [choices[0]!.model],
+        ...(choices.length > 1 ? { choices } : {})
+      })
     }
     return variants
   }
@@ -279,7 +301,10 @@ export function defaultVariant(variants: readonly BlockstateVariant[]): Blocksta
 
 function firstModelRef(value: unknown): BlockModelRef | null {
   // Arrays are weighted random choices: the first one is shown.
-  const candidate = Array.isArray(value) ? value[0] : value
+  return modelRef(Array.isArray(value) ? value[0] : value)
+}
+
+function modelRef(candidate: unknown): BlockModelRef | null {
   if (!isRecord(candidate) || typeof candidate['model'] !== 'string') return null
   const rotation = (v: unknown): number => (typeof v === 'number' && v % 90 === 0 ? v : 0)
   return {

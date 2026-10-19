@@ -1,6 +1,9 @@
 // Crops (Phase 12b): a new wheat_stage0 opens on the wheat model at its stage, the growth stage
 // tabs offer the 7 missing stages, a new stage starts as a copy of the previous one (saved first),
 // the growth plays through the stages, and Prova's "Campo coltivato" grows the rows on farmland.
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+
 const BLOCK = 'assets/minecraft/textures/block'
 
 const stageText = (app) => app.ev(`document.querySelector('.growth-bar')?.textContent ?? ''`)
@@ -81,6 +84,46 @@ export default async function crops(app) {
   app.check(seen.size >= 4, `growth plays (${[...seen].join(',')})`)
   await app.shot('02-growing')
   await app.click('Ferma', '.growth-bar button')
+
+  // Random variants of stage 2: two copies, their models and the block state picking one.
+  await app.click('Varianti casuali')
+  await app.waitFor(`document.querySelector('[data-testid=variants-plan]')`, 10000)
+  const plan = await app.ev(`document.querySelector('[data-testid=variants-plan]').textContent`)
+  app.check(plan.includes('age=1') && plan.includes('wheat_stage1_v3'), `plan: ${plan}`)
+  await app.shot('05-variants-dialog')
+  await app.click('Crea 2 varianti', '[aria-label="Varianti casuali"] button')
+  await app.waitFor(`document.querySelector('[data-testid=variants-result]')`, 15000)
+  const result = await app.ev(`document.querySelector('[data-testid=variants-result]').textContent`)
+  app.check(result.startsWith('2 varianti create') && !result.includes('errori'), result)
+  const pack = (...parts) => join(app.paths.pack, 'assets', 'minecraft', ...parts)
+  const state = JSON.parse(await readFile(pack('blockstates', 'wheat.json'), 'utf8'))
+  app.check(
+    JSON.stringify(state.variants['age=1']) ===
+      JSON.stringify([
+        { model: 'minecraft:block/wheat_stage1' },
+        { model: 'minecraft:block/wheat_stage1_v2' },
+        { model: 'minecraft:block/wheat_stage1_v3' }
+      ]) && !Array.isArray(state.variants['age=2']),
+    `wheat.json age=1 picks among 3 models (${JSON.stringify(state.variants['age=1'])})`
+  )
+  const model = JSON.parse(await readFile(pack('models', 'block', 'wheat_stage1_v3.json'), 'utf8'))
+  app.check(
+    model.parent === 'minecraft:block/wheat_stage1' &&
+      model.textures.crop === 'minecraft:block/wheat_stage1_v3',
+    `variant model ${JSON.stringify(model)}`
+  )
+  await app.click('Apri wheat_stage1_v2', '[aria-label="Varianti casuali"] button')
+  await app.waitFor(`document.body.textContent.includes('${BLOCK}/wheat_stage1_v2.png')`, 10000)
+  await app.waitFor(
+    `[...document.querySelectorAll('[aria-label="Stadi di crescita"] [role=tab]')].some((t) => t.textContent.includes('wheat_stage1_v3'))`,
+    10000
+  )
+  app.check(true, 'the variants appear among the growth stage tabs')
+  // Redraw the variant so the field shows it.
+  await app.editor.setHex('#d0c040')
+  for (const y of [2, 3, 4]) await app.editor.click(10, y)
+  await app.key('s', ['ctrl'])
+  await app.sleep(1000)
 
   const problems = await app.ev(
     `[...document.querySelectorAll('.preview-panel .warning-text')].map((w) => w.textContent)`

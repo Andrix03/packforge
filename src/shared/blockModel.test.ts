@@ -4,6 +4,7 @@ import {
   blockstatePath,
   blockstateVariants,
   defaultVariant,
+  isBlockJsonPath,
   modelPath,
   resolveModel,
   resolveTextureVariable,
@@ -139,13 +140,17 @@ describe('blockstates', () => {
     expect(defaultVariant(variants)?.key).toBe('facing=east,half=bottom,shape=straight')
   })
 
-  it('takes the first entry of weighted arrays and the single "" variant', () => {
+  it('keeps every weighted choice (first one drawn by default) and the single "" variant', () => {
     const [variant] = blockstateVariants({
       variants: { '': [{ model: 'block/stone' }, { model: 'block/stone_mirrored', weight: 2 }] }
     })
     expect(variant).toEqual({
       key: '',
-      models: [{ model: 'minecraft:block/stone', x: 0, y: 0, uvlock: false }]
+      models: [{ model: 'minecraft:block/stone', x: 0, y: 0, uvlock: false }],
+      choices: [
+        { model: { model: 'minecraft:block/stone', x: 0, y: 0, uvlock: false }, weight: 1 },
+        { model: { model: 'minecraft:block/stone_mirrored', x: 0, y: 0, uvlock: false }, weight: 2 }
+      ]
     })
   })
 
@@ -275,5 +280,15 @@ describe('geometry', () => {
     // Rescaled by 1/cos(45°) and rotated: the plane spans the block diagonal.
     const [a, b] = [quad!.positions[0], quad!.positions[1]]
     expect(Math.hypot(a[0] - b[0], a[2] - b[2])).toBeCloseTo(16 * Math.SQRT2, 6)
+  })
+})
+
+describe('isBlockJsonPath', () => {
+  it('accepts models and block states of any namespace, nothing else', () => {
+    expect(isBlockJsonPath('assets/minecraft/models/block/wheat_stage7_v2.json')).toBe(true)
+    expect(isBlockJsonPath('assets/mymod/blockstates/ruby.json')).toBe(true)
+    expect(isBlockJsonPath('assets/minecraft/textures/block/stone.png')).toBe(false)
+    expect(isBlockJsonPath('assets/minecraft/models/block/Stone.json')).toBe(false)
+    expect(isBlockJsonPath('pack.mcmeta')).toBe(false)
   })
 })

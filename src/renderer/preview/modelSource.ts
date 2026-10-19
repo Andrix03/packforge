@@ -75,15 +75,16 @@ const TEXTURE_SUFFIXES = /_(top|bottom|side|front|back|end|inner|outer|particle|
 export function guessBlockForTexture(textureKey: string, blocks: readonly string[]): string | null {
   const match = /^assets\/minecraft\/textures\/block\/(.+)$/.exec(textureKey)
   if (!match) return null
-  const name = match[1]!
   const known = new Set(blocks)
-  const bases = [
+  // Random variants made by PackForge: wheat_stage7_v2 is a wheat_stage7.
+  const names = [...new Set([match[1]!, match[1]!.replace(/_v\d+$/, '')])]
+  const bases = names.flatMap((name) => [
     name,
     name.replace(TEXTURE_SUFFIXES, ''),
     name.replace(/_\d+$/, ''),
     // Growth stages: wheat_stage3 → wheat, pitcher_crop_bottom_stage_2 → pitcher_crop.
     ...stageBaseNames(name)
-  ]
+  ])
   // Some blocks add "_block" to their texture's name (magma → magma_block, slime → slime_block).
   for (const candidate of [...bases, ...bases.map((base) => `${base}_block`)]) {
     if (known.has(candidate)) return candidate
@@ -133,6 +134,10 @@ export interface BlockMesh {
   fullCube: boolean
   /** Growth stages (crops, stems, berries) in age order; empty when the block does not grow. */
   stages: GrowthStage[]
+  /** Weights of the variant's random models (empty when it has a single model). */
+  choiceWeights: number[]
+  /** The random model drawn (index into choiceWeights). */
+  choice: number
 }
 
 export interface GrowthStage {
@@ -153,7 +158,9 @@ export async function loadBlockMesh(
   block: string,
   variantKey: string | null,
   tintOf: (tintIndex: number) => Rgb | null = () => null,
-  preferTexture: string | null = null
+  preferTexture: string | null = null,
+  /** Which of the variant's random models to draw; null = the one drawing `preferTexture`, or the first. */
+  choice: number | null = null
 ): Promise<BlockMesh> {
   const state = await loadJson(sources, blockstatePath(block))
   const variants = blockstateVariants(state)
@@ -164,6 +171,8 @@ export async function loadBlockMesh(
       variant: null,
       fullCube: false,
       stages: [],
+      choiceWeights: [],
+      choice: 0,
       warnings: [`Nessun blockstate valido per "${block}".`]
     }
   }
@@ -180,7 +189,8 @@ export async function loadBlockMesh(
   const stages: GrowthStage[] = []
   for (const stage of growthVariants(variants, fallback)) {
     const textures = new Set<string>()
-    for (const ref of stage.models) {
+    // Every random model of the stage: their textures are all part of it.
+    for (const ref of stage.choices?.map((c) => c.model) ?? stage.models) {
       for (const element of (await resolve(ref.model)).elements) {
         for (const face of Object.values(element.faces)) {
           if (face?.texture) textures.add(texturePath(face.texture.id))
@@ -199,7 +209,19 @@ export async function loadBlockMesh(
   const groups = new Map<string, { texture: TextureRef | null; quads: MeshPart['quads'] }>()
   const stem = variant ? stemTint(block, variant.key) : null
 
-  for (const ref of variant?.models ?? []) {
+  let chosen = choice ?? 0
+  if (choice === null && preferTexture && variant?.choices) {
+    for (const [i, option] of variant.choices.entries()) {
+      const model = await resolve(option.model.model)
+      const drawn = model.elements.flatMap((e) => Object.values(e.faces).map((f) => f?.texture?.id))
+      if (drawn.some((id) => id && texturePath(id) === preferTexture)) {
+        chosen = i
+        break
+      }
+    }
+  }
+  const picked = variant?.choices?.[chosen]?.model
+  for (const ref of picked ? [picked] : (variant?.models ?? [])) {
     const model = await resolve(ref.model)
     fullCube ||= model.elements.some(
       (e) => !e.rotation && e.from.every((v) => v === 0) && e.to.every((v) => v === 16)
@@ -245,5 +267,14 @@ export async function loadBlockMesh(
       quads: group.quads
     })
   }
-  return { parts, variants, variant, warnings: [...new Set(warnings)], fullCube, stages }
+  return {
+    parts,
+    variants,
+    variant,
+    warnings: [...new Set(warnings)],
+    fullCube,
+    stages,
+    choiceWeights: variant?.choices?.map((c) => c.weight) ?? [],
+    choice: picked ? chosen : 0
+  }
 }

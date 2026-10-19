@@ -17,6 +17,7 @@ import {
 import { MINE, type Placement } from '../preview/testScenes'
 import { isCtmProperties, parseProperties } from '../../shared/ctm'
 import { assignTiles, CULLED, findCtmSet, type CtmSet } from '../../shared/ctmWorld'
+import { pickChoice } from '../../shared/randomVariants'
 
 export type TintOf = (block: string) => (tintIndex: number) => Rgb | null
 
@@ -25,8 +26,37 @@ export interface MineMesh {
   parts: MeshPart[]
   warnings: string[]
   light: LightProps
+  /** Its random models (absent when it has one): each block of a scene picks one. */
+  choices?: Choices
   /** A crop's growth stages (seed → ripe), for placements with a `growth`; absent otherwise. */
-  stages?: MeshPart[][]
+  stages?: Choices[]
+}
+
+/** A block's random models: their weights and the parts of each (one entry: no random pick). */
+export interface Choices {
+  weights: number[]
+  parts: MeshPart[][]
+}
+
+/** A block (variant) with the parts of each of its random models. */
+async function loadChoices(
+  sources: AssetSources,
+  block: string,
+  variantKey: string | null,
+  tint: (tintIndex: number) => Rgb | null,
+  preferTexture: string | null = null
+): Promise<{ mesh: Awaited<ReturnType<typeof loadBlockMesh>>; choices: Choices }> {
+  const mesh = await loadBlockMesh(sources, block, variantKey, tint, preferTexture)
+  if (mesh.choiceWeights.length < 2) return { mesh, choices: { weights: [], parts: [mesh.parts] } }
+  const key = mesh.variant?.key ?? variantKey
+  const parts = await Promise.all(
+    mesh.choiceWeights.map(async (_, i) =>
+      i === mesh.choice
+        ? mesh.parts
+        : (await loadBlockMesh(sources, block, key, tint, null, i)).parts
+    )
+  )
+  return { mesh, choices: { weights: mesh.choiceWeights, parts } }
 }
 
 /** Only the vanilla jar, for the comparison (null when it is not loaded). */
@@ -49,19 +79,20 @@ export async function loadMine(
   tintOf: TintOf
 ): Promise<MineMesh | null> {
   if (block) {
-    const mesh = await loadBlockMesh(sources, block, null, tintOf(block), texturePath)
+    const { mesh, choices } = await loadChoices(sources, block, null, tintOf(block), texturePath)
     if (mesh.parts.length > 0 || sources.pack.files.size > 0) {
       const stages =
         mesh.stages.length > 1
           ? await Promise.all(
               mesh.stages.map(
                 async (stage) =>
-                  (await loadBlockMesh(sources, block, stage.key, tintOf(block))).parts
+                  (await loadChoices(sources, block, stage.key, tintOf(block))).choices
               )
             )
           : undefined
       return {
         ...(stages ? { stages } : {}),
+        ...(choices.weights.length > 1 ? { choices } : {}),
         parts: mesh.parts,
         warnings: mesh.warnings,
         light: lightPropsFor(block, mesh.fullCube)
@@ -108,28 +139,38 @@ export async function buildWorld(
           : block
     byBlock.set(key, [...(byBlock.get(key) ?? []), at])
   }
+  // Blocks with random models: each position picks one, like the game (`key~1`).
+  const split = (
+    key: string,
+    positions: Vec3[],
+    choices: Choices,
+    light: LightProps
+  ): WorldModel[] => {
+    if (choices.weights.length < 2) return [{ key, positions, parts: choices.parts[0]!, light }]
+    const groups = choices.parts.map((): Vec3[] => [])
+    for (const at of positions) groups[pickChoice(choices.weights, at)]!.push(at)
+    return groups.flatMap((group, i) =>
+      group.length > 0
+        ? [{ key: `${key}~${i}`, positions: group, parts: choices.parts[i]!, light }]
+        : []
+    )
+  }
   const models = await Promise.all(
     [...byBlock].map(async ([key, positions]): Promise<WorldModel[]> => {
       const stage = /^@mine#(\d+)$/.exec(key)
-      if (stage) {
-        const parts = mine!.stages![Number(stage[1])]!
-        return [{ key, positions, parts, light: mine!.light }]
-      }
+      if (stage) return split(key, positions, mine!.stages![Number(stage[1])]!, mine!.light)
       const [block, variant] = key.split('|') as [string, string | undefined]
       if (block === MINE) {
-        return ctm
-          ? ctmModels(mine!, positions, ctm.set, ctm.texturePath, sources)
-          : [{ key: block, positions, parts: mine!.parts, light: mine!.light }]
-      }
-      const mesh = await loadBlockMesh(sources, block, variant ?? null, tintOf(block))
-      return [
-        {
-          key,
+        if (ctm) return ctmModels(mine!, positions, ctm.set, ctm.texturePath, sources)
+        return split(
+          block,
           positions,
-          parts: mesh.parts,
-          light: lightPropsFor(block, mesh.fullCube)
-        }
-      ]
+          mine!.choices ?? { weights: [], parts: [mine!.parts] },
+          mine!.light
+        )
+      }
+      const { mesh, choices } = await loadChoices(sources, block, variant ?? null, tintOf(block))
+      return split(key, positions, choices, lightPropsFor(block, mesh.fullCube))
     })
   )
   return models.flat()

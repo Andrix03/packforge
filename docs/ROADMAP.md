@@ -173,8 +173,9 @@ Crops) add custom 3D models, random variants at harvest and taller ripe plants.
       checked on the vanilla crops); works in the editor and in batch apply
 - [ ] Plant shape generator: vanilla 4 planes, bushy cross (6 planes at ±22.5°/±45°), tall ripe
       plant (16×32), writing model JSON + blockstate — confirmed by Andrea 2026-10-19
-- [ ] Random variants per stage (vanilla blockstate arrays with weights + rotations, preview
-      picks per block like the game) — confirmed by Andrea 2026-10-19
+- [x] Random variants ("🎲 Varianti casuali" in the editor, any block texture): copies
+      `<name>_v2…` with maps/animation, a model each, the block state picking one per block (weights,
+      optional Y rotations); Prova picks per position like the game (vanilla grass rotations too)
 - [x] Wind sway in the preview, like the waving plants of shader packs (not something a pack can do):
       "Vento sulle piante" in Prova, "Vento" next to Crescita in the editor; thin planes only, the
       top moves, one phase per block, shadows follow

@@ -105,6 +105,7 @@ describe('registerHandlers', () => {
       'texture:save': () => ({ ok: false, error: 'unused' }),
       'texture:saveMcmeta': () => ({ ok: false, error: 'unused' }),
       'ctm:saveProperties': () => ({ ok: false, error: 'unused' }),
+      'model:saveJson': () => ({ ok: false, error: 'unused' }),
       'texture:openExternal': () => ({ ok: false, error: 'unused' }),
       'project:get': () => DEFAULT_PROJECT,
       'project:save': () => ({ ok: false }),

@@ -42,6 +42,8 @@ export interface LiveTexture {
   revision: number
   /** LabPBR maps being edited, shown instead of their files. */
   maps?: LiveMaps | null
+  /** Other textures painted together (the upper half of a tall plant), shown live too. */
+  extras?: ReadonlyArray<{ url: string; canvas: HTMLCanvasElement }>
 }
 
 type Shape = 'cube' | 'block'
@@ -143,10 +145,19 @@ export function PreviewPanel({
             : liveAnimation === null
               ? 'static'
               : `${liveAnimation.frameHeight}/${liveAnimation.frametime}/${liveAnimation.interpolate}`
-        }|${mapShape(liveMaps?.normal)}|${mapShape(liveMaps?.specular)}`
+        }|${mapShape(liveMaps?.normal)}|${mapShape(liveMaps?.specular)}|${(live.extras ?? [])
+          .map((extra) => extra.url)
+          .join(',')}`
   // Declared before the mesh effect so the override is in place when the mesh loads.
   useEffect(
-    () => previewRef.current?.setLiveTexture(liveUrl, liveCanvas, liveAnimation, liveMaps),
+    () =>
+      previewRef.current?.setLiveTexture(
+        liveUrl,
+        liveCanvas,
+        liveAnimation,
+        liveMaps,
+        live?.extras ?? []
+      ),
     // liveShape stands for the animation and maps objects (new objects on every render).
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [liveUrl, liveCanvas, liveShape]

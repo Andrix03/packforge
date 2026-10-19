@@ -184,16 +184,40 @@ export default async function crops(app) {
     `[...document.querySelectorAll('.preview-panel .warning-text')].map((w) => w.textContent)`
   )
   app.check(warningsNow.length === 0, `tall: no preview warnings (${warningsNow.join(' | ')})`)
-  const context = await app.ev(
-    `document.querySelector('[data-testid=stage-context]')?.textContent ?? ''`
+  // Whole tall plant: one 16×32 canvas (upper half on top), saved as two files.
+  await app.waitFor(`document.querySelector('[data-testid=tall-mode]')`, 10000)
+  await app.waitFor(
+    `document.querySelector('header, .editor-header')?.textContent.includes('16×32') || document.body.textContent.includes('16×32')`,
+    10000
   )
+  app.check(true, 'the whole tall plant opens as one 16×32 canvas')
+  await app.sleep(1500)
   app.check(
-    context.includes('Sopra la tela') && context.includes('Stadio precedente'),
-    `tall: the upper half is shown above the canvas, previous stage offered (${context})`
+    (await app.editor.color(10, 19)) === '#d0c040',
+    'the lower half keeps the variant pixels (row 3 → row 19)'
   )
-  await app.click('Stadio precedente in trasparenza', '[data-testid=stage-context] label')
-  await app.sleep(500)
-  await app.shot('07-tall-context')
+  await app.editor.setHex('#c02020')
+  await app.editor.click(4, 5)
+  await app.editor.click(9, 20)
+  await app.sleep(300)
+  app.check((await app.editor.color(4, 5)) === '#c02020', 'painted in the upper half')
+  const topBefore = await readFile(
+    join(app.paths.pack, ...BLOCK.split('/'), 'wheat_stage1_top.png')
+  )
+  await app.key('s', ['ctrl'])
+  await app.sleep(1500)
+  const topAfter = await readFile(join(app.paths.pack, ...BLOCK.split('/'), 'wheat_stage1_top.png'))
+  app.check(!topBefore.equals(topAfter), 'saving the whole plant writes the upper half file')
+  await app.shot('07-whole-plant')
+  // Each half on its own: the pixels went to the right file.
+  await app.click('Solo questa metà', '[data-testid=tall-mode] [role=tab]')
+  await app.waitFor(`document.body.textContent.includes('16×16')`, 10000)
+  await app.sleep(800)
+  app.check((await app.editor.color(9, 4)) === '#c02020', 'the lower file has the lower pixel')
+  await app.click('Pianta intera', '[data-testid=tall-mode] [role=tab]')
+  await app.waitFor(`document.body.textContent.includes('16×32')`, 10000)
+  await app.sleep(800)
+  app.check((await app.editor.color(9, 20)) === '#c02020', 'back to the whole plant')
   await applyShape('Cespuglio')
 
   const problems = await app.ev(

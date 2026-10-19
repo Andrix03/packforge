@@ -56,6 +56,8 @@ export interface TestLive {
   maps: LiveMaps | null
   /** The editor has changes not saved yet (only then the badge says so). */
   modified: boolean
+  /** Other textures painted together (the upper half of a tall plant). */
+  extras?: ReadonlyArray<{ url: string; canvas: HTMLCanvasElement }>
 }
 
 /** Game hours per real second while the day/night cycle plays. */
@@ -159,7 +161,8 @@ export function TestScreen({
         live ? target.url : null,
         live?.canvas ?? null,
         live?.animation,
-        live?.maps ?? null
+        live?.maps ?? null,
+        live?.extras ?? []
       ),
     [live, target.url]
   )

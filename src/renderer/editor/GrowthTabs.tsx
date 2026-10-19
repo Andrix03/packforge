@@ -1,5 +1,5 @@
 import { resolveAssetUrl, type AssetSources, type GrowthStage } from '../preview/modelSource'
-import { stageTextures } from './stageContext'
+import { stageTextures } from './stages'
 
 /**
  * Tabs for the growth stages of a crop (seed → grown): each stage has its own texture. Stages the

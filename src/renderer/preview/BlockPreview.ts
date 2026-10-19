@@ -411,10 +411,19 @@ export class BlockPreview {
     url: string | null,
     canvas: HTMLCanvasElement | null,
     animation: LiveAnimation | null | undefined = undefined,
-    maps: LiveMaps | null = null
+    maps: LiveMaps | null = null,
+    /** Other textures painted together (the upper half of a tall plant): static, no maps. */
+    extras: ReadonlyArray<{ url: string; canvas: HTMLCanvasElement }> = []
   ): void {
     this.liveTextures.clear()
     if (url && canvas) this.liveTextures.set(withoutQuery(url), { canvas, animation, maps })
+    for (const extra of extras) {
+      this.liveTextures.set(withoutQuery(extra.url), {
+        canvas: extra.canvas,
+        animation: null,
+        maps: null
+      })
+    }
   }
 
   refreshLiveTextures(): void {

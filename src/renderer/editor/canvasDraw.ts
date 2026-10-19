@@ -22,10 +22,6 @@ export interface CanvasOverlays {
   region: { x: number; y: number; width: number; height: number }
   /** Onion skin: source row where the previous frame starts, drawn faintly on top. */
   onion: { y: number } | null
-  /** Tall plants: the other half drawn (dimmed, not editable) right above or below. */
-  stacked?: { above: HTMLCanvasElement | null; below: HTMLCanvasElement | null } | null
-  /** Growth stages: the previous stage drawn faintly on top, as a reference. */
-  previousStage?: HTMLCanvasElement | null
 }
 
 export function drawCanvas(
@@ -83,48 +79,7 @@ export function drawCanvas(
     }
     context.restore()
   }
-  const { trace, hover, showGrid, mirror, selection, onion, stacked, previousStage } = overlays
-  if (stacked && !overlays.tiling) {
-    for (const [half, oy] of [
-      [stacked.above, y - height],
-      [stacked.below, y + height]
-    ] as const) {
-      if (!half) continue
-      context.save()
-      context.globalAlpha = 0.6
-      context.drawImage(
-        half,
-        0,
-        0,
-        half.width,
-        Math.min(half.height, half.width),
-        x,
-        oy,
-        width,
-        height
-      )
-      context.restore()
-      context.setLineDash([6, 4])
-      context.strokeStyle = 'rgba(255, 255, 255, 0.35)'
-      context.strokeRect(x + 0.5, oy + 0.5, width - 1, height - 1)
-      context.setLineDash([])
-    }
-  }
-  if (previousStage) {
-    context.globalAlpha = 0.3
-    context.drawImage(
-      previousStage,
-      0,
-      0,
-      previousStage.width,
-      Math.min(previousStage.height, previousStage.width),
-      x,
-      y,
-      width,
-      height
-    )
-    context.globalAlpha = 1
-  }
+  const { trace, hover, showGrid, mirror, selection, onion } = overlays
   if (onion) {
     context.globalAlpha = 0.3
     context.drawImage(source, region.x, onion.y, region.width, region.height, x, y, width, height)

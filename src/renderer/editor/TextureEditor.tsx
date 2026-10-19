@@ -6,15 +6,13 @@ import { NewTextureDialog } from '../packs/NewTextureDialog'
 import {
   guessBlockForTexture,
   listBlocks,
-  resolveAssetUrl,
   type AssetSources,
   type GrowthStage
 } from '../preview/modelSource'
 import { PlantShapeDialog } from './PlantShapeDialog'
 import { GrowthTabs } from './GrowthTabs'
 import { RandomVariantsDialog } from './RandomVariantsDialog'
-import { stageContext, stageTextures } from './stageContext'
-import { useStageCanvases } from './useStageCanvases'
+import { splitHalves, stackHalves, tallHalves } from './tallPlant'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
@@ -97,6 +95,8 @@ type Loaded =
       status: 'ready'
       /** The texture's .png.mcmeta as read (null when there is none). */
       mcmeta: unknown
+      /** A whole tall plant: rows of the upper half, and one canvas per half (3D previews). */
+      tall: { split: number; upper: HTMLCanvasElement; lower: HTMLCanvasElement } | null
       doc: EditorDocument
       /** Display copy of the composite (also the live 3D texture). */
       source: HTMLCanvasElement
@@ -178,18 +178,21 @@ export function TextureEditor({
   )
   /** Pack texture the new one starts as a copy of (the previous growth stage). */
   const [creatingFrom, setCreatingFrom] = useState<string | null>(null)
-  /** The previous growth stage drawn faintly over the canvas. */
-  const [showPreviousStage, setShowPreviousStage] = useState(false)
-  const neighbours = useMemo(
-    () =>
-      stageContext(
-        target.path,
-        stageTextures(growthStages),
-        (path) => resolveAssetUrl(target.sources, path) !== null
-      ),
-    [target.path, target.sources, growthStages]
+  /** Tall plants: both halves painted as one canvas (false = only the opened half). */
+  const [wholePlant, setWholePlant] = useState(true)
+  const halves = useMemo(
+    () => tallHalves(target.path, (path) => target.sources.pack.files.has(path)),
+    [target.path, target.sources]
   )
-  const neighbourCanvases = useStageCanvases(neighbours, target.sources)
+  const tall = wholePlant && !target.readOnly ? halves : null
+  const urlOf = (path: string): string =>
+    assetUrl(target.packBase, path, target.sources.pack.versions[path] ?? 0)
+  const tallUrls = tall ? { upper: urlOf(tall.upper), lower: urlOf(tall.lower) } : null
+  const tallKey = tallUrls ? `${tallUrls.upper}|${tallUrls.lower}` : ''
+  // The whole plant is edited from its lower half (the one the previews draw for the target).
+  useEffect(() => {
+    if (tall && target.path === tall.upper) onSwitch(targetFor(target, tall.lower))
+  }, [tall, target, onSwitch])
   /** A draft found for this texture, waiting for the user to restore or discard it. */
   const [draftOffer, setDraftOffer] = useState<TextureDraft | null>(null)
   const [traceOpacity, setTraceOpacity] = useState(0)
@@ -266,6 +269,8 @@ export function TextureEditor({
   const source = loaded.status === 'ready' ? loaded.source : null
   const maps = loaded.status === 'ready' ? loaded.maps : null
   const channelCanvases = loaded.status === 'ready' ? loaded.channelCanvases : null
+  /** Whole tall plant: where the halves meet, and one canvas per half for the 3D previews. */
+  const tallCanvases = loaded.status === 'ready' ? loaded.tall : null
   const editedMap = surface !== 'color' ? (maps?.[surface] ?? null) : null
   const channel: ChannelDef | null =
     surface !== 'color' && editedMap ? channelDef(channelOf[surface]) : null
@@ -350,6 +355,20 @@ export function TextureEditor({
     }
     doc.recomposite()
     putBuffer(source, doc.composite)
+    if (tallCanvases) {
+      const rows = tallCanvases.split * doc.width * 4
+      const { width, height, data } = doc.composite
+      putBuffer(tallCanvases.upper, {
+        width,
+        height: tallCanvases.split,
+        data: data.subarray(0, rows)
+      })
+      putBuffer(tallCanvases.lower, {
+        width,
+        height: height - tallCanvases.split,
+        data: data.subarray(rows)
+      })
+    }
     let floating = doc.floating !== null
     for (const map of Object.values(maps ?? {})) map.sync()
     for (const def of CHANNELS) {
@@ -363,7 +382,7 @@ export function TextureEditor({
     setRevision((r) => r + 1)
     // A moved piece not yet put down, or new animation settings, are changes too.
     setModified(history.modified || floating || animationDirty.current)
-  }, [doc, source, history, animation, maps, channelCanvases])
+  }, [doc, source, history, animation, maps, channelCanvases, tallCanvases])
 
   const autoRegenerate = channel?.id === 'height' && generator.auto && editedMap !== null
   const commit = useCallback(
@@ -497,7 +516,12 @@ export function TextureEditor({
 
   useEffect(() => {
     let cancelled = false
-    loadDocument(target.url, target.mcmetaUrl, { normal: normalUrl, specular: specularUrl }).then(
+    loadDocument(
+      target.url,
+      target.mcmetaUrl,
+      { normal: normalUrl, specular: specularUrl },
+      tallKey ? { upper: tallKey.split('|')[0]!, lower: tallKey.split('|')[1]! } : null
+    ).then(
       (value) => {
         if (cancelled) return
         setLoaded({ status: 'ready', ...value })
@@ -530,7 +554,7 @@ export function TextureEditor({
     return () => {
       cancelled = true
     }
-  }, [target.url, target.mcmetaUrl, normalUrl, specularUrl])
+  }, [target.url, target.mcmetaUrl, normalUrl, specularUrl, tallKey])
 
   const canSave = doc !== null && !target.readOnly
   const save = useCallback(async () => {
@@ -542,6 +566,40 @@ export function TextureEditor({
     try {
       // The composite = all visible layers flattened. A copy: the user may keep painting.
       const rgba = new Uint8Array(doc.composite.data)
+      if (tallCanvases && tall) {
+        // Whole tall plant: each half goes to its own file (only the changed ones).
+        const image = { width: doc.width, height: doc.height }
+        const now = splitHalves({ ...image, data: rgba }, tallCanvases.split)
+        const before = savedAlbedo.current
+          ? splitHalves({ ...image, data: savedAlbedo.current }, tallCanvases.split)
+          : null
+        const writes = (
+          [
+            [tall.upper, now.upper, before?.upper, tallCanvases.split],
+            [tall.lower, now.lower, before?.lower, doc.height - tallCanvases.split]
+          ] as const
+        ).filter(([, bytes, old]) => !old || !sameBytes(bytes, old))
+        if (
+          !(await backupBefore(
+            `Salvataggio di ${target.name}`,
+            writes.map(([path]) => path)
+          ))
+        )
+          return
+        for (const [path, bytes, , rows] of writes) {
+          const result = await window.api.invoke('texture:save', path, doc.width, rows, bytes)
+          if (!result.ok) {
+            setSaveError(result.error)
+            return
+          }
+        }
+        savedAlbedo.current = rgba
+        if (history.version === version) history.markSaved()
+        announceStep('save')
+        setModified(history.modified)
+        setSavedOnce(true)
+        return
+      }
       // What this save overwrites goes into a backup first (🕘 Backup in the workspace).
       const albedoChanged = !sameBytes(rgba, savedAlbedo.current)
       const animated =
@@ -633,7 +691,7 @@ export function TextureEditor({
     } finally {
       setSaving(false)
     }
-  }, [doc, maps, target, saving, history, settle, animation, mcmetaOnDisk])
+  }, [doc, maps, target, saving, history, settle, animation, mcmetaOnDisk, tall, tallCanvases])
 
   // The texture (or its maps) changed on disk: another program saved it (e.g. the external
   // editor). Our own saves come back too: they match the saved bytes and are ignored.
@@ -643,7 +701,7 @@ export function TextureEditor({
     if (modified) announceStep('paint')
   }, [modified])
   useEffect(() => {
-    if (target.readOnly) return
+    if (target.readOnly || tallCanvases) return
     const watched = [target.path, normalPath, specularPath]
     return window.api.on('pack:filesChanged', ({ paths }) => {
       const hit = paths.filter((path) => watched.includes(path))
@@ -664,7 +722,7 @@ export function TextureEditor({
         }
       })()
     })
-  }, [target, normalPath, specularPath, maps, onSwitch])
+  }, [target, normalPath, specularPath, maps, onSwitch, tallCanvases])
 
   useEffect(() => {
     if (suspended) return
@@ -748,7 +806,7 @@ export function TextureEditor({
   // Autosave a draft (the flattened image) a moment after the last change; drop it once the file
   // is saved (or the changes were undone back to the file).
   useEffect(() => {
-    if (!doc || target.readOnly || draftOffer) return
+    if (!doc || target.readOnly || draftOffer || tallCanvases) return
     const timer = window.setTimeout(() => {
       if (modified) {
         const rgba = new Uint8Array(doc.composite.data)
@@ -758,7 +816,7 @@ export function TextureEditor({
       }
     }, DRAFT_DELAY_MS)
     return () => window.clearTimeout(timer)
-  }, [doc, revision, modified, target.path, target.readOnly, draftOffer])
+  }, [doc, revision, modified, target.path, target.readOnly, draftOffer, tallCanvases])
 
   function restoreDraft(): void {
     const draft = draftOffer
@@ -979,9 +1037,12 @@ export function TextureEditor({
               onClick={() => {
                 settle()
                 onTest({
-                  canvas: source,
+                  canvas: tallCanvases?.lower ?? source,
+                  ...(tallCanvases && tallUrls
+                    ? { extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }] }
+                    : {}),
                   // An animation the editor cannot handle keeps playing from the file.
-                  animation: animationNote ? undefined : animation,
+                  animation: tallCanvases ? null : animationNote ? undefined : animation,
                   pixels: doc.composite,
                   maps: liveMaps,
                   modified
@@ -1056,28 +1117,46 @@ export function TextureEditor({
           setCreatingPath(path)
         }}
       />
-      {(neighbours.previous || neighbours.above || neighbours.below) && (
-        <div className="face-tabs" data-testid="stage-context">
-          {(neighbours.above || neighbours.below) && (
+      {halves && (
+        <div className="face-tabs" data-testid="tall-mode">
+          <span className="muted small">🌿 Pianta alta:</span>
+          {(
+            [
+              [
+                true,
+                'Pianta intera',
+                'Le due metà come una sola tela: sopra la parte alta, sotto quella bassa'
+              ],
+              [false, 'Solo questa metà', 'Per le mappe _n/_s o un’animazione di una sola metà']
+            ] as const
+          ).map(([whole, label, hint]) => (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              aria-selected={wholePlant === whole}
+              className={wholePlant === whole ? 'tab active' : 'tab'}
+              title={hint}
+              onClick={() => {
+                if (wholePlant === whole) return
+                if (modified && !window.confirm('Salvare le modifiche prima di cambiare vista?')) {
+                  return
+                }
+                void (modified ? save() : Promise.resolve()).then(() => setWholePlant(whole))
+              }}
+            >
+              {label}
+            </button>
+          ))}
+          {tall && (
             <span className="muted small">
-              {neighbours.above
-                ? 'Sopra la tela: la parte alta della pianta (si modifica dalla scheda «·su»).'
-                : 'Sotto la tela: la parte bassa della pianta, per far combaciare i gambi.'}
+              Sopra: {tall.upper.slice(tall.upper.lastIndexOf('/') + 1)} · sotto:{' '}
+              {tall.lower.slice(tall.lower.lastIndexOf('/') + 1)}
             </span>
-          )}
-          {neighbours.previous && (
-            <label className="checkbox-inline small">
-              <input
-                type="checkbox"
-                checked={showPreviousStage}
-                onChange={(event) => setShowPreviousStage(event.target.checked)}
-              />
-              Stadio precedente in trasparenza
-            </label>
           )}
         </div>
       )}
-      {maps && !isMapFile && (
+      {maps && !isMapFile && !tallCanvases && (
         <MapTabs
           surface={surface}
           channel={channel?.id ?? null}
@@ -1284,12 +1363,6 @@ export function TextureEditor({
                 : {})}
               onSettle={settle}
               onShowShortcuts={() => setShowShortcuts(true)}
-              stacked={
-                !channel && (neighbourCanvases.above || neighbourCanvases.below)
-                  ? { above: neighbourCanvases.above, below: neighbourCanvases.below }
-                  : null
-              }
-              previousStage={!channel && showPreviousStage ? neighbourCanvases.previous : null}
               onionY={
                 !channel && animation && onionSkin && doc.view.y0 > 0
                   ? doc.view.y0 - animation.frameHeight
@@ -1339,26 +1412,31 @@ export function TextureEditor({
                 Animazione non modificabile qui: {animationNote}
               </p>
             )}
-            {!animation && !animationNote && pro && !target.readOnly && !channel && (
-              <button
-                type="button"
-                className="small-button animate-button"
-                title="Trasforma la texture in un'animazione: i frame stanno uno sotto l'altro nel PNG"
-                onClick={() => {
-                  settle()
-                  // A strip without mcmeta already holds square frames; else one frame.
-                  const frameHeight = doc.height % doc.width === 0 ? doc.width : doc.height
-                  const settings = { frameHeight, frametime: 4, interpolate: false }
-                  setAnimation(settings)
-                  animationDirty.current = true
-                  doc.setFrameView(frameHeight, 0)
-                  refresh()
-                  setModified(true)
-                }}
-              >
-                🎞 Anima questa texture
-              </button>
-            )}
+            {!animation &&
+              !animationNote &&
+              pro &&
+              !target.readOnly &&
+              !channel &&
+              !tallCanvases && (
+                <button
+                  type="button"
+                  className="small-button animate-button"
+                  title="Trasforma la texture in un'animazione: i frame stanno uno sotto l'altro nel PNG"
+                  onClick={() => {
+                    settle()
+                    // A strip without mcmeta already holds square frames; else one frame.
+                    const frameHeight = doc.height % doc.width === 0 ? doc.width : doc.height
+                    const settings = { frameHeight, frametime: 4, interpolate: false }
+                    setAnimation(settings)
+                    animationDirty.current = true
+                    doc.setFrameView(frameHeight, 0)
+                    refresh()
+                    setModified(true)
+                  }}
+                >
+                  🎞 Anima questa texture
+                </button>
+              )}
           </div>
           <div className="editor-side">
             <button
@@ -1373,14 +1451,25 @@ export function TextureEditor({
             <PreviewPanel
               target={previewTarget}
               sources={target.sources}
-              live={{
-                url: target.url,
-                canvas: source,
-                revision,
-                maps: liveMaps,
-                // An animation the editor cannot handle keeps playing from the file.
-                ...(animationNote ? {} : { animation })
-              }}
+              live={
+                tallCanvases && tallUrls
+                  ? {
+                      url: tallUrls.lower,
+                      canvas: tallCanvases.lower,
+                      revision,
+                      maps: null,
+                      animation: null,
+                      extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }]
+                    }
+                  : {
+                      url: target.url,
+                      canvas: source,
+                      revision,
+                      maps: liveMaps,
+                      // An animation the editor cannot handle keeps playing from the file.
+                      ...(animationNote ? {} : { animation })
+                    }
+              }
               initialShape="block"
               onBlockTextures={setBlockTextures}
               onGrowthStages={setGrowthStages}
@@ -1517,8 +1606,11 @@ function isAnimated(mcmeta: unknown): boolean {
 async function loadDocument(
   url: string,
   mcmetaUrl: string | null,
-  mapUrls: Record<MapKind, string | null>
+  mapUrls: Record<MapKind, string | null>,
+  /** A whole tall plant: its two halves stacked into one image (upper on top). */
+  tall: { upper: string; lower: string } | null = null
 ): Promise<{
+  tall: { split: number; upper: HTMLCanvasElement; lower: HTMLCanvasElement } | null
   doc: EditorDocument
   source: HTMLCanvasElement
   reducedFrom16Bit: boolean
@@ -1528,11 +1620,33 @@ async function loadDocument(
   channelCanvases: Partial<Record<ChannelId, HTMLCanvasElement>>
 }> {
   // no-store: the file may have been saved moments ago under the same versioned URL.
-  const response = await fetch(url, { cache: 'no-store' })
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  const decoded = decodePng(new Uint8Array(await response.arrayBuffer()))
-  if (!decoded.ok) throw new Error(decoded.error)
-  const { width, height, data, reducedFrom16Bit } = decoded.image
+  const read = async (from: string) => {
+    const response = await fetch(from, { cache: 'no-store' })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const decoded = decodePng(new Uint8Array(await response.arrayBuffer()))
+    if (!decoded.ok) throw new Error(decoded.error)
+    return decoded.image
+  }
+  let image = await read(tall ? tall.lower : url)
+  let halves: { split: number; upper: HTMLCanvasElement; lower: HTMLCanvasElement } | null = null
+  if (tall) {
+    const upper = await read(tall.upper)
+    const stacked = stackHalves(upper, image)
+    if (!stacked) throw new Error('le due metà della pianta hanno larghezze diverse.')
+    const canvasOf = (w: number, h: number): HTMLCanvasElement => {
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      return canvas
+    }
+    halves = {
+      split: upper.height,
+      upper: canvasOf(upper.width, upper.height),
+      lower: canvasOf(image.width, image.height)
+    }
+    image = { ...stacked, reducedFrom16Bit: image.reducedFrom16Bit || upper.reducedFrom16Bit }
+  }
+  const { width, height, data, reducedFrom16Bit } = image
   const doc = new EditorDocument(width, height, data)
   const source = document.createElement('canvas')
   source.width = width
@@ -1581,7 +1695,13 @@ async function loadDocument(
     putBuffer(canvas, map.proxy(def).composite)
     channelCanvases[def.id] = canvas
   }
-  return { doc, source, reducedFrom16Bit, mcmeta, maps, mapErrors, channelCanvases }
+  if (halves) {
+    const rows = halves.split * width * 4
+    const all = doc.composite.data
+    putBuffer(halves.upper, { width, height: halves.split, data: all.subarray(0, rows) })
+    putBuffer(halves.lower, { width, height: height - halves.split, data: all.subarray(rows) })
+  }
+  return { doc, source, reducedFrom16Bit, mcmeta, maps, mapErrors, channelCanvases, tall: halves }
 }
 
 /** "Aseprite" for C:\…\Aseprite.exe. */

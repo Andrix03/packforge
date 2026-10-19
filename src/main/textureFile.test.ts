@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { decodePng } from '../shared/pngCodec'
-import { saveTexture, saveTextureMcmeta } from './textureFile'
+import { saveCtmProperties, saveTexture, saveTextureMcmeta } from './textureFile'
 
 let dir: string
 let pack: string
@@ -96,5 +96,27 @@ describe('saveTextureMcmeta', () => {
     expect((await saveTextureMcmeta(source, 'a/b.txt', '{}')).ok).toBe(false)
     const zip = { kind: 'zip', root: join(dir, 'p.zip'), data: new Uint8Array() } as const
     expect((await saveTextureMcmeta(zip, PATH, '{}')).ok).toBe(false)
+  })
+})
+
+describe('saveCtmProperties', () => {
+  const CTM = 'assets/minecraft/optifine/ctm/glass/glass.properties'
+
+  it('writes the text under optifine/ctm', async () => {
+    const source = { kind: 'folder', root: pack } as const
+    expect(await saveCtmProperties(source, CTM, 'method=ctm\n')).toEqual({ ok: true })
+    expect(await readFile(join(pack, ...CTM.split('/')), 'utf8')).toBe('method=ctm\n')
+  })
+
+  it('rejects other folders, escapes, binary content and zip packs', async () => {
+    const source = { kind: 'folder', root: pack } as const
+    const write = (path: string, content: unknown) => saveCtmProperties(source, path, content)
+    expect((await write('assets/minecraft/textures/x.properties', 'a=b')).ok).toBe(false)
+    expect((await write('assets/minecraft/optifine/ctm/../../x.properties', 'a=b')).ok).toBe(false)
+    expect((await write('assets/minecraft/optifine/ctm/a.txt', 'a=b')).ok).toBe(false)
+    expect((await write(CTM, 'a\u0000b')).ok).toBe(false)
+    expect((await write(CTM, 42)).ok).toBe(false)
+    const zip = { kind: 'zip', root: join(dir, 'p.zip'), data: new Uint8Array() } as const
+    expect((await saveCtmProperties(zip, CTM, 'a=b')).ok).toBe(false)
   })
 })

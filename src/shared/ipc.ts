@@ -132,6 +132,10 @@ export interface IpcContract {
    * with null. `path` is the PNG's path.
    */
   'texture:saveMcmeta': { args: [path: string, content: string | null]; result: SaveTextureResult }
+  /**
+   * Folder packs only: writes a CTM `.properties` (text) under `assets/<ns>/optifine/ctm/`.
+   */
+  'ctm:saveProperties': { args: [path: string, content: string]; result: SaveTextureResult }
   /** Autosaves editor pixels as a draft for this pack texture (folder packs only). */
   'draft:save': {
     args: [path: string, width: number, height: number, rgba: Uint8Array]
@@ -178,6 +182,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:setIcon': true,
   'texture:save': true,
   'texture:saveMcmeta': true,
+  'ctm:saveProperties': true,
   'draft:save': true,
   'draft:load': true,
   'draft:discard': true,

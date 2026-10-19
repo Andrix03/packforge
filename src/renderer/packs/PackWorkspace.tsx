@@ -15,6 +15,7 @@ import { ValidatorDialog } from './ValidatorDialog'
 import { BatchDialog } from './BatchDialog'
 import { CoverageDialog } from './CoverageDialog'
 import { ResizeDialog } from './ResizeDialog'
+import { CtmDialog } from './CtmDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 
@@ -209,6 +210,7 @@ function Workspace({
   } | null>(null)
   const [covering, setCovering] = useState(false)
   const [resizing, setResizing] = useState(false)
+  const [connecting, setConnecting] = useState<TextureEntry | null>(null)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
@@ -351,6 +353,21 @@ function Workspace({
             ↔ Ridimensiona
           </button>
         )}
+        {canCreate && (
+          <button
+            type="button"
+            className="small-button"
+            disabled={!testable || mapKindOf(testable.albedo) !== null}
+            title={
+              testable
+                ? `Crea i 47 tile delle texture connesse di ${testable.name} (Continuity / OptiFine)`
+                : 'Seleziona prima una texture del pack'
+            }
+            onClick={() => setConnecting(testable)}
+          >
+            🧩 Texture connesse
+          </button>
+        )}
       </div>
 
       <div className="workspace-row">
@@ -435,6 +452,14 @@ function Workspace({
           initialSelection={batching.selection}
           initialMaps={batching.maps}
           onClose={() => setBatching(null)}
+        />
+      )}
+      {connecting && (
+        <CtmDialog
+          source={connecting}
+          textures={mapLessTextures}
+          pack={validatorPack}
+          onClose={() => setConnecting(null)}
         />
       )}
       {resizing && (

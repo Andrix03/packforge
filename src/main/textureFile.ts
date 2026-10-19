@@ -1,5 +1,6 @@
 import { mkdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
+import { isCtmProperties } from '../shared/ctm'
 import { encodePng, MAX_IMAGE_PIXELS, MAX_IMAGE_SIDE } from '../shared/pngCodec'
 import type { EditResult } from './editMcmeta'
 import { isSafePackPath, type PackSource } from './packSource'
@@ -63,6 +64,31 @@ export async function saveTextureMcmeta(
     return { ok: false, error: 'Il file .mcmeta deve contenere un oggetto JSON.' }
   }
   return writeInPack(source.root, path, Buffer.from(content, 'utf8'), 'il file .mcmeta')
+}
+
+export const MAX_PROPERTIES_BYTES = 64 * 1024
+
+/**
+ * Writes a CTM `.properties` (text) under `assets/<namespace>/optifine/ctm/`, the only place the
+ * game and Continuity read them from.
+ */
+export async function saveCtmProperties(
+  source: PackSource,
+  path: unknown,
+  content: unknown
+): Promise<EditResult> {
+  if (source.kind !== 'folder') return { ok: false, error: READ_ONLY }
+  if (typeof path !== 'string' || !isSafePackPath(path) || !isCtmProperties(path)) {
+    return { ok: false, error: 'Percorso del file .properties non valido.' }
+  }
+  if (
+    typeof content !== 'string' ||
+    Buffer.byteLength(content) > MAX_PROPERTIES_BYTES ||
+    content.includes('\0')
+  ) {
+    return { ok: false, error: 'Contenuto del file .properties non valido.' }
+  }
+  return writeInPack(source.root, path, Buffer.from(content, 'utf8'), 'il file .properties')
 }
 
 /** Atomic write of a pack file, refusing paths that leave the pack (also via links). */

@@ -2158,3 +2158,26 @@ kbd {
   margin: 0;
   padding-left: 18px;
 }
+
+.ctm-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+.ctm-wall,
+.ctm-sheet {
+  image-rendering: pixelated;
+  background: repeating-conic-gradient(#3a3d45 0 25%, #2c2f36 0 50%) 0 0 / 12px 12px;
+}
+
+.ctm-wall {
+  width: 240px;
+  height: 200px;
+}
+
+.ctm-sheet {
+  width: 384px;
+  height: 128px;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { SyncStatus } from '../../shared/ipc'
+import { announceStep } from '../tutorialEvents'
 
 /** Debug hotkeys useful while testing a pack (minecraft.wiki "Debug hotkey", 26.x). */
 const HOTKEYS: ReadonlyArray<[string, string]> = [
@@ -43,7 +44,9 @@ export function InGameDialog({
 
   async function copyNow(): Promise<void> {
     setBusy(true)
-    setStatus(await window.api.invoke('sync:now'))
+    const result = await window.api.invoke('sync:now')
+    setStatus(result)
+    if (result.last && !result.last.error) announceStep('game')
     setBusy(false)
   }
 

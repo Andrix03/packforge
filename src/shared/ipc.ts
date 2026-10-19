@@ -18,6 +18,7 @@ import type { McmetaAnalysis } from './mcmeta'
 import type { PackVersion } from './packFormat'
 import type { EditorMode, RecentPackStatus, SavedPalette, SettingsView } from './settings'
 import type { CreatePackRequest } from './validate'
+import type { TutorialState } from './tutorial'
 import type { VersionRangeRequest } from './versionRange'
 
 export interface AppInfo {
@@ -167,6 +168,7 @@ export interface IpcContract {
   'settings:setExternalEditor': { args: [path: string | null]; result: SettingsUpdateResult }
   'settings:setEditorMode': { args: [mode: EditorMode]; result: SettingsUpdateResult }
   'settings:setCheckUpdates': { args: [on: boolean]; result: SettingsUpdateResult }
+  'settings:setTutorial': { args: [state: TutorialState]; result: SettingsUpdateResult }
   /** Asks GitHub for the latest release (skipped when turned off in the settings). */
   'app:checkUpdate': { args: []; result: UpdateCheck }
   /** Opens a release page of this project in the browser (other links are refused). */
@@ -255,6 +257,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setExternalEditor': true,
   'settings:setEditorMode': true,
   'settings:setCheckUpdates': true,
+  'settings:setTutorial': true,
   'app:checkUpdate': true,
   'app:openRelease': true,
   'settings:setPalettes': true,

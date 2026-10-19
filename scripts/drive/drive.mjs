@@ -69,7 +69,9 @@ const child = spawn(
       ...process.env,
       PACKFORGE_TEST_DIALOG_PATH: paths.pack,
       // No request to GitHub from the tests (a scenario may give its own feed, e.g. a data: URL).
-      PACKFORGE_UPDATE_FEED: scenarioOptions.updateFeed ?? 'off'
+      PACKFORGE_UPDATE_FEED: scenarioOptions.updateFeed ?? 'off',
+      // The first-run tutorial floats over the UI: only the scenarios about it turn it on.
+      PACKFORGE_TUTORIAL: scenarioOptions.tutorial ? 'on' : 'off'
     },
     stdio: 'ignore',
     // --keep-open: the app must outlive this script.

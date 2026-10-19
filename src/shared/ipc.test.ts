@@ -93,6 +93,7 @@ describe('registerHandlers', () => {
       'settings:setExternalEditor': () => ({ ok: false, error: 'unused' }),
       'settings:setEditorMode': () => ({ ok: false, error: 'unused' }),
       'settings:setCheckUpdates': () => ({ ok: false, error: 'unused' }),
+      'settings:setTutorial': () => ({ ok: false, error: 'unused' }),
       'app:checkUpdate': () => ({ status: 'off' }),
       'app:openRelease': () => ({ ok: false }),
       'settings:setPalettes': () => ({ ok: false, error: 'unused' }),

@@ -159,7 +159,12 @@ export default async function ore(app) {
   const noon = await testView(app)
   await app.shot('02-prova-noon')
   await app.setValue('select[aria-label="Luce degli effetti"]', 'sunset')
-  await app.sleep(1800)
+  // Under load the new light can take a few frames: wait for the picture to change.
+  let changed = false
+  for (let i = 0; i < 12 && !changed; i++) {
+    await app.sleep(500)
+    changed = noon !== (await testView(app))
+  }
   await app.shot('03-prova-sunset')
-  app.check(noon !== (await testView(app)), 'the light changes the ore')
+  app.check(changed, 'the light changes the ore')
 }

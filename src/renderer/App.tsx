@@ -9,6 +9,8 @@ import { PackWorkspace } from './packs/PackWorkspace'
 import { RecentPacksCard } from './packs/RecentPacksCard'
 import { SettingsPanel } from './settings/SettingsPanel'
 import { TestScreen, type TestLive } from './testscreen/TestScreen'
+import { TutorialCard } from './TutorialCard'
+import { announceStep } from './tutorialEvents'
 
 export function App(): React.JSX.Element {
   const [info, setInfo] = useState<AppInfo | null>(null)
@@ -30,6 +32,17 @@ export function App(): React.JSX.Element {
       .then(setInfo)
       .catch(() => setInfo(null))
   }, [])
+
+  // Tutorial steps the app itself sees.
+  useEffect(() => {
+    if (pack) announceStep('pack')
+  }, [pack])
+  useEffect(() => {
+    if (editing) announceStep('texture')
+  }, [editing])
+  useEffect(() => {
+    if (testing) announceStep('test')
+  }, [testing])
 
   /** A newer release on GitHub (checked once at start, if allowed in the settings). */
   const [update, setUpdate] = useState<Extract<UpdateCheck, { status: 'newer' }> | null>(null)
@@ -88,6 +101,7 @@ export function App(): React.JSX.Element {
 
   return (
     <>
+      <TutorialCard compact={editorOpen || testOpen} />
       {/* Full-screen editor; the workspace below stays mounted (hidden) to keep its state. */}
       {testOpen && (
         <ErrorBoundary key={testing.target.url} what="La prova" onReset={() => setTesting(null)}>

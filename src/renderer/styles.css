@@ -2287,3 +2287,66 @@ kbd {
   border: 1px solid var(--accent);
   border-radius: 8px;
 }
+
+.tutorial-card {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(320px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+.tutorial-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.tutorial-steps {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.tutorial-steps li.done {
+  color: var(--muted);
+}
+
+.tutorial-steps li.current {
+  font-weight: 600;
+}
+
+.tutorial-steps li p {
+  margin: 2px 0 6px;
+  font-weight: normal;
+}
+
+.tutorial-pill {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 40;
+}
+
+.tutorial-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(640px, calc(100vw - 32px));
+  padding: 6px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface);
+}

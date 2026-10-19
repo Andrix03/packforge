@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { SettingsUpdateResult } from '../../shared/ipc'
 import { editorDisplayName, type SettingsView } from '../../shared/settings'
+import { TUTORIAL_RESET_EVENT } from '../TutorialCard'
 
 interface SettingsPanelProps {
   /** `changed` is true when something was saved, so callers can refresh. */
@@ -142,6 +143,30 @@ export function SettingsPanel({ onClose }: SettingsPanelProps): React.JSX.Elemen
           ricarica la texture da solo. Senza un programma scelto si apre quello predefinito di
           Windows.
         </p>
+      </div>
+
+      <div className="field">
+        <h3>Tutorial</h3>
+        <p className="muted small">
+          «Il tuo primo blocco»: sei passi guidati, in modalità Principiante (stato:{' '}
+          {view.settings.tutorial.status === 'done'
+            ? 'completato'
+            : view.settings.tutorial.status === 'off'
+              ? 'nascosto'
+              : `${view.settings.tutorial.done.length}/6`}
+          ).
+        </p>
+        <button
+          type="button"
+          className="small-button"
+          onClick={() =>
+            void apply(
+              window.api.invoke('settings:setTutorial', { status: 'active', done: [] })
+            ).then(() => window.dispatchEvent(new Event(TUTORIAL_RESET_EVENT)))
+          }
+        >
+          Rifai il tutorial
+        </button>
       </div>
 
       <div className="field">

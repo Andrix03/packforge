@@ -24,6 +24,7 @@ import {
 import { parseProject, parseVariant } from '../shared/exportPlan'
 import { isPng } from '../shared/png'
 import { isNewer, isReleaseUrl, LATEST_RELEASE_API, parseRelease } from '../shared/updates'
+import { parseTutorial } from '../shared/tutorial'
 import {
   addRecentPack,
   isEditorMode,
@@ -201,7 +202,12 @@ async function minecraftDir(): Promise<string> {
 }
 
 async function settingsView(): Promise<SettingsView> {
-  const current = await settings().get()
+  const stored = await settings().get()
+  // Tests turn the first-run tutorial off (it floats over the UI they click).
+  const current =
+    process.env['PACKFORGE_TUTORIAL'] === 'off'
+      ? { ...stored, tutorial: { ...stored.tutorial, status: 'off' as const } }
+      : stored
   const effective = current.minecraftDir ?? defaultMinecraftDir()
   return {
     settings: current,
@@ -662,6 +668,16 @@ const handlers: IpcHandlers = {
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
       return { ok: false, error: `Impossibile salvare le palette: ${detail}` }
+    }
+    return { ok: true, view: await settingsView() }
+  },
+
+  'settings:setTutorial': async (state) => {
+    try {
+      await settings().update({ tutorial: parseTutorial(state) })
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      return { ok: false, error: `Impossibile salvare le impostazioni: ${detail}` }
     }
     return { ok: true, view: await settingsView() }
   },

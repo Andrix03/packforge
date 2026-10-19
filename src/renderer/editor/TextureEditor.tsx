@@ -53,6 +53,7 @@ import {
 } from './mapGenerate'
 import { MaterialPanel } from './MaterialPanel'
 import { backupBefore } from '../packs/backup'
+import { announceStep } from '../tutorialEvents'
 import { CompareDialog } from './CompareDialog'
 import type { Image } from '../../shared/textureCompare'
 import { accentMask, DEFAULT_MATERIAL, type MaterialOptions } from '../../shared/materialPresets'
@@ -581,6 +582,7 @@ export function TextureEditor({
       }
       // If something changed during the save, the file holds the older state: stay modified.
       if (history.version === version) history.markSaved()
+      announceStep('save')
       setModified(history.modified)
       setSavedOnce(true)
     } catch (error) {
@@ -595,6 +597,7 @@ export function TextureEditor({
   const modifiedRef = useRef(false)
   useEffect(() => {
     modifiedRef.current = modified
+    if (modified) announceStep('paint')
   }, [modified])
   useEffect(() => {
     if (target.readOnly) return

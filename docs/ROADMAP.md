@@ -160,12 +160,12 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 ## Phase 12 — Polish and public release
 
 - [ ] UI/UX pass, keyboard shortcuts
-- [ ] First-run guided tutorial (draw your first block) for Beginner mode
+- [x] First-run guided tutorial (draw your first block) for Beginner mode — six steps that tick by themselves; compact bar in the editor / Prova; "Rifai il tutorial" in the settings
 - [ ] English UI option
 - [x] Windows installer — electron-builder: NSIS installer (per-user, IT/EN) built by the GitHub "Release" workflow, portable zip locally (`npm run dist:zip`); unsigned: a code-signing certificate is needed before a public release
 - [ ] Bug fixing
 - [x] GitHub Actions CI (typecheck, lint, tests on every push) — `.github/workflows/ci.yml`: windows-latest, Node 24, `npm ci` + `npm run check` (UI scenarios stay local)
-- [ ] End-to-end tests of the Electron app (Playwright)
+- [x] End-to-end tests of the Electron app (Playwright) — done with our own CDP driver (`scripts/drive`, 42 scenarios, `npm run drive:all`) instead of Playwright
 - [x] Auto-update for new releases — notify-only update check (GitHub latest release, banner + link, setting to turn it off); real auto-install needs signed builds
 
 ## Ideas for later

@@ -37,7 +37,8 @@ describe('SettingsStore', () => {
       recentPacks: [],
       editorMode: 'beginner',
       palettes: [],
-      checkUpdates: true
+      checkUpdates: true,
+      tutorial: { status: 'active', done: [] }
     })
 
     await store.update({ minecraftDir: 'D:\\mc' })
@@ -49,7 +50,8 @@ describe('SettingsStore', () => {
       recentPacks: [],
       editorMode: 'beginner',
       palettes: [],
-      checkUpdates: true
+      checkUpdates: true,
+      tutorial: { status: 'active', done: [] }
     })
     expect(await new SettingsStore(file).get()).toEqual({
       minecraftDir: 'D:\\mc',
@@ -57,7 +59,8 @@ describe('SettingsStore', () => {
       recentPacks: [],
       editorMode: 'beginner',
       palettes: [],
-      checkUpdates: true
+      checkUpdates: true,
+      tutorial: { status: 'active', done: [] }
     })
   })
 
@@ -74,7 +77,8 @@ describe('SettingsStore', () => {
       recentPacks: [],
       editorMode: 'beginner',
       palettes: [],
-      checkUpdates: true
+      checkUpdates: true,
+      tutorial: { status: 'active', done: [] }
     })
   })
 
@@ -102,7 +106,8 @@ describe('SettingsStore', () => {
       recentPacks: [],
       editorMode: 'beginner',
       palettes: [],
-      checkUpdates: true
+      checkUpdates: true,
+      tutorial: { status: 'active', done: [] }
     })
   })
 })

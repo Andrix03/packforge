@@ -1,5 +1,7 @@
 // User settings persisted by main in `<userData>/settings.json`.
 
+import { NEW_TUTORIAL, parseTutorial, type TutorialState } from './tutorial'
+
 /** Beginner shows fewer tools plus tips and warnings; Pro shows everything. Same files either way. */
 export type EditorMode = 'beginner' | 'pro'
 
@@ -50,6 +52,8 @@ export interface Settings {
   palettes: SavedPalette[]
   /** Ask GitHub for a newer release at start (notify only, never installs). */
   checkUpdates: boolean
+  /** First-run tutorial (Beginner mode). */
+  tutorial: TutorialState
 }
 
 export interface RecentPack {
@@ -74,7 +78,8 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   // PackForge is for everyone: start simple.
   editorMode: 'beginner',
   palettes: [],
-  checkUpdates: true
+  checkUpdates: true,
+  tutorial: NEW_TUTORIAL
 })
 
 /**
@@ -92,7 +97,8 @@ export function parseSettings(value: unknown): Settings {
       : [],
     editorMode: isEditorMode(record['editorMode']) ? record['editorMode'] : 'beginner',
     palettes: parsePalettes(record['palettes']),
-    checkUpdates: record['checkUpdates'] !== false
+    checkUpdates: record['checkUpdates'] !== false,
+    tutorial: parseTutorial(record['tutorial'])
   }
 }
 

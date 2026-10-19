@@ -13,7 +13,14 @@ import {
 } from '../shared/ipc'
 import { mirrorPack, syncState, syncTargetFor } from './packSync'
 import { BackupStore } from './backups'
-import { buildExport, checkExport, defaultExportDir, readProject, saveProject } from './exporter'
+import {
+  buildExport,
+  checkExport,
+  defaultExportDir,
+  readProject,
+  saveProject,
+  writeListing
+} from './exporter'
 import { parseProject, parseVariant } from '../shared/exportPlan'
 import { isPng } from '../shared/png'
 import {
@@ -545,6 +552,21 @@ const handlers: IpcHandlers = {
       variant: parsed,
       dir: dir ?? defaultExportDir(root),
       overwrite: overwrite === true
+    })
+  },
+
+  'export:listing': async (dir) => {
+    const current = getSource('pack')
+    if (!current || current.source.kind !== 'folder')
+      return { ok: false, error: 'Solo i pack in cartella.' }
+    if (dir !== null && (typeof dir !== 'string' || !isAbsolute(dir))) {
+      return { ok: false, error: 'Cartella non valida.' }
+    }
+    const root = current.source.root
+    return writeListing(current.source, {
+      packName: basename(root),
+      info: await readProject(root),
+      dir: dir ?? defaultExportDir(root)
     })
   },
 

@@ -7,6 +7,7 @@ import {
   type ExportCheck,
   type ExportResult,
   type ExportVariant,
+  type ListingResult,
   type ProjectInfo
 } from '../../shared/exportPlan'
 import { RESOLUTIONS } from '../../shared/resize'
@@ -14,7 +15,11 @@ import { RESOLUTIONS } from '../../shared/resize'
 type Phase =
   | { status: 'setup' }
   | { status: 'working'; text: string }
-  | { status: 'done'; results: Array<{ variant: ExportVariant; result: ExportResult }> }
+  | {
+      status: 'done'
+      results: Array<{ variant: ExportVariant; result: ExportResult }>
+      listing: ListingResult | null
+    }
 
 const today = (): string => new Date().toISOString().slice(0, 10)
 
@@ -27,6 +32,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
   const [full, setFull] = useState(true)
   const [base, setBase] = useState(false)
   const [resolution, setResolution] = useState<number | null>(null)
+  const [withListing, setWithListing] = useState(true)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
 
   useEffect(() => {
@@ -82,7 +88,12 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
       }
       results.push({ variant, result })
     }
-    setPhase({ status: 'done', results })
+    let listing: ListingResult | null = null
+    if (withListing) {
+      setPhase({ status: 'working', text: 'Preparo la scheda per Modrinth / CurseForge…' })
+      listing = await window.api.invoke('export:listing', dir)
+    }
+    setPhase({ status: 'done', results, listing })
   }
 
   if (phase.status !== 'setup') {
@@ -94,6 +105,16 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
             <p className="small">{phase.text}</p>
           ) : (
             <>
+              {phase.listing && (
+                <p
+                  className={phase.listing.ok ? 'small' : 'field-error small'}
+                  data-testid="export-listing"
+                >
+                  {phase.listing.ok
+                    ? `Scheda per Modrinth / CurseForge: ${phase.listing.dir}${phase.listing.kept.length > 0 ? ` (${phase.listing.kept.length} file già presenti lasciati com’erano)` : ''}`
+                    : phase.listing.error}
+                </p>
+              )}
               <ul className="validator-issues" data-testid="export-results">
                 {phase.results.map(({ variant, result }) => (
                   <li
@@ -275,6 +296,18 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
               </option>
             ))}
           </select>
+        </label>
+
+        <label
+          className="inline-check small"
+          title="description-en.md, description-it.md e listing.txt con riassunto, versioni del gioco e tag consigliati"
+        >
+          <input
+            type="checkbox"
+            checked={withListing}
+            onChange={(event) => setWithListing(event.target.checked)}
+          />
+          Prepara anche la scheda per Modrinth / CurseForge
         </label>
 
         <h3 className="panel-title">4. Destinazione</h3>

@@ -240,3 +240,6 @@ export function parseVariant(value: unknown): ExportVariant | null {
   }
   return null
 }
+
+export type ListingResult =
+  { ok: true; dir: string; written: string[]; kept: string[] } | { ok: false; error: string }

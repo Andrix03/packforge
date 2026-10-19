@@ -5,7 +5,14 @@ import { unzipSync, zipSync } from 'fflate'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DEFAULT_PROJECT } from '../shared/exportPlan'
 import { decodePng, encodePng } from '../shared/pngCodec'
-import { buildExport, checkExport, defaultExportDir, readProject, saveProject } from './exporter'
+import {
+  buildExport,
+  checkExport,
+  defaultExportDir,
+  readProject,
+  saveProject,
+  writeListing
+} from './exporter'
 
 let dir: string
 let pack: string
@@ -125,5 +132,25 @@ describe('buildExport', () => {
 
   it('puts exports next to the pack by default', () => {
     expect(defaultExportDir(join(dir, 'My Pack'))).toBe(join(dir, 'My Pack - export'))
+  })
+})
+
+describe('writeListing', () => {
+  it('writes the upload kit once and keeps edited files', async () => {
+    const opts = {
+      packName: 'My Pack',
+      info: { ...DEFAULT_PROJECT, version: '1.2.0' },
+      dir: join(dir, 'out')
+    }
+    const first = await writeListing(source(), opts)
+    if (!first.ok) throw new Error(first.error)
+    expect(first.written.sort()).toEqual(['description-en.md', 'description-it.md', 'listing.txt'])
+    const en = await readFile(join(first.dir, 'description-en.md'), 'utf8')
+    expect(en).toContain('# My Pack')
+    expect(en).toContain('16× textures')
+    await writeFile(join(first.dir, 'description-en.md'), 'edited by hand')
+    const second = await writeListing(source(), opts)
+    expect(second.ok && second.kept.length).toBe(3)
+    expect(await readFile(join(first.dir, 'description-en.md'), 'utf8')).toBe('edited by hand')
   })
 })

@@ -112,6 +112,20 @@ export default async function exporting(app) {
     Boolean(bigStone) && Buffer.from(bigStone).readUInt32BE(16) === 32,
     '32× zip: stone is 32 px wide'
   )
+  // The listing kit for Modrinth / CurseForge.
+  const listingDir = join(dir, 'listing', '1.2.0')
+  const listing = await readFile(join(listingDir, 'listing.txt'), 'utf8').catch(() => '')
+  app.check(
+    listing.includes('File: pack-1.2.0.zip') && listing.includes('Modrinth tags: 16x'),
+    `listing.txt (${listing.split('\n').slice(0, 6).join(' / ')})`
+  )
+  const en = await readFile(join(listingDir, 'description-en.md'), 'utf8').catch(() => '')
+  app.check(
+    en.includes('LabPBR 1.3') && en.includes('NOT AN OFFICIAL MINECRAFT PRODUCT'),
+    'English description with PBR and disclaimer'
+  )
+  app.check(await exists(join(listingDir, 'description-it.md')), 'Italian description')
+
   const project = JSON.parse(await readFile(join(app.paths.pack, 'packforge.json'), 'utf8'))
   app.check(
     project.version === '1.2.0' && project.license === 'CC-BY-NC-SA-4.0',

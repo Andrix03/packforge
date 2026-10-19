@@ -155,7 +155,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 - [x] Check the Minecraft Usage Guidelines for monetization — EULA: no selling / making money from mods; donations OK without exclusive rewards; disclaimer in CREDITS.txt; shown in the export dialog
 - [x] License and credits file included in every export — LICENSE.txt (7 licenses), CREDITS.txt
 - [x] Export checklist: no vanilla files, valid `pack.mcmeta`, no stray files (e.g. `.psd`, `Thumbs.db`) — vanilla copies by pixels, stray files kept out of the zip
-- [ ] Optional builds for Modrinth / CurseForge
+- [x] Optional builds for Modrinth / CurseForge — same zip + `listing/<version>/` (EN/IT descriptions, summary, game versions, Modrinth tags from its API, CurseForge categories)
 
 ## Phase 12 — Polish and public release
 

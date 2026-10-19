@@ -7,15 +7,20 @@ import {
   exportFileName,
   filesForVariant,
   licenseText,
+  LICENSES,
   parseProject,
   PROJECT_FILE,
   strayReason,
   type ExportCheck,
   type ExportResult,
   type ExportVariant,
+  type ListingResult,
   type ProjectInfo
 } from '../shared/exportPlan'
-import { analyzePackMcmeta } from '../shared/mcmeta'
+import { compatibleReleases, analyzePackMcmeta } from '../shared/mcmeta'
+import { descriptionMarkdown, factsFromFiles, listingText } from '../shared/listing'
+import { summarizeReleaseSpans } from '../shared/packFormat'
+import { readPngSize } from '../shared/png'
 import { decodePng, encodePng } from '../shared/pngCodec'
 import { factorBetween, scaleMcmeta, scaleNearest } from '../shared/resize'
 import { listPackFiles, type PackSource } from './packSource'
@@ -217,4 +222,58 @@ export function defaultExportDir(packRoot: string): string {
       .split(/[\\/]/)
       .pop()} - export`
   )
+}
+
+/**
+ * The upload kit for Modrinth / CurseForge in `<dir>/listing/<version>/`: descriptions (EN, IT)
+ * and listing.txt. Existing files are kept (they may have been edited by hand).
+ */
+export async function writeListing(
+  source: PackSource,
+  options: { packName: string; info: ProjectInfo; dir: string }
+): Promise<ListingResult> {
+  if (source.kind !== 'folder') return { ok: false, error: 'Solo i pack in cartella.' }
+  const root = await realpath(source.root)
+  const { files } = await listPackFiles(source)
+  const widths = new Map<string, number>()
+  for (const path of files) {
+    if (!/^assets\/[^/]+\/textures\/.+\.png$/.test(path)) continue
+    const size = readPngSize(await readFile(join(root, ...path.split('/'))))
+    if (size) widths.set(path, size.width)
+  }
+  let gameVersions: string[] = []
+  if (files.includes('pack.mcmeta')) {
+    const analysis = analyzePackMcmeta(await readFile(join(root, 'pack.mcmeta'), 'utf8'))
+    gameVersions = summarizeReleaseSpans(compatibleReleases(analysis.formats))
+  }
+  const license = LICENSES.find((l) => l.id === options.info.license)?.name ?? options.info.license
+  const facts = factsFromFiles(files, widths, {
+    name: options.packName,
+    author: options.info.author,
+    version: options.info.version,
+    license,
+    gameVersions
+  })
+  const target = join(options.dir, 'listing', options.info.version)
+  await mkdir(target, { recursive: true })
+  const outputs: Array<[string, string]> = [
+    ['description-en.md', descriptionMarkdown(facts, 'en')],
+    ['description-it.md', descriptionMarkdown(facts, 'it')],
+    [
+      'listing.txt',
+      listingText(facts, exportFileName(options.packName, options.info.version, { kind: 'full' }))
+    ]
+  ]
+  const written: string[] = []
+  const kept: string[] = []
+  for (const [name, content] of outputs) {
+    try {
+      await writeFile(join(target, name), content, { flag: 'wx' })
+      written.push(name)
+    } catch (error) {
+      if ((error as { code?: string }).code === 'EEXIST') kept.push(name)
+      else return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+  return { ok: true, dir: target, written, kept }
 }

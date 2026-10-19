@@ -7,7 +7,13 @@
 //   3. implement it in the main-process handlers
 //   4. validate renderer-provided args at runtime in main (they are untrusted)
 
-import type { ExportCheck, ExportResult, ExportVariant, ProjectInfo } from './exportPlan'
+import type {
+  ExportCheck,
+  ExportResult,
+  ExportVariant,
+  ListingResult,
+  ProjectInfo
+} from './exportPlan'
 import type { McmetaAnalysis } from './mcmeta'
 import type { PackVersion } from './packFormat'
 import type { EditorMode, RecentPackStatus, SavedPalette, SettingsView } from './settings'
@@ -189,6 +195,8 @@ export interface IpcContract {
     result: ExportResult
   }
   'export:defaultDir': { args: []; result: string | null }
+  /** Descriptions and tags for Modrinth / CurseForge into `<dir>/listing/<version>/`. */
+  'export:listing': { args: [dir: string | null]; result: ListingResult }
   /** Saves a Prova screenshot (PNG) into `<export folder>/screenshots/`. */
   'export:saveScreenshot': {
     args: [name: string, png: Uint8Array]
@@ -247,6 +255,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'export:check': true,
   'export:build': true,
   'export:defaultDir': true,
+  'export:listing': true,
   'export:saveScreenshot': true,
   'export:openFolder': true,
   'backup:create': true,

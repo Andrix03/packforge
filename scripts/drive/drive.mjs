@@ -331,15 +331,23 @@ function createApp(send) {
           .split(',')
           .map(Number)
         const expected = `x ${x0 + x}, y ${y0 + y}`
-        await mouse('mouseMoved', await app.editor.pixel(x, y))
-        const text = await app.waitFor(
-          `(() => {
+        const shown = `(() => {
             const t = document.querySelector('.editor-status').textContent
             return t.startsWith(${JSON.stringify(expected)}) && t
-          })()`,
-          3000
-        )
-        return text.slice(expected.length).trim()
+          })()`
+        // Under load a synthetic move can be lost right after a re-layout (e.g. switching to
+        // Pro): move to a neighbouring pixel and back, a few times, before giving up.
+        for (let attempt = 0; ; attempt++) {
+          await mouse('mouseMoved', await app.editor.pixel(x, y))
+          try {
+            const text = await app.waitFor(shown, 3000)
+            return text.slice(expected.length).trim()
+          } catch (error) {
+            if (attempt === 2) throw error
+            await mouse('mouseMoved', await app.editor.pixel(x === 0 ? 1 : x - 1, y))
+            await sleep(100)
+          }
+        }
       },
       /** Types a hex color into the color panel (selected slot). */
       async setHex(hex) {

@@ -76,8 +76,9 @@ export function guessBlockForTexture(textureKey: string, blocks: readonly string
   const match = /^assets\/minecraft\/textures\/block\/(.+)$/.exec(textureKey)
   if (!match) return null
   const known = new Set(blocks)
-  // Random variants made by PackForge: wheat_stage7_v2 is a wheat_stage7.
-  const names = [...new Set([match[1]!, match[1]!.replace(/_v\d+$/, '')])]
+  // Random variants and the upper block of tall plants made by PackForge: wheat_stage7_v2 and
+  // wheat_stage7_top are a wheat_stage7.
+  const names = [...new Set([match[1]!, match[1]!.replace(/_(v\d+|top)$/, '')])]
   const bases = names.flatMap((name) => [
     name,
     name.replace(TEXTURE_SUFFIXES, ''),

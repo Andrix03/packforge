@@ -94,6 +94,9 @@ describe('listBlocks / guessBlockForTexture', () => {
     expect(guessBlockForTexture(`${V}/textures/block/pitcher_crop_top_stage_3`, blocks)).toBe(
       'pitcher_crop'
     )
+    // Random variants and tall-plant tops made by PackForge.
+    expect(guessBlockForTexture(`${V}/textures/block/wheat_stage5_v2`, blocks)).toBe('wheat')
+    expect(guessBlockForTexture(`${V}/textures/block/carrots_stage3_top`, blocks)).toBe('carrots')
   })
 })
 

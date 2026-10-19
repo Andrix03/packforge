@@ -1,7 +1,7 @@
 import type { OpenedSource, SourceRole } from './session'
 import { readPackAsset } from './packSource'
 
-// `pack://<p|v><generation>/<path>` serves PNG and .mcmeta files of the open pack (`p`) or the
+// `pack://<p|v><generation>/<path>` serves PNG, .mcmeta, .json and .properties files of the open pack (`p`) or the
 // loaded vanilla jar (`v`) to the renderer. Only current generations resolve.
 
 export const PACK_SCHEME = 'pack'

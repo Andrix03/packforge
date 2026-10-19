@@ -96,6 +96,18 @@ describe('readPackAsset', () => {
     expect(new TextDecoder().decode(mcmeta?.bytes)).toBe('{}')
   })
 
+  it('reads CTM .properties as text (folder pack)', async () => {
+    const dir = join(packDir, 'assets', 'minecraft', 'optifine', 'ctm', 'glass')
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, 'glass.properties'), 'method=ctm\n')
+    const asset = await readPackAsset(
+      folder(),
+      'assets/minecraft/optifine/ctm/glass/glass.properties'
+    )
+    expect(asset?.contentType).toBe('text/plain; charset=utf-8')
+    expect(new TextDecoder().decode(asset?.bytes)).toBe('method=ctm\n')
+  })
+
   it.each([
     ['folder', folder],
     ['zip', zip]

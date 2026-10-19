@@ -15,6 +15,8 @@ import {
   type AssetSources
 } from '../preview/modelSource'
 import { MINE, type Placement } from '../preview/testScenes'
+import { isCtmProperties, parseProperties } from '../../shared/ctm'
+import { assignTiles, CULLED, findCtmSet, type CtmSet } from '../../shared/ctmWorld'
 
 export type TintOf = (block: string) => (tintIndex: number) => Rgb | null
 
@@ -70,30 +72,41 @@ export async function loadMine(
   }
 }
 
-/** Groups a scene's placements by block and loads each block (MINE becomes `mine`). */
+/**
+ * Groups a scene's placements by block and loads each block (MINE becomes `mine`, with its
+ * connected textures when `ctm` is given).
+ */
 export async function buildWorld(
   sources: AssetSources,
   placements: readonly Placement[],
   mine: MineMesh | null,
-  tintOf: TintOf
+  tintOf: TintOf,
+  ctm: { set: CtmSet; texturePath: string } | null = null
 ): Promise<WorldModel[]> {
   const byBlock = new Map<string, Vec3[]>()
   for (const { block, at } of placements) {
     if (block === MINE && !mine) continue
     byBlock.set(block, [...(byBlock.get(block) ?? []), at])
   }
-  return Promise.all(
-    [...byBlock].map(async ([block, positions]): Promise<WorldModel> => {
-      if (block === MINE) return { key: block, positions, parts: mine!.parts, light: mine!.light }
-      const mesh = await loadBlockMesh(sources, block, null, tintOf(block))
-      return {
-        key: block,
-        positions,
-        parts: mesh.parts,
-        light: lightPropsFor(block, mesh.fullCube)
+  const models = await Promise.all(
+    [...byBlock].map(async ([block, positions]): Promise<WorldModel[]> => {
+      if (block === MINE) {
+        return ctm
+          ? ctmModels(mine!, positions, ctm.set, ctm.texturePath, sources)
+          : [{ key: block, positions, parts: mine!.parts, light: mine!.light }]
       }
+      const mesh = await loadBlockMesh(sources, block, null, tintOf(block))
+      return [
+        {
+          key: block,
+          positions,
+          parts: mesh.parts,
+          light: lightPropsFor(block, mesh.fullCube)
+        }
+      ]
     })
   )
+  return models.flat()
 }
 
 export interface Sprite {
@@ -170,4 +183,92 @@ export async function loadHandDisplay(
     model = parent
   }
   return FIRST_PERSON_RIGHT
+}
+
+/** The pack's connected-texture set for the tested texture (or why it cannot be shown). */
+export interface CtmPreview {
+  set: CtmSet | null
+  /** Italian note when a set exists but cannot be previewed. */
+  reason: string | null
+}
+
+export async function loadCtm(
+  sources: AssetSources,
+  texturePath: string,
+  block: string | null
+): Promise<CtmPreview> {
+  const files = await Promise.all(
+    [...sources.pack.files].filter(isCtmProperties).map(async (path) => {
+      const url = resolveAssetUrl(sources, path)
+      const text = url
+        ? await fetch(url).then(
+            (r) => r.text(),
+            () => ''
+          )
+        : ''
+      return { path, properties: parseProperties(text) }
+    })
+  )
+  const found = findCtmSet(files, texturePath, block)
+  return found.set ? { set: found.set, reason: null } : { set: null, reason: found.reason }
+}
+
+/**
+ * The tested block with connected textures: its positions grouped by the tiles their faces show,
+ * one model per group (the parts that do not use the texture stay as they are).
+ */
+export function ctmModels(
+  mine: MineMesh,
+  positions: readonly Vec3[],
+  set: CtmSet,
+  texturePath: string,
+  sources: AssetSources
+): WorldModel[] {
+  const own = mine.parts.filter((part) => (part.path ?? part.key) === texturePath)
+  const others = mine.parts.filter((part) => !own.includes(part))
+  const quads = own.flatMap((part) => part.quads.map((entry) => ({ part, entry })))
+  const tiles = assignTiles(
+    positions,
+    quads.map((q) => q.entry.quad),
+    set.method
+  )
+  const groups = new Map<string, { positions: Vec3[]; tiles: number[] }>()
+  positions.forEach((at, index) => {
+    const signature = tiles[index]!.join(',')
+    const group = groups.get(signature) ?? { positions: [], tiles: tiles[index]! }
+    group.positions.push(at)
+    groups.set(signature, group)
+  })
+  return [...groups].map(([signature, group]) => {
+    const byTile = new Map<string, MeshPart>()
+    group.tiles.forEach((tile, i) => {
+      if (tile === CULLED) return
+      const { part, entry } = quads[i]!
+      const path = tile >= 0 ? set.tiles[tile] : undefined
+      const partKey = path ? `${path}|ctm|${part.translucent}` : part.key
+      let target = byTile.get(partKey)
+      if (!target) {
+        target = path
+          ? {
+              key: partKey,
+              path,
+              // A missing tile shows the missing texture: the pack is incomplete.
+              url: resolveAssetUrl(sources, path),
+              mcmetaUrl: null,
+              ...labPbrUrls(sources, path),
+              translucent: part.translucent,
+              quads: []
+            }
+          : { ...part, quads: [] }
+        byTile.set(partKey, target)
+      }
+      target.quads.push(entry)
+    })
+    return {
+      key: `${MINE}|ctm|${signature}`,
+      positions: group.positions,
+      parts: [...others, ...byTile.values()],
+      light: mine.light
+    }
+  })
 }

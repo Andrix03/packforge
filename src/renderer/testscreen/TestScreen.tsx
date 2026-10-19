@@ -35,8 +35,10 @@ import { ItemSlots } from './ItemSlots'
 import {
   buildWorld,
   itemMesh,
+  loadCtm,
   loadHandDisplay,
   loadMine,
+  type CtmPreview,
   loadSprite,
   vanillaOnly,
   type Sprite,
@@ -111,6 +113,9 @@ export function TestScreen({
     setDistance(defaultDistance)
   }
   const [mipmaps, setMipmaps] = useState(true)
+  /** The pack's connected textures for this texture (loaded below), and whether they show. */
+  const [ctm, setCtm] = useState<CtmPreview | null>(null)
+  const [ctmOn, setCtmOn] = useState(true)
   const [compare, setCompare] = useState(false)
   // Side by side with and without POM (same pack on both halves); excludes the vanilla one.
   const [pomCompare, setPomCompare] = useState(false)
@@ -161,6 +166,16 @@ export function TestScreen({
   useEffect(() => previewRef.current?.setView(scene.focus, scene.camera, scene.fov), [scene])
   useEffect(() => previewRef.current?.setDistance(distance), [distance])
 
+  useEffect(() => {
+    if (isItem) return
+    let current = true
+    void loadCtm(sources, target.path, block).then((found) => current && setCtm(found))
+    return () => {
+      current = false
+    }
+  }, [sources, target.path, block, isItem])
+  const ctmSet = ctmOn && !isItem ? (ctm?.set ?? null) : null
+
   // The scene's blocks: the tested one (MINE) from the pack, the others pack first then vanilla.
   useEffect(() => {
     const preview = previewRef.current
@@ -181,7 +196,13 @@ export function TestScreen({
           ? await loadMine(vanillaSources, block, target.path, tintOf)
           : null
       const [world, vanillaWorld] = await Promise.all([
-        buildWorld(sources, placements, mine, tintOf),
+        buildWorld(
+          sources,
+          placements,
+          mine,
+          tintOf,
+          ctmSet ? { set: ctmSet, texturePath: target.path } : null
+        ),
         comparing && vanillaSources ? buildWorld(vanillaSources, placements, theirs, tintOf) : null
       ])
       if (!current) return
@@ -215,7 +236,8 @@ export function TestScreen({
     isItem,
     sources,
     vanillaSources,
-    target.path
+    target.path,
+    ctmSet
   ])
 
   // Items: the sprite extruded like the game, in the right hand.
@@ -429,6 +451,24 @@ export function TestScreen({
                   onChange={(event) => setMipmaps(event.target.checked)}
                 />
                 Mipmap come nel gioco
+              </label>
+            )}
+            {ctm && (ctm.set || ctm.reason) && (
+              <label
+                className="checkbox-inline"
+                title={
+                  ctm.set
+                    ? `${ctm.set.path} (${ctm.set.method}, ${ctm.set.tiles.length} tile): in gioco servono Continuity o OptiFine`
+                    : (ctm.reason ?? '')
+                }
+              >
+                <input
+                  type="checkbox"
+                  checked={ctmOn && ctm.set !== null}
+                  disabled={!ctm.set}
+                  onChange={(event) => setCtmOn(event.target.checked)}
+                />
+                Texture connesse{ctm.set ? ` (${ctm.set.method})` : ' (non mostrabili)'}
               </label>
             )}
             <label

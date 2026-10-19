@@ -135,7 +135,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 ## Phase 9 — Effects: connected textures (CTM)
 
 - [x] Research the formats (OptiFine CTM properties, Continuity) and which loaders read them — `shared/ctm.ts` (47-tile table, properties, methods)
-- [ ] CTM preview on walls and floors in the Test scenes
+- [x] CTM preview on walls and floors in the Test scenes — "Texture connesse" in Prova (ctm / horizontal / vertical; faces between same blocks culled like the game)
 - [x] CTM template generator (full set of connection tiles from one texture) — "🧩 Texture connesse": 47 tiles from a framed texture (+ optional center), _n/_s tiles, .properties, wall preview
 
 ## Phase 10 — Hot reload and in-game testing

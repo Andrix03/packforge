@@ -12,7 +12,9 @@ const SERVED_TYPES: Array<{ suffix: string; contentType: string; maxBytes: numbe
   { suffix: '.png', contentType: 'image/png', maxBytes: 16 * 1024 * 1024 },
   { suffix: '.mcmeta', contentType: 'application/json', maxBytes: 1024 * 1024 },
   // Block models and block states for the 3D preview.
-  { suffix: '.json', contentType: 'application/json', maxBytes: 1024 * 1024 }
+  { suffix: '.json', contentType: 'application/json', maxBytes: 1024 * 1024 },
+  // Connected textures (optifine/ctm/**.properties) for the Test scenes.
+  { suffix: '.properties', contentType: 'text/plain; charset=utf-8', maxBytes: 64 * 1024 }
 ]
 
 export interface PackAsset {

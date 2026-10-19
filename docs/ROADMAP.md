@@ -162,7 +162,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 - [ ] UI/UX pass, keyboard shortcuts
 - [ ] First-run guided tutorial (draw your first block) for Beginner mode
 - [ ] English UI option
-- [ ] Windows installer
+- [x] Windows installer — electron-builder: NSIS installer (per-user, IT/EN) built by the GitHub "Release" workflow, portable zip locally (`npm run dist:zip`); unsigned: a code-signing certificate is needed before a public release
 - [ ] Bug fixing
 - [x] GitHub Actions CI (typecheck, lint, tests on every push) — `.github/workflows/ci.yml`: windows-latest, Node 24, `npm ci` + `npm run check` (UI scenarios stay local)
 - [ ] End-to-end tests of the Electron app (Playwright)

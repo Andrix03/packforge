@@ -24,7 +24,11 @@
     "format:check": "prettier --check .",
     "check": "node scripts/check.mjs",
     "drive": "node scripts/drive/drive.mjs",
-    "drive:all": "node scripts/drive/all.mjs"
+    "drive:all": "node scripts/drive/all.mjs",
+    "dist": "npm run build && electron-builder --win --x64 --publish never",
+    "dist:dir": "npm run build && electron-builder --win --x64 --dir --publish never",
+    "icon": "node scripts/make-icon.mjs",
+    "dist:zip": "npm run build && electron-builder --win zip --x64 --publish never"
   },
   "dependencies": {
     "chokidar": "^5.0.0",
@@ -41,6 +45,7 @@
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^6.0.0",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",

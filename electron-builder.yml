@@ -1,0 +1,40 @@
+# Windows builds: installer (release/PackForge-Setup-<version>.exe) and portable zip.
+# Unsigned: SmartScreen warns, and Windows 11 Smart App Control blocks unsigned programs —
+# including the temporary installer electron-builder RUNS to make the uninstaller, so on a PC
+# with Smart App Control on only `npm run dist:zip` works; the installer is built by the
+# GitHub "Release" workflow. Public releases need a code-signing certificate.
+appId: it.packforge.app
+productName: PackForge
+copyright: Copyright © 2026 Andrea
+directories:
+  buildResources: build
+  output: release
+files:
+  - out/**
+  - package.json
+asar: true
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    # Portable: unzip and run PackForge.exe (no installer).
+    - target: zip
+      arch:
+        - x64
+  icon: build/icon.png
+  # The zip's name (the installer has its own below).
+  artifactName: PackForge-${version}-portable.${ext}
+nsis:
+  # Per-user install: no administrator rights needed.
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  installerLanguages:
+    - it_IT
+    - en_US
+  language: '1040'
+  artifactName: PackForge-Setup-${version}.${ext}
+  uninstallDisplayName: PackForge

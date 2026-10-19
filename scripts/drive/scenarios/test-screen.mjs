@@ -20,6 +20,10 @@ async function scene(app, label, minBlocks) {
   const before = await app.ev(statusText)
   await app.click(label, '.test-side [role=radio]')
   await app.waitFor(`(${statusText}) !== ${JSON.stringify(before)} || ${minBlocks} === 1`, 15000)
+  // The scene's hint changes at once: wait for its world (the block count) too.
+  await app
+    .waitFor(`Number(/(\\d+) blocc/.exec(${statusText})?.[1] ?? 0) >= ${minBlocks}`, 15000)
+    .catch(() => {})
   await app.sleep(900)
   const status = await app.ev(statusText)
   const count = Number(/(\d+) blocc/.exec(status)?.[1] ?? 0)

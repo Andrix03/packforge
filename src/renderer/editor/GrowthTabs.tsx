@@ -27,12 +27,14 @@ export function GrowthTabs({
 }): React.JSX.Element | null {
   const textures = stageTextures(stages)
   if (textures.length < 2 || !textures.includes(current)) return null
-  // Random variants (`_v2`…) share their stage's number: `2·v2`.
-  const bases = [...new Set(textures.map((path) => path.replace(/_v\d+\.png$/, '.png')))]
+  // Random variants (`_v2`…) and the upper block of a tall plant (`_top`) share their stage's
+  // number: `2·v2`, `2·su`.
+  const stageOf = (path: string): string => path.replace(/(_v\d+|_top)\.png$/, '.png')
+  const bases = [...new Set(textures.map(stageOf))]
   const labelOf = (path: string): string => {
-    const stage = bases.indexOf(path.replace(/_v\d+\.png$/, '.png')) + 1
-    const variant = /_(v\d+)\.png$/.exec(path)?.[1]
-    return variant ? `${stage}·${variant}` : `${stage}`
+    const stage = bases.indexOf(stageOf(path)) + 1
+    const part = /_(v\d+|top)\.png$/.exec(path)?.[1]
+    return part ? `${stage}·${part === 'top' ? 'su' : part}` : `${stage}`
   }
   return (
     <div className="face-tabs growth-tabs" role="tablist" aria-label="Stadi di crescita">

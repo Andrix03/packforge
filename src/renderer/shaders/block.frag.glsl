@@ -210,15 +210,23 @@ vec4 sampleMapAt(sampler2D map, vec2 local) {
 
 const int POM_MAX_SAMPLES = 128;
 
-// Depth of the pixel (texel cell) `cell` of the frame's height map, sampled at its center. A
-// see-through pixel of a cutout texture (plants, crops) is air: bottomless, it neither stops the
-// view ray nor blocks light, whatever its height says (else thin leaves sit between invisible
-// walls whose sides show up dark).
-float pomCellDepth(vec2 cell, vec2 res) {
+vec2 pomCellUv(vec2 cell, vec2 res) {
   vec2 local = fract((cell + 0.5) / res);
-  vec2 uv = vec2(frameA.x + local.x * frameA.z, 1.0 - (frameA.y + local.y * frameA.w));
-  if (!translucent && textureLod(albedoMap, uv, 0.0).a < 0.1) return 1.0;
-  return 1.0 - textureLod(normalMap, uv, 0.0).a;
+  return vec2(frameA.x + local.x * frameA.z, 1.0 - (frameA.y + local.y * frameA.w));
+}
+
+// A see-through pixel of a cutout texture (plants, the grass side overlay).
+bool pomCellAir(vec2 cell, vec2 res) {
+  return !translucent && textureLod(albedoMap, pomCellUv(cell, res), 0.0).a < 0.1;
+}
+
+// Depth of the pixel (texel cell) `cell` of the frame's height map, sampled at its center. A
+// see-through pixel is air: bottomless, a ray crossing it goes on and it blocks no light,
+// whatever its height says (else thin leaves sit between invisible walls whose sides show up
+// dark). A ray STARTING on one stops at once (the pixel stays empty, see parallax).
+float pomCellDepth(vec2 cell, vec2 res) {
+  if (pomCellAir(cell, res)) return 1.0;
+  return 1.0 - textureLod(normalMap, pomCellUv(cell, res), 0.0).a;
 }
 
 // Walks the view ray (dir, tangent space: x right, y down, z out of the surface) pixel by pixel
@@ -233,8 +241,10 @@ vec2 parallax(vec3 dir, float scale, out vec3 hit, out vec3 slope) {
   slope = vec3(0.0);
   vec2 res = vec2(textureSize(normalMap, 0)) * frameA.zw;
   vec2 cell = floor(start * res);
-  // At the surface already (or no height map): nothing to do.
-  if (scale <= 0.0 || pomCellDepth(cell, res) < 1.0 / 255.0) return start;
+  // At the surface already (or no height map), or on an empty pixel: nothing to do. (Marching
+  // from an empty pixel would paint the sides of its neighbours into it: dark specks on the
+  // edge of the grass side overlay.)
+  if (scale <= 0.0 || pomCellAir(cell, res) || pomCellDepth(cell, res) < 1.0 / 255.0) return start;
   // Local offset per unit of depth: full depth = 25% of a block, one block = one frame (16-pixel UVs).
   vec2 offset = dir.xy / max(-dir.z, 0.1) * MAX_DEPTH * scale;
   vec2 stepCell = vec2(offset.x > 0.0 ? 1.0 : -1.0, offset.y > 0.0 ? 1.0 : -1.0);

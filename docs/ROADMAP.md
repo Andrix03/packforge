@@ -171,8 +171,9 @@ Crops) add custom 3D models, random variants at harvest and taller ripe plants.
 - [x] "Campo coltivato" scene in Prova: moist farmland, rows from seed (front) to ripe (back)
 - [x] LabPBR "Coltura" material preset: leaves SSS, dry/ripe parts less SSS, fruit smooth (by hue,
       checked on the vanilla crops); works in the editor and in batch apply
-- [ ] Plant shape generator: vanilla 4 planes, bushy cross (6 planes at ±22.5°/±45°), tall ripe
-      plant (16×32), writing model JSON + blockstate — confirmed by Andrea 2026-10-19
+- [x] Plant shape generator ("🌿 Forma della pianta"): vanilla 4 planes, cross, bushy (4 planes
+      leaning out 22.5° + 2 diagonals), tall (a second block drawn by `<name>_top`), for this stage
+      or all stages; written as the stage models (vanilla format, no mods); variants follow
 - [x] Random variants ("🎲 Varianti casuali" in the editor, any block texture): copies
       `<name>_v2…` with maps/animation, a model each, the block state picking one per block (weights,
       optional Y rotations); Prova picks per position like the game (vanilla grass rotations too)

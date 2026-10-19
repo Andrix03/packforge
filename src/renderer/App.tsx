@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AppInfo, PackSummary } from '../shared/ipc'
+import type { AppInfo, PackSummary, UpdateCheck } from '../shared/ipc'
 import { TextureEditor, type EditorTarget } from './editor/TextureEditor'
 import { ErrorBoundary } from './ErrorBoundary'
 import { NewPackForm } from './packs/NewPackForm'
@@ -29,6 +29,15 @@ export function App(): React.JSX.Element {
       .invoke('app:getInfo')
       .then(setInfo)
       .catch(() => setInfo(null))
+  }, [])
+
+  /** A newer release on GitHub (checked once at start, if allowed in the settings). */
+  const [update, setUpdate] = useState<Extract<UpdateCheck, { status: 'newer' }> | null>(null)
+  useEffect(() => {
+    void window.api
+      .invoke('app:checkUpdate')
+      .then((result) => result.status === 'newer' && setUpdate(result))
+      .catch(() => undefined)
   }, [])
 
   // External edits to pack.mcmeta / pack.png refresh the overview.
@@ -109,6 +118,21 @@ export function App(): React.JSX.Element {
         </div>
       )}
       <main className={pack && !showSettings ? 'app wide' : 'app'} hidden={editorOpen || testOpen}>
+        {update && (
+          <div className="update-banner" role="status" data-testid="update-banner">
+            È disponibile PackForge {update.version} (tu hai {update.current}).
+            <button
+              type="button"
+              className="small-button primary"
+              onClick={() => void window.api.invoke('app:openRelease', update.url)}
+            >
+              Scarica
+            </button>
+            <button type="button" className="small-button" onClick={() => setUpdate(null)}>
+              Più tardi
+            </button>
+          </div>
+        )}
         <header className="app-header">
           <div>
             <h1>PackForge</h1>

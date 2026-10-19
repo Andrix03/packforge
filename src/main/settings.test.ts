@@ -36,7 +36,8 @@ describe('SettingsStore', () => {
       externalEditor: null,
       recentPacks: [],
       editorMode: 'beginner',
-      palettes: []
+      palettes: [],
+      checkUpdates: true
     })
 
     await store.update({ minecraftDir: 'D:\\mc' })
@@ -47,14 +48,16 @@ describe('SettingsStore', () => {
       externalEditor: 'C:\\a.exe',
       recentPacks: [],
       editorMode: 'beginner',
-      palettes: []
+      palettes: [],
+      checkUpdates: true
     })
     expect(await new SettingsStore(file).get()).toEqual({
       minecraftDir: 'D:\\mc',
       externalEditor: 'C:\\a.exe',
       recentPacks: [],
       editorMode: 'beginner',
-      palettes: []
+      palettes: [],
+      checkUpdates: true
     })
   })
 
@@ -70,7 +73,8 @@ describe('SettingsStore', () => {
       externalEditor: 'C:\\a.exe',
       recentPacks: [],
       editorMode: 'beginner',
-      palettes: []
+      palettes: [],
+      checkUpdates: true
     })
   })
 
@@ -97,7 +101,8 @@ describe('SettingsStore', () => {
       externalEditor: null,
       recentPacks: [],
       editorMode: 'beginner',
-      palettes: []
+      palettes: [],
+      checkUpdates: true
     })
   })
 })

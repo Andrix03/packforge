@@ -21,7 +21,8 @@ describe('parseSettings', () => {
       externalEditor: 'C:\\A\\Aseprite.exe',
       recentPacks: [],
       editorMode: 'beginner',
-      palettes: []
+      palettes: [],
+      checkUpdates: true
     })
   })
 

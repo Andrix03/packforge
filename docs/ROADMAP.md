@@ -166,7 +166,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 - [ ] Bug fixing
 - [x] GitHub Actions CI (typecheck, lint, tests on every push) — `.github/workflows/ci.yml`: windows-latest, Node 24, `npm ci` + `npm run check` (UI scenarios stay local)
 - [ ] End-to-end tests of the Electron app (Playwright)
-- [ ] Auto-update for new releases
+- [x] Auto-update for new releases — notify-only update check (GitHub latest release, banner + link, setting to turn it off); real auto-install needs signed builds
 
 ## Ideas for later
 

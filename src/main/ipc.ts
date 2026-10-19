@@ -23,6 +23,7 @@ import {
 } from './exporter'
 import { parseProject, parseVariant } from '../shared/exportPlan'
 import { isPng } from '../shared/png'
+import { isNewer, isReleaseUrl, LATEST_RELEASE_API, parseRelease } from '../shared/updates'
 import {
   addRecentPack,
   isEditorMode,
@@ -663,6 +664,43 @@ const handlers: IpcHandlers = {
       return { ok: false, error: `Impossibile salvare le palette: ${detail}` }
     }
     return { ok: true, view: await settingsView() }
+  },
+
+  'settings:setCheckUpdates': async (on) => {
+    try {
+      await settings().update({ checkUpdates: on === true })
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      return { ok: false, error: `Impossibile salvare le impostazioni: ${detail}` }
+    }
+    return { ok: true, view: await settingsView() }
+  },
+
+  'app:checkUpdate': async () => {
+    // Tests and offline use: PACKFORGE_UPDATE_FEED=off, or another URL (data: URLs work too).
+    const feed = process.env['PACKFORGE_UPDATE_FEED'] ?? LATEST_RELEASE_API
+    if (feed === 'off' || !(await settings().get()).checkUpdates) return { status: 'off' }
+    try {
+      const response = await fetch(feed, {
+        headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'PackForge' },
+        signal: AbortSignal.timeout(5000)
+      })
+      if (!response.ok) return { status: 'unavailable' }
+      const release = parseRelease(await response.json())
+      if (!release) return { status: 'unavailable' }
+      const current = app.getVersion()
+      return isNewer(release.version, current)
+        ? { status: 'newer', current, version: release.version, url: release.url }
+        : { status: 'current' }
+    } catch {
+      return { status: 'unavailable' }
+    }
+  },
+
+  'app:openRelease': async (url) => {
+    if (typeof url !== 'string' || !isReleaseUrl(url)) return { ok: false }
+    await shell.openExternal(url)
+    return { ok: true }
   },
 
   'settings:setEditorMode': async (mode) => {

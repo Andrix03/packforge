@@ -65,7 +65,12 @@ const child = spawn(
   ['.', `--remote-debugging-port=${port}`, `--user-data-dir=${paths.userData}`],
   {
     cwd: root,
-    env: { ...process.env, PACKFORGE_TEST_DIALOG_PATH: paths.pack },
+    env: {
+      ...process.env,
+      PACKFORGE_TEST_DIALOG_PATH: paths.pack,
+      // No request to GitHub from the tests (a scenario may give its own feed, e.g. a data: URL).
+      PACKFORGE_UPDATE_FEED: scenarioOptions.updateFeed ?? 'off'
+    },
     stdio: 'ignore',
     // --keep-open: the app must outlive this script.
     detached: flag('--keep-open')

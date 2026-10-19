@@ -166,6 +166,11 @@ export interface IpcContract {
   /** null removes the editor. */
   'settings:setExternalEditor': { args: [path: string | null]; result: SettingsUpdateResult }
   'settings:setEditorMode': { args: [mode: EditorMode]; result: SettingsUpdateResult }
+  'settings:setCheckUpdates': { args: [on: boolean]; result: SettingsUpdateResult }
+  /** Asks GitHub for the latest release (skipped when turned off in the settings). */
+  'app:checkUpdate': { args: []; result: UpdateCheck }
+  /** Opens a release page of this project in the browser (other links are refused). */
+  'app:openRelease': { args: [url: string]; result: { ok: boolean } }
   /** Replaces the saved palettes (main keeps only valid ones). */
   'settings:setPalettes': { args: [palettes: SavedPalette[]]; result: SettingsUpdateResult }
   /**
@@ -249,6 +254,9 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setMinecraftDir': true,
   'settings:setExternalEditor': true,
   'settings:setEditorMode': true,
+  'settings:setCheckUpdates': true,
+  'app:checkUpdate': true,
+  'app:openRelease': true,
   'settings:setPalettes': true,
   'project:get': true,
   'project:save': true,
@@ -304,6 +312,10 @@ export interface IpcEvents {
   /** The copy in resourcepacks was updated (automatic copy). */
   'sync:changed': SyncStatus
 }
+
+export type UpdateCheck =
+  | { status: 'newer'; current: string; version: string; url: string }
+  | { status: 'current' | 'off' | 'unavailable' }
 
 /** A backup taken before an operation changed pack files. */
 export interface BackupInfo {

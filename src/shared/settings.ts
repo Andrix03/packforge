@@ -48,6 +48,8 @@ export interface Settings {
   recentPacks: RecentPack[]
   editorMode: EditorMode
   palettes: SavedPalette[]
+  /** Ask GitHub for a newer release at start (notify only, never installs). */
+  checkUpdates: boolean
 }
 
 export interface RecentPack {
@@ -71,7 +73,8 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   recentPacks: [],
   // PackForge is for everyone: start simple.
   editorMode: 'beginner',
-  palettes: []
+  palettes: [],
+  checkUpdates: true
 })
 
 /**
@@ -88,7 +91,8 @@ export function parseSettings(value: unknown): Settings {
       ? record['recentPacks'].filter(isRecentPack).slice(0, MAX_RECENT_PACKS)
       : [],
     editorMode: isEditorMode(record['editorMode']) ? record['editorMode'] : 'beginner',
-    palettes: parsePalettes(record['palettes'])
+    palettes: parsePalettes(record['palettes']),
+    checkUpdates: record['checkUpdates'] !== false
   }
 }
 

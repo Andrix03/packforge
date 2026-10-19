@@ -138,7 +138,27 @@ export function SettingsPanel({ onClose }: SettingsPanelProps): React.JSX.Elemen
           </div>
         )}
         <p className="muted small">
-          Servirà per "Apri in editor esterno" (Aseprite, Photoshop, …) nella fase di hot reload.
+          Usato dal pulsante «✎» dell’editor (Aseprite, Photoshop, …): quando lì salvi, PackForge
+          ricarica la texture da solo. Senza un programma scelto si apre quello predefinito di
+          Windows.
+        </p>
+      </div>
+
+      <div className="field">
+        <h3>Aggiornamenti</h3>
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={view.settings.checkUpdates}
+            onChange={(event) =>
+              void apply(window.api.invoke('settings:setCheckUpdates', event.target.checked))
+            }
+          />
+          All’avvio controlla se c’è una nuova versione di PackForge
+        </label>
+        <p className="muted small">
+          Chiede a GitHub qual è l’ultima versione pubblicata; se è più nuova compare un avviso con
+          il link per scaricarla. Non installa niente da solo.
         </p>
       </div>
     </section>

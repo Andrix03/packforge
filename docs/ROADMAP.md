@@ -130,7 +130,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 - [x] Batch hue variants (e.g. all wool colors from one texture) — "🎨 Varianti di colore": 16 dyes, OKLab recolor, game colors when the jar has the variant, maps and .mcmeta copied
 - [x] Coverage report: which textures still miss `_n` / `_s` maps ("📊 Copertura": per folder, gui/font/… not counted, filters, "Crea le mappe mancanti" → batch preselected)
 - [x] Compare my texture against the vanilla one (side by side, diff) — "⇆ Confronta con vanilla" in the editor: side by side, heat map, wipe, changed pixels / colors / mean shift / size ratio
-- [ ] Nearest-neighbour resize for different resolutions (16×, 32×, 64×…)
+- [x] Nearest-neighbour resize for different resolutions (16×, 32×, 64×…) — "↔ Ridimensiona": resolution histogram, integer ratios, maps + .mcmeta frame sizes, lossy shrink named before writing
 
 ## Phase 9 — Effects: connected textures (CTM)
 

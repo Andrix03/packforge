@@ -14,6 +14,7 @@ import { TextureGrid, type TextureMarker } from './TextureGrid'
 import { ValidatorDialog } from './ValidatorDialog'
 import { BatchDialog } from './BatchDialog'
 import { CoverageDialog } from './CoverageDialog'
+import { ResizeDialog } from './ResizeDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 
@@ -207,6 +208,7 @@ function Workspace({
     maps: { specular: boolean; normal: boolean }
   } | null>(null)
   const [covering, setCovering] = useState(false)
+  const [resizing, setResizing] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
@@ -339,6 +341,16 @@ function Workspace({
             🎨 Varianti di colore
           </button>
         )}
+        {canCreate && (
+          <button
+            type="button"
+            className="small-button"
+            title="Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe"
+            onClick={() => setResizing(true)}
+          >
+            ↔ Ridimensiona
+          </button>
+        )}
       </div>
 
       <div className="workspace-row">
@@ -423,6 +435,13 @@ function Workspace({
           initialSelection={batching.selection}
           initialMaps={batching.maps}
           onClose={() => setBatching(null)}
+        />
+      )}
+      {resizing && (
+        <ResizeDialog
+          pack={validatorPack}
+          textures={mapLessTextures}
+          onClose={() => setResizing(false)}
         />
       )}
       {covering && (

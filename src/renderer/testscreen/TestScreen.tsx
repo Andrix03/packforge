@@ -123,6 +123,9 @@ export function TestScreen({
   const comparing = compare && vanillaSources !== null && !comparingPom
   const [fly, setFly] = useState(false)
   const [status, setStatus] = useState<Status | null>(null)
+  const [shot, setShot] = useState<
+    { ok: true; path: string } | { ok: false; error: string } | null
+  >(null)
   const colormapsRef = useRef<Promise<ColormapPixels> | null>(null)
   const vanillaItemUrl =
     isItem && vanillaSources ? resolveAssetUrl(vanillaSources, target.path) : null
@@ -302,6 +305,25 @@ export function TestScreen({
           )}
         </div>
         <div className="row">
+          {shot && (
+            <span
+              className={shot.ok ? 'toast small' : 'toast error small'}
+              data-testid="screenshot-result"
+            >
+              {shot.ok ? `Salvato: ${shot.path}` : shot.error}
+            </span>
+          )}
+          <button
+            type="button"
+            title="Salva un'immagine di questa vista (per la pagina del pack su Modrinth o CurseForge) nella cartella degli export"
+            onClick={() => {
+              const png = previewRef.current?.screenshot()
+              if (!png) return
+              void window.api.invoke('export:saveScreenshot', target.name, png).then(setShot)
+            }}
+          >
+            📷 Screenshot
+          </button>
           <button type="button" className="primary" onClick={onBack}>
             ✏ Torna a disegnare
           </button>

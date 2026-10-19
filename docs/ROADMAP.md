@@ -150,7 +150,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 
 - [x] Versioned zip — "📦 Esporta": `<pack>-<version>[-variant].zip` next to the pack (or a chosen folder), never overwritten without asking
 - [x] Free/premium variants (e.g. base vs PBR, different resolutions) — full / base (no _n/_s) / another resolution; named neutrally (see the EULA note)
-- [ ] Screenshots rendered from the preview
+- [x] Screenshots rendered from the preview — "📷 Screenshot" in Prova → `<pack> - export/screenshots/`
 - [x] Changelog — notes per version in packforge.json → CHANGELOG.md
 - [x] Check the Minecraft Usage Guidelines for monetization — EULA: no selling / making money from mods; donations OK without exclusive rewards; disclaimer in CREDITS.txt; shown in the export dialog
 - [x] License and credits file included in every export — LICENSE.txt (7 licenses), CREDITS.txt

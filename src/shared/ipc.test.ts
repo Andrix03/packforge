@@ -107,6 +107,7 @@ describe('registerHandlers', () => {
       'export:check': () => ({ errors: [], warnings: [], vanillaCopies: [], stray: [], files: 0 }),
       'export:build': () => ({ ok: false, error: 'unused' }),
       'export:defaultDir': () => null,
+      'export:saveScreenshot': () => ({ ok: false, error: 'unused' }),
       'export:openFolder': () => ({ ok: false }),
       'backup:create': () => ({ ok: false, error: 'unused' }),
       'backup:list': () => [],

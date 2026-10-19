@@ -2234,3 +2234,23 @@ kbd {
 .export-rules summary {
   cursor: pointer;
 }
+
+/* A short message that floats above the page: it never moves the layout. */
+.toast {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: min(720px, calc(100vw - 32px));
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+
+.toast.error {
+  border-color: var(--error);
+  color: var(--error);
+}

@@ -189,6 +189,11 @@ export interface IpcContract {
     result: ExportResult
   }
   'export:defaultDir': { args: []; result: string | null }
+  /** Saves a Prova screenshot (PNG) into `<export folder>/screenshots/`. */
+  'export:saveScreenshot': {
+    args: [name: string, png: Uint8Array]
+    result: { ok: true; path: string } | { ok: false; error: string }
+  }
   /** Opens a folder that holds exports in the file manager. */
   'export:openFolder': { args: [dir: string]; result: { ok: boolean } }
   /** The open pack's copy in resourcepacks. */
@@ -242,6 +247,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'export:check': true,
   'export:build': true,
   'export:defaultDir': true,
+  'export:saveScreenshot': true,
   'export:openFolder': true,
   'backup:create': true,
   'backup:list': true,

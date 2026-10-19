@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
-import { mkdir, stat } from 'node:fs/promises'
-import { basename, isAbsolute, join } from 'node:path'
+import { mkdir, stat, writeFile } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
   registerHandlers,
@@ -15,6 +15,7 @@ import { mirrorPack, syncState, syncTargetFor } from './packSync'
 import { BackupStore } from './backups'
 import { buildExport, checkExport, defaultExportDir, readProject, saveProject } from './exporter'
 import { parseProject, parseVariant } from '../shared/exportPlan'
+import { isPng } from '../shared/png'
 import {
   addRecentPack,
   isEditorMode,
@@ -89,6 +90,9 @@ function drafts(): DraftStore {
   draftStore ??= new DraftStore(join(app.getPath('userData'), 'drafts'))
   return draftStore
 }
+
+/** A Prova screenshot is a PNG of the view: a few MB at most. */
+const MAX_SCREENSHOT_BYTES = 32 * 1024 * 1024
 
 let backupStore: BackupStore | null = null
 
@@ -547,6 +551,31 @@ const handlers: IpcHandlers = {
   'export:defaultDir': () => {
     const root = folderPackRoot()
     return root ? defaultExportDir(root) : null
+  },
+
+  'export:saveScreenshot': async (name, png) => {
+    const root = folderPackRoot()
+    const current = getSource('pack')
+    const base = root ?? (current ? dirname(current.source.root) : null)
+    if (!base) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!(png instanceof Uint8Array) || png.length > MAX_SCREENSHOT_BYTES || !isPng(png)) {
+      return { ok: false, error: 'Immagine non valida.' }
+    }
+    const safe =
+      (typeof name === 'string' ? name : 'screenshot')
+        .replace(/[^\w.-]+/g, '-')
+        .replace(/^[-.]+|[-.]+$/g, '')
+        .slice(0, 60) || 'screenshot'
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const dir = join(root ? defaultExportDir(root) : base, 'screenshots')
+    const path = join(dir, `${safe}-${stamp}.png`)
+    try {
+      await mkdir(dir, { recursive: true })
+      await writeFile(path, png, { flag: 'wx' })
+      return { ok: true, path }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
   },
 
   'export:openFolder': async (dir) => {

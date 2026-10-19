@@ -445,6 +445,17 @@ export class BlockPreview {
     this.controls.update()
   }
 
+  /**
+   * The current view as PNG bytes (a screenshot). Drawn and read in the same task: the WebGL
+   * buffer is not kept between frames.
+   */
+  screenshot(): Uint8Array {
+    this.renderSides(performance.now())
+    const url = this.canvas.toDataURL('image/png')
+    const base64 = url.slice(url.indexOf(',') + 1)
+    return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+  }
+
   /** Mipmaps like the game: far textures are averaged instead of shimmering. */
   setMipmaps(enabled: boolean): void {
     this.sharedUniforms.mipLevels.value = enabled ? GAME_MIP_LEVELS : 0

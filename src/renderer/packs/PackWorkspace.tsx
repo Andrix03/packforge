@@ -309,101 +309,112 @@ function Workspace({
           </button>
         </div>
         <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
-        <button
-          type="button"
-          className="small-button"
-          title="Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)"
-          onClick={() => setInGame(true)}
-        >
-          🎮 In gioco
-        </button>
-        {canCreate && (
+      </div>
+      <div className="tool-bar" role="toolbar" aria-label="Strumenti">
+        <div className="tool-group">
+          <span className="tool-group-label">Pack</span>
           <button
             type="button"
             className="small-button"
-            title="I backup presi prima di sovrascrivere file: ripristina una versione precedente"
-            onClick={() => setShowBackups(true)}
+            title="Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)"
+            onClick={() => setInGame(true)}
           >
-            🕘 Backup
+            🎮 Copia nel gioco
           </button>
-        )}
-        {canCreate && (
+          {canCreate && (
+            <button
+              type="button"
+              className="small-button"
+              title="Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti"
+              onClick={() => setExporting(true)}
+            >
+              📦 Esporta
+            </button>
+          )}
+          {canCreate && (
+            <button
+              type="button"
+              className="small-button"
+              title="I backup presi prima di sovrascrivere file: ripristina una versione precedente"
+              onClick={() => setShowBackups(true)}
+            >
+              🕘 Backup
+            </button>
+          )}
+        </div>
+        <div className="tool-group">
+          <span className="tool-group-label">Mappe</span>
           <button
             type="button"
             className="small-button"
-            title="Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti"
-            onClick={() => setExporting(true)}
+            title="Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani"
+            onClick={() => setValidating(true)}
           >
-            📦 Esporta
+            🔍 Controlla mappe
           </button>
-        )}
-        <button
-          type="button"
-          className="small-button"
-          title="Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani"
-          onClick={() => setValidating(true)}
-        >
-          🔍 Controlla mappe
-        </button>
-        <button
-          type="button"
-          className="small-button"
-          title="Quante texture del pack hanno già _n e _s, e quali mancano"
-          onClick={() => setCovering(true)}
-        >
-          📊 Copertura
-        </button>
-        {canCreate && (
           <button
             type="button"
             className="small-button"
-            title="Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo"
-            onClick={() =>
-              setBatching({ selection: null, maps: { specular: true, normal: false } })
-            }
+            title="Quante texture del pack hanno già _n e _s, e quali mancano"
+            onClick={() => setCovering(true)}
           >
-            ⚙ Applica in blocco
+            📊 Copertura
           </button>
-        )}
+          {canCreate && (
+            <button
+              type="button"
+              className="small-button"
+              title="Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo"
+              onClick={() =>
+                setBatching({ selection: null, maps: { specular: true, normal: false } })
+              }
+            >
+              ⚙ Applica in blocco
+            </button>
+          )}
+          {canCreate && (
+            <button
+              type="button"
+              className="small-button"
+              title="Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe"
+              onClick={() => setResizing(true)}
+            >
+              ↔ Ridimensiona
+            </button>
+          )}
+        </div>
         {canCreate && (
-          <button
-            type="button"
-            className="small-button"
-            disabled={!testable || mapKindOf(testable.albedo) !== null}
-            title={
-              testable
-                ? `Crea le versioni di ${testable.name} in tutti i colori (lana, cemento, vetro colorato…)`
-                : 'Seleziona prima una texture del pack'
-            }
-            onClick={() => setVarying(testable)}
-          >
-            🎨 Varianti di colore
-          </button>
-        )}
-        {canCreate && (
-          <button
-            type="button"
-            className="small-button"
-            title="Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe"
-            onClick={() => setResizing(true)}
-          >
-            ↔ Ridimensiona
-          </button>
-        )}
-        {canCreate && (
-          <button
-            type="button"
-            className="small-button"
-            disabled={!testable || mapKindOf(testable.albedo) !== null}
-            title={
-              testable
-                ? `Crea i 47 tile delle texture connesse di ${testable.name} (Continuity / OptiFine)`
-                : 'Seleziona prima una texture del pack'
-            }
-            onClick={() => setConnecting(testable)}
-          >
-            🧩 Texture connesse
-          </button>
+          <div className="tool-group">
+            <span className="tool-group-label" data-testid="selected-texture">
+              {testable ? testable.name : 'Scegli una texture'}
+            </span>
+            <button
+              type="button"
+              className="small-button"
+              disabled={!testable || mapKindOf(testable.albedo) !== null}
+              title={
+                testable
+                  ? `Crea le versioni di ${testable.name} in tutti i colori (lana, cemento, vetro colorato…)`
+                  : 'Seleziona prima una texture del pack'
+              }
+              onClick={() => setVarying(testable)}
+            >
+              🎨 Varianti di colore
+            </button>
+            <button
+              type="button"
+              className="small-button"
+              disabled={!testable || mapKindOf(testable.albedo) !== null}
+              title={
+                testable
+                  ? `Crea i 47 tile delle texture connesse di ${testable.name} (Continuity / OptiFine)`
+                  : 'Seleziona prima una texture del pack'
+              }
+              onClick={() => setConnecting(testable)}
+            >
+              🧩 Texture connesse
+            </button>
+          </div>
         )}
       </div>
 

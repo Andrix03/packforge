@@ -12,7 +12,7 @@ const exists = (path) =>
   )
 
 async function openDialog(app) {
-  await app.click('🎮 In gioco')
+  await app.click('🎮 Copia nel gioco')
   await app.waitFor(
     `document.querySelector('[data-testid=sync-target], [data-testid=sync-reason]')`
   )

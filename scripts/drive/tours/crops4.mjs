@@ -4,7 +4,6 @@
 import { createDemo } from '../demo.mjs'
 import { writeCarrots } from './crops2.mjs'
 
-const BLOCK = 'assets/minecraft/textures/block'
 const MID = '#4f9a2f'
 const LIGHT = '#7cc24a'
 

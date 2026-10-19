@@ -343,13 +343,14 @@ export function TextureEditor({
               editedMap,
               mapGrid(editedMap),
               generator.normals,
-              generator.withOcclusion ? generator.occlusion : null
+              generator.withOcclusion ? generator.occlusion : null,
+              doc?.composite ?? null
             )
           : null
       history.push(follow ? combine([command, follow]) : command)
       refresh()
     },
-    [history, refresh, autoRegenerate, editedMap, mapGrid, generator]
+    [history, refresh, autoRegenerate, editedMap, mapGrid, generator, doc]
   )
   /** Puts down a moved/pasted piece (one undo step) before anything else changes the layer. */
   const settle = useCallback(() => {
@@ -790,7 +791,8 @@ export function TextureEditor({
           map,
           grid,
           generator.normals,
-          generator.withOcclusion ? generator.occlusion : null
+          generator.withOcclusion ? generator.occlusion : null,
+          doc.composite
         )
       )
     }

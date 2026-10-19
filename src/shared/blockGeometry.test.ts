@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { faceCorners, textureAxes, type Quad } from './blockGeometry'
+import { buildQuads, faceCorners, textureAxes, type Quad } from './blockGeometry'
 
 const full = [
   [0, 0, 0],
@@ -52,5 +52,24 @@ describe('textureAxes', () => {
     })
     expect(axes.right).toEqual([1, 0, 0])
     expect(axes.down).toEqual([0, -1, 0])
+  })
+})
+
+describe('buildQuads', () => {
+  it('marks the faces of zero-thickness elements (crop planes) as thin', () => {
+    const texture = { id: 'minecraft:block/wheat_stage0', translucent: false }
+    const face = { uv: null, texture, rotation: 0 as const, tintIndex: -1 }
+    const quads = buildQuads(
+      {
+        elements: [
+          { from: [4, -1, 0], to: [4, 15, 16], rotation: null, faces: { west: face, east: face } },
+          { from: [0, 0, 0], to: [16, 16, 16], rotation: null, faces: { up: face } }
+        ],
+        ambientOcclusion: false,
+        warnings: []
+      },
+      { x: 0, y: 0 }
+    )
+    expect(quads.map((q) => q.thin ?? false)).toEqual([true, true, false])
   })
 })

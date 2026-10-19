@@ -6,6 +6,7 @@ import {
   heightFromAlbedo,
   normalsFromHeight,
   occlusionFromHeight,
+  opaqueMask,
   type HeightOptions,
   type MapGrid,
   type NormalOptions,
@@ -66,19 +67,27 @@ export function generateHeight(
   return writeChannel(map, channelDef('height'), (i) => heights[i]!)
 }
 
-/** Normals and/or AO from the map's own height (null options = leave that channel alone). */
+/**
+ * Normals and/or AO from the map's own height (null options = leave that channel alone). The
+ * albedo, when as big as the map, keeps its see-through pixels from acting as walls.
+ */
 export function generateFromHeight(
   map: EditedMap,
   grid: MapGrid,
   normals: NormalOptions | null,
-  occlusion: OcclusionOptions | null
+  occlusion: OcclusionOptions | null,
+  albedo: PixelBuffer | null = null
 ): Command | null {
   map.sync()
   const heights = heightsOf(map)
+  const opaque =
+    albedo && albedo.width === grid.width && albedo.height === grid.height
+      ? opaqueMask(albedo.data, heights.length)
+      : null
   const commands: Array<Command | null> = []
-  if (normals) commands.push(writeNormals(map, normalsFromHeight(heights, grid, normals)))
+  if (normals) commands.push(writeNormals(map, normalsFromHeight(heights, grid, normals, opaque)))
   if (occlusion) {
-    const ao = occlusionFromHeight(heights, grid, occlusion)
+    const ao = occlusionFromHeight(heights, grid, occlusion, opaque)
     commands.push(writeChannel(map, channelDef('ao'), (i) => ao[i]!))
   }
   return combine(commands)

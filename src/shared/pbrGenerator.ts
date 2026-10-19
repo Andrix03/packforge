@@ -89,6 +89,7 @@ export function heightFromAlbedo(
 
   let low = 0
   let high = 1
+  let flat = false
   if (options.autoLevels && opaqueCount > 0) {
     low = Infinity
     high = -Infinity
@@ -98,8 +99,9 @@ export function heightFromAlbedo(
       high = Math.max(high, blurred[i]!)
     }
     if (high - low < 1e-6) {
-      low = 0
-      high = 1
+      // A single color has no relief: all at the surface (a flat plant must not sink below
+      // its see-through pixels, which are at the surface too).
+      flat = true
     }
   }
   const depth = Math.max(0, Math.min(1, options.depth))
@@ -109,8 +111,8 @@ export function heightFromAlbedo(
       out[i] = 255
       continue
     }
-    let level = Math.max(0, Math.min(1, (blurred[i]! - low) / (high - low)))
-    if (options.invert) level = 1 - level
+    let level = flat ? 1 : Math.max(0, Math.min(1, (blurred[i]! - low) / (high - low)))
+    if (options.invert && !flat) level = 1 - level
     if (options.steps >= 2) level = Math.round(level * (options.steps - 1)) / (options.steps - 1)
     const h = 1 - depth * (1 - level)
     out[i] = Math.max(MIN_HEIGHT, Math.min(255, Math.round(h * 255)))
@@ -118,25 +120,39 @@ export function heightFromAlbedo(
   return out
 }
 
+/** 1 where the albedo has color (alpha > 0), for the cutout-aware generators below. */
+export function opaqueMask(rgba: ArrayLike<number>, pixels: number): Uint8Array {
+  const out = new Uint8Array(pixels)
+  for (let i = 0; i < pixels; i++) out[i] = rgba[i * 4 + 3]! > 0 ? 1 : 0
+  return out
+}
+
 /**
  * Normal X/Y bytes (two per pixel: red, green) from height bytes, with a 3×3 Sobel or Scharr
  * gradient. Heights are converted to pixels of depth (25% of the frame width at byte 0), so
- * strength 1 matches the relief POM draws.
+ * strength 1 matches the relief POM draws. With `opaque`, see-through neighbours count as the
+ * pixel's own height: the edge of a leaf is not a slope down from the empty air around it.
  */
 export function normalsFromHeight(
   heights: ArrayLike<number>,
   grid: MapGrid,
-  options: NormalOptions
+  options: NormalOptions,
+  opaque: Uint8Array | null = null
 ): Uint8Array {
   const { width, height } = grid
   const scale = (MAX_DEPTH * width) / 255
   const [side, middle] = options.filter === 'scharr' ? [3, 10] : [1, 2]
   // Weights of one column/row, times the 2-pixel distance between the outer columns.
   const norm = 2 * (2 * side + middle)
-  const at = sampler(heights, grid)
+  const index = indexer(grid)
   const out = new Uint8Array(width * height * 2)
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
+      const own = heights[y * width + x]!
+      const at = (sx: number, sy: number, y0: number): number => {
+        const i = index(sx, sy, y0)
+        return !opaque || opaque[i] ? heights[i]! : own
+      }
       const tl = at(x - 1, y - 1, y)
       const t = at(x, y - 1, y)
       const tr = at(x + 1, y - 1, y)
@@ -176,12 +192,13 @@ export const MAX_AO_STEPS = 32
 /**
  * Ambient occlusion bytes (255 = open) from height bytes: in 8 directions, the highest horizon
  * within the radius hides part of the sky (horizon-based AO, like PixelGraph's ray march on the
- * height map but exact on the pixel grid).
+ * height map but exact on the pixel grid). With `opaque`, see-through pixels hide no sky.
  */
 export function occlusionFromHeight(
   heights: ArrayLike<number>,
   grid: MapGrid,
-  options: OcclusionOptions
+  options: OcclusionOptions,
+  opaque: Uint8Array | null = null
 ): Uint8Array {
   const { width, height } = grid
   const scale = (MAX_DEPTH * width) / 255
@@ -217,6 +234,7 @@ export function occlusionFromHeight(
             fx = fx < 0 ? 0 : fx >= width ? width - 1 : fx
             fy = fy < 0 ? 0 : fy >= rows ? rows - 1 : fy
           }
+          if (opaque && !opaque[(top + fy) * width + fx]) continue
           const rise = heights[(top + fy) * width + fx]! * scale - own
           slope = Math.max(slope, rise / (step * unit))
         }
@@ -232,8 +250,19 @@ export function occlusionFromHeight(
 /** Reads a per-pixel value at (x, y), wrapping or clamping inside the frame that holds row `y0`. */
 function sampler(
   values: ArrayLike<number>,
-  { width, height, frameHeight, wrap }: MapGrid
+  grid: MapGrid
 ): (x: number, y: number, y0: number) => number {
+  const index = indexer(grid)
+  return (x, y, y0) => values[index(x, y, y0)]!
+}
+
+/** Index of pixel (x, y), wrapping or clamping inside the frame that holds row `y0`. */
+function indexer({
+  width,
+  height,
+  frameHeight,
+  wrap
+}: MapGrid): (x: number, y: number, y0: number) => number {
   const frame = Math.max(1, Math.min(frameHeight, height))
   return (x, y, y0) => {
     const top = Math.floor(y0 / frame) * frame
@@ -247,7 +276,7 @@ function sampler(
       fx = Math.max(0, Math.min(width - 1, fx))
       fy = Math.max(0, Math.min(rows - 1, fy))
     }
-    return values[(top + fy) * width + fx]!
+    return (top + fy) * width + fx
   }
 }
 

@@ -7,6 +7,7 @@ import {
   MIN_HEIGHT,
   normalsFromHeight,
   occlusionFromHeight,
+  opaqueMask,
   type MapGrid
 } from './pbrGenerator'
 
@@ -52,8 +53,14 @@ describe('heightFromAlbedo', () => {
     })
     expect([...h]).toEqual([255, 255])
     const flat = heightFromAlbedo(grays([100, 100]), grid(2, 1), { ...DEFAULT_HEIGHT, depth: 1 })
-    // A single color has no range to stretch: absolute lightness, not a division by zero.
-    expect(flat[0]).toBe(100)
+    // A single color has no relief: at the surface (inverted too), not a division by zero.
+    expect([...flat]).toEqual([255, 255])
+    const invertedFlat = heightFromAlbedo(grays([100, 100]), grid(2, 1), {
+      ...DEFAULT_HEIGHT,
+      depth: 1,
+      invert: true
+    })
+    expect([...invertedFlat]).toEqual([255, 255])
   })
 
   it('quantizes to steps for a blocky relief', () => {
@@ -141,6 +148,23 @@ describe('normalsFromHeight', () => {
     expect(hard[2]!).toBeGreaterThan(soft[2]!)
     const scharr = normalsFromHeight(heights, grid(4, 1), { ...DEFAULT_NORMALS, filter: 'scharr' })
     expect(scharr[2]!).toBeGreaterThan(128)
+  })
+})
+
+describe('cutout textures (plants)', () => {
+  it('a leaf among see-through pixels is neither sloped nor occluded by them', () => {
+    // A 1-pixel stem in the middle of a 5×5 transparent texture: the empty pixels are at 255.
+    const heights = new Uint8Array(25).fill(255)
+    heights[12] = 128
+    const opaque = new Uint8Array(25)
+    opaque[12] = 1
+    expect(opaqueMask(grays([[0, 0], 10, [0, 0]]), 3)).toEqual(new Uint8Array([0, 1, 0]))
+    const walls = occlusionFromHeight(heights, grid(5, 5), DEFAULT_OCCLUSION)
+    expect(walls[12]).toBeLessThan(200)
+    const ao = occlusionFromHeight(heights, grid(5, 5), DEFAULT_OCCLUSION, opaque)
+    expect(ao[12]).toBe(255)
+    const normals = normalsFromHeight(heights, grid(5, 5), DEFAULT_NORMALS, opaque)
+    expect([normals[24], normals[25]]).toEqual([128, 128])
   })
 })
 

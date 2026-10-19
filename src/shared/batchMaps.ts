@@ -7,6 +7,7 @@ import {
   heightFromAlbedo,
   normalsFromHeight,
   occlusionFromHeight,
+  opaqueMask,
   type HeightOptions,
   type MapGrid,
   type NormalOptions,
@@ -53,8 +54,11 @@ export function buildNormal(
   options: ReliefOptions
 ): Uint8ClampedArray {
   const heights = heightFromAlbedo(albedo, grid, options.height)
-  const rg = normalsFromHeight(heights, grid, options.normals)
-  const ao = options.occlusion ? occlusionFromHeight(heights, grid, options.occlusion) : null
+  const opaque = opaqueMask(albedo, heights.length)
+  const rg = normalsFromHeight(heights, grid, options.normals, opaque)
+  const ao = options.occlusion
+    ? occlusionFromHeight(heights, grid, options.occlusion, opaque)
+    : null
   const out = new Uint8ClampedArray(grid.width * grid.height * 4)
   for (let i = 0; i < heights.length; i++) {
     out[i * 4] = rg[i * 2]!

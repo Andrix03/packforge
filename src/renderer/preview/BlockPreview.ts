@@ -1249,6 +1249,7 @@ function buildGeometry(
   const tints: number[] = []
   const rights: number[] = []
   const downs: number[] = []
+  const thins: number[] = []
   // Corners are TL, TR, BR, BL seen from outside: TL-BL-BR and TL-BR-TR face outwards
   // (split along TL-BR), or TL-BL-TR and TR-BL-BR (split along TR-BL).
   const order = [0, 3, 2, 0, 2, 1]
@@ -1268,6 +1269,7 @@ function buildGeometry(
       const axes = textureAxes(quad)
       for (const i of w0 + w2 > w1 + w3 ? flipped : order) {
         rights.push(...axes.right)
+        thins.push(quad.thin ? 1 : 0)
         downs.push(...axes.down)
         const p = quad.positions[i]!
         const uv = quad.uvs[i]!
@@ -1290,6 +1292,7 @@ function buildGeometry(
   geometry.setAttribute('texRight', new THREE.Float32BufferAttribute(rights, 3))
   geometry.setAttribute('texDown', new THREE.Float32BufferAttribute(downs, 3))
   geometry.setAttribute('lightLevels', new THREE.Float32BufferAttribute(lights, 3))
+  geometry.setAttribute('thinPlane', new THREE.Float32BufferAttribute(thins, 1))
   return geometry
 }
 

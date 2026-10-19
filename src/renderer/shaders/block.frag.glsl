@@ -149,6 +149,7 @@ in vec3 vTexRight;
 in vec3 vTexDown;
 in vec3 vWorldPosition;
 in vec3 vLight;
+in float vThin;
 
 const float PI = 3.14159265359;
 // Blocks reached by the torch light (like a torch's light level 14).
@@ -209,10 +210,14 @@ vec4 sampleMapAt(sampler2D map, vec2 local) {
 
 const int POM_MAX_SAMPLES = 128;
 
-// Depth of the pixel (texel cell) `cell` of the frame's height map, sampled at its center.
+// Depth of the pixel (texel cell) `cell` of the frame's height map, sampled at its center. A
+// see-through pixel of a cutout texture (plants, crops) is air: bottomless, it neither stops the
+// view ray nor blocks light, whatever its height says (else thin leaves sit between invisible
+// walls whose sides show up dark).
 float pomCellDepth(vec2 cell, vec2 res) {
   vec2 local = fract((cell + 0.5) / res);
   vec2 uv = vec2(frameA.x + local.x * frameA.z, 1.0 - (frameA.y + local.y * frameA.w));
+  if (!translucent && textureLod(albedoMap, uv, 0.0).a < 0.1) return 1.0;
   return 1.0 - textureLod(normalMap, uv, 0.0).a;
 }
 
@@ -474,7 +479,11 @@ vec3 shadePbr(out float alpha) {
 
   // POM: find where the view ray meets the height field, then read every map there. It fades
   // out between 24 and 32 blocks away (like Photon's POM_DISTANCE 32).
-  float pomScale = pomDepth * (1.0 - smoothstep(24.0, 32.0, length(cameraPosition - vWorldPosition)));
+  // Not on thin planes (crops, flowers, cross models): a height field on a two-sided sheet shows
+  // its pixel sides from inside out (shader packs report the same, e.g. Pomme).
+  float pomScale = vThin > 0.5
+    ? 0.0
+    : pomDepth * (1.0 - smoothstep(24.0, 32.0, length(cameraPosition - vWorldPosition)));
   vec3 dirT = vec3(dot(-toCamera, right), dot(-toCamera, down), dot(-toCamera, face));
   vec3 pomHit;
   vec3 slope;

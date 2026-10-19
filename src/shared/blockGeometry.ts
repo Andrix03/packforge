@@ -21,6 +21,8 @@ export interface Quad {
   normal: Vec3
   texture: TextureRef | null
   tintIndex: number
+  /** Face of a zero-thickness element (crop, flower and cross planes): drawn without POM. */
+  thin?: boolean
 }
 
 /** Corners of a face (TL, TR, BR, BL from outside) for an element box. */
@@ -116,6 +118,7 @@ export function buildQuads(
 ): Quad[] {
   const quads: Quad[] = []
   for (const element of model.elements) {
+    const thin = element.from.some((v, axis) => v === element.to[axis])
     for (const [direction, face] of Object.entries(element.faces) as Array<
       [Direction, NonNullable<ModelElement['faces'][Direction]>]
     >) {
@@ -140,7 +143,8 @@ export function buildQuads(
         uvs,
         normal: normalize(normal),
         texture: face.texture,
-        tintIndex: face.tintIndex
+        tintIndex: face.tintIndex,
+        ...(thin ? { thin } : {})
       })
     }
   }

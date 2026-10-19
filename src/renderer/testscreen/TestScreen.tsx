@@ -113,6 +113,8 @@ export function TestScreen({
     setDistance(defaultDistance)
   }
   const [mipmaps, setMipmaps] = useState(true)
+  /** Wind on plants (0 = still), like the waving plants of shader packs. */
+  const [wind, setWind] = useState(0)
   /** The pack's connected textures for this texture (loaded below), and whether they show. */
   const [ctm, setCtm] = useState<CtmPreview | null>(null)
   const [ctmOn, setCtmOn] = useState(true)
@@ -165,6 +167,7 @@ export function TestScreen({
   useEffect(() => previewRef.current?.setEffects(effectsOn ? effects : null), [effectsOn, effects])
   useEffect(() => previewRef.current?.setPomCompare(comparingPom), [comparingPom])
   useEffect(() => previewRef.current?.setMipmaps(mipmaps), [mipmaps])
+  useEffect(() => previewRef.current?.setWind(wind), [wind])
   useEffect(() => previewRef.current?.setFly(fly), [fly])
   useEffect(() => previewRef.current?.setView(scene.focus, scene.camera, scene.fov), [scene])
   useEffect(() => previewRef.current?.setDistance(distance), [distance])
@@ -473,6 +476,26 @@ export function TestScreen({
                   onChange={(event) => setMipmaps(event.target.checked)}
                 />
                 Mipmap come nel gioco
+              </label>
+            )}
+            {!isItem && (
+              <label
+                className="preview-control"
+                title="Le piante (colture, fiori, erba alta) ondeggiano come con gli shader (Iris): il pack da solo non lo fa"
+              >
+                <span>
+                  Vento sulle piante{' '}
+                  <strong>{wind > 0 ? `${Math.round(wind * 100)}%` : 'no'}</strong>
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={wind}
+                  aria-label="Vento"
+                  onChange={(event) => setWind(Number(event.target.value))}
+                />
               </label>
             )}
             {ctm && (ctm.set || ctm.reason) && (

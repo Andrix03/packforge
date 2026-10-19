@@ -172,10 +172,12 @@ Crops) add custom 3D models, random variants at harvest and taller ripe plants.
 - [x] LabPBR "Coltura" material preset: leaves SSS, dry/ripe parts less SSS, fruit smooth (by hue,
       checked on the vanilla crops); works in the editor and in batch apply
 - [ ] Plant shape generator: vanilla 4 planes, bushy cross (6 planes at ±22.5°/±45°), tall ripe
-      plant (16×32), writing model JSON + blockstate — proposal, to confirm with Andrea
+      plant (16×32), writing model JSON + blockstate — confirmed by Andrea 2026-10-19
 - [ ] Random variants per stage (vanilla blockstate arrays with weights + rotations, preview
-      picks per block like the game) — proposal, to confirm with Andrea
-- [ ] Wind sway in the preview (shader packs do it, not the pack) — to decide with Andrea
+      picks per block like the game) — confirmed by Andrea 2026-10-19
+- [x] Wind sway in the preview, like the waving plants of shader packs (not something a pack can do):
+      "Vento sulle piante" in Prova, "Vento" next to Crescita in the editor; thin planes only, the
+      top moves, one phase per block, shadows follow
 
 ## Phase 12 — Polish and public release
 

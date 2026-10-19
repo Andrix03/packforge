@@ -108,4 +108,21 @@ export default async function crops(app) {
   app.check(warnings.length === 0, `no scene warnings (${warnings.join(' | ')})`)
   await app.sleep(2500)
   await app.shot('03-farm')
+
+  // Wind: the field moves between two frames; still, it does not.
+  const view = async () => {
+    const rect = await app.ev(`(() => {
+      const r = document.querySelector('.test-canvas').getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    })()`)
+    return (await app.send('Page.captureScreenshot', { format: 'png', clip: { ...rect, scale: 1 } }))
+      .result.data
+  }
+  const still = [await view(), await app.sleep(600).then(view)]
+  app.check(still[0] === still[1], 'no wind: the field is still')
+  await app.setValue('input[aria-label=Vento]', 1)
+  await app.sleep(500)
+  const windy = [await view(), await app.sleep(600).then(view)]
+  app.check(windy[0] !== windy[1], 'wind: the plants move')
+  await app.shot('04-wind')
 }

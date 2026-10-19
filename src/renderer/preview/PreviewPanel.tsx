@@ -100,6 +100,7 @@ export function PreviewPanel({
   /** Variant actually shown (the chosen one, or the stage of the texture). */
   const [shownVariant, setShownVariant] = useState<string | null>(null)
   const [growing, setGrowing] = useState(false)
+  const [windy, setWindy] = useState(false)
   const [status, setStatus] = useState<Status | null>(null)
   const [biomeId, setBiomeId] = useState(DEFAULT_BIOME.id)
   const biome = BIOMES.find((b) => b.id === biomeId) ?? DEFAULT_BIOME
@@ -152,6 +153,7 @@ export function PreviewPanel({
   useEffect(() => previewRef.current?.setScene(scene), [scene])
   useEffect(() => previewRef.current?.setTime(hour), [hour])
   useEffect(() => previewRef.current?.setAutoRotate(autoRotate), [autoRotate])
+  useEffect(() => previewRef.current?.setWind(windy ? 0.6 : 0), [windy])
 
   // Selecting a texture proposes the block that most likely uses it
   // (state adjusted during render, as React recommends for derived resets).
@@ -393,6 +395,17 @@ export function PreviewPanel({
           <span className="muted small">
             Stadio {stageIndex + 1}/{stages.length}
           </span>
+          <label
+            className="checkbox-inline small"
+            title="Le piante ondeggiano come con gli shader (Iris): il pack da solo non lo fa"
+          >
+            <input
+              type="checkbox"
+              checked={windy}
+              onChange={(event) => setWindy(event.target.checked)}
+            />
+            Vento
+          </label>
         </div>
       )}
 

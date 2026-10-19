@@ -10,6 +10,13 @@ attribute vec3 texDown;
 attribute vec3 lightLevels;
 // 1 on the planes of zero-thickness elements (crops, flowers): no POM there (see block.frag).
 attribute float thinPlane;
+// Wind: how much the vertex moves (0 at a plant's base, 1 at the top of its block) and the
+// phase of its block (the same for the whole plant).
+attribute vec2 sway;
+
+// Wind on plants, like the waving plants of shader packs (0 = still); seconds for the motion.
+uniform float windStrength;
+uniform float windTime;
 
 out vec2 vUv;
 out vec3 vNormal;
@@ -31,6 +38,15 @@ void main() {
   vTexRight = toWorld * texRight;
   vTexDown = toWorld * texDown;
   vec4 world = modelMatrix * local;
+  if (windStrength > 0.0 && sway.x > 0.0) {
+    // A slow gust plus a faster flutter, out of phase from block to block.
+    float phase = windTime * 1.7 + sway.y;
+    vec2 offset = vec2(
+      sin(phase) + 0.35 * sin(phase * 2.3 + 1.7),
+      0.6 * cos(phase * 0.8 + sway.y * 0.4)
+    );
+    world.xz += offset * sway.x * windStrength * 0.1;
+  }
   vWorldPosition = world.xyz;
   gl_Position = projectionMatrix * viewMatrix * world;
 }

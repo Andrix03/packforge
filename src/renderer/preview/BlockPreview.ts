@@ -243,6 +243,9 @@ export class BlockPreview {
     pomShadows: { value: true },
     pomSlopes: { value: false },
     rainTime: { value: 0 },
+    // Wind on plants (thin planes), like the waving plants of shader packs: 0 = still.
+    windStrength: { value: 0 },
+    windTime: { value: 0 },
     // Sun (or moon) shadows of the Effects view, rendered for each half before drawing it.
     shadowMode: { value: 0 },
     shadowMap: { value: null as THREE.Texture | null },
@@ -457,6 +460,11 @@ export class BlockPreview {
   }
 
   /** Mipmaps like the game: far textures are averaged instead of shimmering. */
+  /** Wind on plants (0 = still, 1 = strong), like the waving plants of shader packs. */
+  setWind(strength: number): void {
+    this.sharedUniforms.windStrength.value = Math.max(0, Math.min(1, strength))
+  }
+
   setMipmaps(enabled: boolean): void {
     this.sharedUniforms.mipLevels.value = enabled ? GAME_MIP_LEVELS : 0
   }
@@ -759,7 +767,10 @@ export class BlockPreview {
           // Same objects: animation frames and live textures stay in sync.
           uniforms: {
             albedoMap: material.uniforms['albedoMap']!,
-            frameA: material.uniforms['frameA']!
+            frameA: material.uniforms['frameA']!,
+            // Plants sway in the shadow pass too, so their shadows follow them.
+            windStrength: this.sharedUniforms.windStrength,
+            windTime: this.sharedUniforms.windTime
           }
         })
     const loaded: LoadedPart = {
@@ -1121,6 +1132,7 @@ export class BlockPreview {
     const ticks = ((now - this.animationStart) / 1000) * TICKS_PER_SECOND
     for (const part of this.allParts()) if (part.animation) setAnimatedFrame(part, ticks)
     this.sharedUniforms.rainTime.value = now / 1000
+    this.sharedUniforms.windTime.value = now / 1000
     if (this.flying) this.fly(seconds)
     else this.controls.update()
     this.renderSides(now)
@@ -1250,6 +1262,7 @@ function buildGeometry(
   const rights: number[] = []
   const downs: number[] = []
   const thins: number[] = []
+  const sways: number[] = []
   // Corners are TL, TR, BR, BL seen from outside: TL-BL-BR and TL-BR-TR face outwards
   // (split along TL-BR), or TL-BL-TR and TR-BL-BR (split along TR-BL).
   const order = [0, 3, 2, 0, 2, 1]
@@ -1275,6 +1288,9 @@ function buildGeometry(
         const uv = quad.uvs[i]!
         const light = corners[i]!
         lights.push(light.sky / 15, light.block / 15, light.ao)
+        // Plants sway more towards their top (their base stays in the ground), each block with
+        // its own phase so the whole plant moves together.
+        sways.push(quad.thin ? Math.max(0, Math.min(1, p[1] / 16)) : 0, at[0] * 0.9 + at[2] * 0.6)
         positions.push(p[0] / 16 - 0.5 + at[0], p[1] / 16 - 0.5 + at[1], p[2] / 16 - 0.5 + at[2])
         normals.push(...quad.normal)
         uvs.push(uv[0] / 16, 1 - uv[1] / 16)
@@ -1293,6 +1309,7 @@ function buildGeometry(
   geometry.setAttribute('texDown', new THREE.Float32BufferAttribute(downs, 3))
   geometry.setAttribute('lightLevels', new THREE.Float32BufferAttribute(lights, 3))
   geometry.setAttribute('thinPlane', new THREE.Float32BufferAttribute(thins, 1))
+  geometry.setAttribute('sway', new THREE.Float32BufferAttribute(sways, 2))
   return geometry
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Issue, Severity } from '../../shared/packValidator'
 import { runValidator, type ValidatorResult, type ValidatorSource } from './runValidator'
+import { useEscape } from '../useEscape'
 
 const SEVERITY: Record<Severity, { icon: string; label: string }> = {
   error: { icon: '✗', label: 'errori' },
@@ -30,6 +31,7 @@ export function ValidatorDialog({
 }): React.JSX.Element {
   const [run, setRun] = useState(0)
   const [state, setState] = useState<State>({ status: 'running', done: 0, total: 0 })
+  useEscape(onClose)
 
   useEffect(() => {
     let cancelled = false

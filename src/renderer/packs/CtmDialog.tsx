@@ -25,6 +25,7 @@ import type { TextureEntry } from '../../shared/textures'
 import { Range } from '../editor/GeneratorPanel'
 import { backupBefore } from './backup'
 import { errorMessage, loadPng, type FileSource } from './packFetch'
+import { useEscape } from '../useEscape'
 
 /** Wall used by the preview: 1 = block, 0 = gap (shows outer, inner corners and lines). */
 const WALL = [
@@ -59,6 +60,7 @@ export function CtmDialog({
   const [border, setBorder] = useState(1)
   const [withMaps, setWithMaps] = useState(source.normal !== null || source.specular !== null)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
+  useEscape(onClose, phase.status !== 'working')
 
   useEffect(() => {
     let cancelled = false

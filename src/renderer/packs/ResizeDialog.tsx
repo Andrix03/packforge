@@ -11,6 +11,7 @@ import {
 import type { TextureEntry } from '../../shared/textures'
 import { backupBefore } from './backup'
 import { errorMessage, fetchBytes, fetchText, loadPng, type FileSource } from './packFetch'
+import { useEscape } from '../useEscape'
 
 /** Rows drawn at most (the filter narrows big packs). */
 const MAX_ROWS = 400
@@ -48,6 +49,7 @@ export function ResizeDialog({
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
   const [withMaps, setWithMaps] = useState(true)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
+  useEscape(onClose, phase.status !== 'working')
 
   useEffect(() => {
     let cancelled = false

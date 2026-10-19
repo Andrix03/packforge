@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { BackupInfo } from '../../shared/ipc'
+import { useEscape } from '../useEscape'
 
 /** The pack's backups (taken before batch, variants, resize, CTM and saves), with restore. */
 export function BackupsDialog({ onClose }: { onClose: () => void }): React.JSX.Element {
@@ -7,6 +8,7 @@ export function BackupsDialog({ onClose }: { onClose: () => void }): React.JSX.E
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
   const [busy, setBusy] = useState(false)
   const [run, setRun] = useState(0)
+  useEscape(onClose, !busy)
 
   useEffect(() => {
     let current = true

@@ -13,6 +13,7 @@ import { MaterialFields } from '../editor/MaterialPanel'
 import { backupBefore } from './backup'
 import { runBatch, type BatchResult } from './runBatch'
 import type { ValidatorSource } from './runValidator'
+import { useEscape } from '../useEscape'
 
 /** Rows drawn at most in the texture list (the filter narrows big packs). */
 const MAX_ROWS = 400
@@ -57,6 +58,7 @@ export function BatchDialog({
   const [occlusion, setOcclusion] = useState(true)
   const [wrap, setWrap] = useState(true)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
+  useEscape(onClose, phase.status !== 'running')
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()

@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { mkdir, stat, writeFile } from 'node:fs/promises'
-import { basename, dirname, isAbsolute, join } from 'node:path'
+import { basename, isAbsolute, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
   registerHandlers,
@@ -583,10 +583,8 @@ const handlers: IpcHandlers = {
   },
 
   'export:saveScreenshot': async (name, png) => {
-    const root = folderPackRoot()
     const current = getSource('pack')
-    const base = root ?? (current ? dirname(current.source.root) : null)
-    if (!base) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
     if (!(png instanceof Uint8Array) || png.length > MAX_SCREENSHOT_BYTES || !isPng(png)) {
       return { ok: false, error: 'Immagine non valida.' }
     }
@@ -596,7 +594,8 @@ const handlers: IpcHandlers = {
         .replace(/^[-.]+|[-.]+$/g, '')
         .slice(0, 60) || 'screenshot'
     const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    const dir = join(root ? defaultExportDir(root) : base, 'screenshots')
+    // Next to the exports, for folder and zip packs alike.
+    const dir = join(defaultExportDir(current.source.root), 'screenshots')
     const path = join(dir, `${safe}-${stamp}.png`)
     try {
       await mkdir(dir, { recursive: true })

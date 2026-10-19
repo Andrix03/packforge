@@ -17,6 +17,7 @@ import { Range } from '../editor/GeneratorPanel'
 import { mapMcmeta } from '../editor/frames'
 import { backupBefore } from './backup'
 import { errorMessage, fetchText, loadPng, type FileSource } from './packFetch'
+import { useEscape } from '../useEscape'
 
 type ColorMode = 'game' | 'dye'
 
@@ -71,6 +72,7 @@ export function VariantsDialog({
   const [copyMaps, setCopyMaps] = useState(hasMaps)
   const [overwrite, setOverwrite] = useState(false)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
+  useEscape(onClose, phase.status !== 'running')
 
   useEffect(() => {
     let cancelled = false

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { coverageReport, type Missing } from '../../shared/coverage'
 import type { TextureEntry } from '../../shared/textures'
+import { useEscape } from '../useEscape'
 
 type Filter = 'all' | Missing
 
@@ -40,6 +41,7 @@ export function CoverageDialog({
 }): React.JSX.Element {
   const report = useMemo(() => coverageReport(files), [files])
   const [filter, setFilter] = useState<Filter>('all')
+  useEscape(onClose)
   const shown = report.missing.filter((m) => filter === 'all' || m.missing === filter)
 
   return (

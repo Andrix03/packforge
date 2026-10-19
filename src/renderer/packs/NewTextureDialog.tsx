@@ -7,6 +7,7 @@ import {
   type TextureStart
 } from '../editor/newTexture'
 import { fromHex, toHex, type Rgba } from '../editor/pixels'
+import { useEscape } from '../useEscape'
 
 export interface NewTextureRequest {
   folder: string
@@ -47,6 +48,7 @@ export function NewTextureDialog({
   const [start, setStart] = useState<TextureStart>('noise')
   const [color, setColor] = useState<Rgba>([127, 127, 127, 255])
   const [busy, setBusy] = useState(false)
+  useEscape(onCancel, !busy)
   const [error, setError] = useState<string | null>(null)
 
   const path = `${folder.replace(/\/+$/, '')}/${name}.png`

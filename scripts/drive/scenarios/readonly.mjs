@@ -53,4 +53,19 @@ export default async function readonly(app) {
   await app.sleep(2500)
   const drafts = await readdir(join(app.paths.userData, 'drafts')).catch(() => [])
   app.check(drafts.length === 0, 'no draft is written for a read-only pack')
+
+  // A screenshot of a zip pack goes next to its exports, like for folder packs.
+  await app.click('Prova')
+  await app.waitFor(
+    `/\\d+ blocc/.test(document.querySelector('.test-side')?.textContent ?? '')`,
+    15000
+  )
+  await app.sleep(800)
+  await app.click('📷 Screenshot')
+  await app.waitFor(`document.querySelector('[data-testid=screenshot-result]')`, 10000)
+  const shot = await app.ev(`document.querySelector('[data-testid=screenshot-result]').textContent`)
+  app.check(
+    shot.includes('pack.zip - export') && shot.includes('screenshots'),
+    `zip pack screenshot folder (${shot})`
+  )
 }

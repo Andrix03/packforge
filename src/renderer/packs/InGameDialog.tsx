@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { SyncStatus } from '../../shared/ipc'
 import { announceStep } from '../tutorialEvents'
+import { useEscape } from '../useEscape'
 
 /** Debug hotkeys useful while testing a pack (minecraft.wiki "Debug hotkey", 26.x). */
 const HOTKEYS: ReadonlyArray<[string, string]> = [
@@ -31,6 +32,7 @@ export function InGameDialog({
 }): React.JSX.Element {
   const [status, setStatus] = useState<SyncStatus | null>(null)
   const [busy, setBusy] = useState(false)
+  useEscape(onClose)
 
   useEffect(() => {
     let current = true

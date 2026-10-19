@@ -11,6 +11,7 @@ import {
   type ProjectInfo
 } from '../../shared/exportPlan'
 import { RESOLUTIONS } from '../../shared/resize'
+import { useEscape } from '../useEscape'
 
 type Phase =
   | { status: 'setup' }
@@ -34,6 +35,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
   const [resolution, setResolution] = useState<number | null>(null)
   const [withListing, setWithListing] = useState(true)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
+  useEscape(onClose, phase.status !== 'working')
 
   useEffect(() => {
     let current = true

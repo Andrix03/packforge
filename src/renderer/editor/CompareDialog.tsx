@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { compareTextures, diffImage, onGrid, type Image } from '../../shared/textureCompare'
+import { useEscape } from '../useEscape'
 
 type View = 'side' | 'wipe'
 
@@ -17,6 +18,7 @@ export function CompareDialog({
 }): React.JSX.Element {
   const [view, setView] = useState<View>('side')
   const [split, setSplit] = useState(50)
+  useEscape(onClose)
   const comparison = useMemo(() => compareTextures(mine, vanilla), [mine, vanilla])
   const { width, height } = comparison
   const mineGrid = useMemo(() => onGrid(mine, width, height), [mine, width, height])

@@ -141,9 +141,9 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 ## Phase 10 — Hot reload and in-game testing
 
 - [x] Watch the pack folder (done with the Phase 2 live update)
-- [ ] Automatic sync into `resourcepacks` (copy or link)
+- [x] Automatic sync into `resourcepacks` (copy or link) — copy (links are ignored by the game unless allowed): "🎮 In gioco", copy now + automatic after every change, only into its own marked folder
 - [ ] "Open in external editor" (Aseprite / Photoshop)
-- [ ] Reminder / shortcut panel for testing in game (F3+T, Iris shader reload)
+- [x] Reminder / shortcut panel for testing in game (F3+T, Iris shader reload) — in the same dialog (steps, F3 hotkeys, Iris R/K/O)
 - [ ] Undo history and automatic backups before destructive operations
 
 ## Phase 11 — Export (Patreon and public)

@@ -1,14 +1,16 @@
 import { mkdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
   registerHandlers,
   type DirectoryPurpose,
   type IpcEventChannel,
   type IpcEvents,
   type IpcHandlers,
-  type SettingsUpdateResult
+  type SettingsUpdateResult,
+  type SyncStatus
 } from '../shared/ipc'
+import { mirrorPack, syncState, syncTargetFor } from './packSync'
 import {
   addRecentPack,
   isEditorMode,
@@ -98,9 +100,68 @@ async function watchPack(source: PackSource | null): Promise<void> {
   const previous = packWatcher
   packWatcher = null
   await previous?.close()
+  // A new pack starts without automatic copy (it is turned on per pack, by hand).
+  autoSync = false
+  lastSync = null
   if (source?.kind === 'folder') {
-    packWatcher = new PackWatcher(source.root, (batch) => sendEvent('pack:filesChanged', batch))
+    packWatcher = new PackWatcher(source.root, (batch) => {
+      sendEvent('pack:filesChanged', batch)
+      if (autoSync) scheduleAutoSync()
+    })
   }
+}
+
+// --- copy into resourcepacks (see packSync.ts) ---------------------------------------------
+
+let autoSync = false
+let lastSync: SyncStatus['last'] = null
+let syncTimer: ReturnType<typeof setTimeout> | null = null
+/** Saves of several files in a row become one copy. */
+const AUTO_SYNC_DELAY_MS = 600
+
+async function syncStatus(): Promise<SyncStatus> {
+  const current = getSource('pack')
+  const empty = { target: null, state: null, auto: false, last: null }
+  if (!current) return { available: false, reason: 'Nessun pack aperto.', ...empty }
+  const check = await syncTargetFor(await minecraftDir(), current.source)
+  if (!check.ok) return { available: false, reason: check.error, ...empty }
+  return {
+    available: true,
+    reason: null,
+    target: check.target.path,
+    state: await syncState(check.target),
+    auto: autoSync,
+    last: lastSync
+  }
+}
+
+async function runSync(): Promise<SyncStatus> {
+  const current = getSource('pack')
+  if (current) {
+    const check = await syncTargetFor(await minecraftDir(), current.source)
+    if (check.ok) {
+      try {
+        const mirrored = await mirrorPack(current.source, check.target)
+        lastSync = mirrored.ok
+          ? { at: Date.now(), ...mirrored.result, error: null }
+          : { at: Date.now(), copied: 0, removed: 0, error: mirrored.error }
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        lastSync = { at: Date.now(), copied: 0, removed: 0, error: `Copia non riuscita: ${detail}` }
+      }
+      // A failed copy stops the automatic one (it would fail again on every save).
+      if (lastSync.error) autoSync = false
+    }
+  }
+  return syncStatus()
+}
+
+function scheduleAutoSync(): void {
+  if (syncTimer) clearTimeout(syncTimer)
+  syncTimer = setTimeout(() => {
+    syncTimer = null
+    void runSync().then((status) => sendEvent('sync:changed', status))
+  }, AUTO_SYNC_DELAY_MS)
 }
 
 let settingsStore: SettingsStore | null = null
@@ -393,6 +454,28 @@ const handlers: IpcHandlers = {
     updateSetting(path, validateEditorPath, (value) =>
       settings().update({ externalEditor: value })
     ),
+
+  'sync:status': () => syncStatus(),
+
+  'sync:now': () => runSync(),
+
+  'sync:setAuto': async (on) => {
+    const status = await syncStatus()
+    // Only PackForge's own copy is kept in step automatically.
+    autoSync = on === true && status.available && status.state === 'ours'
+    return { ...status, auto: autoSync }
+  },
+
+  'sync:openFolder': async () => {
+    const folder = join(await minecraftDir(), 'resourcepacks')
+    try {
+      await mkdir(folder, { recursive: true })
+      const error = await shell.openPath(folder)
+      return { ok: error === '', error: error || null }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  },
 
   'settings:setPalettes': async (palettes) => {
     try {

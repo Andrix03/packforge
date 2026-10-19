@@ -16,6 +16,7 @@ import { BatchDialog } from './BatchDialog'
 import { CoverageDialog } from './CoverageDialog'
 import { ResizeDialog } from './ResizeDialog'
 import { CtmDialog } from './CtmDialog'
+import { InGameDialog } from './InGameDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 
@@ -155,6 +156,7 @@ export function PackWorkspace({
       jar={jar}
       onSelectVersion={(id) => void loadJar(id)}
       canCreate={pack.kind === 'folder'}
+      packName={pack.name}
       onEditTexture={(texture, previewSources) => onEditTexture(targetOf(texture, previewSources))}
       onTestTexture={(texture, previewSources) => onTestTexture(targetOf(texture, previewSources))}
     />
@@ -168,6 +170,7 @@ function Workspace({
   jar,
   onSelectVersion,
   canCreate,
+  packName,
   onEditTexture,
   onTestTexture
 }: {
@@ -180,6 +183,7 @@ function Workspace({
   onTestTexture: (texture: TextureEntry, sources: AssetSources) => void
   /** Folder packs can get new textures; zip packs are read-only. */
   canCreate: boolean
+  packName: string
 }): React.JSX.Element {
   const packTextures = useMemo(() => groupTextures(packFiles.files), [packFiles.files])
   const jarFiles = jar.status === 'ready' ? jar.value.files : null
@@ -211,6 +215,7 @@ function Workspace({
   const [covering, setCovering] = useState(false)
   const [resizing, setResizing] = useState(false)
   const [connecting, setConnecting] = useState<TextureEntry | null>(null)
+  const [inGame, setInGame] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
@@ -300,6 +305,14 @@ function Workspace({
           </button>
         </div>
         <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
+        <button
+          type="button"
+          className="small-button"
+          title="Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)"
+          onClick={() => setInGame(true)}
+        >
+          🎮 In gioco
+        </button>
         <button
           type="button"
           className="small-button"
@@ -454,6 +467,7 @@ function Workspace({
           onClose={() => setBatching(null)}
         />
       )}
+      {inGame && <InGameDialog packName={packName} onClose={() => setInGame(false)} />}
       {connecting && (
         <CtmDialog
           source={connecting}

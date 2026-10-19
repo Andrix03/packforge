@@ -8,8 +8,18 @@ import {
   registerHandlers,
   type AppInfo,
   type HandleTransport,
-  type IpcHandlers
+  type IpcHandlers,
+  type SyncStatus
 } from './ipc'
+
+const SYNC_UNUSED: SyncStatus = {
+  available: false,
+  reason: 'unused',
+  target: null,
+  state: null,
+  auto: false,
+  last: null
+}
 
 const sampleInfo: AppInfo = {
   name: 'PackForge',
@@ -90,6 +100,10 @@ describe('registerHandlers', () => {
       'texture:save': () => ({ ok: false, error: 'unused' }),
       'texture:saveMcmeta': () => ({ ok: false, error: 'unused' }),
       'ctm:saveProperties': () => ({ ok: false, error: 'unused' }),
+      'sync:status': () => SYNC_UNUSED,
+      'sync:now': () => SYNC_UNUSED,
+      'sync:setAuto': () => SYNC_UNUSED,
+      'sync:openFolder': () => ({ ok: false, error: 'unused' }),
       'draft:save': () => ({ ok: false, error: 'unused' }),
       'draft:load': () => null,
       'draft:discard': () => undefined,

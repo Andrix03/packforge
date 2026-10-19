@@ -156,6 +156,14 @@ export interface IpcContract {
   'settings:setEditorMode': { args: [mode: EditorMode]; result: SettingsUpdateResult }
   /** Replaces the saved palettes (main keeps only valid ones). */
   'settings:setPalettes': { args: [palettes: SavedPalette[]]; result: SettingsUpdateResult }
+  /** The open pack's copy in resourcepacks. */
+  'sync:status': { args: []; result: SyncStatus }
+  /** Copies (mirrors) the open folder pack into resourcepacks now. */
+  'sync:now': { args: []; result: SyncStatus }
+  /** Turns the automatic copy after every change on or off. */
+  'sync:setAuto': { args: [on: boolean]; result: SyncStatus }
+  /** Opens the resourcepacks folder in the file manager. */
+  'sync:openFolder': { args: []; result: { ok: boolean; error: string | null } }
   /** Recently opened packs, newest first; `pack:open` adds to it. */
   'recent:list': { args: []; result: RecentPackStatus[] }
   'recent:remove': { args: [path: string]; result: RecentPackStatus[] }
@@ -193,6 +201,10 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setExternalEditor': true,
   'settings:setEditorMode': true,
   'settings:setPalettes': true,
+  'sync:status': true,
+  'sync:now': true,
+  'sync:setAuto': true,
+  'sync:openFolder': true,
   'recent:list': true,
   'recent:remove': true
 }
@@ -228,12 +240,30 @@ export interface PackFilesChanged {
 export interface IpcEvents {
   /** Files of the open folder pack changed on disk. */
   'pack:filesChanged': PackFilesChanged
+  /** The copy in resourcepacks was updated (automatic copy). */
+  'sync:changed': SyncStatus
+}
+
+/** The open pack's copy in `<.minecraft>/resourcepacks`. */
+export interface SyncStatus {
+  /** The pack can be copied (a folder pack outside resourcepacks). */
+  available: boolean
+  /** Why not, in Italian. */
+  reason: string | null
+  /** Absolute path of the copy. */
+  target: string | null
+  /** missing = not copied yet; ours = PackForge's copy; foreign = a folder PackForge did not make. */
+  state: 'missing' | 'ours' | 'foreign' | null
+  /** Copy again after every change of the pack. */
+  auto: boolean
+  last: { at: number; copied: number; removed: number; error: string | null } | null
 }
 
 export type IpcEventChannel = keyof IpcEvents
 
 const eventRegistry: Record<IpcEventChannel, true> = {
-  'pack:filesChanged': true
+  'pack:filesChanged': true,
+  'sync:changed': true
 }
 
 export const IPC_EVENT_CHANNELS: readonly IpcEventChannel[] = Object.freeze(

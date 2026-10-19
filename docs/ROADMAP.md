@@ -159,7 +159,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 
 ## Phase 11b — Crops (growing plants)
 
-Asked by Andrea on 2026-10-19. Crops have one texture per growth stage (`wheat_stage0…7`,
+Added 2026-10-19. Crops have one texture per growth stage (`wheat_stage0…7`,
 `carrots_stage0…3`, potatoes, beetroots, nether wart, cocoa, sweet berries, torchflower, pitcher,
 pumpkin/melon stems). Research 2026-10-19: the popular crop packs (Vanilla+ Crops, Crops 3D, Bushy
 Crops) add custom 3D models, random variants at harvest and taller ripe plants.
@@ -183,19 +183,110 @@ Crops) add custom 3D models, random variants at harvest and taller ripe plants.
 
 ## Phase 12 — Polish and public release
 
-- [ ] UI/UX pass, keyboard shortcuts — started: grouped workspace toolbar, Esc closes every dialog, tutorial bar; still to review with Andrea
+Infrastructure done in 2026-10; the release itself waits for Phases 12a–19 (decided
+2026-10-19 after the audit + research in `docs/RESEARCH-2026-10-19.md`).
+
+- [ ] UI/UX pass, keyboard shortcuts — superseded by Phase 12b (new interface)
 - [x] First-run guided tutorial (draw your first block) for Beginner mode — six steps that tick by themselves; compact bar in the editor / Prova; "Rifai il tutorial" in the settings
-- [ ] English UI option — to plan together: ~1500–2500 strings (renderer, plus main/shared messages); decide library vs own dictionary, keys vs Italian source strings, who reviews the English
+- [ ] English UI option — done inside Phase 12b: strings move to a dictionary while the screens are rebuilt (~1500–2500 strings; decide library vs own dictionary, who reviews the English)
 - [x] Windows installer — electron-builder: NSIS installer (per-user, IT/EN) built by the GitHub "Release" workflow, portable zip locally (`npm run dist:zip`); unsigned: a code-signing certificate is needed before a public release
-- [ ] Bug fixing — ongoing; every item since Phase 8 was self-tested (see DECISIONS for what was found and fixed)
+- [ ] Bug fixing — ongoing; audit findings in Phase 12a
 - [x] GitHub Actions CI (typecheck, lint, tests on every push) — `.github/workflows/ci.yml`: windows-latest, Node 24, `npm ci` + `npm run check` (UI scenarios stay local)
 - [x] End-to-end tests of the Electron app (Playwright) — done with our own CDP driver (`scripts/drive`, 42 scenarios, `npm run drive:all`) instead of Playwright
 - [x] Auto-update for new releases — notify-only update check (GitHub latest release, banner + link, setting to turn it off); real auto-install needs signed builds
 
+## How the next phases are built (decided 2026-10-19)
+
+Audit + research: `docs/RESEARCH-2026-10-19.md`. Mockup of the new interface: design canvas
+"PackForge — nuova interfaccia" (sources kept locally).
+
+- Every new feature is split in two: **format logic** (`shared/`, pure, tested; research on
+  minecraft.wiki first) and **its interface**. The logic of Phases 13–18 may start any time, even
+  before Phase 12b; their interface is built only inside the new interface (never twice).
+- The canvas gets a low-fidelity screen for each new area before Phase 12b starts, so the new
+  window already has a place for them.
+
+## Phase 12a — Fix pass (audit findings)
+
+- [ ] Backup restore: the "before restoring" backup must not prune the backup being restored
+- [ ] Atomic writes: unique temp names + one write at a time per file; `pack.mcmeta` edits serialized; `renameRetrying` everywhere
+- [ ] Editor shortcuts off while the editor is hidden (Prova) or a dialog is open
+- [ ] Editor reload (tall plant, whole/half toggle) never drops unsaved work; History/state reset with it; map surface reset in tall mode, tall drafts + external-change watch
+- [ ] SSR feedback loop (screen-space reflections dead after the first frame)
+- [ ] Plant shape models: `"shade": false` for packs before 26.3 (`shade_direction_override` from 26.3)
+- [ ] Auto-sync: cancel the pending sync on pack switch, one sync at a time, case-only renames on Windows; serialized pack open/watch
+- [ ] PNG decode with an output cap; non-integer frame sizes in resize; vanilla-copy check enforced in the exporter
+- [ ] Editor: merge-down with lower layer opacity, frame ops restructure `_n`/`_s`, "Togli animazione" undoable, drafts with maps
+- [ ] Animation frame size with only `width` or `height`: verify against the game code, then fix if needed
+- [ ] Smaller items of the report (ignored IPC results, double-submit, WebGL context loss, dialogs re-scanning the pack, 128×+ painting speed)
+
+## Phase 12b — New interface
+
+One window like Photoshop/GIMP/Aseprite: menu bar + command search (Ctrl+K), workspaces
+Pack / Disegna / Prova / Effetti / Pubblica (+ Modella later), icon tool rail, tool options bar,
+document tabs, dockable/collapsible panels with a saved layout, status bar. Beginner = a layout
+preset of the same editor. No Minecraft/Ore UI look (Mojang only released `@react-facet`, and an
+official-looking app is against the usage guidelines).
+
+- [ ] Canvas approved (incl. low-fidelity screens for Modella, Item, GUI, Armature, Diagnosi)
+- [ ] Libraries chosen (dock panels, icons) — versions and licenses checked first
+- [ ] Shell: design tokens, menu, Ctrl+K, workspaces, status bar; strings into a dictionary (Italian + English)
+- [ ] Disegna: tool rail, options bar, panels, timeline, document tabs
+- [ ] Pack: explorer dock, categories, progress
+- [ ] Prova, Effetti, Pubblica moved in
+- [ ] Beginner layout + tutorial updated; drive scenarios updated
+
+## Phase 13 — Modelli 3D
+
+The biggest theme in popular packs (Modrinth top 300: "models" on 124 packs; "3d" 1401 projects).
+Vanilla model JSON, no mods.
+
+- [ ] Logic: element limits per pack format (coordinates, multi-axis rotation from 1.21.11, `light_emission`, shade), element/face cost
+- [ ] Extrude a texture into a thick 3D item/block model (greedy-merged cuboids, element budget)
+- [ ] "Pixels that pop out" (ores, details): pick pixels by color/selection → raised cuboids with UVs
+- [ ] Parametric presets: torch, lantern/chain, ladder, rails, bushy leaves, grass sides
+- [ ] Element editor (list + from/to/rotation/per-face UV, gizmo in the preview)
+- [ ] Display transforms (gui, hands, ground, head, fixed, on_shelf) with the held / slot views
+
+## Phase 14 — Items
+
+- [ ] Logic: read/validate `items/*.json` (all model types, tints, `oversized_in_gui`, `transformation`…) per pack format
+- [ ] Preview items through their definition (display context, condition, range_dispatch: bow pull, compass…)
+- [ ] Definition editor; "2D in the inventory, 3D in hand" in one click
+- [ ] Migrate old `overrides` / custom_model_data to `items/`
+
+## Phase 15 — GUI
+
+- [ ] Logic: GUI sprites, `.png.mcmeta` `gui.scaling` (stretch / tile / nine_slice), research which sprites exist per version
+- [ ] Nine-slice editor (border handles) with a preview at GUI scale 1–4
+- [ ] Batch recolor (e.g. dark mode) across GUI sprites
+
+## Phase 16 — Armature e trim
+
+- [ ] Logic: `equipment/*.json`, humanoid layers, 26.3 trim palettes (`textures/palettes/`, `palette` mcmeta)
+- [ ] Armor painting on the layer template with a 3D player preview
+- [ ] Trim palettes and patterns preview
+
+## Phase 17 — Diagnosi del pack e porting
+
+- [ ] Version diff from two client jars: textures added / renamed (pixel hash) / removed
+- [ ] "Missing in my pack" for the target version, migrate renamed files
+- [ ] Lint for what the game silently ignores (names, case, paths, nested zip folder, purple-black)
+
+## Phase 18 — Emissive and mod extras
+
+- [ ] Emissive `_e` textures from the LabPBR emission channel (Continuity / ETF), preview toggle
+- [ ] Random textures naming for OptiFine/ETF; colormaps / Polytone biome colors; custom sky (later)
+
+## Phase 19 — Small extras
+
+- [ ] Palette import/export (.gpl, .hex, Lospec), adjustment filters (hue/sat, levels) per layer and in batch
+- [ ] PNG optimizer on export; sounds and lang files (low demand)
+
 ## Ideas for later
 
 - Paint directly on the 3D block (click a face in the preview)
-- Custom item models and item model definitions
-- Font and GUI texture editing
+- Font editing
+- Entity textures painted on the model UV template (vanilla entities; CEM/EMF stays with Blockbench)
 - Sound replacement with an in-app player
 - Multiple language files (`lang/*.json`) editor

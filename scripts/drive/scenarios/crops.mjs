@@ -123,6 +123,19 @@ export default async function crops(app) {
     labels.slice(0, 4).join(' ') === '1 2 2·v2 2·v3',
     `the variants appear as stage 2 among the tabs (${labels.join(' ')})`
   )
+  const choiceText = () =>
+    app.ev(`document.querySelector('[data-testid=random-choice]')?.textContent ?? ''`)
+  await app.waitFor(`document.querySelector('[data-testid=random-choice]')`, 10000)
+  app.check(
+    (await choiceText()).includes('Variante 2 di 3'),
+    `the preview draws the open variant (${await choiceText()})`
+  )
+  await app.click('▶', '[aria-label="Varianti casuali"] button')
+  await app.waitFor(
+    `document.querySelector('[data-testid=random-choice]')?.textContent.includes('3 di 3')`,
+    8000
+  )
+  app.check(true, '▶ shows the next random model')
   // Redraw the variant so the field shows it.
   await app.editor.setHex('#d0c040')
   for (const y of [2, 3, 4]) await app.editor.click(10, y)
@@ -171,6 +184,16 @@ export default async function crops(app) {
     `[...document.querySelectorAll('.preview-panel .warning-text')].map((w) => w.textContent)`
   )
   app.check(warningsNow.length === 0, `tall: no preview warnings (${warningsNow.join(' | ')})`)
+  const context = await app.ev(
+    `document.querySelector('[data-testid=stage-context]')?.textContent ?? ''`
+  )
+  app.check(
+    context.includes('Sopra la tela') && context.includes('Stadio precedente'),
+    `tall: the upper half is shown above the canvas, previous stage offered (${context})`
+  )
+  await app.click('Stadio precedente in trasparenza', '[data-testid=stage-context] label')
+  await app.sleep(500)
+  await app.shot('07-tall-context')
   await applyShape('Cespuglio')
 
   const problems = await app.ev(

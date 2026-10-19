@@ -6,12 +6,15 @@ import { NewTextureDialog } from '../packs/NewTextureDialog'
 import {
   guessBlockForTexture,
   listBlocks,
+  resolveAssetUrl,
   type AssetSources,
   type GrowthStage
 } from '../preview/modelSource'
 import { PlantShapeDialog } from './PlantShapeDialog'
 import { GrowthTabs } from './GrowthTabs'
 import { RandomVariantsDialog } from './RandomVariantsDialog'
+import { stageContext, stageTextures } from './stageContext'
+import { useStageCanvases } from './useStageCanvases'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
@@ -175,6 +178,18 @@ export function TextureEditor({
   )
   /** Pack texture the new one starts as a copy of (the previous growth stage). */
   const [creatingFrom, setCreatingFrom] = useState<string | null>(null)
+  /** The previous growth stage drawn faintly over the canvas. */
+  const [showPreviousStage, setShowPreviousStage] = useState(false)
+  const neighbours = useMemo(
+    () =>
+      stageContext(
+        target.path,
+        stageTextures(growthStages),
+        (path) => resolveAssetUrl(target.sources, path) !== null
+      ),
+    [target.path, target.sources, growthStages]
+  )
+  const neighbourCanvases = useStageCanvases(neighbours, target.sources)
   /** A draft found for this texture, waiting for the user to restore or discard it. */
   const [draftOffer, setDraftOffer] = useState<TextureDraft | null>(null)
   const [traceOpacity, setTraceOpacity] = useState(0)
@@ -1041,6 +1056,27 @@ export function TextureEditor({
           setCreatingPath(path)
         }}
       />
+      {(neighbours.previous || neighbours.above || neighbours.below) && (
+        <div className="face-tabs" data-testid="stage-context">
+          {(neighbours.above || neighbours.below) && (
+            <span className="muted small">
+              {neighbours.above
+                ? 'Sopra la tela: la parte alta della pianta (si modifica dalla scheda «·su»).'
+                : 'Sotto la tela: la parte bassa della pianta, per far combaciare i gambi.'}
+            </span>
+          )}
+          {neighbours.previous && (
+            <label className="checkbox-inline small">
+              <input
+                type="checkbox"
+                checked={showPreviousStage}
+                onChange={(event) => setShowPreviousStage(event.target.checked)}
+              />
+              Stadio precedente in trasparenza
+            </label>
+          )}
+        </div>
+      )}
       {maps && !isMapFile && (
         <MapTabs
           surface={surface}
@@ -1248,6 +1284,12 @@ export function TextureEditor({
                 : {})}
               onSettle={settle}
               onShowShortcuts={() => setShowShortcuts(true)}
+              stacked={
+                !channel && (neighbourCanvases.above || neighbourCanvases.below)
+                  ? { above: neighbourCanvases.above, below: neighbourCanvases.below }
+                  : null
+              }
+              previousStage={!channel && showPreviousStage ? neighbourCanvases.previous : null}
               onionY={
                 !channel && animation && onionSkin && doc.view.y0 > 0
                   ? doc.view.y0 - animation.frameHeight

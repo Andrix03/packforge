@@ -1,9 +1,5 @@
 import { resolveAssetUrl, type AssetSources, type GrowthStage } from '../preview/modelSource'
-
-/** The textures of a growing block's stages, in age order (stages may share one texture). */
-function stageTextures(stages: readonly GrowthStage[]): string[] {
-  return [...new Set(stages.flatMap((stage) => stage.textures))]
-}
+import { stageTextures } from './stageContext'
 
 /**
  * Tabs for the growth stages of a crop (seed → grown): each stage has its own texture. Stages the

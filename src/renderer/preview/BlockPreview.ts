@@ -28,6 +28,12 @@ import {
 } from '../../shared/labpbr'
 import { cornerLight, LightGrid, type CornerLight, type LightProps } from '../../shared/lightLevels'
 import { decodePng } from '../../shared/pngCodec'
+import {
+  gameMipLevels,
+  mipOptionsFromMcmeta,
+  type MipImage,
+  type MipOptions
+} from '../../shared/mipmaps'
 import { lightingAt, type Lighting } from './dayNight'
 import { DEBUG_VIEWS, type EffectSettings, type ToneMappingId } from './effects'
 import { MipBloomPass } from './bloomPass'
@@ -177,6 +183,8 @@ interface LoadedPart {
   animation: TextureAnimation | null
   /** Drawn from a live canvas (the texture being edited) instead of its file. */
   live: boolean
+  /** The live canvas and how its mipmaps are made (re-made on every refresh). */
+  liveSource: { canvas: HTMLCanvasElement; mip: MipOptions } | null
   /** Its maps drawn from the editor's bytes (re-uploaded with the live texture). */
   liveMaps: THREE.Texture[]
   /** Depth-only material for the shadow pass (null: translucent, casts no shadow). */
@@ -412,6 +420,10 @@ export class BlockPreview {
   refreshLiveTextures(): void {
     for (const part of this.allParts()) {
       if (!part.live) continue
+      if (part.liveSource && part.texture instanceof THREE.DataTexture) {
+        const pixels = canvasPixels(part.liveSource.canvas)
+        if (pixels) setGameMipmaps(part.texture, pixels, part.liveSource.mip)
+      }
       part.texture.needsUpdate = true
       for (const map of part.liveMaps) map.needsUpdate = true
     }
@@ -657,24 +669,38 @@ export class BlockPreview {
       liveSpecular ? liveMap(liveSpecular) : part.specularUrl ? loadMap(part.specularUrl) : null
     ])
     const liveCanvas = live?.canvas
-    if (liveCanvas) {
-      texture = new THREE.CanvasTexture(liveCanvas)
-    } else if (part.url) {
+    // The .png.mcmeta: animation, and how the game makes this texture's mipmaps.
+    let mcmeta: unknown = undefined
+    if (part.mcmetaUrl) {
       try {
-        texture = await this.loader.loadAsync(part.url)
+        mcmeta = await (await fetch(part.mcmetaUrl)).json()
       } catch {
+        mcmeta = null
+      }
+    }
+    const mip = mipOptionsFromMcmeta(mcmeta, (part.url ?? '').includes('/textures/item/'))
+    let mipmapped = true
+    let liveSource: LoadedPart['liveSource'] = null
+    const canvasImage = liveCanvas ? canvasPixels(liveCanvas) : null
+    if (liveCanvas && canvasImage) {
+      texture = gameTexture(canvasImage, mip)
+      liveSource = { canvas: liveCanvas, mip }
+    } else if (part.url) {
+      const decoded = await loadPixels(part.url)
+      if (decoded) texture = gameTexture(decoded, mip)
+      else {
         texture = missingTexture()
+        mipmapped = false
         problem = 'Impossibile caricare la texture.'
       }
     } else {
       texture = missingTexture()
+      mipmapped = false
       problem = 'Texture mancante: né nel pack né nel gioco.'
     }
-    // Pixel art: no smoothing. Mipmaps exist but are only used when enabled (shader lod).
-    const mipmapped = !(texture instanceof THREE.DataTexture)
+    // Pixel art: no smoothing. Mipmaps (made like the game) are only used when enabled.
     texture.magFilter = THREE.NearestFilter
     texture.minFilter = mipmapped ? THREE.NearestMipmapLinearFilter : THREE.NearestFilter
-    texture.generateMipmaps = mipmapped
     texture.colorSpace = THREE.SRGBColorSpace
     const image = texture.image as { width: number; height: number }
     const imageSize = { width: image.width, height: image.height }
@@ -693,11 +719,8 @@ export class BlockPreview {
       }
     } else if (part.mcmetaUrl && problem === null) {
       try {
-        const parsed = parseAnimation(
-          await (await fetch(part.mcmetaUrl)).json(),
-          imageSize.width,
-          imageSize.height
-        )
+        if (mcmeta === null) throw new Error('invalid')
+        const parsed = parseAnimation(mcmeta, imageSize.width, imageSize.height)
         if (parsed.ok) {
           animation = parsed.animation
           problem = animation?.warning ?? null
@@ -783,6 +806,7 @@ export class BlockPreview {
       imageSize,
       animation,
       live: liveCanvas !== undefined,
+      liveSource,
       liveMaps: [liveNormal && normalMap, liveSpecular && specularMap].filter(
         (map): map is THREE.Texture => Boolean(map)
       ),
@@ -1389,6 +1413,67 @@ interface LiveSource {
 function withoutQuery(url: string): string {
   const index = url.indexOf('?')
   return index === -1 ? url : url.slice(0, index)
+}
+
+/** A texture's straight RGBA, decoded exactly (the browser's decoder premultiplies), or null. */
+async function loadPixels(url: string): Promise<MipImage | null> {
+  try {
+    const response = await fetch(url)
+    if (!response.ok) return null
+    const decoded = decodePng(new Uint8Array(await response.arrayBuffer()))
+    if (!decoded.ok) return null
+    const { width, height, data } = decoded.image
+    return { width, height, data: new Uint8Array(data.buffer, data.byteOffset, data.byteLength) }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The pixels of the editor's canvas. Read back from a 2D canvas (premultiplied): only the
+ * colour of partly transparent pixels may shift a unit, fine for the preview's mipmaps.
+ */
+function canvasPixels(canvas: HTMLCanvasElement): MipImage | null {
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context || canvas.width === 0 || canvas.height === 0) return null
+  const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+  return { width: canvas.width, height: canvas.height, data: new Uint8Array(data.buffer) }
+}
+
+/**
+ * Mip levels like the game (shared/mipmaps.ts), then plain halvings down to 1×1, which WebGL
+ * needs for a complete texture (those are never sampled: the shader caps the level).
+ */
+function setGameMipmaps(texture: THREE.DataTexture, pixels: MipImage, mip: MipOptions): void {
+  const levels = gameMipLevels(pixels, 16, mip)
+  let last = levels.at(-1)!
+  while (last.width > 1 || last.height > 1) {
+    const width = Math.max(1, last.width >> 1)
+    const height = Math.max(1, last.height >> 1)
+    const data = new Uint8Array(width * height * 4)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const from =
+          (Math.min(last.width - 1, x * 2) + Math.min(last.height - 1, y * 2) * last.width) * 4
+        data.set(last.data.subarray(from, from + 4), (x + y * width) * 4)
+      }
+    }
+    last = { width, height, data }
+    levels.push(last)
+  }
+  texture.image = { data: levels[0]!.data, width: pixels.width, height: pixels.height }
+  texture.mipmaps = levels.map(({ data, width, height }) => ({ data, width, height }))
+}
+
+/** An albedo texture with mipmaps made like the game. */
+function gameTexture(pixels: MipImage, mip: MipOptions): THREE.DataTexture {
+  const texture = new THREE.DataTexture(pixels.data, pixels.width, pixels.height)
+  // Same orientation as the maps and the UVs (images loaded by the browser are flipped).
+  texture.flipY = true
+  texture.generateMipmaps = false
+  setGameMipmaps(texture, pixels, mip)
+  texture.needsUpdate = true
+  return texture
 }
 
 /** Minecraft's magenta/black missing-texture checkerboard. */

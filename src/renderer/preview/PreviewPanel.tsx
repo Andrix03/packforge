@@ -99,6 +99,10 @@ export function PreviewPanel({
   const [stages, setStages] = useState<GrowthStage[]>([])
   /** Variant actually shown (the chosen one, or the stage of the texture). */
   const [shownVariant, setShownVariant] = useState<string | null>(null)
+  /** Random model of the variant to draw (null = the one drawing this texture). */
+  const [choice, setChoice] = useState<number | null>(null)
+  /** The random models of the variant shown: which one is drawn, out of how many. */
+  const [choices, setChoices] = useState<{ shown: number; count: number }>({ shown: 0, count: 0 })
   const [growing, setGrowing] = useState(false)
   const [windy, setWindy] = useState(false)
   const [status, setStatus] = useState<Status | null>(null)
@@ -161,6 +165,7 @@ export function PreviewPanel({
   if (target && target.key !== guessedFor) {
     setGuessedFor(target.key)
     const guess = guessBlockForTexture(target.textureKey, blocks)
+    setChoice(null)
     if (guess) {
       setBlockInput(guess)
       setVariantKey(null)
@@ -203,7 +208,8 @@ export function PreviewPanel({
         block,
         variantKey,
         tintFor(block, biome, colormaps),
-        target ? `${target.textureKey}.png` : null
+        target ? `${target.textureKey}.png` : null,
+        choice
       )
       if (!current) return
       const reports = await view.setMesh(mesh.parts)
@@ -213,6 +219,7 @@ export function PreviewPanel({
       setVariants(mesh.variants)
       setStages(mesh.stages)
       setShownVariant(mesh.variant?.key ?? null)
+      setChoices({ shown: mesh.choice, count: mesh.choiceWeights.length })
       const animated = reports.filter((r) => r.animation).length
       setStatus({
         text: [
@@ -239,6 +246,7 @@ export function PreviewPanel({
     sources,
     block,
     variantKey,
+    choice,
     biome,
     liveUrl,
     liveCanvas,
@@ -370,6 +378,30 @@ export function PreviewPanel({
         </div>
       )}
 
+      {shape === 'block' && block && choices.count > 1 && (
+        <div className="choice-bar" role="group" aria-label="Varianti casuali">
+          <button
+            type="button"
+            className="small-button"
+            aria-label="Variante precedente"
+            onClick={() => setChoice((choices.shown + choices.count - 1) % choices.count)}
+          >
+            ◀
+          </button>
+          <span className="small" data-testid="random-choice">
+            🎲 Variante {choices.shown + 1} di {choices.count}
+          </span>
+          <button
+            type="button"
+            className="small-button"
+            aria-label="Variante successiva"
+            onClick={() => setChoice((choices.shown + 1) % choices.count)}
+          >
+            ▶
+          </button>
+          <span className="muted small">nel gioco: una a caso per blocco</span>
+        </div>
+      )}
       {showsGrowth && (
         <div className="growth-bar" role="group" aria-label="Crescita">
           <button

@@ -1447,7 +1447,8 @@ kbd {
   image-rendering: pixelated;
 }
 
-.growth-bar {
+.growth-bar,
+.choice-bar {
   display: flex;
   align-items: center;
   gap: 8px;

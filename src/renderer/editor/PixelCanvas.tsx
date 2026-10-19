@@ -89,6 +89,10 @@ interface PixelCanvasProps {
   onShowShortcuts: () => void
   /** Onion skin: row where the previous animation frame starts (null = off). */
   onionY: number | null
+  /** Tall plants: the other half shown above/below (not editable). */
+  stacked?: { above: HTMLCanvasElement | null; below: HTMLCanvasElement | null } | null
+  /** Growth stages: the previous stage drawn faintly on top. */
+  previousStage?: HTMLCanvasElement | null
   /** Status-bar text for the hovered pixel (default: its color). */
   describePixel?: (color: Rgba) => string
   /** Turns seamless mode on/off (absent when read-only). */
@@ -153,17 +157,27 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
 
   // Fitted until the user zooms or pans; re-clamped on every render so a window resize can't
   // push the texture off screen.
+  // A tall plant's other half is fitted in view too.
+  const extraAbove = props.stacked?.above ? 1 : 0
+  const extraBelow = props.stacked?.below ? 1 : 0
+  const extra = { above: extraAbove, below: extraBelow }
   const viewport =
-    frame && (storedViewport ? clampViewport(storedViewport, frame) : fitViewport(frame))
+    frame &&
+    (storedViewport ? clampViewport(storedViewport, frame) : fitViewport(frame, 0.85, extra))
 
   const updateViewport = useCallback(
     (change: (current: Viewport, frame: Frame) => Viewport) => {
       if (!frame) return
       setStoredViewport((previous) =>
-        change(previous ? clampViewport(previous, frame) : fitViewport(frame), frame)
+        change(
+          previous
+            ? clampViewport(previous, frame)
+            : fitViewport(frame, 0.85, { above: extraAbove, below: extraBelow }),
+          frame
+        )
       )
     },
-    [frame]
+    [frame, extraAbove, extraBelow]
   )
 
   const { revision, trace } = props
@@ -193,7 +207,9 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       selection: outline,
       tiling: tools?.tiling ?? false,
       region: { x: area.x0, y: area.y0, width: viewWidth, height: viewHeight },
-      onion: props.onionY === null ? null : { y: props.onionY }
+      onion: props.onionY === null ? null : { y: props.onionY },
+      stacked: props.stacked ?? null,
+      previousStage: props.previousStage ?? null
     })
   }, [
     source,
@@ -208,7 +224,9 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     area,
     viewWidth,
     viewHeight,
-    props.onionY
+    props.onionY,
+    props.stacked,
+    props.previousStage
   ])
 
   const zoomCentered = useCallback(

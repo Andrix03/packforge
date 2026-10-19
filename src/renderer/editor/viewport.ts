@@ -25,16 +25,24 @@ export const GRID_MIN_ZOOM = 6
 const MIN_VISIBLE = 48
 
 /** Largest zoom level that fits the texture in `margin` of the view, centered. */
-export function fitViewport(frame: Frame, margin = 0.85): Viewport {
+export function fitViewport(
+  frame: Frame,
+  margin = 0.85,
+  /** Texture-sized blocks shown above / below it (the other half of a tall plant). */
+  extra: { above: number; below: number } = { above: 0, below: 0 }
+): Viewport {
+  const rows = 1 + extra.above + extra.below
   const limit = Math.min(
     (frame.viewWidth * margin) / frame.imageWidth,
-    (frame.viewHeight * margin) / frame.imageHeight
+    (frame.viewHeight * margin) / (frame.imageHeight * rows)
   )
   const zoom = [...ZOOM_LEVELS].reverse().find((level) => level <= limit) ?? ZOOM_LEVELS[0]
   return {
     zoom,
     x: Math.round((frame.viewWidth - frame.imageWidth * zoom) / 2),
-    y: Math.round((frame.viewHeight - frame.imageHeight * zoom) / 2)
+    y:
+      Math.round((frame.viewHeight - frame.imageHeight * rows * zoom) / 2) +
+      extra.above * frame.imageHeight * zoom
   }
 }
 

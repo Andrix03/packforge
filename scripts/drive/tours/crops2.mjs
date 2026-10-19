@@ -106,7 +106,8 @@ function rgb(hex) {
   return [(v >> 16) & 255, (v >> 8) & 255, v & 255, 255]
 }
 
-async function writeCarrots(packRoot) {
+/** Writes the four carrot stages of the first tour into a pack (also used by scratch checks). */
+export async function writeCarrots(packRoot) {
   const folder = join(packRoot, ...BLOCK.split('/'))
   await mkdir(folder, { recursive: true })
   const pixels = new Map()

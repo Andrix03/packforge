@@ -12,6 +12,7 @@ import {
   type SyncStatus
 } from '../shared/ipc'
 import { mirrorPack, syncState, syncTargetFor } from './packSync'
+import { BackupStore } from './backups'
 import {
   addRecentPack,
   isEditorMode,
@@ -84,6 +85,13 @@ let draftStore: DraftStore | null = null
 function drafts(): DraftStore {
   draftStore ??= new DraftStore(join(app.getPath('userData'), 'drafts'))
   return draftStore
+}
+
+let backupStore: BackupStore | null = null
+
+function backups(): BackupStore {
+  backupStore ??= new BackupStore(join(app.getPath('userData'), 'backups'))
+  return backupStore
 }
 
 /** Root of the open folder pack; drafts don't apply to read-only zip packs. */
@@ -487,6 +495,29 @@ const handlers: IpcHandlers = {
     updateSetting(path, validateEditorPath, (value) =>
       settings().update({ externalEditor: value })
     ),
+
+  'backup:create': async (label, paths) => {
+    const root = folderPackRoot()
+    if (!root) return { ok: false, error: 'Solo i pack in cartella hanno i backup.' }
+    return backups().create(root, label, paths)
+  },
+
+  'backup:list': async () => {
+    const root = folderPackRoot()
+    return root ? backups().list(root) : []
+  },
+
+  'backup:restore': async (id) => {
+    const root = folderPackRoot()
+    if (!root) return { ok: false, error: 'Nessun pack in cartella aperto.' }
+    return backups().restore(root, id)
+  },
+
+  'backup:delete': async (id) => {
+    const root = folderPackRoot()
+    if (root) await backups().remove(root, id)
+    return { ok: root !== null }
+  },
 
   'sync:status': () => syncStatus(),
 

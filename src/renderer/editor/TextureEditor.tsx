@@ -52,6 +52,7 @@ import {
   normalsAreFlat
 } from './mapGenerate'
 import { MaterialPanel } from './MaterialPanel'
+import { backupBefore } from '../packs/backup'
 import { CompareDialog } from './CompareDialog'
 import type { Image } from '../../shared/textureCompare'
 import { accentMask, DEFAULT_MATERIAL, type MaterialOptions } from '../../shared/materialPresets'
@@ -497,7 +498,25 @@ export function TextureEditor({
     try {
       // The composite = all visible layers flattened. A copy: the user may keep painting.
       const rgba = new Uint8Array(doc.composite.data)
-      if (!sameBytes(rgba, savedAlbedo.current)) {
+      // What this save overwrites goes into a backup first (🕘 Backup in the workspace).
+      const albedoChanged = !sameBytes(rgba, savedAlbedo.current)
+      const animated =
+        animation !== null || mcmetaOnDisk.frames > 1 || isAnimated(mcmetaOnDisk.value)
+      const dirtyMaps = Object.values(maps ?? {}).filter((map) => map.dirty)
+      const touched = [
+        ...(albedoChanged ? [target.path] : []),
+        ...dirtyMaps.map((map) => mapPath(target.path, map.kind)),
+        ...(animated
+          ? [
+              `${target.path}.mcmeta`,
+              ...Object.values(maps ?? {})
+                .filter((map) => map.present)
+                .map((map) => `${mapPath(target.path, map.kind)}.mcmeta`)
+            ]
+          : [])
+      ]
+      if (!(await backupBefore(`Salvataggio di ${target.name}`, touched))) return
+      if (albedoChanged) {
         const result = await window.api.invoke(
           'texture:save',
           target.path,

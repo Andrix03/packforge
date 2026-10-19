@@ -161,6 +161,22 @@ export interface IpcContract {
   'settings:setEditorMode': { args: [mode: EditorMode]; result: SettingsUpdateResult }
   /** Replaces the saved palettes (main keeps only valid ones). */
   'settings:setPalettes': { args: [palettes: SavedPalette[]]; result: SettingsUpdateResult }
+  /**
+   * Folder packs only: copies the files among `paths` that exist (and notes the others) before an
+   * operation changes them. Kept in the app's user data, not in the pack.
+   */
+  'backup:create': {
+    args: [label: string, paths: string[]]
+    result: { ok: true; id: string } | { ok: false; error: string }
+  }
+  /** The open pack's backups, newest first. */
+  'backup:list': { args: []; result: BackupInfo[] }
+  /** Puts a backup's files back (a backup of the current state is taken first). */
+  'backup:restore': {
+    args: [id: string]
+    result: { ok: true; restored: number; removed: number } | { ok: false; error: string }
+  }
+  'backup:delete': { args: [id: string]; result: { ok: boolean } }
   /** The open pack's copy in resourcepacks. */
   'sync:status': { args: []; result: SyncStatus }
   /** Copies (mirrors) the open folder pack into resourcepacks now. */
@@ -207,6 +223,10 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setExternalEditor': true,
   'settings:setEditorMode': true,
   'settings:setPalettes': true,
+  'backup:create': true,
+  'backup:list': true,
+  'backup:restore': true,
+  'backup:delete': true,
   'sync:status': true,
   'sync:now': true,
   'sync:setAuto': true,
@@ -248,6 +268,18 @@ export interface IpcEvents {
   'pack:filesChanged': PackFilesChanged
   /** The copy in resourcepacks was updated (automatic copy). */
   'sync:changed': SyncStatus
+}
+
+/** A backup taken before an operation changed pack files. */
+export interface BackupInfo {
+  id: string
+  label: string
+  /** ISO timestamp. */
+  at: string
+  /** Files that existed and were copied. */
+  saved: number
+  /** Files the operation created (removed on restore). */
+  created: number
 }
 
 /** The open pack's copy in `<.minecraft>/resourcepacks`. */

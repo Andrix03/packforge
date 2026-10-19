@@ -1,10 +1,16 @@
 import { useMemo, useState } from 'react'
 import { countPlan, planBatch } from '../../shared/batchMaps'
-import { DEFAULT_MATERIAL, type MaterialOptions } from '../../shared/materialPresets'
+import { mapPath } from '../../shared/labpbr'
+import {
+  DEFAULT_MATERIAL,
+  materialPreset,
+  type MaterialOptions
+} from '../../shared/materialPresets'
 import { DEFAULT_HEIGHT, DEFAULT_NORMALS, DEFAULT_OCCLUSION } from '../../shared/pbrGenerator'
 import type { TextureEntry } from '../../shared/textures'
 import { Range } from '../editor/GeneratorPanel'
 import { MaterialFields } from '../editor/MaterialPanel'
+import { backupBefore } from './backup'
 import { runBatch, type BatchResult } from './runBatch'
 import type { ValidatorSource } from './runValidator'
 
@@ -80,8 +86,22 @@ export function BatchDialog({
     if (
       counts.overwrite > 0 &&
       !window.confirm(
-        `Sovrascrivere ${counts.overwrite === 1 ? '1 mappa esistente' : `${counts.overwrite} mappe esistenti`}? Non si può annullare.`
+        `Sovrascrivere ${counts.overwrite === 1 ? '1 mappa esistente' : `${counts.overwrite} mappe esistenti`}? Prima viene fatto un backup (🕘 Backup per tornare indietro).`
       )
+    ) {
+      return
+    }
+    const animated = new Set(chosen.filter((t) => t.mcmeta).map((t) => t.albedo))
+    const touched = plan.flatMap((entry) =>
+      (['normal', 'specular'] as const)
+        .filter((kind) => entry[kind] === 'create' || entry[kind] === 'overwrite')
+        .flatMap((kind) => {
+          const map = mapPath(entry.albedo, kind)
+          return animated.has(entry.albedo) ? [map, `${map}.mcmeta`] : [map]
+        })
+    )
+    if (
+      !(await backupBefore(`Applica in blocco (${materialPreset(material.preset).label})`, touched))
     ) {
       return
     }

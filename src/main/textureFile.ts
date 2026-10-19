@@ -92,6 +92,16 @@ export async function saveCtmProperties(
 }
 
 /** Atomic write of a pack file, refusing paths that leave the pack (also via links). */
+/** Atomic write of any file of a folder pack (restoring backups); `path` must be safe. */
+export async function writePackBytes(
+  packRoot: string,
+  path: string,
+  bytes: Uint8Array
+): Promise<EditResult> {
+  if (!isSafePackPath(path)) return { ok: false, error: BAD_PATH }
+  return writeInPack(packRoot, path, bytes, 'il file')
+}
+
 async function writeInPack(
   packRoot: string,
   path: string,

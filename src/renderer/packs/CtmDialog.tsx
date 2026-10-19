@@ -23,6 +23,7 @@ import { mapPath, type MapKind } from '../../shared/labpbr'
 import type { DecodedPng } from '../../shared/pngCodec'
 import type { TextureEntry } from '../../shared/textures'
 import { Range } from '../editor/GeneratorPanel'
+import { backupBefore } from './backup'
 import { errorMessage, loadPng, type FileSource } from './packFetch'
 
 /** Wall used by the preview: 1 = block, 0 = gap (shows outer, inner corners and lines). */
@@ -98,11 +99,24 @@ export function CtmDialog({
     if (
       exists &&
       !window.confirm(
-        `La cartella ${folder} esiste già: sovrascrivere i suoi tile? Non si può annullare.`
+        `La cartella ${folder} esiste già: sovrascrivere i suoi tile? Prima viene fatto un backup (🕘 Backup per tornare indietro).`
       )
     ) {
       return
     }
+    const kinds = withMaps
+      ? (['normal', 'specular'] as const).filter((kind) =>
+          kind === 'normal' ? source.normal !== null : source.specular !== null
+        )
+      : []
+    const touched = [
+      ...tiles.flatMap((_, index) => {
+        const tile = `${folder}/${index}.png`
+        return [tile, ...kinds.map((kind) => mapPath(tile, kind))]
+      }),
+      `${folder}/${folder.slice(folder.lastIndexOf('/') + 1)}.properties`
+    ]
+    if (!(await backupBefore(`Texture connesse di ${source.name}`, touched))) return
     const errors: string[] = []
     let written = 0
     const save = async (path: string, img: Image, data: Uint8ClampedArray): Promise<void> => {

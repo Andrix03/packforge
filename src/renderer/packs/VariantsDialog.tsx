@@ -15,6 +15,7 @@ import type { DecodedPng } from '../../shared/pngCodec'
 import type { TextureEntry } from '../../shared/textures'
 import { Range } from '../editor/GeneratorPanel'
 import { mapMcmeta } from '../editor/frames'
+import { backupBefore } from './backup'
 import { errorMessage, fetchText, loadPng, type FileSource } from './packFetch'
 
 type ColorMode = 'game' | 'dye'
@@ -139,11 +140,21 @@ export function VariantsDialog({
     if (
       overwriting > 0 &&
       !window.confirm(
-        `Sovrascrivere ${overwriting === 1 ? '1 texture esistente' : `${overwriting} texture esistenti`}? Non si può annullare.`
+        `Sovrascrivere ${overwriting === 1 ? '1 texture esistente' : `${overwriting} texture esistenti`}? Prima viene fatto un backup (🕘 Backup per tornare indietro).`
       )
     ) {
       return
     }
+    const mapKinds = copyMaps
+      ? (['normal', 'specular'] as const).filter((kind) =>
+          kind === 'normal' ? source.normal !== null : source.specular !== null
+        )
+      : []
+    const touched = toWrite.flatMap((variant) => {
+      const files = [variant.path, ...mapKinds.map((kind) => mapPath(variant.path, kind))]
+      return source.mcmeta ? files.flatMap((file) => [file, `${file}.mcmeta`]) : files
+    })
+    if (!(await backupBefore(`Varianti di colore di ${source.name}`, touched))) return
     setPhase({ status: 'running', done: 0, total: toWrite.length })
     const errors: string[] = []
     let written = 0

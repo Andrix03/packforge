@@ -9,6 +9,7 @@ import {
   type Factor
 } from '../../shared/resize'
 import type { TextureEntry } from '../../shared/textures'
+import { backupBefore } from './backup'
 import { errorMessage, fetchBytes, fetchText, loadPng, type FileSource } from './packFetch'
 
 /** Rows drawn at most (the filter narrows big packs). */
@@ -124,13 +125,20 @@ export function ResizeDialog({
     setPhase({ status: 'working', text: 'Preparo…' })
     const { files, lossy, errors } = await prepare()
     const question =
-      `Riscrivere ${files.length === 1 ? '1 file' : `${files.length} file`} a ${target}×? Non si può annullare.` +
+      `Riscrivere ${files.length === 1 ? '1 file' : `${files.length} file`} a ${target}×? Prima viene fatto un backup (🕘 Backup per tornare indietro).` +
       (lossy.length > 0
         ? `\n\nRimpicciolendo perdono dettagli: ${lossy.slice(0, 12).join(', ')}${lossy.length > 12 ? '…' : ''}`
         : '')
     if (files.length === 0 || !window.confirm(question)) {
       if (files.length === 0) setPhase({ status: 'done', written: 0, errors })
       else setPhase({ status: 'setup' })
+      return
+    }
+    const touched = files.flatMap((file) =>
+      file.mcmeta !== null ? [file.path, `${file.path}.mcmeta`] : [file.path]
+    )
+    if (!(await backupBefore(`Ridimensiona a ${target}×`, touched))) {
+      setPhase({ status: 'setup' })
       return
     }
     let written = 0

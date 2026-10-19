@@ -17,6 +17,7 @@ import { CoverageDialog } from './CoverageDialog'
 import { ResizeDialog } from './ResizeDialog'
 import { CtmDialog } from './CtmDialog'
 import { InGameDialog } from './InGameDialog'
+import { BackupsDialog } from './BackupsDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 
@@ -216,6 +217,7 @@ function Workspace({
   const [resizing, setResizing] = useState(false)
   const [connecting, setConnecting] = useState<TextureEntry | null>(null)
   const [inGame, setInGame] = useState(false)
+  const [showBackups, setShowBackups] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
@@ -313,6 +315,16 @@ function Workspace({
         >
           🎮 In gioco
         </button>
+        {canCreate && (
+          <button
+            type="button"
+            className="small-button"
+            title="I backup presi prima di sovrascrivere file: ripristina una versione precedente"
+            onClick={() => setShowBackups(true)}
+          >
+            🕘 Backup
+          </button>
+        )}
         <button
           type="button"
           className="small-button"
@@ -467,6 +479,7 @@ function Workspace({
           onClose={() => setBatching(null)}
         />
       )}
+      {showBackups && <BackupsDialog onClose={() => setShowBackups(false)} />}
       {inGame && <InGameDialog packName={packName} onClose={() => setInGame(false)} />}
       {connecting && (
         <CtmDialog

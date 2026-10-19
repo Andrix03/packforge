@@ -1,9 +1,15 @@
-import { mkdir, mkdtemp, readdir, readFile, rm, symlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, realpath, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { decodePng } from '../shared/pngCodec'
-import { saveCtmProperties, saveTexture, saveTextureMcmeta } from './textureFile'
+import {
+  packPngFile,
+  renameRetrying,
+  saveCtmProperties,
+  saveTexture,
+  saveTextureMcmeta
+} from './textureFile'
 
 let dir: string
 let pack: string
@@ -118,5 +124,44 @@ describe('saveCtmProperties', () => {
     expect((await write(CTM, 42)).ok).toBe(false)
     const zip = { kind: 'zip', root: join(dir, 'p.zip'), data: new Uint8Array() } as const
     expect((await saveCtmProperties(zip, CTM, 'a=b')).ok).toBe(false)
+  })
+})
+
+describe('packPngFile', () => {
+  it('resolves an existing PNG of a folder pack, nothing else', async () => {
+    const source = { kind: 'folder', root: pack } as const
+    const rgba = new Uint8Array(16 * 16 * 4)
+    expect((await saveTexture(source, PATH, 16, 16, rgba)).ok).toBe(true)
+    expect(await packPngFile(source, PATH)).toBe(join(await realpath(pack), ...PATH.split('/')))
+    expect(await packPngFile(source, 'assets/minecraft/textures/block/missing.png')).toBeNull()
+    expect(await packPngFile(source, '../outside.png')).toBeNull()
+    expect(await packPngFile(source, 'pack.mcmeta')).toBeNull()
+    const zip = { kind: 'zip', root: join(dir, 'p.zip'), data: new Uint8Array() } as const
+    expect(await packPngFile(zip, PATH)).toBeNull()
+  })
+})
+
+describe('renameRetrying', () => {
+  const lock = Object.assign(new Error('locked'), { code: 'EPERM' })
+
+  it('retries while the target is locked, then succeeds', async () => {
+    let calls = 0
+    await renameRetrying('a', 'b', async () => {
+      calls++
+      if (calls < 3) throw lock
+    })
+    expect(calls).toBe(3)
+  })
+
+  it('gives up on other errors at once', async () => {
+    let calls = 0
+    const missing = Object.assign(new Error('missing'), { code: 'ENOENT' })
+    await expect(
+      renameRetrying('a', 'b', async () => {
+        calls++
+        throw missing
+      })
+    ).rejects.toThrow('missing')
+    expect(calls).toBe(1)
   })
 })

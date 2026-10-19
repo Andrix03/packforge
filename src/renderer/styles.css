@@ -1000,13 +1000,16 @@ h3 {
 
 .editor-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
+/* Crowded headers wrap instead of letting badges slide under the buttons. */
 .editor-header > div {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
@@ -2194,4 +2197,13 @@ kbd {
 .key-table td:first-child {
   white-space: nowrap;
   width: 1%;
+}
+
+.external-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--warning);
+  border-radius: 6px;
 }

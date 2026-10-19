@@ -110,11 +110,49 @@ async function writeInPack(
     if (!isInside(root, await realpath(dirname(file)))) return { ok: false, error: BAD_PATH }
     const temp = `${file}.tmp`
     await writeFile(temp, bytes)
-    await rename(temp, file)
+    try {
+      await renameRetrying(temp, file)
+    } catch (error) {
+      await rm(temp, { force: true })
+      throw error
+    }
     return { ok: true }
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
-    return { ok: false, error: `Impossibile salvare ${what}: ${detail}` }
+    const locked = isLockError(error)
+    return {
+      ok: false,
+      error: locked
+        ? `Impossibile salvare ${what}: il file è bloccato da un altro programma (editor esterno, antivirus?). Chiudilo lì e riprova.`
+        : `Impossibile salvare ${what}: ${detail}`
+    }
+  }
+}
+
+/** Codes Windows gives while another process briefly holds the file (scanner, editor, indexer). */
+function isLockError(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code
+  return code === 'EPERM' || code === 'EACCES' || code === 'EBUSY'
+}
+
+/** Waits between rename attempts: about 2.5 s in all, then the lock is reported. */
+export const RENAME_RETRY_MS = [20, 50, 100, 200, 400, 700, 1000] as const
+
+/** rename, retried while the target is locked (as graceful-fs does on Windows). */
+export async function renameRetrying(
+  from: string,
+  to: string,
+  doRename: (from: string, to: string) => Promise<void> = rename
+): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await doRename(from, to)
+      return
+    } catch (error) {
+      const wait = RENAME_RETRY_MS[attempt]
+      if (!isLockError(error) || wait === undefined) throw error
+      await new Promise((resolve) => setTimeout(resolve, wait))
+    }
   }
 }
 
@@ -123,6 +161,21 @@ async function containedFile(packRoot: string, path: string): Promise<string | n
   const root = await realpath(packRoot)
   const file = resolve(root, ...path.split('/'))
   return isInside(root, await realpath(await deepestExisting(dirname(file)))) ? file : null
+}
+
+/**
+ * Absolute path of an existing PNG of a folder pack, for another program to open; null when the
+ * path is unsafe, leaves the pack (also via links) or the file does not exist.
+ */
+export async function packPngFile(source: PackSource, path: unknown): Promise<string | null> {
+  if (source.kind !== 'folder' || !isPngPath(path)) return null
+  try {
+    const root = await realpath(source.root)
+    const file = await realpath(resolve(root, ...path.split('/')))
+    return isInside(root, file) ? file : null
+  } catch {
+    return null
+  }
 }
 
 function isPngPath(path: unknown): path is string {

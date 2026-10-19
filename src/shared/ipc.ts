@@ -133,6 +133,11 @@ export interface IpcContract {
    */
   'texture:saveMcmeta': { args: [path: string, content: string | null]; result: SaveTextureResult }
   /**
+   * Folder packs only: opens a PNG of the pack in the external editor of the settings (or the
+   * system's default program when none is set).
+   */
+  'texture:openExternal': { args: [path: string]; result: SaveTextureResult }
+  /**
    * Folder packs only: writes a CTM `.properties` (text) under `assets/<ns>/optifine/ctm/`.
    */
   'ctm:saveProperties': { args: [path: string, content: string]; result: SaveTextureResult }
@@ -191,6 +196,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'texture:save': true,
   'texture:saveMcmeta': true,
   'ctm:saveProperties': true,
+  'texture:openExternal': true,
   'draft:save': true,
   'draft:load': true,
   'draft:discard': true,

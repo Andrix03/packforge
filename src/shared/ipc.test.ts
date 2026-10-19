@@ -100,6 +100,7 @@ describe('registerHandlers', () => {
       'texture:save': () => ({ ok: false, error: 'unused' }),
       'texture:saveMcmeta': () => ({ ok: false, error: 'unused' }),
       'ctm:saveProperties': () => ({ ok: false, error: 'unused' }),
+      'texture:openExternal': () => ({ ok: false, error: 'unused' }),
       'sync:status': () => SYNC_UNUSED,
       'sync:now': () => SYNC_UNUSED,
       'sync:setAuto': () => SYNC_UNUSED,

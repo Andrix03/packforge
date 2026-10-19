@@ -142,7 +142,7 @@ Overcoming the Phase 6 approximations (research 2026-10-18: Photon source, 0fps,
 
 - [x] Watch the pack folder (done with the Phase 2 live update)
 - [x] Automatic sync into `resourcepacks` (copy or link) — copy (links are ignored by the game unless allowed): "🎮 In gioco", copy now + automatic after every change, only into its own marked folder
-- [ ] "Open in external editor" (Aseprite / Photoshop)
+- [x] "Open in external editor" (Aseprite / Photoshop) — "✎" in the editor (saves first); files changed outside reload the editor, or ask when there is unsaved work
 - [x] Reminder / shortcut panel for testing in game (F3+T, Iris shader reload) — in the same dialog (steps, F3 hotkeys, Iris R/K/O)
 - [ ] Undo history and automatic backups before destructive operations
 

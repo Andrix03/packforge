@@ -128,6 +128,8 @@ export function TextureEditor({
   const [modified, setModified] = useState(false)
   const [history] = useState(() => new History())
   const [saving, setSaving] = useState(false)
+  /** A file of this texture changed outside PackForge while there was unsaved work. */
+  const [externalChange, setExternalChange] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedOnce, setSavedOnce] = useState(false)
   /** Bumped on every change of the document, to redraw and refresh the previews. */
@@ -135,6 +137,9 @@ export function TextureEditor({
   const [recent, setRecent] = useState<Rgba[]>([])
   const [mode, setMode] = useState<EditorMode>('beginner')
   const [proTips, setProTips] = useState(false)
+  /** The external editor of the settings (null = the system's default program). */
+  const [externalEditor, setExternalEditor] = useState<string | null>(null)
+  const [openError, setOpenError] = useState<string | null>(null)
   const [reference, setReference] = useState<LoadedReference | null>(null)
   /** Snapshot of my texture for the vanilla comparison (null = closed). */
   const [comparing, setComparing] = useState<Image | null>(null)
@@ -411,6 +416,7 @@ export function TextureEditor({
         if (cancelled) return
         setMode(view.settings.editorMode)
         setPalettes(view.settings.palettes)
+        setExternalEditor(view.settings.externalEditor)
       },
       () => undefined
     )
@@ -564,6 +570,36 @@ export function TextureEditor({
       setSaving(false)
     }
   }, [doc, maps, target, saving, history, settle, animation, mcmetaOnDisk])
+
+  // The texture (or its maps) changed on disk: another program saved it (e.g. the external
+  // editor). Our own saves come back too: they match the saved bytes and are ignored.
+  const modifiedRef = useRef(false)
+  useEffect(() => {
+    modifiedRef.current = modified
+  }, [modified])
+  useEffect(() => {
+    if (target.readOnly) return
+    const watched = [target.path, normalPath, specularPath]
+    return window.api.on('pack:filesChanged', ({ paths }) => {
+      const hit = paths.filter((path) => watched.includes(path))
+      if (hit.length === 0) return
+      void (async () => {
+        for (const path of hit) {
+          const bytes = await readFromDisk(target.packBase, path)
+          const map =
+            path === normalPath ? maps?.normal : path === specularPath ? maps?.specular : null
+          const ours =
+            path === target.path
+              ? bytes !== null && sameBytes(bytes, savedAlbedo.current)
+              : (map?.matchesSaved(bytes) ?? true)
+          if (ours) continue
+          if (modifiedRef.current) setExternalChange(path)
+          else onSwitch(reloadedTarget(target, watched))
+          return
+        }
+      })()
+    })
+  }, [target, normalPath, specularPath, maps, onSwitch])
 
   useEffect(() => {
     if (suspended) return
@@ -748,6 +784,23 @@ export function TextureEditor({
     onClose()
   }
 
+  const paintedPath =
+    surface === 'normal' ? normalPath : surface === 'specular' ? specularPath : target.path
+  /** Opens the file in the external editor; unsaved work is saved first (it would not see it). */
+  async function openExternal(): Promise<void> {
+    setOpenError(null)
+    if (modified) await save()
+    const result = await window.api.invoke('texture:openExternal', paintedPath)
+    if (!result.ok) setOpenError(result.error)
+  }
+
+  /** Throws the unsaved work away and loads the files as they are on disk now. */
+  function reloadFromDisk(): void {
+    void window.api.invoke('draft:discard', target.path)
+    setExternalChange(null)
+    onSwitch(reloadedTarget(target, [target.path, normalPath, specularPath]))
+  }
+
   return (
     <section className="editor">
       <header className="editor-header">
@@ -814,6 +867,33 @@ export function TextureEditor({
             </label>
           )}
           {saveError && <span className="field-error small">{saveError}</span>}
+          {openError && <span className="field-error small">{openError}</span>}
+          {!target.readOnly && (
+            <button
+              type="button"
+              title={`Apre ${paintedPath.slice(paintedPath.lastIndexOf('/') + 1)} in ${externalEditor ? editorName(externalEditor) : 'il programma predefinito'} (Impostazioni → editor esterno). Quando lì salvi, qui si ricarica da sola.`}
+              onClick={() => void openExternal()}
+            >
+              ✎ {externalEditor ? editorName(externalEditor) : 'Apri fuori'}
+            </button>
+          )}
+          {externalChange && (
+            <span className="external-change small" role="alert">
+              {externalChange.slice(externalChange.lastIndexOf('/') + 1)} è cambiato fuori da
+              PackForge.{' '}
+              <button type="button" className="small-button" onClick={reloadFromDisk}>
+                Ricarica dal file
+              </button>{' '}
+              <button
+                type="button"
+                className="small-button"
+                title="Salvando, la tua versione sostituirà quella sul disco"
+                onClick={() => setExternalChange(null)}
+              >
+                Tieni le mie modifiche
+              </button>
+            </span>
+          )}
           {canSave && (
             <button
               type="button"
@@ -1311,6 +1391,35 @@ async function loadDocument(
     channelCanvases[def.id] = canvas
   }
   return { doc, source, reducedFrom16Bit, mcmeta, maps, mapErrors, channelCanvases }
+}
+
+/** "Aseprite" for C:\…\Aseprite.exe. */
+function editorName(path: string): string {
+  return path.replace(/^.*[\\/]/, '').replace(/\.exe$/i, '')
+}
+
+/** A pack file's pixels as they are on disk now (null when it is gone or unreadable). */
+async function readFromDisk(packBase: string, path: string): Promise<Uint8Array | null> {
+  try {
+    const response = await fetch(assetUrl(packBase, path, Date.now()))
+    if (!response.ok) return null
+    const decoded = decodePng(new Uint8Array(await response.arrayBuffer()))
+    return decoded.ok ? new Uint8Array(decoded.image.data) : null
+  } catch {
+    return null
+  }
+}
+
+/** The same texture with fresh URLs, so the files are read again from disk. */
+function reloadedTarget(current: EditorTarget, paths: readonly string[]): EditorTarget {
+  const stamp = Date.now()
+  const { pack } = current.sources
+  const versions = { ...pack.versions }
+  for (const path of [...paths, `${current.path}.mcmeta`]) versions[path] = stamp
+  return targetFor(
+    { ...current, sources: { ...current.sources, pack: { ...pack, versions } } },
+    current.path
+  )
 }
 
 function sameBytes(a: Uint8Array, b: Uint8Array | null): boolean {

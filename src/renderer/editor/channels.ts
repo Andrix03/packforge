@@ -305,6 +305,14 @@ export class EditedMap {
     return this.existed || this.dirty
   }
 
+  /** The file holds exactly what PackForge loaded or last saved (null = no file). */
+  matchesSaved(bytes: ArrayLike<number> | null): boolean {
+    if (bytes === null) return !this.existed
+    if (!this.existed || bytes.length !== this.saved.length) return false
+    for (let i = 0; i < bytes.length; i++) if (bytes[i] !== this.saved[i]) return false
+    return true
+  }
+
   /** `bytes`: what was written (the map may have changed during the save). */
   markSaved(bytes: Uint8Array = new Uint8Array(this.buffer.data)): void {
     this.saved = bytes

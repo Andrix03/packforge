@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process'
 import { mkdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
@@ -31,7 +32,7 @@ import { editPackObject } from './editMcmeta'
 import { openPack } from './openPack'
 import { ICON_IMAGE_EXTENSIONS, readIconSource, writePackIcon } from './packIcon'
 import { createPack } from './pack'
-import { saveCtmProperties, saveTexture, saveTextureMcmeta } from './textureFile'
+import { packPngFile, saveCtmProperties, saveTexture, saveTextureMcmeta } from './textureFile'
 import { DraftStore } from './drafts'
 import { assetBase } from './packProtocol'
 import { listPackFiles } from './packSource'
@@ -362,6 +363,38 @@ const handlers: IpcHandlers = {
     const current = getSource('pack')
     if (!current) return { ok: false, error: 'Nessun pack aperto.' }
     return saveTextureMcmeta(current.source, path, content)
+  },
+
+  'texture:openExternal': async (path) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    const file = await packPngFile(current.source, path)
+    if (!file)
+      return { ok: false, error: 'File non trovato nel pack (i pack zip non si aprono fuori).' }
+    const editor = (await settings().get()).externalEditor
+    if (!editor) {
+      const error = await shell.openPath(file)
+      return error ? { ok: false, error } : { ok: true }
+    }
+    if (!(await fileExists(editor))) {
+      return { ok: false, error: 'Il programma scelto nelle Impostazioni non esiste più.' }
+    }
+    // No shell: the path is one argument, whatever characters it has.
+    return new Promise((done) => {
+      const child = spawn(editor, [file], {
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+        windowsHide: true
+      })
+      child.once('error', (error) =>
+        done({ ok: false, error: `Avvio non riuscito: ${error.message}` })
+      )
+      child.once('spawn', () => {
+        child.unref()
+        done({ ok: true })
+      })
+    })
   },
 
   'ctm:saveProperties': async (path, content) => {

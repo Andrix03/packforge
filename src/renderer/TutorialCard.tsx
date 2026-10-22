@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   completeStep,
   nextStep,
@@ -22,6 +22,12 @@ export function TutorialCard({
   compact?: boolean
 }): React.JSX.Element | null {
   const [state, setState] = useState<TutorialState | null>(null)
+  /** The same, for the step listener (it must not write settings inside a state updater). */
+  const latest = useRef<TutorialState | null>(null)
+  const update = (next: TutorialState): void => {
+    latest.current = next
+    setState(next)
+  }
   const [beginner, setBeginner] = useState(false)
   const [open, setOpen] = useState(true)
   const [run, setRun] = useState(0)
@@ -30,7 +36,7 @@ export function TutorialCard({
     let current = true
     void window.api.invoke('settings:get').then((view) => {
       if (!current) return
-      setState(view.settings.tutorial)
+      update(view.settings.tutorial)
       setBeginner(view.settings.editorMode === 'beginner')
     })
     return () => {
@@ -47,12 +53,12 @@ export function TutorialCard({
   useEffect(() => {
     const onStep = (event: Event): void => {
       const step = (event as CustomEvent<TutorialStep>).detail
-      setState((old) => {
-        if (!old) return old
-        const next = completeStep(old, step)
-        if (next !== old) void window.api.invoke('settings:setTutorial', next)
-        return next
-      })
+      const old = latest.current
+      if (!old) return
+      const next = completeStep(old, step)
+      if (next === old) return
+      update(next)
+      void window.api.invoke('settings:setTutorial', next)
     }
     window.addEventListener(STEP_EVENT, onStep)
     return () => window.removeEventListener(STEP_EVENT, onStep)
@@ -64,7 +70,7 @@ export function TutorialCard({
 
   function turnOff(): void {
     const off: TutorialState = { ...state!, status: 'off' }
-    setState(off)
+    update(off)
     void window.api.invoke('settings:setTutorial', off)
   }
 

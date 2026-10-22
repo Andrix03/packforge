@@ -14,9 +14,21 @@ export function SettingsPanel({ onClose }: SettingsPanelProps): React.JSX.Elemen
   const [busy, setBusy] = useState(false)
   const [changed, setChanged] = useState(false)
 
+  /** Bumped by "Riprova" after the settings could not be read. */
+  const [attempt, setAttempt] = useState(0)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
   useEffect(() => {
-    void window.api.invoke('settings:get').then(setView)
-  }, [])
+    let current = true
+    window.api.invoke('settings:get').then(
+      (next) => current && setView(next),
+      (failure: unknown) =>
+        current && setLoadError(failure instanceof Error ? failure.message : String(failure))
+    )
+    return () => {
+      current = false
+    }
+  }, [attempt])
 
   async function apply(request: Promise<SettingsUpdateResult>): Promise<void> {
     setBusy(true)
@@ -46,6 +58,22 @@ export function SettingsPanel({ onClose }: SettingsPanelProps): React.JSX.Elemen
     if (path) await apply(window.api.invoke('settings:setExternalEditor', path))
   }
 
+  if (!view && loadError) {
+    return (
+      <section className="card">
+        <p className="field-error">Impossibile leggere le impostazioni: {loadError}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setLoadError(null)
+            setAttempt((a) => a + 1)
+          }}
+        >
+          Riprova
+        </button>
+      </section>
+    )
+  }
   if (!view) return <section className="card muted">Caricamento impostazioni…</section>
 
   const { settings, minecraft } = view

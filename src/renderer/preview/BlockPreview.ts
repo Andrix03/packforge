@@ -732,7 +732,6 @@ export class BlockPreview {
         const parsed = parseAnimation(mcmeta, imageSize.width, imageSize.height)
         if (parsed.ok) {
           animation = parsed.animation
-          problem = animation?.warning ?? null
         } else {
           problem = `Animazione non valida: ${parsed.error}`
         }

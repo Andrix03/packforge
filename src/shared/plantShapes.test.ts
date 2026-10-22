@@ -49,6 +49,17 @@ describe('plantShapeModel', () => {
     expect(Math.max(...top.flatMap((q) => q.positions.map((p) => p[1])))).toBe(31)
   })
 
+  it('turns directional shading off for every version (shade up to 26.2, override from 26.3)', () => {
+    for (const id of ['bushy', 'tall'] as const) {
+      const elements = plantShapeModel(id, TEXTURE, topTextureId(TEXTURE))['elements'] as Array<
+        Record<string, unknown>
+      >
+      for (const element of elements) {
+        expect(element).toMatchObject({ shade: false, shade_direction_override: 'up' })
+      }
+    }
+  })
+
   it('keeps every element inside the format limits (−16…32, rotations of 22.5° steps up to 45°)', () => {
     for (const { id } of PLANT_SHAPES) {
       const model = plantShapeModel(id, TEXTURE, topTextureId(TEXTURE))

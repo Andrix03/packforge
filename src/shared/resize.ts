@@ -94,7 +94,8 @@ export function scaleNearest(image: Image, factor: Factor): Scaled | null {
 
 /**
  * A `.png.mcmeta` text with the explicit frame sizes (animation width/height) scaled; null when
- * nothing has to change (no explicit sizes, or not JSON).
+ * nothing has to change (no explicit sizes, or not JSON). Throws when a frame size would not be
+ * a whole number of pixels (e.g. 15 px frames halved): the game would show a broken animation.
  */
 export function scaleMcmeta(text: string, factor: Factor): string | null {
   let root: unknown
@@ -111,7 +112,13 @@ export function scaleMcmeta(text: string, factor: Factor): string | null {
   for (const key of ['width', 'height']) {
     const value = animation[key]
     if (typeof value === 'number') {
-      animation[key] = (value / factor.down) * factor.up
+      const scaled = (value / factor.down) * factor.up
+      if (!Number.isInteger(scaled)) {
+        throw new Error(
+          `i frame dell'animazione (${key} ${value}) non si possono dividere per ${factor.down}`
+        )
+      }
+      animation[key] = scaled
       changed = true
     }
   }

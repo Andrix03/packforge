@@ -68,6 +68,12 @@ describe('scaleMcmeta', () => {
     expect(scaleMcmeta('{"animation":{"frametime":2}}', { up: 2, down: 1 })).toBeNull()
     expect(scaleMcmeta('not json', { up: 2, down: 1 })).toBeNull()
   })
+
+  it('refuses frame sizes that would not be whole pixels', () => {
+    const text = JSON.stringify({ animation: { width: 16, height: 15 } })
+    expect(() => scaleMcmeta(text, { up: 1, down: 2 })).toThrow(/height 15/)
+    expect(JSON.parse(scaleMcmeta(text, { up: 2, down: 1 })!).animation.height).toBe(30)
+  })
 })
 
 describe('resolutionHistogram', () => {

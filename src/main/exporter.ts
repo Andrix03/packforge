@@ -22,7 +22,7 @@ import { descriptionMarkdown, factsFromFiles, listingText } from '../shared/list
 import { summarizeReleaseSpans } from '../shared/packFormat'
 import { readPngSize } from '../shared/png'
 import { decodePng, encodePng } from '../shared/pngCodec'
-import { factorBetween, scaleMcmeta, scaleNearest } from '../shared/resize'
+import { factorBetween, scaleMcmeta, scaleNearest, type Factor } from '../shared/resize'
 import { writeFileAtomic } from './atomicWrite'
 import { listPackFiles, type PackSource } from './packSource'
 import { writePackBytes } from './textureFile'
@@ -164,7 +164,10 @@ export async function buildExport(
     if (variant.kind === 'resolution' && SCALED.test(path) && path.endsWith('.png')) {
       const decoded = decodePng(bytes)
       const factor = decoded.ok ? factorBetween(decoded.image.width, variant.resolution) : null
-      const scaled = decoded.ok && factor ? scaleNearest(decoded.image, factor) : null
+      const scaled =
+        decoded.ok && factor && (await mcmetaScales(root, files, path, factor))
+          ? scaleNearest(decoded.image, factor)
+          : null
       if (decoded.ok && factor && scaled) {
         bytes = encodePng({
           width: scaled.width,
@@ -285,4 +288,21 @@ export async function writeListing(
     }
   }
   return { ok: true, dir: target, written, kept }
+}
+
+/** The PNG's .png.mcmeta (if any) can follow the factor: its frame sizes stay whole pixels. */
+async function mcmetaScales(
+  root: string,
+  files: readonly string[],
+  png: string,
+  factor: Factor
+): Promise<boolean> {
+  const mcmeta = `${png}.mcmeta`
+  if (!files.includes(mcmeta)) return true
+  try {
+    scaleMcmeta(await readFile(join(root, ...mcmeta.split('/')), 'utf8'), factor)
+    return true
+  } catch {
+    return false
+  }
 }

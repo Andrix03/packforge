@@ -3,6 +3,10 @@
 // 4–6 planes tilted at ±22.5° and ±45° and a taller ripe wheat; vanilla crops are 4 planes
 // (`block/crop`), flowers 2 diagonal planes (`block/cross`). Element rotations stay single-axis
 // at −45…45° in 22.5° steps, which every version accepts.
+//
+// No directional shading, like vanilla crops: `"shade": false` up to 26.2, `shade_direction_override:
+// "up"` from 26.3 (its snapshot 3 removed `shade`). Every element carries both: the 26.3 element
+// deserializer only reads the keys it knows (checked with javap), older ones ignore the new key.
 
 export type PlantShape = 'crop' | 'cross' | 'bushy' | 'tall'
 
@@ -27,9 +31,12 @@ interface Element {
   from: Vec3
   to: Vec3
   rotation?: { origin: Vec3; axis: 'x' | 'y' | 'z'; angle: number; rescale?: boolean }
-  shade_direction_override?: 'up'
+  shade: false
+  shade_direction_override: 'up'
   faces: Record<string, { uv: [number, number, number, number]; texture: string }>
 }
+
+const UNSHADED = { shade: false, shade_direction_override: 'up' } as const
 
 /** A crop plane at `at` (4 or 12) facing along x (`x`) or z, from y to y + 16, both sides. */
 function plane(facing: 'x' | 'z', at: number, y: number, texture: string, tilt = 0): Element {
@@ -43,14 +50,15 @@ function plane(facing: 'x' | 'z', at: number, y: number, texture: string, tilt =
       ? {
           from: [at, y, 0],
           to: [at, y + 16, 16],
+          ...UNSHADED,
           faces: { west: { uv: a, texture }, east: { uv: b, texture } }
         }
       : {
           from: [0, y, at],
           to: [16, y + 16, at],
+          ...UNSHADED,
           faces: { north: { uv: a, texture }, south: { uv: b, texture } }
         }
-  element.shade_direction_override = 'up'
   if (tilt !== 0) {
     // Lean the top outwards around the plane's base (right-hand angles, like the model format).
     const outwards = at < 8 ? 1 : -1
@@ -68,7 +76,7 @@ function diagonal(direction: 1 | -1, y: number, texture: string): Element {
     from: [0.8, y, 8],
     to: [15.2, y + 16, 8],
     rotation: { origin: [8, 8, 8], axis: 'y', angle: 45 * direction, rescale: true },
-    shade_direction_override: 'up',
+    ...UNSHADED,
     faces: {
       north: { uv: [0, 0, 16, 16], texture },
       south: { uv: [16, 0, 0, 16], texture }

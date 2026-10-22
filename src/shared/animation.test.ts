@@ -29,8 +29,7 @@ describe('parseAnimation', () => {
         { index: 2, time: 1 }
       ],
       interpolate: false,
-      totalTicks: 3,
-      warning: null
+      totalTicks: 3
     })
     // Horizontal strip: frames to the right.
     expect(ok({}, 64, 16)).toMatchObject({
@@ -62,12 +61,19 @@ describe('parseAnimation', () => {
     expect(frameRect(animation, 3)).toEqual({ x: 16, y: 8, width: 16, height: 8 })
   })
 
-  it('warns when only one of width/height is given (uncertain wiki rule)', () => {
-    // Wiki: width defaults to the image's height when only height is set.
-    const animation = ok({ height: 16 }, 48, 48)
-    expect(animation).toMatchObject({ frameWidth: 48, frameHeight: 16, frameCount: 3 })
-    expect(animation.warning).not.toBeNull()
-    expect(ok({ width: 16, height: 16 }).warning).toBeNull()
+  it('with only width or height, the other side is the image side (as the game)', () => {
+    expect(ok({ height: 16 }, 32, 48)).toMatchObject({
+      frameWidth: 32,
+      frameHeight: 16,
+      columns: 1,
+      frameCount: 3
+    })
+    expect(ok({ width: 16 }, 32, 48)).toMatchObject({
+      frameWidth: 16,
+      frameHeight: 48,
+      columns: 2,
+      frameCount: 2
+    })
   })
 
   it.each([

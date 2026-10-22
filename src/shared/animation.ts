@@ -22,8 +22,6 @@ export interface TextureAnimation {
   frames: AnimationFrame[]
   interpolate: boolean
   totalTicks: number
-  /** Set when the result relies on an uncertain rule. */
-  warning: string | null
 }
 
 export type AnimationResult =
@@ -47,12 +45,12 @@ export function parseAnimation(
   if (width === false || height === false) {
     return fail('"width" e "height" devono essere interi positivi.')
   }
-  // Defaults from the wiki: square frames of the smaller image side. With only
-  // one of width/height the wiki's rule ("width defaults to the image's height
-  // if height is defined", and vice versa) looks suspicious: follow it, but warn.
+  // As the game (26.3 AnimationMetadataSection.calculateFrameSize, read with javap): neither
+  // given → square frames of the smaller image side; only one given → the other side is the
+  // image's own (only width 16 on a 32×64 image = 16×64 frames). The wiki's wording differs.
   const smaller = Math.min(imageWidth, imageHeight)
-  const frameWidth = width ?? (height !== undefined ? imageHeight : smaller)
-  const frameHeight = height ?? (width !== undefined ? imageWidth : smaller)
+  const frameWidth = width ?? (height !== undefined ? imageWidth : smaller)
+  const frameHeight = height ?? (width !== undefined ? imageHeight : smaller)
   if (imageWidth % frameWidth !== 0 || imageHeight % frameHeight !== 0) {
     return fail(
       `L'immagine (${imageWidth}×${imageHeight}) non è divisibile in frame da ${frameWidth}×${frameHeight}: il gioco mostrerà la texture mancante.`
@@ -87,10 +85,6 @@ export function parseAnimation(
   }
 
   const totalTicks = frames.reduce((sum, frame) => sum + frame.time, 0)
-  const warning =
-    (width === undefined) !== (height === undefined)
-      ? 'Con solo "width" o solo "height" il comportamento del gioco non è documentato con certezza: specifica entrambi.'
-      : null
   return {
     ok: true,
     animation: {
@@ -100,8 +94,7 @@ export function parseAnimation(
       frameCount,
       frames,
       interpolate,
-      totalTicks,
-      warning
+      totalTicks
     }
   }
 }

@@ -242,7 +242,7 @@ The biggest theme in popular packs (Modrinth top 300: "models" on 124 packs; "3d
 Vanilla model JSON, no mods.
 
 - [x] Logic: element limits per pack format (coordinates, multi-axis rotation from 1.21.11, `light_emission`, shade), element/face cost — `shared/modelRules.ts` (4192 vanilla 26.3 models pass)
-- [ ] Extrude a texture into a thick 3D item/block model (greedy-merged cuboids, element budget)
+- [ ] Extrude a texture into a thick 3D item/block model (greedy-merged cuboids, element budget) — logic done (`shared/extrude.ts`); UI in 12b
 - [ ] "Pixels that pop out" (ores, details): pick pixels by color/selection → raised cuboids with UVs
 - [ ] Parametric presets: torch, lantern/chain, ladder, rails, bushy leaves, grass sides
 - [ ] Element editor (list + from/to/rotation/per-face UV, gizmo in the preview)
@@ -280,7 +280,7 @@ Vanilla model JSON, no mods.
 
 ## Phase 19 — Small extras
 
-- [ ] Palette import/export (.gpl, .hex, Lospec), adjustment filters (hue/sat, levels) per layer and in batch
+- [ ] Palette import/export (.gpl, .hex, Lospec), adjustment filters (hue/sat, levels) per layer and in batch — palette files logic done (`shared/paletteFiles.ts`: .gpl, .hex, Paint.NET .txt)
 - [ ] PNG optimizer on export; sounds and lang files (low demand)
 
 ## Ideas for later

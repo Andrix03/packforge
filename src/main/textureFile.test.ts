@@ -3,13 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { decodePng } from '../shared/pngCodec'
-import {
-  packPngFile,
-  renameRetrying,
-  saveCtmProperties,
-  saveTexture,
-  saveTextureMcmeta
-} from './textureFile'
+import { packPngFile, saveCtmProperties, saveTexture, saveTextureMcmeta } from './textureFile'
 
 let dir: string
 let pack: string
@@ -138,30 +132,5 @@ describe('packPngFile', () => {
     expect(await packPngFile(source, 'pack.mcmeta')).toBeNull()
     const zip = { kind: 'zip', root: join(dir, 'p.zip'), data: new Uint8Array() } as const
     expect(await packPngFile(zip, PATH)).toBeNull()
-  })
-})
-
-describe('renameRetrying', () => {
-  const lock = Object.assign(new Error('locked'), { code: 'EPERM' })
-
-  it('retries while the target is locked, then succeeds', async () => {
-    let calls = 0
-    await renameRetrying('a', 'b', async () => {
-      calls++
-      if (calls < 3) throw lock
-    })
-    expect(calls).toBe(3)
-  })
-
-  it('gives up on other errors at once', async () => {
-    let calls = 0
-    const missing = Object.assign(new Error('missing'), { code: 'ENOENT' })
-    await expect(
-      renameRetrying('a', 'b', async () => {
-        calls++
-        throw missing
-      })
-    ).rejects.toThrow('missing')
-    expect(calls).toBe(1)
   })
 })

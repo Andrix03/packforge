@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { decodePng, encodePng, MAX_IMAGE_PIXELS, MAX_IMAGE_SIDE } from '../shared/pngCodec'
+import { writeFileAtomic } from './atomicWrite'
 import { isSafePackPath } from './packSource'
 
 // Unsaved editor work, kept OUTSIDE the pack (in the app's user data) so a crash or a forgotten
@@ -50,8 +51,8 @@ export class DraftStore {
     const meta: DraftMeta = { packRoot: resolve(packRoot), path, savedAt: now.toISOString() }
     try {
       await mkdir(this.dir, { recursive: true })
-      await writeAtomic(`${base}.png`, encodePng({ width, height, data: rgba }))
-      await writeAtomic(`${base}.json`, JSON.stringify(meta))
+      await writeFileAtomic(`${base}.png`, encodePng({ width, height, data: rgba }))
+      await writeFileAtomic(`${base}.json`, JSON.stringify(meta))
       return { ok: true }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
@@ -91,12 +92,6 @@ export class DraftStore {
   private samePath(a: string, b: string): boolean {
     return this.caseInsensitive ? a.toLowerCase() === b.toLowerCase() : a === b
   }
-}
-
-async function writeAtomic(file: string, data: Uint8Array | string): Promise<void> {
-  const temp = `${file}.tmp`
-  await writeFile(temp, data)
-  await rename(temp, file)
 }
 
 function isSide(value: unknown): value is number {

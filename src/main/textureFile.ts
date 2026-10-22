@@ -1,8 +1,9 @@
-import { mkdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, realpath, rm } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { isBlockJsonPath } from '../shared/blockModel'
 import { isCtmProperties } from '../shared/ctm'
 import { encodePng, MAX_IMAGE_PIXELS, MAX_IMAGE_SIDE } from '../shared/pngCodec'
+import { isLockError, serializedOn, writeFileAtomic } from './atomicWrite'
 import type { EditResult } from './editMcmeta'
 import { isSafePackPath, type PackSource } from './packSource'
 
@@ -48,7 +49,7 @@ export async function saveTextureMcmeta(
     try {
       const file = await containedFile(source.root, path)
       if (!file) return { ok: false, error: BAD_PATH }
-      await rm(file, { force: true })
+      await serializedOn(file, () => rm(file, { force: true }))
       return { ok: true }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
@@ -119,7 +120,6 @@ export async function saveModelJson(
   return writeInPack(source.root, path, Buffer.from(content, 'utf8'), 'il modello')
 }
 
-/** Atomic write of a pack file, refusing paths that leave the pack (also via links). */
 /** Atomic write of any file of a folder pack (restoring backups); `path` must be safe. */
 export async function writePackBytes(
   packRoot: string,
@@ -146,14 +146,7 @@ async function writeInPack(
     }
     await mkdir(dirname(file), { recursive: true })
     if (!isInside(root, await realpath(dirname(file)))) return { ok: false, error: BAD_PATH }
-    const temp = `${file}.tmp`
-    await writeFile(temp, bytes)
-    try {
-      await renameRetrying(temp, file)
-    } catch (error) {
-      await rm(temp, { force: true })
-      throw error
-    }
+    await writeFileAtomic(file, bytes)
     return { ok: true }
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
@@ -163,33 +156,6 @@ async function writeInPack(
       error: locked
         ? `Impossibile salvare ${what}: il file è bloccato da un altro programma (editor esterno, antivirus?). Chiudilo lì e riprova.`
         : `Impossibile salvare ${what}: ${detail}`
-    }
-  }
-}
-
-/** Codes Windows gives while another process briefly holds the file (scanner, editor, indexer). */
-function isLockError(error: unknown): boolean {
-  const code = (error as { code?: unknown } | null)?.code
-  return code === 'EPERM' || code === 'EACCES' || code === 'EBUSY'
-}
-
-/** Waits between rename attempts: about 2.5 s in all, then the lock is reported. */
-export const RENAME_RETRY_MS = [20, 50, 100, 200, 400, 700, 1000] as const
-
-/** rename, retried while the target is locked (as graceful-fs does on Windows). */
-export async function renameRetrying(
-  from: string,
-  to: string,
-  doRename: (from: string, to: string) => Promise<void> = rename
-): Promise<void> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      await doRename(from, to)
-      return
-    } catch (error) {
-      const wait = RENAME_RETRY_MS[attempt]
-      if (!isLockError(error) || wait === undefined) throw error
-      await new Promise((resolve) => setTimeout(resolve, wait))
     }
   }
 }

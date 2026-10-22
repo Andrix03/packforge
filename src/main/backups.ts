@@ -35,6 +35,9 @@ interface Manifest {
 export type BackupResult = { ok: true; id: string } | { ok: false; error: string }
 
 export class BackupStore {
+  /** Backups being restored: never pruned meanwhile (the restore takes a backup of its own). */
+  private readonly restoring = new Set<string>()
+
   constructor(
     private readonly dir: string,
     private readonly caseInsensitive = process.platform === 'win32'
@@ -121,6 +124,19 @@ export class BackupStore {
       return { ok: false, error: 'Backup non valido.' }
     const manifest = await this.manifest(root, id)
     if (!manifest) return { ok: false, error: 'Backup non trovato.' }
+    this.restoring.add(id)
+    try {
+      return await this.restoreFiles(root, id, manifest)
+    } finally {
+      this.restoring.delete(id)
+    }
+  }
+
+  private async restoreFiles(
+    root: string,
+    id: string,
+    manifest: Manifest
+  ): Promise<{ ok: true; restored: number; removed: number } | { ok: false; error: string }> {
     const before = await this.create(root, `Prima di ripristinare «${manifest.label}»`, [
       ...manifest.saved,
       ...manifest.created
@@ -152,7 +168,10 @@ export class BackupStore {
 
   private async prune(root: string): Promise<void> {
     const all = await this.list(root)
-    for (const old of all.slice(MAX_BACKUPS_PER_PACK)) await this.remove(root, old.id)
+    // Old backups are dropped first; one being restored is kept (and counts towards the limit).
+    for (const old of all.slice(MAX_BACKUPS_PER_PACK)) {
+      if (!this.restoring.has(old.id)) await this.remove(root, old.id)
+    }
   }
 
   private async manifest(root: string, id: string): Promise<Manifest | null> {

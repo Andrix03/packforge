@@ -1,4 +1,4 @@
-import { readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { readdir, readFile, stat } from 'node:fs/promises'
 import { extname, isAbsolute, join } from 'node:path'
 import {
   DEFAULT_SETTINGS,
@@ -8,6 +8,7 @@ import {
   type Settings
 } from '../shared/settings'
 import { listInstalledVersions } from './vanilla'
+import { writeFileAtomic } from './atomicWrite'
 
 /** Settings persisted as JSON; writes are atomic (temp file + rename) and serialized. */
 export class SettingsStore {
@@ -38,9 +39,7 @@ export class SettingsStore {
     const run = this.writing.then(async () => {
       const current = await this.get()
       const next = { ...current, ...change(current) }
-      const temp = `${this.file}.tmp`
-      await writeFile(temp, `${JSON.stringify(next, null, 2)}\n`, 'utf8')
-      await rename(temp, this.file)
+      await writeFileAtomic(this.file, `${JSON.stringify(next, null, 2)}\n`)
       this.cache = next
       return next
     })

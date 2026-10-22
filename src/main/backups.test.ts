@@ -72,4 +72,22 @@ describe('BackupStore', () => {
     expect(list).toHaveLength(MAX_BACKUPS_PER_PACK)
     expect(list[0]?.label).toBe(`op ${MAX_BACKUPS_PER_PACK + 2}`)
   })
+
+  it('restoring the oldest of a full list works (its own backup does not prune it)', async () => {
+    for (let i = 0; i < MAX_BACKUPS_PER_PACK; i++) {
+      await writeFile(join(pack, ...A.split('/')), `version ${i}`)
+      await store.create(pack, `op ${i}`, [A], new Date(Date.UTC(2026, 0, 1, 0, 0, i)))
+    }
+    await writeFile(join(pack, ...A.split('/')), 'latest')
+    const oldest = (await store.list(pack)).at(-1)
+    expect(oldest?.label).toBe('op 0')
+    const result = await store.restore(pack, oldest?.id)
+    expect(result).toMatchObject({ ok: true, restored: 1 })
+    expect(await read(A)).toBe('version 0')
+    const after = await store.list(pack)
+    expect(after[0]?.label).toBe('Prima di ripristinare «op 0»')
+    // The restored backup is pruned on the next backup, like any other old one.
+    await store.create(pack, 'next', [A])
+    expect((await store.list(pack)).length).toBe(MAX_BACKUPS_PER_PACK)
+  })
 })

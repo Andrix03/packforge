@@ -1,4 +1,4 @@
-import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, realpath, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { unzipSync, zipSync, type Zippable } from 'fflate'
 import {
@@ -23,6 +23,7 @@ import { summarizeReleaseSpans } from '../shared/packFormat'
 import { readPngSize } from '../shared/png'
 import { decodePng, encodePng } from '../shared/pngCodec'
 import { factorBetween, scaleMcmeta, scaleNearest } from '../shared/resize'
+import { writeFileAtomic } from './atomicWrite'
 import { listPackFiles, type PackSource } from './packSource'
 import { writePackBytes } from './textureFile'
 
@@ -195,12 +196,9 @@ export async function buildExport(
 
   const data = zipSync(zip)
   await mkdir(dir, { recursive: true })
-  const temp = `${target}.tmp`
-  await writeFile(temp, data)
   try {
-    await rename(temp, target)
+    await writeFileAtomic(target, data)
   } catch (error) {
-    await rm(temp, { force: true })
     return {
       ok: false,
       error: `Scrittura non riuscita: ${error instanceof Error ? error.message : String(error)}`

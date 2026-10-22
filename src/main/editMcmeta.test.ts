@@ -56,6 +56,21 @@ describe('editPackObject', () => {
     }
   })
 
+  it('two edits at the same time both land (each reads what the other wrote)', async () => {
+    await writeFile(join(dir, 'pack.mcmeta'), JSON.stringify({ pack: { pack_format: 15 } }))
+    const source = { kind: 'folder', root: dir } as const
+    const results = await Promise.all([
+      editPackObject(source, (pack) => {
+        pack['description'] = 'new'
+      }),
+      editPackObject(source, (pack) => {
+        pack['pack_format'] = 34
+      })
+    ])
+    expect(results.every((r) => r.ok)).toBe(true)
+    expect(await readMcmeta()).toEqual({ pack: { pack_format: 34, description: 'new' } })
+  })
+
   it('refuses zip packs', async () => {
     const result = await editPackObject(
       { kind: 'zip', root: join(dir, 'p.zip'), data: zipSync({}) },

@@ -1,4 +1,5 @@
-import { readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
+import { writeFileAtomic } from './atomicWrite'
 import { extname, join } from 'node:path'
 import type { PickImageResult } from '../shared/ipc'
 import { validatePackIcon } from '../shared/png'
@@ -47,9 +48,7 @@ export async function writePackIcon(source: PackSource, pngBase64: unknown): Pro
 
   const file = join(source.root, 'pack.png')
   try {
-    const temp = `${file}.tmp`
-    await writeFile(temp, bytes)
-    await rename(temp, file)
+    await writeFileAtomic(file, bytes)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     return { ok: false, error: `Impossibile salvare pack.png: ${detail}` }

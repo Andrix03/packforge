@@ -1,5 +1,6 @@
-import { readFile, rename, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { replaceFile, serializedOn } from './atomicWrite'
 import type { PackSource } from './packSource'
 
 // Edits pack.mcmeta in place: only the requested fields change, everything
@@ -12,17 +13,27 @@ type PackObject = Record<string, unknown>
 /**
  * Applies `change` to a folder pack's pack.mcmeta and writes it atomically.
  * `change` gets the `pack` object and the root object (for root sections
- * such as `overlays`). Zip packs are read-only.
+ * such as `overlays`). Zip packs are read-only. Edits of the same file run one at a time,
+ * each reading what the previous one wrote (two edits at once never lose one).
  */
-export async function editPackObject(
+export function editPackObject(
   source: PackSource,
   change: (pack: PackObject, root: PackObject) => void
 ): Promise<EditResult> {
   if (source.kind !== 'folder') {
-    return { ok: false, error: 'I pack zip sono in sola lettura: estrai il pack in una cartella.' }
+    return Promise.resolve({
+      ok: false,
+      error: 'I pack zip sono in sola lettura: estrai il pack in una cartella.'
+    })
   }
-
   const file = join(source.root, 'pack.mcmeta')
+  return serializedOn(file, () => editFile(file, change))
+}
+
+async function editFile(
+  file: string,
+  change: (pack: PackObject, root: PackObject) => void
+): Promise<EditResult> {
   let root: unknown
   try {
     root = JSON.parse((await readFile(file, 'utf8')).replace(/^\uFEFF/, ''))
@@ -40,9 +51,7 @@ export async function editPackObject(
   change(pack, root)
 
   try {
-    const temp = `${file}.tmp`
-    await writeFile(temp, `${JSON.stringify(root, null, 2)}\n`, 'utf8')
-    await rename(temp, file)
+    await replaceFile(file, `${JSON.stringify(root, null, 2)}\n`)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     return { ok: false, error: `Impossibile salvare pack.mcmeta: ${detail}` }

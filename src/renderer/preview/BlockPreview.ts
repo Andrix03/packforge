@@ -431,10 +431,17 @@ export class BlockPreview {
       if (!part.live) continue
       if (part.liveSource && part.texture instanceof THREE.DataTexture) {
         const pixels = canvasPixels(part.liveSource.canvas)
-        if (pixels) setGameMipmaps(part.texture, pixels, part.liveSource.mip)
+        if (pixels) {
+          reallocateIfResized(part.texture, pixels.width, pixels.height)
+          setGameMipmaps(part.texture, pixels, part.liveSource.mip)
+        }
       }
       part.texture.needsUpdate = true
-      for (const map of part.liveMaps) map.needsUpdate = true
+      for (const map of part.liveMaps) {
+        const image = map.image as { width: number; height: number }
+        reallocateIfResized(map, image.width, image.height)
+        map.needsUpdate = true
+      }
     }
   }
 
@@ -1477,6 +1484,18 @@ function setGameMipmaps(texture: THREE.DataTexture, pixels: MipImage, mip: MipOp
   texture.mipmaps = levels.map(({ data, width, height }) => ({ data, width, height }))
 }
 
+/**
+ * WebGL can't resize an allocated texture: uploading a bigger or smaller image into it fails
+ * (GL_INVALID_VALUE, the preview keeps the old pixels). When the editor's canvas changes size
+ * (frames added or removed), the GPU copy is released first and made again at the new size.
+ */
+function reallocateIfResized(texture: THREE.Texture, width: number, height: number): void {
+  const size = `${width}×${height}`
+  const before = texture.userData['uploadedSize'] as string | undefined
+  if (before !== undefined && before !== size) texture.dispose()
+  texture.userData['uploadedSize'] = size
+}
+
 /** An albedo texture with mipmaps made like the game. */
 function gameTexture(pixels: MipImage, mip: MipOptions): THREE.DataTexture {
   const texture = new THREE.DataTexture(pixels.data, pixels.width, pixels.height)
@@ -1484,6 +1503,7 @@ function gameTexture(pixels: MipImage, mip: MipOptions): THREE.DataTexture {
   texture.flipY = true
   texture.generateMipmaps = false
   setGameMipmaps(texture, pixels, mip)
+  reallocateIfResized(texture, pixels.width, pixels.height)
   texture.needsUpdate = true
   return texture
 }

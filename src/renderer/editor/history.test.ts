@@ -156,4 +156,21 @@ describe('History', () => {
     // The loaded state is gone from the history, so the image counts as modified.
     expect(history.modified).toBe(true)
   })
+
+  it('reset forgets every step and counts the reloaded state as saved', () => {
+    const b = buffer(2)
+    const history = new History()
+    paint(history, b, 0, RED)
+    paint(history, b, 1, BLUE)
+    history.undo()
+    const version = history.version
+    history.reset()
+    expect(history.canUndo).toBe(false)
+    expect(history.canRedo).toBe(false)
+    expect(history.modified).toBe(false)
+    expect(history.version).not.toBe(version)
+    // Undo after a reset does not touch the old buffer.
+    expect(history.undo()).toBe(false)
+    expect(getPixel(b, 0, 0)).toEqual(RED)
+  })
 })

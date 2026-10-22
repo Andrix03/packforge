@@ -213,7 +213,7 @@ export function TextureEditor({
   /** The albedo as on disk: saving skips the PNG when only the maps changed. */
   const savedAlbedo = useRef<Uint8Array | null>(null)
   /** What is being painted: the colors, or a channel of `_n` / `_s`. */
-  const [surface, setSurface] = useState<Surface>('color')
+  const [chosenSurface, setSurface] = useState<Surface>('color')
   const [channelOf, setChannelOf] = useState<Record<MapKind, ChannelId>>({
     normal: 'height',
     specular: 'smoothness'
@@ -271,6 +271,8 @@ export function TextureEditor({
   const channelCanvases = loaded.status === 'ready' ? loaded.channelCanvases : null
   /** Whole tall plant: where the halves meet, and one canvas per half for the 3D previews. */
   const tallCanvases = loaded.status === 'ready' ? loaded.tall : null
+  /** What is painted. A whole tall plant has no maps here: always its colors. */
+  const surface: Surface = tallCanvases ? 'color' : chosenSurface
   const editedMap = surface !== 'color' ? (maps?.[surface] ?? null) : null
   const channel: ChannelDef | null =
     surface !== 'color' && editedMap ? channelDef(channelOf[surface]) : null
@@ -526,6 +528,11 @@ export function TextureEditor({
         if (cancelled) return
         setLoaded({ status: 'ready', ...value })
         savedAlbedo.current = new Uint8Array(value.doc.composite.data)
+        // A reload in place (whole/half plant, files a dialog wrote) starts a new document: the
+        // old steps point at the old buffers. The callers save first, so nothing is lost.
+        history.reset()
+        setModified(false)
+        animationDirty.current = false
         // Regenerating normals while painting is safe only when there is nothing hand-made.
         const normal = value.maps.normal
         setGenerator((g) => ({
@@ -535,11 +542,13 @@ export function TextureEditor({
         const read = animationFromMcmeta(value.mcmeta, value.doc.width, value.doc.height)
         if (read.kind === 'editable') {
           setAnimation(read.settings)
+          setAnimationNote(null)
           setMcmetaOnDisk({ value: value.mcmeta, frames: read.frameCount })
           value.doc.setFrameView(read.settings.frameHeight, 0)
         } else {
+          setAnimation(null)
+          setAnimationNote(read.kind === 'unsupported' ? read.reason : null)
           setMcmetaOnDisk({ value: value.mcmeta, frames: 1 })
-          if (read.kind === 'unsupported') setAnimationNote(read.reason)
         }
       },
       (error: unknown) =>
@@ -554,11 +563,12 @@ export function TextureEditor({
     return () => {
       cancelled = true
     }
-  }, [target.url, target.mcmetaUrl, normalUrl, specularUrl, tallKey])
+  }, [target.url, target.mcmetaUrl, normalUrl, specularUrl, tallKey, history])
 
   const canSave = doc !== null && !target.readOnly
-  const save = useCallback(async () => {
-    if (!doc || target.readOnly || saving) return
+  /** Writes the texture (and its maps / .mcmeta); true when everything was saved. */
+  const save = useCallback(async (): Promise<boolean> => {
+    if (!doc || target.readOnly || saving) return false
     settle()
     const version = history.version
     setSaving(true)
@@ -585,12 +595,12 @@ export function TextureEditor({
             writes.map(([path]) => path)
           ))
         )
-          return
+          return false
         for (const [path, bytes, , rows] of writes) {
           const result = await window.api.invoke('texture:save', path, doc.width, rows, bytes)
           if (!result.ok) {
             setSaveError(result.error)
-            return
+            return false
           }
         }
         savedAlbedo.current = rgba
@@ -598,7 +608,7 @@ export function TextureEditor({
         announceStep('save')
         setModified(history.modified)
         setSavedOnce(true)
-        return
+        return true
       }
       // What this save overwrites goes into a backup first (🕘 Backup in the workspace).
       const albedoChanged = !sameBytes(rgba, savedAlbedo.current)
@@ -617,7 +627,7 @@ export function TextureEditor({
             ]
           : [])
       ]
-      if (!(await backupBefore(`Salvataggio di ${target.name}`, touched))) return
+      if (!(await backupBefore(`Salvataggio di ${target.name}`, touched))) return false
       if (albedoChanged) {
         const result = await window.api.invoke(
           'texture:save',
@@ -628,7 +638,7 @@ export function TextureEditor({
         )
         if (!result.ok) {
           setSaveError(result.error)
-          return
+          return false
         }
         savedAlbedo.current = rgba
       }
@@ -645,7 +655,7 @@ export function TextureEditor({
         )
         if (!written.ok) {
           setSaveError(written.error)
-          return
+          return false
         }
         map.markSaved(bytes)
       }
@@ -663,7 +673,7 @@ export function TextureEditor({
         const written = await window.api.invoke('texture:saveMcmeta', target.path, content)
         if (!written.ok) {
           setSaveError(written.error)
-          return
+          return false
         }
         setMcmetaOnDisk({ value: content === null ? null : JSON.parse(content), frames })
         animationDirty.current = false
@@ -677,7 +687,7 @@ export function TextureEditor({
           )
           if (!mapWritten.ok) {
             setSaveError(mapWritten.error)
-            return
+            return false
           }
         }
       }
@@ -686,12 +696,24 @@ export function TextureEditor({
       announceStep('save')
       setModified(history.modified)
       setSavedOnce(true)
+      return true
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : String(error))
+      return false
     } finally {
       setSaving(false)
     }
   }, [doc, maps, target, saving, history, settle, animation, mcmetaOnDisk, tall, tallCanvases])
+
+  /**
+   * Before something that reloads the editor or reads the files: saves the unsaved work (after
+   * asking `question`). False when the user said no or the save failed: don't go on then.
+   */
+  async function saveFirst(question: string): Promise<boolean> {
+    if (!modified) return true
+    if (!window.confirm(question)) return false
+    return save()
+  }
 
   // The texture (or its maps) changed on disk: another program saved it (e.g. the external
   // editor). Our own saves come back too: they match the saved bytes and are ignored.
@@ -701,8 +723,20 @@ export function TextureEditor({
     if (modified) announceStep('paint')
   }, [modified])
   useEffect(() => {
-    if (target.readOnly || tallCanvases) return
-    const watched = [target.path, normalPath, specularPath]
+    if (target.readOnly) return
+    // A whole tall plant watches its two halves (it has no maps in that view).
+    const watched =
+      tallCanvases && tall ? [tall.upper, tall.lower] : [target.path, normalPath, specularPath]
+    /** The saved albedo of a watched file: the whole image, or its half of the plant. */
+    const savedOf = (path: string): Uint8Array | null => {
+      const saved = savedAlbedo.current
+      if (!tallCanvases || !tall || !saved || !doc) return saved
+      const halves = splitHalves(
+        { width: doc.width, height: doc.height, data: saved },
+        tallCanvases.split
+      )
+      return path === tall.upper ? halves.upper : halves.lower
+    }
     return window.api.on('pack:filesChanged', ({ paths }) => {
       const hit = paths.filter((path) => watched.includes(path))
       if (hit.length === 0) return
@@ -712,8 +746,8 @@ export function TextureEditor({
           const map =
             path === normalPath ? maps?.normal : path === specularPath ? maps?.specular : null
           const ours =
-            path === target.path
-              ? bytes !== null && sameBytes(bytes, savedAlbedo.current)
+            path === target.path || (tall !== null && path === tall.upper)
+              ? bytes !== null && sameBytes(bytes, savedOf(path))
               : (map?.matchesSaved(bytes) ?? true)
           if (ours) continue
           if (modifiedRef.current) setExternalChange(path)
@@ -722,7 +756,7 @@ export function TextureEditor({
         }
       })()
     })
-  }, [target, normalPath, specularPath, maps, onSwitch, tallCanvases])
+  }, [target, normalPath, specularPath, maps, onSwitch, tallCanvases, tall, doc])
 
   useEffect(() => {
     if (suspended) return
@@ -808,7 +842,7 @@ export function TextureEditor({
   // Autosave a draft (the flattened image) a moment after the last change; drop it once the file
   // is saved (or the changes were undone back to the file).
   useEffect(() => {
-    if (!doc || target.readOnly || draftOffer || tallCanvases) return
+    if (!doc || target.readOnly || draftOffer) return
     const timer = window.setTimeout(() => {
       if (modified) {
         const rgba = new Uint8Array(doc.composite.data)
@@ -818,7 +852,7 @@ export function TextureEditor({
       }
     }, DRAFT_DELAY_MS)
     return () => window.clearTimeout(timer)
-  }, [doc, revision, modified, target.path, target.readOnly, draftOffer, tallCanvases])
+  }, [doc, revision, modified, target.path, target.readOnly, draftOffer])
 
   function restoreDraft(): void {
     const draft = draftOffer
@@ -837,12 +871,8 @@ export function TextureEditor({
   /** Opens another texture; `added`: pack files just written that the editor must see. */
   async function switchTo(path: string, added: readonly string[] = []): Promise<void> {
     if (path === target.path) return
-    if (modified) {
-      if (!window.confirm('Ci sono modifiche non salvate. Salvarle prima di cambiare texture?'))
-        return
-      await save()
-      if (history.modified) return
-    }
+    if (!(await saveFirst('Ci sono modifiche non salvate. Salvarle prima di cambiare texture?')))
+      return
     onSwitch(targetFor(target, path, added))
   }
 
@@ -916,7 +946,7 @@ export function TextureEditor({
   /** Opens the file in the external editor; unsaved work is saved first (it would not see it). */
   async function openExternal(): Promise<void> {
     setOpenError(null)
-    if (modified) await save()
+    if (modified && !(await save())) return
     const result = await window.api.invoke('texture:openExternal', paintedPath)
     if (!result.ok) setOpenError(result.error)
   }
@@ -1108,11 +1138,13 @@ export function TextureEditor({
         onCreate={(path, previous) => {
           // The copy is read from the file: save first when it is this texture.
           if (previous === target.path && modified) {
-            if (!window.confirm('Salvare le modifiche prima di copiarle nel nuovo stadio?')) return
-            void save().then(() => {
-              setCreatingFrom(previous)
-              setCreatingPath(path)
-            })
+            void saveFirst('Salvare le modifiche prima di copiarle nel nuovo stadio?').then(
+              (ok) => {
+                if (!ok) return
+                setCreatingFrom(previous)
+                setCreatingPath(path)
+              }
+            )
             return
           }
           setCreatingFrom(previous)
@@ -1141,10 +1173,10 @@ export function TextureEditor({
               title={hint}
               onClick={() => {
                 if (wholePlant === whole) return
-                if (modified && !window.confirm('Salvare le modifiche prima di cambiare vista?')) {
-                  return
-                }
-                void (modified ? save() : Promise.resolve()).then(() => setWholePlant(whole))
+                // The editor reloads in the other view: only once the work is on disk.
+                void saveFirst('Salvare le modifiche prima di cambiare vista?').then(
+                  (ok) => ok && setWholePlant(whole)
+                )
               }}
             >
               {label}
@@ -1562,14 +1594,11 @@ export function TextureEditor({
                 type="button"
                 className="small-button"
                 title="Più versioni di questa texture: il gioco ne sceglie una a caso per ogni blocco"
-                onClick={() => {
-                  if (
-                    modified &&
-                    !window.confirm('Salvare le modifiche prima di creare le varianti?')
+                onClick={() =>
+                  void saveFirst('Salvare le modifiche prima di creare le varianti?').then(
+                    (ok) => ok && setRandomVariants(true)
                   )
-                    return
-                  void (modified ? save() : Promise.resolve()).then(() => setRandomVariants(true))
-                }}
+                }
               >
                 🎲 Varianti casuali
               </button>
@@ -1579,7 +1608,12 @@ export function TextureEditor({
                 type="button"
                 className="small-button"
                 title="Il modello 3D della pianta: vanilla, croce, cespuglio o alta"
-                onClick={() => setPlantShape(true)}
+                onClick={() =>
+                  // The editor reloads with the models / halves it writes: save first.
+                  void saveFirst('Salvare le modifiche prima di cambiare la forma?').then(
+                    (ok) => ok && setPlantShape(true)
+                  )
+                }
               >
                 🌿 Forma della pianta
               </button>

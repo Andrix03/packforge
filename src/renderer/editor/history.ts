@@ -114,6 +114,15 @@ export class History {
   markSaved(): void {
     this.savedPosition = this.position
   }
+
+  /** Forgets every step: the document was reloaded from disk (old steps point at old buffers). */
+  reset(): void {
+    this.commands.length = 0
+    this.position = 0
+    this.savedPosition = 0
+    this.changeCount++
+    this.lastPush = { key: undefined, at: 0 }
+  }
 }
 
 /** Command for pixels already changed in `buffer`; null when nothing changed. */

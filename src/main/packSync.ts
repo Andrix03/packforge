@@ -92,7 +92,8 @@ export interface MirrorResult {
  */
 export async function mirrorPack(
   source: PackSource,
-  target: SyncTarget
+  target: SyncTarget,
+  caseInsensitive = process.platform === 'win32'
 ): Promise<{ ok: true; result: MirrorResult } | { ok: false; error: string }> {
   if (source.kind !== 'folder') return { ok: false, error: 'Solo i pack in cartella.' }
   const state = await syncState(target)
@@ -102,13 +103,19 @@ export async function mirrorPack(
       error: `In resourcepacks c’è già una cartella «${target.name}» che PackForge non ha creato: non la tocco. Rinominala o spostala.`
     }
   }
-  await mkdir(target.path, { recursive: true })
-  // The target must really be inside resourcepacks (no link redirecting it elsewhere).
+  // The target must really be inside resourcepacks (no link redirecting it elsewhere): checked
+  // before creating anything in it, and again once it exists.
+  const outside = {
+    ok: false,
+    error: 'La cartella di destinazione non è dentro resourcepacks.'
+  } as const
+  await mkdir(target.resourcepacks, { recursive: true })
   const packs = await realpath(target.resourcepacks)
+  const existing = await realpath(target.path).catch(() => null)
+  if (existing !== null && (!isInside(existing, packs) || existing === packs)) return outside
+  await mkdir(target.path, { recursive: true })
   const real = await realpath(target.path)
-  if (!isInside(real, packs) || real === packs) {
-    return { ok: false, error: 'La cartella di destinazione non è dentro resourcepacks.' }
-  }
+  if (!isInside(real, packs) || real === packs) return outside
   if (state === 'missing') {
     await writeFile(
       join(real, SYNC_MARKER),
@@ -121,11 +128,20 @@ export async function mirrorPack(
   const wanted = files.filter(
     (path) => !isIgnoredWatchPath(path) && !path.split('/').some((part) => part.startsWith('.'))
   )
-  const keep = new Set(wanted)
+  // On Windows Stone.png and stone.png are one file: names are compared without case, and a copy
+  // whose case differs from the pack (a case-only rename) is replaced, so the game sees the new
+  // name (atlas listings use the name as written).
+  const fold = (path: string): string => (caseInsensitive ? path.toLowerCase() : path)
+  const keep = new Set(wanted.map(fold))
+  const present = new Map((await listFolder(real)).map((path) => [fold(path), path]))
   let copied = 0
   for (const path of wanted) {
     const from = join(source.root, ...path.split('/'))
     const to = join(real, ...path.split('/'))
+    const old = present.get(fold(path))
+    if (old !== undefined && old.split('/').pop() !== path.split('/').pop()) {
+      await rm(join(real, ...old.split('/')), { force: true })
+    }
     const [a, b] = await Promise.all([stat(from), stat(to).catch(() => null)])
     if (b && b.size === a.size && Math.abs(b.mtimeMs - a.mtimeMs) < 2) continue
     await mkdir(dirname(to), { recursive: true })
@@ -135,7 +151,7 @@ export async function mirrorPack(
   }
   let removed = 0
   for (const path of await listFolder(real)) {
-    if (path === SYNC_MARKER || keep.has(path)) continue
+    if (path === SYNC_MARKER || keep.has(fold(path))) continue
     await rm(join(real, ...path.split('/')), { force: true })
     removed++
   }

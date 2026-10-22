@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -79,6 +79,21 @@ describe('mirrorPack', () => {
     expect(await mirrorPack(source(), t)).toEqual({ ok: true, result: { copied: 1, removed: 1 } })
     expect(await exists(join(t.path, 'assets'))).toBe(false)
     expect(await exists(join(t.path, SYNC_MARKER))).toBe(true)
+  })
+
+  it('follows a case-only rename (Stone.png → stone.png) without losing the file', async () => {
+    const block = join(pack, 'assets', 'minecraft', 'textures', 'block')
+    await rm(join(block, 'stone.png'))
+    await writeFile(join(block, 'Stone.png'), 'png')
+    const t = await target()
+    await mirrorPack(source(), t, true)
+    await rm(join(block, 'Stone.png'))
+    await writeFile(join(block, 'stone.png'), 'png')
+    const result = await mirrorPack(source(), t, true)
+    expect(result.ok).toBe(true)
+    expect(await readdir(join(t.path, 'assets', 'minecraft', 'textures', 'block'))).toEqual([
+      'stone.png'
+    ])
   })
 
   it('leaves hidden folders (.git) out of the copy', async () => {

@@ -126,14 +126,32 @@ function sendEvent<C extends IpcEventChannel>(channel: C, payload: IpcEvents[C])
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, payload)
 }
 
+/** Runs tasks one at a time, in the order asked (a failing task does not block the next). */
+function oneAtATime(): <T>(task: () => Promise<T>) => Promise<T> {
+  let tail: Promise<unknown> = Promise.resolve()
+  return (task) => {
+    const run = tail.then(task)
+    tail = run.catch(() => undefined)
+    return run
+  }
+}
+
+/** Opening, closing and watching a pack: two quick opens never leave a watcher on the wrong pack. */
+const packOps = oneAtATime()
+/** Copies into resourcepacks: never two at once (Windows locks the files being copied). */
+const syncOps = oneAtATime()
+
 /** Watches folder packs for live updates; zip packs are read-only snapshots. */
 async function watchPack(source: PackSource | null): Promise<void> {
   const previous = packWatcher
   packWatcher = null
   await previous?.close()
-  // A new pack starts without automatic copy (it is turned on per pack, by hand).
+  // A new pack starts without automatic copy (it is turned on per pack, by hand), and a copy
+  // still pending for the previous pack is dropped.
   autoSync = false
   lastSync = null
+  if (syncTimer) clearTimeout(syncTimer)
+  syncTimer = null
   if (source?.kind === 'folder') {
     packWatcher = new PackWatcher(source.root, (batch) => {
       sendEvent('pack:filesChanged', batch)
@@ -166,9 +184,15 @@ async function syncStatus(): Promise<SyncStatus> {
   }
 }
 
-async function runSync(): Promise<SyncStatus> {
+function runSync(onlyGeneration: number | null = null): Promise<SyncStatus> {
+  return syncOps(() => mirrorNow(onlyGeneration))
+}
+
+/** `onlyGeneration`: an automatic copy, for that opened pack only (and only while still on). */
+async function mirrorNow(onlyGeneration: number | null): Promise<SyncStatus> {
   const current = getSource('pack')
-  if (current) {
+  const stale = onlyGeneration !== null && (!autoSync || current?.generation !== onlyGeneration)
+  if (current && !stale) {
     const check = await syncTargetFor(await minecraftDir(), current.source)
     if (check.ok) {
       try {
@@ -189,9 +213,11 @@ async function runSync(): Promise<SyncStatus> {
 
 function scheduleAutoSync(): void {
   if (syncTimer) clearTimeout(syncTimer)
+  const generation = getSource('pack')?.generation ?? null
+  if (generation === null) return
   syncTimer = setTimeout(() => {
     syncTimer = null
-    void runSync().then((status) => sendEvent('sync:changed', status))
+    void runSync(generation).then((status) => sendEvent('sync:changed', status))
   }, AUTO_SYNC_DELAY_MS)
 }
 
@@ -299,10 +325,14 @@ const handlers: IpcHandlers = {
   'pack:create': (request) => createPack(request),
 
   'pack:open': async (path) => {
-    const result = await openPack(path)
+    const result = await packOps(async () => {
+      const opened = await openPack(path)
+      if (!opened.ok) return opened
+      setSource('pack', opened.source)
+      await watchPack(opened.source)
+      return opened
+    })
     if (!result.ok) return result
-    setSource('pack', result.source)
-    await watchPack(result.source)
     const { path: packPath, name, kind } = result.pack
     try {
       await settings().modify((current) => ({
@@ -339,10 +369,11 @@ const handlers: IpcHandlers = {
     }
   },
 
-  'pack:close': async () => {
-    closeSource('pack')
-    await watchPack(null)
-  },
+  'pack:close': () =>
+    packOps(async () => {
+      closeSource('pack')
+      await watchPack(null)
+    }),
 
   'pack:refreshSummary': async () => {
     const current = getSource('pack')

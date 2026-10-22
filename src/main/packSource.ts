@@ -33,7 +33,8 @@ export interface PackFileList {
  * `.` or `..` segments, not absolute, no NUL or backslash.
  */
 export function isSafePackPath(path: string): boolean {
-  if (path.length === 0 || path.startsWith('/') || /[\\\0]/.test(path)) return false
+  // ':' is never part of a resource location; on Windows it means a drive (C:) or an NTFS stream.
+  if (path.length === 0 || path.startsWith('/') || /[\\\0:]/.test(path)) return false
   return path.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..')
 }
 

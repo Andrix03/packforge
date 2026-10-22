@@ -50,7 +50,9 @@ describe('isSafePackPath', () => {
     'a/./b.png',
     'a//b.png',
     'a\\b.png',
-    'a\0.png'
+    'a\0.png',
+    'C:/x.png',
+    'assets/stone.png:stream'
   ])('rejects %j', (path) => expect(isSafePackPath(path)).toBe(false))
 })
 

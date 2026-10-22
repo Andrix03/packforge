@@ -208,16 +208,16 @@ Audit + research: `docs/RESEARCH-2026-10-19.md`. Mockup of the new interface: de
 
 ## Phase 12a — Fix pass (audit findings)
 
-- [ ] Backup restore: the "before restoring" backup must not prune the backup being restored
-- [ ] Atomic writes: unique temp names + one write at a time per file; `pack.mcmeta` edits serialized; `renameRetrying` everywhere
-- [ ] Editor shortcuts off while the editor is hidden (Prova) or a dialog is open
-- [ ] Editor reload (tall plant, whole/half toggle) never drops unsaved work; History/state reset with it; map surface reset in tall mode, tall drafts + external-change watch
-- [ ] SSR feedback loop (screen-space reflections dead after the first frame)
-- [ ] Plant shape models: `"shade": false` for packs before 26.3 (`shade_direction_override` from 26.3)
-- [ ] Auto-sync: cancel the pending sync on pack switch, one sync at a time, case-only renames on Windows; serialized pack open/watch
-- [ ] PNG decode with an output cap; non-integer frame sizes in resize; vanilla-copy check enforced in the exporter
-- [ ] Editor: merge-down with lower layer opacity, frame ops restructure `_n`/`_s`, "Togli animazione" undoable, drafts with maps
-- [ ] Animation frame size with only `width` or `height`: verify against the game code, then fix if needed
+- [x] Backup restore: the "before restoring" backup must not prune the backup being restored
+- [x] Atomic writes: unique temp names + one write at a time per file; `pack.mcmeta` edits serialized; `renameRetrying` everywhere — `main/atomicWrite.ts`
+- [x] Editor shortcuts off while the editor is hidden (Prova) or a dialog is open
+- [x] Editor reload (tall plant, whole/half toggle) never drops unsaved work; History/state reset with it; map surface reset in tall mode, tall drafts + external-change watch
+- [x] SSR feedback loop (screen-space reflections dead after the first frame) — drive scenarios now fail on any WebGL error (found a second one: live textures that change size)
+- [x] Plant shape models: `"shade": false` for packs before 26.3 (`shade_direction_override` from 26.3) — both written (26.3 ignores `shade`, checked with javap)
+- [x] Auto-sync: cancel the pending sync on pack switch, one sync at a time, case-only renames on Windows; serialized pack open/watch
+- [x] PNG decode with an output cap; non-integer frame sizes in resize; vanilla-copy check enforced in the exporter
+- [x] Editor: merge-down with lower layer opacity, frame ops restructure `_n`/`_s`, "Togli animazione" undoable, drafts with maps
+- [x] Animation frame size with only `width` or `height`: verify against the game code, then fix if needed — 26.3 `calculateFrameSize`: the other side is the image's own
 - [ ] Smaller items of the report (ignored IPC results, double-submit, WebGL context loss, dialogs re-scanning the pack, 128×+ painting speed)
 
 ## Phase 12b — New interface

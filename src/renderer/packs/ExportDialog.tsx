@@ -12,6 +12,7 @@ import {
 } from '../../shared/exportPlan'
 import { RESOLUTIONS } from '../../shared/resize'
 import { useEscape } from '../useEscape'
+import { useSingleFlight } from '../useSingleFlight'
 
 type Phase =
   | { status: 'setup' }
@@ -72,7 +73,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
   const versionOk = validVersion(project.version)
   const blocking = (check?.errors.length ?? 0) > 0
 
-  async function exportAll(): Promise<void> {
+  const exportAll = useSingleFlight(async (): Promise<void> => {
     if (
       blocking &&
       !window.confirm('Il controllo ha trovato errori (vedi sopra). Esportare comunque?')
@@ -80,7 +81,17 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
       return
     }
     setPhase({ status: 'working', text: 'Salvo il progetto…' })
-    await window.api.invoke('project:save', project)
+    // The zip takes its version and changelog from the saved project: stop if it wasn't saved.
+    const saved = await window.api.invoke('project:save', project)
+    if (!saved.ok) {
+      const error = `Impossibile salvare versione e note del progetto: ${saved.error ?? 'errore sconosciuto'}`
+      setPhase({
+        status: 'done',
+        results: variants.map((variant) => ({ variant, result: { ok: false, error } })),
+        listing: null
+      })
+      return
+    }
     const results: Array<{ variant: ExportVariant; result: ExportResult }> = []
     for (const variant of variants) {
       setPhase({ status: 'working', text: `Creo lo zip ${variantLabel(variant)}…` })
@@ -96,7 +107,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
       listing = await window.api.invoke('export:listing', dir)
     }
     setPhase({ status: 'done', results, listing })
-  }
+  })
 
   if (phase.status !== 'setup') {
     return (
@@ -347,7 +358,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
             type="button"
             className="primary"
             disabled={variants.length === 0 || !versionOk || !info}
-            onClick={() => void exportAll()}
+            onClick={() => exportAll()}
           >
             Esporta {variants.length === 1 ? '1 zip' : `${variants.length} zip`}
           </button>

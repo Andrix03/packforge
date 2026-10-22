@@ -18,6 +18,7 @@ import { mapMcmeta } from '../editor/frames'
 import { backupBefore } from './backup'
 import { errorMessage, fetchText, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
+import { useSingleFlight } from '../useSingleFlight'
 
 type ColorMode = 'game' | 'dye'
 
@@ -137,7 +138,7 @@ export function VariantsDialog({
   const toWrite = chosen.filter((v) => !v.exists || overwrite)
   const overwriting = toWrite.filter((v) => v.exists).length
 
-  async function create(): Promise<void> {
+  const create = useSingleFlight(async (): Promise<void> => {
     if (!loaded) return
     if (
       overwriting > 0 &&
@@ -199,7 +200,10 @@ export function VariantsDialog({
           )
           if (!copied.ok) throw new Error(copied.error)
           const meta = mapMcmeta(mcmetaText, png.width / loaded.width)
-          if (meta !== null) await window.api.invoke('texture:saveMcmeta', target, meta)
+          if (meta !== null) {
+            const metaSaved = await window.api.invoke('texture:saveMcmeta', target, meta)
+            if (!metaSaved.ok) throw new Error(metaSaved.error)
+          }
         }
       } catch (error) {
         errors.push(`${variant.name}: ${errorMessage(error)}`)
@@ -207,7 +211,7 @@ export function VariantsDialog({
       setPhase({ status: 'running', done: index + 1, total: toWrite.length })
     }
     setPhase({ status: 'done', written, errors })
-  }
+  })
 
   if (phase.status !== 'setup') {
     return (
@@ -354,7 +358,7 @@ export function VariantsDialog({
             type="button"
             className="primary"
             disabled={toWrite.length === 0 || !loaded}
-            onClick={() => void create()}
+            onClick={() => create()}
           >
             Crea {toWrite.length === 1 ? '1 texture' : `${toWrite.length} texture`}
           </button>

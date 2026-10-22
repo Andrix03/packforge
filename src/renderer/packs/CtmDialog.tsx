@@ -26,6 +26,7 @@ import { Range } from '../editor/GeneratorPanel'
 import { backupBefore } from './backup'
 import { errorMessage, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
+import { useSingleFlight } from '../useSingleFlight'
 
 /** Wall used by the preview: 1 = block, 0 = gap (shows outer, inner corners and lines). */
 const WALL = [
@@ -96,7 +97,7 @@ export function CtmDialog({
   const exists = [...pack.files].some((path) => path.startsWith(`${folder}/`))
   const centers = textures.filter((t) => t.albedo !== source.albedo)
 
-  async function create(): Promise<void> {
+  const create = useSingleFlight(async (): Promise<void> => {
     if (!loaded || problem) return
     if (
       exists &&
@@ -170,7 +171,7 @@ export function CtmDialog({
     )
     if (!properties.ok) errors.push(properties.error)
     setPhase({ status: 'done', written, errors, folder })
-  }
+  })
 
   if (phase.status !== 'setup') {
     return (
@@ -281,7 +282,7 @@ export function CtmDialog({
             type="button"
             className="primary"
             disabled={!loaded || problem !== null}
-            onClick={() => void create()}
+            onClick={() => create()}
           >
             Crea i 47 tile
           </button>

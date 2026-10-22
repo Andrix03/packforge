@@ -14,6 +14,7 @@ import { backupBefore } from './backup'
 import { runBatch, type BatchResult } from './runBatch'
 import type { ValidatorSource } from './runValidator'
 import { useEscape } from '../useEscape'
+import { useSingleFlight } from '../useSingleFlight'
 
 /** Rows drawn at most in the texture list (the filter narrows big packs). */
 const MAX_ROWS = 400
@@ -84,7 +85,7 @@ export function BatchDialog({
       return next
     })
 
-  async function apply(): Promise<void> {
+  const apply = useSingleFlight(async (): Promise<void> => {
     if (
       counts.overwrite > 0 &&
       !window.confirm(
@@ -123,7 +124,7 @@ export function BatchDialog({
       (done, total) => setPhase({ status: 'running', done, total })
     )
     setPhase({ status: 'done', result })
-  }
+  })
 
   if (phase.status !== 'setup') {
     return (
@@ -306,12 +307,7 @@ export function BatchDialog({
           Crea {counts.create} · sovrascrive {counts.overwrite} · salta {counts.skip}
         </p>
         <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={work === 0}
-            onClick={() => void apply()}
-          >
+          <button type="button" className="primary" disabled={work === 0} onClick={() => apply()}>
             Applica a {work === 1 ? '1 mappa' : `${work} mappe`}
           </button>
           <button type="button" onClick={onClose}>

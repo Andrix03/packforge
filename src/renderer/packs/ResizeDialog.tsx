@@ -12,6 +12,7 @@ import type { TextureEntry } from '../../shared/textures'
 import { backupBefore } from './backup'
 import { errorMessage, fetchBytes, fetchText, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
+import { useSingleFlight } from '../useSingleFlight'
 
 /** Rows drawn at most (the filter narrows big packs). */
 const MAX_ROWS = 400
@@ -123,7 +124,7 @@ export function ResizeDialog({
     return { files, lossy, errors }
   }
 
-  async function apply(): Promise<void> {
+  const apply = useSingleFlight(async (): Promise<void> => {
     setPhase({ status: 'working', text: 'Preparo…' })
     const { files, lossy, errors } = await prepare()
     const question =
@@ -157,12 +158,18 @@ export function ResizeDialog({
         errors.push(`${file.path.split('/').pop()}: ${saved.error}`)
         continue
       }
-      if (file.mcmeta !== null)
-        await window.api.invoke('texture:saveMcmeta', file.path, file.mcmeta)
+      if (file.mcmeta !== null) {
+        // The PNG has the new size: an old .png.mcmeta would break its animation.
+        const meta = await window.api.invoke('texture:saveMcmeta', file.path, file.mcmeta)
+        if (!meta.ok) {
+          errors.push(`${file.path.split('/').pop()}.mcmeta: ${meta.error}`)
+          continue
+        }
+      }
       written++
     }
     setPhase({ status: 'done', written, errors })
-  }
+  })
 
   if (phase.status !== 'setup') {
     return (
@@ -304,7 +311,7 @@ export function ResizeDialog({
             type="button"
             className="primary"
             disabled={work.length === 0}
-            onClick={() => void apply()}
+            onClick={() => apply()}
           >
             Ridimensiona {work.length === 1 ? '1 texture' : `${work.length} texture`}
           </button>

@@ -17,6 +17,7 @@ import {
   type AssetSources
 } from '../preview/modelSource'
 import { useEscape } from '../useEscape'
+import { useSingleFlight } from '../useSingleFlight'
 
 interface Plan {
   block: string
@@ -124,7 +125,7 @@ export function RandomVariantsDialog({
   const names = variantNames(name, count, taken)
   const inPack = sources.pack.files.has(path)
 
-  async function create(): Promise<void> {
+  const create = useSingleFlight(async (): Promise<void> => {
     if (typeof plan !== 'object' || plan === null) return
     const id = textureId(path)!
     const pack = sources.pack
@@ -214,7 +215,7 @@ export function RandomVariantsDialog({
       errors.push(errorMessage(error))
     }
     setPhase({ status: 'done', created, written, errors })
-  }
+  })
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -306,7 +307,7 @@ export function RandomVariantsDialog({
                   typeof plan !== 'object' || plan === null || !inPack || phase.status === 'working'
                 }
                 title={inPack ? '' : 'Salva prima la texture nel pack'}
-                onClick={() => void create()}
+                onClick={() => create()}
               >
                 Crea {names.length} varianti
               </button>

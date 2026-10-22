@@ -99,6 +99,7 @@ export default async function fixpass(app) {
 
   await framesAndMaps(app)
   await draftWithMaps(app)
+  await doubleClick(app)
 }
 
 // ---- Frames: the LabPBR maps follow the albedo's frames; "Togli animazione" can be undone.
@@ -180,6 +181,28 @@ async function draftWithMaps(app) {
   await app.key('z', ['ctrl'])
   await app.sleep(300)
   app.check((await app.editor.color(2, 2)) === 'Emissione: 0', 'one Ctrl+Z undoes the whole draft')
+}
+
+// ---- A double click on a dialog's action runs it once.
+async function doubleClick(app) {
+  await app.click('Chiudi editor', '.editor-header button')
+  await app.waitFor(`document.querySelector('.texture-tile')`, 10000)
+  await app.click('📦 Esporta')
+  await app.waitFor(`document.querySelector('[data-testid=export-check]')`, 20000)
+  await app.sleep(300)
+  const before = app.dialogs.length
+  await app.ev(`(() => {
+    const button = [...document.querySelectorAll('[aria-label=Esporta] button')].find((b) => b.textContent.startsWith('Esporta '))
+    button.click()
+    button.click()
+  })()`)
+  await app.waitFor(`document.querySelector('[data-testid=export-results]')`, 60000)
+  const asked = app.dialogs.slice(before).filter((d) => d.includes('Sovrascriverlo'))
+  app.check(asked.length === 0, `a double click exports once (${asked.length} overwrite questions)`)
+  const results = await app.ev(
+    `document.querySelectorAll('[data-testid=export-results] li').length`
+  )
+  app.check(results === 1, `one result (${results})`)
 }
 
 /** "W×H" from a PNG's IHDR. */

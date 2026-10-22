@@ -9,6 +9,7 @@ import {
 import { fromHex, toHex, type Rgba } from '../editor/pixels'
 import { decodePng } from '../../shared/pngCodec'
 import { useEscape } from '../useEscape'
+import { useSingleFlight } from '../useSingleFlight'
 
 export interface NewTextureRequest {
   folder: string
@@ -61,7 +62,7 @@ export function NewTextureDialog({
     validateTextureName(name) ??
     (existing.has(path) ? 'Questa texture esiste già nel pack: aprila dalla griglia.' : null)
 
-  async function create(): Promise<void> {
+  const create = useSingleFlight(async (): Promise<void> => {
     if (problem) return
     setBusy(true)
     setError(null)
@@ -95,7 +96,7 @@ export function NewTextureDialog({
     } finally {
       setBusy(false)
     }
-  }
+  })
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onCancel}>
@@ -106,7 +107,7 @@ export function NewTextureDialog({
         onClick={(event) => event.stopPropagation()}
         onSubmit={(event) => {
           event.preventDefault()
-          void create()
+          create()
         }}
       >
         <h2>Nuova texture</h2>

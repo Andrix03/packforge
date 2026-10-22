@@ -16,6 +16,7 @@ import { backupBefore } from '../packs/backup'
 import { errorMessage, loadPng } from '../packs/packFetch'
 import { resolveAssetUrl, type AssetSources, type GrowthStage } from '../preview/modelSource'
 import { useEscape } from '../useEscape'
+import { useSingleFlight } from '../useSingleFlight'
 
 /** A model of the plant to reshape, and the one texture it draws. */
 interface Target {
@@ -116,7 +117,7 @@ export function PlantShapeDialog({
   const base = path.replace(/_v\d+\.png$/, '.png')
   const chosen = (targets ?? []).filter((t) => allStages || t.path === base)
 
-  async function apply(): Promise<void> {
+  const apply = useSingleFlight(async (): Promise<void> => {
     const tops = shape === 'tall' ? chosen.map((t) => texturePath(topTextureId(t.texture))) : []
     const newTops = tops.filter((top) => !sources.pack.files.has(top))
     const touched = [...chosen.map((t) => modelPath(t.model)), ...newTops]
@@ -158,7 +159,7 @@ export function PlantShapeDialog({
       }
     }
     setPhase({ status: 'done', written, errors })
-  }
+  })
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -232,7 +233,7 @@ export function PlantShapeDialog({
                 type="button"
                 className="primary"
                 disabled={chosen.length === 0 || phase.status === 'working'}
-                onClick={() => void apply()}
+                onClick={() => apply()}
               >
                 Applica la forma
               </button>

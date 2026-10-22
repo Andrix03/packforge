@@ -198,13 +198,21 @@ export function PreviewPanel({
         }
         const reports = await view.setMesh(cubeMesh(target.key, target.url, target.mcmetaUrl))
         if (current && reports[0]) setStatus(describeTexture(reports[0]))
-        if (current) onBlockTextures?.([])
+        if (current) {
+          // A plain cube: no block faces, growth stages or variants to offer.
+          onBlockTextures?.([])
+          onGrowthStages?.([])
+          setStages([])
+          setVariants([])
+        }
         return
       }
       if (!sources || !block) {
         await view.setMesh([])
         if (current) {
           setVariants([])
+          setStages([])
+          onGrowthStages?.([])
           setStatus(null)
         }
         return

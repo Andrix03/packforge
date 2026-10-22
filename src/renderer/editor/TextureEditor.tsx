@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { assetUrl, type DraftMaps, type TextureDraft } from '../../shared/ipc'
 import { decodePng } from '../../shared/pngCodec'
 import type { EditorMode } from '../../shared/settings'
@@ -321,15 +321,18 @@ export function TextureEditor({
   )
   // The composite is mutated in place: `revision` is what tells us it changed. One pass over the
   // pixels each, cheap even at 64×.
+  // Deferred: while a stroke on a big texture keeps the main thread busy, React skips the
+  // in-between revisions instead of recounting every pixel on each pointer move.
+  const settledRevision = useDeferredValue(revision)
   const palette = useMemo(
     () => (editDoc ? usedColors(editDoc.composite) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [editDoc, revision]
+    [editDoc, settledRevision]
   )
   const advice = useMemo(
     () => (doc && showTips && surface === 'color' ? analyzeTexture(doc.composite) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [doc, revision, showTips, surface]
+    [doc, settledRevision, showTips, surface]
   )
   const previewTarget = useMemo<PreviewTarget>(
     () => ({
@@ -354,51 +357,64 @@ export function TextureEditor({
     }
   }, [channelId])
 
-  /** Recomposites, updates the display canvas and re-renders everything that depends on it. */
-  const refresh = useCallback(() => {
-    if (!doc || !source) return
-    const animation = animationNow.current
-    // Keep the editable area on a whole frame (frames may have been added/removed by undo).
-    if (animation) {
-      const count = Math.max(1, Math.round(doc.height / animation.frameHeight))
-      const index = Math.min(count - 1, Math.floor(doc.view.y0 / animation.frameHeight))
-      const aligned =
-        doc.view.y0 === index * animation.frameHeight &&
-        doc.view.y1 === (index + 1) * animation.frameHeight - 1
-      if (!aligned) doc.setFrameView(animation.frameHeight, index)
-    } else if (doc.view.y0 !== 0 || doc.view.y1 !== doc.height - 1) {
-      doc.setFrameView(null)
-    }
-    doc.recomposite()
-    putBuffer(source, doc.composite)
-    if (tallCanvases) {
-      const rows = tallCanvases.split * doc.width * 4
-      const { width, height, data } = doc.composite
-      putBuffer(tallCanvases.upper, {
-        width,
-        height: tallCanvases.split,
-        data: data.subarray(0, rows)
-      })
-      putBuffer(tallCanvases.lower, {
-        width,
-        height: height - tallCanvases.split,
-        data: data.subarray(rows)
-      })
-    }
-    let floating = doc.floating !== null
-    for (const map of Object.values(maps ?? {})) map.sync()
-    for (const def of CHANNELS) {
-      const canvas = channelCanvases?.[def.id]
-      const map = maps?.[def.map]
-      if (!canvas || !map) continue
-      const proxy = map.proxy(def)
-      putBuffer(canvas, proxy.composite)
-      floating ||= proxy.floating !== null
-    }
-    setRevision((r) => r + 1)
-    // A moved piece not yet put down, or new animation settings, are changes too.
-    setModified(history.modified || floating || animationDirty.current)
-  }, [doc, source, history, maps, channelCanvases, tallCanvases])
+  /**
+   * Recomposites, updates the display canvases and re-renders everything that depends on them.
+   * `painted`: what a stroke in progress changed (the colors or one channel): only that is
+   * recomposited. Without it (undo, commit, frames…) everything is.
+   */
+  const refresh = useCallback(
+    (painted?: 'color' | ChannelId) => {
+      if (!doc || !source) return
+      const animation = animationNow.current
+      // Keep the editable area on a whole frame (frames may have been added/removed by undo).
+      if (animation) {
+        const count = Math.max(1, Math.round(doc.height / animation.frameHeight))
+        const index = Math.min(count - 1, Math.floor(doc.view.y0 / animation.frameHeight))
+        const aligned =
+          doc.view.y0 === index * animation.frameHeight &&
+          doc.view.y1 === (index + 1) * animation.frameHeight - 1
+        if (!aligned) doc.setFrameView(animation.frameHeight, index)
+      } else if (doc.view.y0 !== 0 || doc.view.y1 !== doc.height - 1) {
+        doc.setFrameView(null)
+      }
+      if (painted === undefined || painted === 'color') {
+        doc.recomposite()
+        putBuffer(source, doc.composite)
+      }
+      if (tallCanvases && (painted === undefined || painted === 'color')) {
+        const rows = tallCanvases.split * doc.width * 4
+        const { width, height, data } = doc.composite
+        putBuffer(tallCanvases.upper, {
+          width,
+          height: tallCanvases.split,
+          data: data.subarray(0, rows)
+        })
+        putBuffer(tallCanvases.lower, {
+          width,
+          height: height - tallCanvases.split,
+          data: data.subarray(rows)
+        })
+      }
+      let floating = doc.floating !== null
+      if (painted === undefined) {
+        for (const map of Object.values(maps ?? {})) map.sync()
+      } else if (painted !== 'color') {
+        maps?.[channelDef(painted).map]?.sync(painted)
+      }
+      for (const def of CHANNELS) {
+        const canvas = channelCanvases?.[def.id]
+        const map = maps?.[def.map]
+        if (!canvas || !map) continue
+        const proxy = map.proxy(def)
+        if (painted === undefined || painted === def.id) putBuffer(canvas, proxy.composite)
+        floating ||= proxy.floating !== null
+      }
+      setRevision((r) => r + 1)
+      // A moved piece not yet put down, or new animation settings, are changes too.
+      setModified(history.modified || floating || animationDirty.current)
+    },
+    [doc, source, history, maps, channelCanvases, tallCanvases]
+  )
 
   const autoRegenerate = channel?.id === 'height' && generator.auto && editedMap !== null
   const commit = useCallback(
@@ -1406,7 +1422,7 @@ export function TextureEditor({
               canRedo={history.canRedo}
               onUndo={undo}
               onRedo={redo}
-              onPainted={refresh}
+              onPainted={() => refresh(channel?.id ?? 'color')}
               onCommit={commit}
               trace={
                 channel

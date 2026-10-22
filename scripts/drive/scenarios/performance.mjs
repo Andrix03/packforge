@@ -33,6 +33,22 @@ export default async function performance(app) {
       [511, 260]
     ])
   )
+  // A long stroke: main-thread time per pointer move (renderer task time from CDP metrics).
+  const taskSeconds = async () =>
+    (await app.send('Performance.getMetrics')).result.metrics.find((m) => m.name === 'TaskDuration')
+      .value
+  await app.send('Performance.enable')
+  const moves = Array.from({ length: 120 }, (_, i) => [
+    Math.floor((i / 120) * 511),
+    Math.floor(256 + Math.sin(i / 8) * 128)
+  ])
+  const before = await taskSeconds()
+  await app.editor.draw(moves)
+  await app.sleep(800)
+  const perMove = (((await taskSeconds()) - before) * 1000) / moves.length
+  app.check(perMove < 20, `long pencil stroke: ${perMove.toFixed(1)} ms of work per pointer move`)
+  await app.key('z', ['ctrl'])
+
   await timed('add a layer', () => app.click('+ Nuovo', '.layer-actions button'))
   await timed('layer opacity change', () => app.setValue('.layers-panel input[type=range]', 40))
   await timed('select all + flip (Shift+H)', async () => {

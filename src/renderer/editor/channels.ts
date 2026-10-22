@@ -220,15 +220,17 @@ export function normalBlue(red: number, green: number): number {
  * Writes a proxy's composite back into its channel of `map`. Pixels whose shown gray already
  * matches are left alone, so an untouched map keeps its bytes exactly (e.g. emission 255).
  */
-export function syncProxy(channel: ChannelDef, proxy: PixelBuffer, map: PixelBuffer): void {
+export function syncProxy(channel: ChannelDef, proxy: PixelBuffer, map: PixelBuffer): boolean {
   const src = proxy.data
   const dst = map.data
+  let changed = false
   for (let i = 0; i < src.length; i += 4) {
     const alpha = src[i + 3]!
     if (channel.id === 'normal') {
-      if (alpha === 0) continue
+      if (alpha === 0 || (dst[i] === src[i] && dst[i + 1] === src[i + 1])) continue
       dst[i] = src[i]!
       dst[i + 1] = src[i + 1]!
+      changed = true
       continue
     }
     const gray =
@@ -236,8 +238,12 @@ export function syncProxy(channel: ChannelDef, proxy: PixelBuffer, map: PixelBuf
         ? src[i]!
         : Math.round((src[i]! * alpha + channel.neutral * (255 - alpha)) / 255)
     const at = i + channel.index
-    if (toGray(channel, dst[at]!) !== gray) dst[at] = fromGray(channel, gray)
+    if (toGray(channel, dst[at]!) !== gray) {
+      dst[at] = fromGray(channel, gray)
+      changed = true
+    }
   }
+  return changed
 }
 
 /** Gray ramp for the shade and noise tools: five steps around `value`, darkest first. */
@@ -259,6 +265,8 @@ export class EditedMap {
   readonly buffer: PixelBuffer
   private saved: Uint8Array
   private readonly proxies = new Map<ChannelId, EditorDocument>()
+  /** `dirty` compares every byte: kept until the bytes or the saved state change. */
+  private dirtyCache: boolean | null = null
 
   constructor(
     readonly kind: MapKind,
@@ -287,16 +295,25 @@ export class EditedMap {
     return doc
   }
 
-  /** Recomposites every proxy and writes it into the map. */
-  sync(): void {
+  /**
+   * Recomposites the proxies and writes them into the map: all of them, or only `only` (the
+   * channel being painted: a stroke changes nothing else, and at 512× each proxy costs).
+   */
+  sync(only?: ChannelId): void {
     for (const [id, doc] of this.proxies) {
+      if (only !== undefined && id !== only) continue
       doc.recomposite()
-      syncProxy(channelDef(id), doc.composite, this.buffer)
+      if (syncProxy(channelDef(id), doc.composite, this.buffer)) this.dirtyCache = null
     }
   }
 
   /** The bytes differ from the file (or, for a new map, from the neutral one). */
   get dirty(): boolean {
+    this.dirtyCache ??= this.differsFromSaved()
+    return this.dirtyCache
+  }
+
+  private differsFromSaved(): boolean {
     const data = this.buffer.data
     // Frames added or removed since: a different size is a change even if the start matches.
     if (data.length !== this.saved.length) return true
@@ -334,6 +351,7 @@ export class EditedMap {
       // A map never written stays "unpainted": its saved state is the neutral map of this size.
       // A map on disk keeps what the file holds (a different size counts as a change).
       if (!this.existed) this.saved = new Uint8Array(newMap(this.kind, this.width, to.height).data)
+      this.dirtyCache = null
     }
     apply(state)
     const proxies = [...this.proxies].map(([id, doc]) => {
@@ -353,5 +371,6 @@ export class EditedMap {
   markSaved(bytes: Uint8Array = new Uint8Array(this.buffer.data)): void {
     this.saved = bytes
     this.existed = true
+    this.dirtyCache = null
   }
 }

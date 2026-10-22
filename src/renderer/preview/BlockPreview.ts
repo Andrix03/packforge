@@ -657,6 +657,9 @@ export class BlockPreview {
     this.comparing = compare !== null
     this.main.models = main.map((m) => m.loaded)
     this.other.models = other.map((m) => m.loaded)
+    // The scene may have changed while the textures loaded: lay the mesh out for the current one.
+    const mesh = this.main.models[0]
+    if (single && mesh) mesh.positions = SCENE_LAYOUTS[this.sceneKind]
     this.animationStart = performance.now()
     this.layout(this.main)
     this.layout(this.other)

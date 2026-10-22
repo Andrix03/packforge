@@ -1022,6 +1022,10 @@ export class BlockPreview {
       return
     }
     u.ssrOn.value = false
+    // Unbind last frame's SSR inputs: they ARE composer.base, and sampling the target being drawn
+    // is a feedback loop (WebGL skips the draw, SSR then silently shows only the capture).
+    u.ssrDepth.value = null
+    u.ssrColor.value = null
     side.hand.visible = false
     this.renderer.setRenderTarget(composer.base)
     this.renderer.clear()

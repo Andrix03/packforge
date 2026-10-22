@@ -166,4 +166,12 @@ describe('decodePng', () => {
     const file = png(20000, 1, 8, 6, [[]])
     expect(decodePng(file).ok).toBe(false)
   })
+
+  it('inflates no more than the rows need (a 1×1 image with 4 MB of IDAT stays 1×1)', () => {
+    // Row 0 is the real pixel; the rest is padding a decompression bomb would add.
+    const rows = [[9, 8, 7, 255], ...Array.from({ length: 1024 }, () => new Array(4096).fill(0))]
+    const file = png(1, 1, 8, 6, rows)
+    expect(file.length).toBeLessThan(20_000)
+    expect(pixels(decodePng(file))).toEqual([[9, 8, 7, 255]])
+  })
 })

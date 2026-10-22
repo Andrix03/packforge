@@ -601,7 +601,8 @@ const handlers: IpcHandlers = {
       info: await readProject(root),
       variant: parsed,
       dir: dir ?? defaultExportDir(root),
-      overwrite: overwrite === true
+      overwrite: overwrite === true,
+      vanilla: getSource('vanilla')?.source ?? null
     })
   },
 

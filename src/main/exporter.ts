@@ -78,16 +78,7 @@ export async function checkExport(
   }
   if (!files.includes('pack.png')) check.warnings.push('Manca pack.png: il pack non avrà un’icona.')
   if (vanilla?.kind === 'zip') {
-    const candidates = new Set(
-      files.filter((p) => p.endsWith('.png') && p.startsWith('assets/minecraft/'))
-    )
-    const entries = unzipSync(vanilla.data, { filter: (f) => candidates.has(f.name) })
-    for (const [path, theirs] of Object.entries(entries)) {
-      const mine = decodePng(await readFile(join(source.root, ...path.split('/'))))
-      const game = decodePng(theirs)
-      if (mine.ok && game.ok && samePixels(mine.image, game.image)) check.vanillaCopies.push(path)
-    }
-    check.vanillaCopies.sort()
+    check.vanillaCopies = await findVanillaCopies(source.root, files, vanilla.data)
     if (check.vanillaCopies.length > 0) {
       check.errors.push(
         `${check.vanillaCopies.length} texture sono identiche a quelle del gioco: non si possono ridistribuire (e non servono, il gioco le ha già). Toglile dal pack.`
@@ -104,6 +95,25 @@ export async function checkExport(
     )
   }
   return check
+}
+
+/** Pack PNGs whose pixels equal the game's texture at the same path (never redistributable). */
+async function findVanillaCopies(
+  root: string,
+  files: readonly string[],
+  jar: Uint8Array
+): Promise<string[]> {
+  const candidates = new Set(
+    files.filter((p) => p.endsWith('.png') && p.startsWith('assets/minecraft/'))
+  )
+  const entries = unzipSync(jar, { filter: (f) => candidates.has(f.name) })
+  const copies: string[] = []
+  for (const [path, theirs] of Object.entries(entries)) {
+    const mine = decodePng(await readFile(join(root, ...path.split('/'))))
+    const game = decodePng(theirs)
+    if (mine.ok && game.ok && samePixels(mine.image, game.image)) copies.push(path)
+  }
+  return copies.sort()
 }
 
 function samePixels(
@@ -127,6 +137,8 @@ export async function buildExport(
     variant: ExportVariant
     dir: string
     overwrite: boolean
+    /** The loaded client jar: an export never contains the game's own textures. */
+    vanilla?: PackSource | null
   }
 ): Promise<ExportResult> {
   if (source.kind !== 'folder') return { ok: false, error: 'Solo i pack in cartella si esportano.' }
@@ -155,6 +167,16 @@ export async function buildExport(
   }
 
   const { files } = await listPackFiles(source)
+  // The dialog shows this check first; main enforces it whatever the renderer says.
+  if (options.vanilla?.kind === 'zip') {
+    const copies = await findVanillaCopies(root, files, options.vanilla.data)
+    if (copies.length > 0) {
+      return {
+        ok: false,
+        error: `${copies.length} texture sono identiche a quelle del gioco (es. ${copies[0]}): toglile dal pack prima di esportare.`
+      }
+    }
+  }
   const zip: Zippable = {}
   /** Textures left at their size in a resolution variant (no integer ratio). */
   const kept: string[] = []

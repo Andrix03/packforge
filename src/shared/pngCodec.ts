@@ -97,15 +97,25 @@ function decode(bytes: Uint8Array): DecodedPng {
   if (width * height > MAX_IMAGE_PIXELS) throw new PngError('Il PNG è troppo grande.')
   if (colorType === 3 && !palette) throw new PngError('PNG a palette senza palette.')
 
-  const raw = unzlibSync(concat(idat))
   const channels = CHANNELS[colorType]!
   const bitsPerPixel = channels * depth
   const bytesPerPixel = Math.max(1, bitsPerPixel >> 3)
+  const passes = interlace === 1 ? ADAM7 : ([[0, 0, 1, 1]] as const)
+  // Inflate into a buffer of exactly the size the rows need: a "zip bomb" IDAT can't grow it
+  // (fflate drops what doesn't fit), and anything shorter is reported as truncated below.
+  let expected = 0
+  for (const [x0, y0, dx, dy] of passes) {
+    const passWidth = Math.ceil((width - x0) / dx)
+    const passHeight = Math.ceil((height - y0) / dy)
+    if (passWidth > 0 && passHeight > 0) {
+      expected += passHeight * (1 + Math.ceil((passWidth * bitsPerPixel) / 8))
+    }
+  }
+  const raw = unzlibSync(concat(idat), { out: new Uint8Array(expected) })
   const out = new Uint8Array(width * height * 4)
   const pixel = pixelReader(colorType, depth, palette, transparency)
 
   let position = 0
-  const passes = interlace === 1 ? ADAM7 : ([[0, 0, 1, 1]] as const)
   for (const [x0, y0, dx, dy] of passes) {
     const passWidth = Math.ceil((width - x0) / dx)
     const passHeight = Math.ceil((height - y0) / dy)

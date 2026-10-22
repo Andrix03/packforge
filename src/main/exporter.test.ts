@@ -122,6 +122,19 @@ describe('buildExport', () => {
     })
   })
 
+  it('refuses to zip textures identical to the loaded game jar (even if the dialog let it)', async () => {
+    const vanilla = {
+      kind: 'zip',
+      root: join(dir, 'v.jar'),
+      data: zipSync({ [`${B}stone.png`]: png(16, 120) })
+    } as const
+    const result = await buildExport(source(), { ...options(), vanilla })
+    expect(result).toMatchObject({ ok: false })
+    expect(result.ok || result.error).toContain('identiche')
+    const other = { ...vanilla, data: zipSync({ [`${B}stone.png`]: png(16, 7) }) }
+    expect((await buildExport(source(), { ...options(), vanilla: other })).ok).toBe(true)
+  })
+
   it('never overwrites without asking, and never writes inside the pack', async () => {
     expect((await buildExport(source(), options())).ok).toBe(true)
     const again = await buildExport(source(), options())

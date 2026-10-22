@@ -100,6 +100,7 @@ export default async function fixpass(app) {
   await framesAndMaps(app)
   await draftWithMaps(app)
   await doubleClick(app)
+  await contextLoss(app)
 }
 
 // ---- Frames: the LabPBR maps follow the albedo's frames; "Togli animazione" can be undone.
@@ -203,6 +204,36 @@ async function doubleClick(app) {
     `document.querySelectorAll('[data-testid=export-results] li').length`
   )
   app.check(results === 1, `one result (${results})`)
+}
+
+// ---- A16: the preview draws again after the GPU drops and restores the WebGL context.
+async function contextLoss(app) {
+  await app.click('Chiudi', '[aria-label=Esporta] button')
+  await app.openTexture('stone.png')
+  await app.sleep(1500)
+  const canvas = `document.querySelector('.editor-side .preview-canvas')`
+  const shot = async () => {
+    const rect = await app.ev(`(() => {
+      const r = ${canvas}.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    })()`)
+    return (
+      await app.send('Page.captureScreenshot', { format: 'png', clip: { ...rect, scale: 1 } })
+    ).result.data
+  }
+  await app.ev(
+    `(window.__lose = ${canvas}.getContext('webgl2').getExtension('WEBGL_lose_context')).loseContext()`
+  )
+  await app.sleep(800)
+  const lost = await shot()
+  await app.ev(`window.__lose.restoreContext()`)
+  await app.sleep(2000)
+  const back = await shot()
+  app.check(
+    back !== lost && back.length > lost.length * 2,
+    'the preview draws again after a context loss'
+  )
+  await app.shot('context-restored')
 }
 
 /** "W×H" from a PNG's IHDR. */

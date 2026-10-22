@@ -148,10 +148,7 @@ async function connect() {
       const text = data.params.args.map((a) => a.value ?? a.description).join(' ')
       results.push({ ok: false, label: `console error: ${text}` })
       console.log(`FAIL PAGE CONSOLE ERROR: ${text}`)
-    } else if (
-      data.method === 'Log.entryAdded' &&
-      /GL_INVALID|WebGL: CONTEXT_LOST/.test(data.params.entry.text)
-    ) {
+    } else if (data.method === 'Log.entryAdded' && /GL_INVALID/.test(data.params.entry.text)) {
       // WebGL errors (feedback loops, bad bindings) skip draws without throwing: fail on them.
       const text = data.params.entry.text
       results.push({ ok: false, label: `WebGL error: ${text}` })

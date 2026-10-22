@@ -342,6 +342,7 @@ export class BlockPreview {
     canvas.addEventListener('pointerdown', this.onPointerDown)
     canvas.addEventListener('pointermove', this.onPointerMove)
     canvas.addEventListener('pointerup', this.onPointerUp)
+    canvas.addEventListener('webglcontextrestored', this.onContextRestored)
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
     window.addEventListener('blur', this.onBlur)
@@ -608,6 +609,7 @@ export class BlockPreview {
     this.canvas.removeEventListener('pointerdown', this.onPointerDown)
     this.canvas.removeEventListener('pointermove', this.onPointerMove)
     this.canvas.removeEventListener('pointerup', this.onPointerUp)
+    this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored)
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
     window.removeEventListener('blur', this.onBlur)
@@ -1124,6 +1126,15 @@ export class BlockPreview {
 
   private onBlur = (): void => {
     this.pressed.clear()
+  }
+
+  /**
+   * The GPU dropped the WebGL context (driver reset, sleep, too many contexts) and gave it back.
+   * three.js rebuilds its GL state and re-uploads textures and targets on the next frame; the
+   * shadow map is drawn every frame anyway. Only the reflection capture lived on the GPU alone.
+   */
+  private onContextRestored = (): void => {
+    this.invalidateReflections()
   }
 
   /**

@@ -17,7 +17,7 @@ import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
 import { AdvicePanel } from './AdvicePanel'
-import { isTyping, putBuffer } from './canvasDraw'
+import { dialogOpen, isTyping, putBuffer } from './canvasDraw'
 import { addRecent, toRamp, usedColors } from './color'
 import { PalettesPanel } from './PalettesPanel'
 import type { SavedPalette } from '../../shared/settings'
@@ -727,6 +727,8 @@ export function TextureEditor({
   useEffect(() => {
     if (suspended) return
     const onKeyDown = (event: KeyboardEvent): void => {
+      // Behind a dialog (batch, export, compare…) the editor stays still, Ctrl+S included.
+      if (dialogOpen()) return
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
         void save()
@@ -1368,6 +1370,7 @@ export function TextureEditor({
                   ? doc.view.y0 - animation.frameHeight
                   : null
               }
+              suspended={suspended}
               {...(target.readOnly
                 ? {}
                 : { onTiling: (tiling: boolean) => setTools((t) => ({ ...t, tiling })) })}

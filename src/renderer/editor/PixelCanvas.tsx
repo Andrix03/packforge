@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { cssColor, drawCanvas, formatColor, isTyping } from './canvasDraw'
+import { cssColor, dialogOpen, drawCanvas, formatColor, isTyping } from './canvasDraw'
 import type { EditorDocument } from './document'
 import { pixelCommand, type Command } from './history'
 import {
@@ -89,6 +89,8 @@ interface PixelCanvasProps {
   onShowShortcuts: () => void
   /** Onion skin: row where the previous animation frame starts (null = off). */
   onionY: number | null
+  /** The editor is hidden behind another screen: keyboard shortcuts off. */
+  suspended?: boolean
   /** Status-bar text for the hovered pixel (default: its color). */
   describePixel?: (color: Rgba) => string
   /** Turns seamless mode on/off (absent when read-only). */
@@ -236,10 +238,12 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     return () => canvas.removeEventListener('wheel', onWheel)
   }, [updateViewport, toDevice])
 
-  const { onUndo, onRedo } = props
+  const { onUndo, onRedo, suspended } = props
   useEffect(() => {
+    // Hidden (the Test screen is open): no shortcuts, Space and Ctrl+Z belong to that screen.
+    if (suspended) return
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (isTyping(event)) return
+      if (isTyping(event) || dialogOpen()) return
       const key = event.key.toLowerCase()
       if ((event.ctrlKey || event.metaKey) && (key === 'z' || key === 'y')) {
         event.preventDefault()
@@ -271,8 +275,10 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
+      // A Space released while the listener was off would leave panning stuck.
+      spaceHeld.current = false
     }
-  }, [zoomCentered, onUndo, onRedo])
+  }, [zoomCentered, onUndo, onRedo, suspended])
 
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>): void {
     if (drag.current || stroke.current || shape.current || selectDrag.current || moveDrag.current)

@@ -67,6 +67,8 @@ const child = spawn(
     cwd: root,
     env: {
       ...process.env,
+      // Set by VS Code's terminals/extensions: it would start electron.exe as plain Node.
+      ELECTRON_RUN_AS_NODE: undefined,
       PACKFORGE_TEST_DIALOG_PATH: paths.pack,
       // No request to GitHub from the tests (a scenario may give its own feed, e.g. a data: URL).
       PACKFORGE_UPDATE_FEED: scenarioOptions.updateFeed ?? 'off',

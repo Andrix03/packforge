@@ -9,7 +9,7 @@ export function ShortcutsHelp({
   onClose: () => void
 }): React.JSX.Element {
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+    <div className="modal-backdrop editor-help" role="presentation" onClick={onClose}>
       <section
         className="card modal shortcuts-help"
         role="dialog"

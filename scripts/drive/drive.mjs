@@ -8,7 +8,7 @@
 // when a check fails or the scenario throws. Screenshots go to a temp folder printed at the end.
 
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdir, mkdtemp } from 'node:fs/promises'
+import { appendFile, mkdir, mkdtemp } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -70,6 +70,8 @@ const child = spawn(
       // Set by VS Code's terminals/extensions: it would start electron.exe as plain Node.
       ELECTRON_RUN_AS_NODE: undefined,
       PACKFORGE_TEST_DIALOG_PATH: paths.pack,
+      // app.answerNextDialog(path) queues the answer of the next open/folder dialog.
+      PACKFORGE_TEST_DIALOG_QUEUE: join(paths.userData, 'dialog-queue.txt'),
       // No request to GitHub from the tests (a scenario may give its own feed, e.g. a data: URL).
       PACKFORGE_UPDATE_FEED: scenarioOptions.updateFeed ?? 'off',
       // The first-run tutorial floats over the UI: only the scenarios about it turn it on.
@@ -212,6 +214,11 @@ function createApp(send) {
     paths,
     /** Messages of the dialogs shown so far. */
     dialogs,
+    /** The path the next native open/folder dialog returns (null = the user cancels). */
+    async answerNextDialog(path) {
+      await mkdir(paths.userData, { recursive: true })
+      await appendFile(join(paths.userData, 'dialog-queue.txt'), `${path ?? '-'}\n`)
+    },
     /** Answer for the next confirm dialogs (true = OK). */
     answerDialogs(accept) {
       dialogAnswer.accept = accept

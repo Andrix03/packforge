@@ -96,6 +96,22 @@ export function noiseColor(ramp: readonly Rgba[], random: () => number): Rgba {
   return ramp[ramp.length - 1]!
 }
 
+/** How strong the noise is: `soft` a fine grain around the middle color, `full` the whole ramp. */
+export type NoiseStrength = 'soft' | 'full'
+
+/** Grain ramp: small steps of lightness and hue (the shading ramp is ~3× wider). */
+export const SOFT_NOISE_RAMP: RampOptions = { steps: 2, hueShift: 4, contrast: 0.04 }
+
+/**
+ * The shades the noise tool scatters. A ramp is made for shading, from shadow to highlight: even
+ * its neighbouring shades are too far apart for the grain of stone or wood (wood came out red
+ * and yellow), so `soft` makes a close ramp around its middle color.
+ */
+export function noiseShades(ramp: readonly Rgba[], strength: NoiseStrength): readonly Rgba[] {
+  if (strength === 'full' || ramp.length < 3) return ramp
+  return generateRamp(ramp[(ramp.length - 1) >> 1]!, SOFT_NOISE_RAMP)
+}
+
 /** Noise fill: the bucket's region (area or global) painted with random ramp colors. */
 export function noiseFill(
   buffer: PixelBuffer,

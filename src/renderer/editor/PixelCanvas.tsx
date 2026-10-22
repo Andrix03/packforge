@@ -13,7 +13,7 @@ import {
   type Point,
   type Rgba
 } from './pixels'
-import { noiseFill, shiftAlongRamp } from './ramp'
+import { noiseFill, noiseShades, shiftAlongRamp, type NoiseStrength } from './ramp'
 import { isSelected, maskSelection, outlineSegments, rectSelection } from './selection'
 import { lift, moveBy } from './selectionActions'
 import { constrainEnd, shapePoints, type ShapeKind } from './shapes'
@@ -39,6 +39,7 @@ export interface Tools {
   /** Shades used by the shade and noise tools, darkest first. */
   ramp: readonly Rgba[]
   fillMode: FillMode
+  noiseStrength: NoiseStrength
   primary: Rgba
   secondary: Rgba
   shapeFilled: boolean
@@ -374,7 +375,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
               layer.pixels,
               pixel.x,
               pixel.y,
-              tools.ramp,
+              noiseShades(tools.ramp, tools.noiseStrength),
               tools.fillMode,
               Math.random,
               clipIndex,

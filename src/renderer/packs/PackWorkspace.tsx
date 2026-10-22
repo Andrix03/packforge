@@ -790,14 +790,13 @@ function vanillaHint(vanilla: Loadable<VanillaState>, jar: Loadable<VanillaJar>)
   return 'Nessuna versione di Minecraft installata.'
 }
 
-/** Vanilla block textures if present, else the first folder that has textures. */
+/**
+ * Vanilla block textures if present, else the first folder that has textures. A new pack (only
+ * pack.png at the root) opens on the block folder too: that is where new textures go.
+ */
 function pickInitialFolder(files: string[], textures: TextureEntry[]): string {
   if (findFolder(buildFileTree(files), DEFAULT_FOLDER)) return DEFAULT_FOLDER
-  return (
-    textures.find((t) => t.folder.includes('/textures'))?.folder ??
-    textures[0]?.folder ??
-    DEFAULT_FOLDER
-  )
+  return textures.find((t) => t.folder.includes('/textures'))?.folder ?? DEFAULT_FOLDER
 }
 
 function ancestors(path: string): string[] {

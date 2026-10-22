@@ -143,6 +143,7 @@ export function TextureEditor({
     pixelPerfect: false,
     brushSize: 1,
     fillMode: 'contiguous',
+    noiseStrength: 'soft',
     shapeFilled: false,
     mirror: { x: false, y: false },
     tiling: false,
@@ -1390,6 +1391,8 @@ export function TextureEditor({
             }
             fillMode={tools.fillMode}
             onFillMode={(fillMode) => setTools((t) => ({ ...t, fillMode }))}
+            noiseStrength={tools.noiseStrength}
+            onNoiseStrength={(noiseStrength) => setTools((t) => ({ ...t, noiseStrength }))}
             primary={tools.primary}
             secondary={tools.secondary}
             onColor={(slot, color) => setTools((t) => ({ ...t, [slot]: color }))}

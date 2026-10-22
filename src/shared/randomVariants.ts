@@ -106,9 +106,30 @@ export function withRandomModels(
         ...(y ? { y } : {})
       }))
     if (Array.isArray(value)) {
-      // Already a random pick: only the models it lacks are added, the rest stays as it was.
+      // Already a random pick: only the models it lacks are added. The original entries (not our
+      // _vN copies) are one texture shown several ways (vanilla stone: mirrored, turned): each
+      // new model weighs as much as all of them together, so every texture is as likely.
+      // Weights are integers: the list is scaled when the turns don't divide its weight.
       if (missing.length === 0) continue
-      variants[key] = [...value, ...missing.flatMap(placed)]
+      const isCopy = (entry: Record<string, unknown>): boolean => {
+        if (typeof entry['model'] !== 'string') return false
+        const model = namespaced(entry['model'])
+        return model.startsWith(`${base}_v`) && /^\d+$/.test(model.slice(base.length + 2))
+      }
+      const weightOf = (entry: Record<string, unknown>): number =>
+        typeof entry['weight'] === 'number' && entry['weight'] > 0 ? entry['weight'] : 1
+      const turns = rotate ? ROTATIONS.length : 1
+      let group = entries.filter((e) => !isCopy(e)).reduce((sum, e) => sum + weightOf(e), 0)
+      let kept: unknown[] = value
+      if (group % turns !== 0) {
+        kept = value.map((e) => (isRecord(e) ? { ...e, weight: weightOf(e) * turns } : e))
+        group *= turns
+      }
+      const each = group / turns
+      const added = missing
+        .flatMap(placed)
+        .map((entry) => (each === 1 ? entry : { ...entry, weight: each }))
+      variants[key] = [...kept, ...added]
     } else {
       variants[key] = [base, ...missing].flatMap(placed)
     }

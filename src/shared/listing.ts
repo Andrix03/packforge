@@ -20,6 +20,8 @@ export interface PackFacts {
   pbr: number
   ctm: boolean
   animated: number
+  /** Textures with random variants (`<name>_v2`… next to them). */
+  randomVariants: number
   /** `textures/<folder>` names present (block, item, entity, gui, font…). */
   folders: string[]
   sounds: boolean
@@ -58,6 +60,9 @@ export function factsFromFiles(
     ).length,
     ctm: files.some((f) => /^assets\/[^/]+\/optifine\/ctm\/.+\.properties$/.test(f)),
     animated: albedos.filter((f) => set.has(`${f}.mcmeta`)).length,
+    randomVariants: albedos.filter(
+      (f) => !/_v\d+\.png$/.test(f) && set.has(f.replace(/\.png$/, '_v2.png'))
+    ).length,
     folders,
     sounds: files.some((f) => /^assets\/[^/]+\/sounds\//.test(f)),
     models: files.some((f) => /^assets\/[^/]+\/models\//.test(f)),
@@ -122,6 +127,14 @@ function features(facts: PackFacts, lang: 'en' | 'it'): string[] {
       en
         ? 'Connected textures — needs Continuity (Fabric) or OptiFine'
         : 'Texture connesse — serve Continuity (Fabric) o OptiFine'
+    )
+  }
+  if (facts.randomVariants > 0) {
+    const one = facts.randomVariants === 1
+    lines.push(
+      en
+        ? `Random variants for ${facts.randomVariants} block${one ? '' : 's'} (vanilla, no mods)`
+        : `Varianti casuali per ${facts.randomVariants} blocc${one ? 'o' : 'hi'} (vanilla, senza mod)`
     )
   }
   if (facts.animated > 0) {

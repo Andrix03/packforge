@@ -10,6 +10,7 @@ import {
   writeFile
 } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative } from 'node:path'
+import { filesForVariant } from '../shared/exportPlan'
 import { isIgnoredWatchPath } from './changeBatcher'
 import { listPackFiles, type PackSource } from './packSource'
 
@@ -124,8 +125,9 @@ export async function mirrorPack(
   }
 
   const { files } = await listPackFiles(source)
-  // Hidden folders (.git, .idea…) and temp files never go into the game folder.
-  const wanted = files.filter(
+  // The game sees what an export would hold: no project data (packforge.json), work files
+  // (.psd, Thumbs.db…), hidden folders (.git, .idea…) or temp files.
+  const wanted = filesForVariant(files, { kind: 'full' }).filter(
     (path) => !isIgnoredWatchPath(path) && !path.split('/').some((part) => part.startsWith('.'))
   )
   // On Windows Stone.png and stone.png are one file: names are compared without case, and a copy

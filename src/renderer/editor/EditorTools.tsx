@@ -1,6 +1,7 @@
 import type { UsedColor } from './color'
 import { ColorPanel } from './ColorPanel'
 import type { FillMode, Rgba } from './pixels'
+import type { NoiseStrength } from './ramp'
 
 export type SelectionAction =
   | 'all'
@@ -44,6 +45,8 @@ interface EditorToolsProps {
   valuePanel?: React.ReactNode
   fillMode: FillMode
   onFillMode: (mode: FillMode) => void
+  noiseStrength: NoiseStrength
+  onNoiseStrength: (strength: NoiseStrength) => void
   primary: Rgba
   secondary: Rgba
   onColor: (slot: 'primary' | 'secondary', color: Rgba) => void
@@ -187,6 +190,33 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
               className={props.fillMode === mode ? 'tab active' : 'tab'}
               title={title}
               onClick={() => props.onFillMode(mode)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {props.tool === 'noise' && (
+        <div className="tabs small-tabs" role="radiogroup" aria-label="Intensità del rumore">
+          {(
+            [
+              [
+                'soft',
+                'Leggero',
+                'Le 3 tonalità centrali della rampa: una grana fine (pietra, legno)'
+              ],
+              ['full', 'Forte', 'Tutte le 5 tonalità, anche le più scure e chiare (ghiaia, terra)']
+            ] as const
+          ).map(([strength, label, title]) => (
+            <button
+              key={strength}
+              type="button"
+              role="radio"
+              aria-checked={props.noiseStrength === strength}
+              className={props.noiseStrength === strength ? 'tab active' : 'tab'}
+              title={title}
+              onClick={() => props.onNoiseStrength(strength)}
             >
               {label}
             </button>

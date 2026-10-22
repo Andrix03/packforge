@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { mkdir, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { basename, isAbsolute, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
@@ -277,9 +277,20 @@ async function updateSetting(
 }
 
 async function showOpenDialog(options: Electron.OpenDialogOptions): Promise<string | null> {
-  // Automated UI tests cannot drive native dialogs; never honored in packaged builds.
+  // Automated UI tests cannot drive native dialogs; never honored in packaged builds. A scenario
+  // may queue answers (one path per line, "-" = cancel) for the next dialogs.
   const testPath = process.env['PACKFORGE_TEST_DIALOG_PATH']
-  if (!app.isPackaged && testPath) return testPath
+  if (!app.isPackaged && testPath) {
+    const queue = process.env['PACKFORGE_TEST_DIALOG_QUEUE']
+    const lines = queue ? (await readFile(queue, 'utf8').catch(() => '')).split(/\r?\n/) : []
+    const next = lines.findIndex((line) => line.trim() !== '')
+    if (queue && next !== -1) {
+      await writeFile(queue, lines.slice(next + 1).join('\n'))
+      const answer = lines[next]!.trim()
+      return answer === '-' ? null : answer
+    }
+    return testPath
+  }
 
   const window = BrowserWindow.getFocusedWindow()
   const result = window

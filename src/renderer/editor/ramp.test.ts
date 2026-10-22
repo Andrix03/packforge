@@ -6,6 +6,7 @@ import {
   generateRamp,
   noiseColor,
   noiseFill,
+  noiseShades,
   rampIndex,
   rotateToward,
   shiftAlongRamp
@@ -132,5 +133,19 @@ describe('noiseFill', () => {
   it('does nothing without a ramp', () => {
     const buffer = { width: 1, height: 1, data: new Uint8ClampedArray(4) }
     expect(noiseFill(buffer, 0, 0, [], 'global')).toEqual([])
+  })
+})
+
+describe('noiseShades', () => {
+  it('soft: a close ramp around the middle color; full: the ramp itself', () => {
+    const wood: Rgba = [162, 130, 78, 255]
+    const ramp = generateRamp(wood)
+    expect(noiseShades(ramp, 'full')).toEqual(ramp)
+    const soft = noiseShades(ramp, 'soft')
+    expect(soft).toHaveLength(5)
+    expect(soft[2]).toEqual(ramp[2])
+    // About half the spread of the shading ramp (and no red or yellow ends).
+    const spread = (r: readonly Rgba[]) => luma(r.at(-1)!) - luma(r[0]!)
+    expect(spread(soft)).toBeLessThan(spread(ramp) * 0.6)
   })
 })

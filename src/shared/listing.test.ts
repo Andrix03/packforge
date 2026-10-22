@@ -20,7 +20,8 @@ const files = [
   `${T}item/diamond.png`,
   `${T}gui/widgets.png`,
   'assets/minecraft/optifine/ctm/glass/glass.properties',
-  'assets/minecraft/models/block/stone.json'
+  'assets/minecraft/models/block/stone.json',
+  `${T}block/stone_v2.png`
 ]
 const widths = new Map([
   [`${T}block/stone.png`, 32],
@@ -40,10 +41,11 @@ describe('factsFromFiles', () => {
   it('reads resolution, PBR, CTM, animation and folders', () => {
     expect(facts).toMatchObject({
       resolution: 32,
-      textures: 4,
+      textures: 5,
       pbr: 1,
       ctm: true,
       animated: 1,
+      randomVariants: 1,
       models: true
     })
     expect(facts.folders).toEqual(['block', 'gui', 'item'])

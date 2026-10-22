@@ -97,11 +97,39 @@ describe('withRandomModels', () => {
     ).toEqual([
       { model: 'block/a' },
       { model: 'block/b', weight: 3 },
-      { model: 'minecraft:block/c' }
+      // As likely as the whole original pick (1 + 3).
+      { model: 'minecraft:block/c', weight: 4 }
     ])
     const again = withRandomModels(json, 'block/a', ['block/c'], false)
     expect(again.changed).toEqual([])
     expect(again.json).toEqual(json)
+  })
+
+  it('a vanilla stone-like list: each new texture as likely as the original one', () => {
+    const stone = {
+      variants: {
+        '': [
+          { model: 'minecraft:block/stone' },
+          { model: 'minecraft:block/stone_mirrored' },
+          { model: 'minecraft:block/stone', y: 180 },
+          { model: 'minecraft:block/stone_mirrored', y: 180 }
+        ]
+      }
+    }
+    const once = withRandomModels(stone, 'block/stone', ['block/stone_v2'], false).json
+    const list = (once['variants'] as Record<string, Array<{ model: string; weight?: number }>>)[
+      ''
+    ]!
+    expect(list.at(-1)).toEqual({ model: 'minecraft:block/stone_v2', weight: 4 })
+    // A later third texture: the earlier copy does not count as part of the original group.
+    const twice = withRandomModels(once, 'block/stone', ['block/stone_v3'], true).json
+    const all = (twice['variants'] as Record<string, Array<{ model: string; weight?: number }>>)[
+      ''
+    ]!
+    const share = (model: string) =>
+      all.filter((e) => e.model.startsWith(model)).reduce((sum, e) => sum + (e.weight ?? 1), 0)
+    expect(share('minecraft:block/stone_v3')).toBe(share('minecraft:block/stone_v2'))
+    expect(all.filter((e) => e.model === 'minecraft:block/stone_v3')).toHaveLength(4)
   })
 
   it('leaves multipart block states alone', () => {

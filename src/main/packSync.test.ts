@@ -96,6 +96,20 @@ describe('mirrorPack', () => {
     ])
   })
 
+  it('copies what an export would hold: no project data or work files', async () => {
+    await writeFile(join(pack, 'packforge.json'), '{"version":"1.0.0"}')
+    await writeFile(join(pack, 'assets', 'minecraft', 'textures', 'block', 'stone.psd'), 'work')
+    const t = await target()
+    await mirrorPack(source(), t)
+    expect(await exists(join(t.path, 'packforge.json'))).toBe(false)
+    expect(
+      await exists(join(t.path, 'assets', 'minecraft', 'textures', 'block', 'stone.psd'))
+    ).toBe(false)
+    expect(
+      await exists(join(t.path, 'assets', 'minecraft', 'textures', 'block', 'stone.png'))
+    ).toBe(true)
+  })
+
   it('leaves hidden folders (.git) out of the copy', async () => {
     await mkdir(join(pack, '.git', 'objects'), { recursive: true })
     await writeFile(join(pack, '.git', 'objects', 'abc'), 'blob')

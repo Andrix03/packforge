@@ -90,7 +90,17 @@ export interface TextureDraft {
   width: number
   height: number
   rgba: Uint8Array
+  /** The painted LabPBR maps, when there were unsaved changes in them too. */
+  maps: DraftMaps
 }
+
+export interface DraftImage {
+  width: number
+  height: number
+  rgba: Uint8Array
+}
+
+export type DraftMaps = Partial<Record<'normal' | 'specular', DraftImage>>
 
 export type SettingsUpdateResult = { ok: true; view: SettingsView } | { ok: false; error: string }
 
@@ -156,7 +166,7 @@ export interface IpcContract {
   'model:saveJson': { args: [path: string, content: string]; result: SaveTextureResult }
   /** Autosaves editor pixels as a draft for this pack texture (folder packs only). */
   'draft:save': {
-    args: [path: string, width: number, height: number, rgba: Uint8Array]
+    args: [path: string, width: number, height: number, rgba: Uint8Array, maps: DraftMaps]
     result: SaveTextureResult
   }
   /** The draft for this texture of the open pack, or null. */

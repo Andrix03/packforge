@@ -13,7 +13,9 @@ import {
   type OcclusionOptions
 } from '../../shared/pbrGenerator'
 import {
+  buildProxy,
   channelDef,
+  channelsOf,
   normalBlue,
   toGray,
   type ChannelDef,
@@ -36,6 +38,20 @@ function writeChannel(
     next.set([gray, gray, gray, 255], i * 4)
   }
   return pixelCommand(layer, replacePixels(layer, next))
+}
+
+/** Puts a whole map's bytes (e.g. from a draft) into every channel, as one undo step. */
+export function writeMap(map: EditedMap, bytes: PixelBuffer): Command | null {
+  if (bytes.width !== map.width || bytes.height !== map.height) return null
+  return combine(
+    channelsOf(map.kind).map((channel) => {
+      const layer = map.proxy(channel).active.pixels
+      return pixelCommand(
+        layer,
+        replacePixels(layer, new Uint8Array(buildProxy(channel, bytes).buffer))
+      )
+    })
+  )
 }
 
 function writeNormals(map: EditedMap, rg: Uint8Array): Command | null {

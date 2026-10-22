@@ -98,6 +98,7 @@ export default async function fixpass(app) {
   app.check((await app.editor.color(4, 13)) === '#3f8f2a', 'the lower half shows its pixels')
 
   await framesAndMaps(app)
+  await draftWithMaps(app)
 }
 
 // ---- Frames: the LabPBR maps follow the albedo's frames; "Togli animazione" can be undone.
@@ -145,6 +146,40 @@ async function framesAndMaps(app) {
     await app.ev(`!document.querySelector('.frame-actions')`),
     'and Ctrl+Y removes it again'
   )
+}
+
+// ---- Drafts keep painted maps: after a crash (page reload) both the colors and _s come back.
+async function draftWithMaps(app) {
+  await app.click('Chiudi editor', '.editor-header button')
+  await app.waitFor(`document.querySelector('.texture-tile')`, 10000)
+  await app.openTexture('grass_block_top.png')
+  await app.key('b')
+  await app.editor.setHex('ff2020')
+  await app.editor.click(1, 1)
+  await app.click('Materiale _s', '.map-tabs [role=tab]')
+  await app.sleep(300)
+  await app.click('Emissione', '.channel-tabs [role=tab]')
+  await app.sleep(300)
+  await app.click('Piena', '.value-presets button')
+  await app.editor.click(2, 2)
+  await app.sleep(3500)
+  // A crash: the window reloads without saving or closing the editor.
+  await app.send('Page.reload', { ignoreCache: true })
+  await app.sleep(1500)
+  await app.openPack()
+  await app.openTexture('grass_block_top.png')
+  await app.waitFor(`document.querySelector('.draft-banner')`, 10000)
+  await app.click('Ripristina', '.draft-banner button')
+  await app.sleep(500)
+  app.check((await app.editor.color(1, 1)) === '#ff2020', 'the draft brings the colors back')
+  await app.click('Materiale _s', '.map-tabs [role=tab]')
+  await app.sleep(300)
+  await app.click('Emissione', '.channel-tabs [role=tab]')
+  await app.sleep(300)
+  app.check((await app.editor.color(2, 2)) === 'Emissione: 254', 'and the painted _s emission')
+  await app.key('z', ['ctrl'])
+  await app.sleep(300)
+  app.check((await app.editor.color(2, 2)) === 'Emissione: 0', 'one Ctrl+Z undoes the whole draft')
 }
 
 /** "W×H" from a PNG's IHDR. */

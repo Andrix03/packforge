@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { assetUrl, type TextureDraft } from '../../shared/ipc'
+import { assetUrl, type DraftMaps, type TextureDraft } from '../../shared/ipc'
 import { decodePng } from '../../shared/pngCodec'
 import type { EditorMode } from '../../shared/settings'
 import { NewTextureDialog } from '../packs/NewTextureDialog'
@@ -64,7 +64,8 @@ import {
   applyMaterialPreset,
   generateFromHeight,
   generateHeight,
-  normalsAreFlat
+  normalsAreFlat,
+  writeMap
 } from './mapGenerate'
 import { MaterialPanel } from './MaterialPanel'
 import { backupBefore } from '../packs/backup'
@@ -852,28 +853,44 @@ export function TextureEditor({
     }
   }, [doc, target.path, target.readOnly])
 
-  // Autosave a draft (the flattened image) a moment after the last change; drop it once the file
-  // is saved (or the changes were undone back to the file).
+  // Autosave a draft (the flattened image and the painted maps) a moment after the last change;
+  // drop it once the file is saved (or the changes were undone back to the file).
   useEffect(() => {
     if (!doc || target.readOnly || draftOffer) return
     const timer = window.setTimeout(() => {
       if (modified) {
         const rgba = new Uint8Array(doc.composite.data)
-        void window.api.invoke('draft:save', target.path, doc.width, doc.height, rgba)
+        const painted: DraftMaps = {}
+        for (const map of Object.values(maps ?? {})) {
+          if (!map.dirty) continue
+          const { width, height, data } = map.buffer
+          painted[map.kind] = { width, height, rgba: new Uint8Array(data) }
+        }
+        void window.api.invoke('draft:save', target.path, doc.width, doc.height, rgba, painted)
       } else {
         void window.api.invoke('draft:discard', target.path)
       }
     }, DRAFT_DELAY_MS)
     return () => window.clearTimeout(timer)
-  }, [doc, revision, modified, target.path, target.readOnly, draftOffer])
+  }, [doc, revision, modified, target.path, target.readOnly, draftOffer, maps])
 
   function restoreDraft(): void {
     const draft = draftOffer
     setDraftOffer(null)
     if (!draft || !doc) return
-    // One undoable step on the active layer (a freshly opened texture has only one).
+    // One undoable step: the active layer (a freshly opened texture has only one) and the maps.
     const layer = doc.active.pixels
-    commit(pixelCommand(layer, replacePixels(layer, draft.rgba)))
+    const mapSteps = Object.entries(draft.maps).map(([kind, image]) => {
+      const map = maps?.[kind as MapKind]
+      return map && image
+        ? writeMap(map, {
+            width: image.width,
+            height: image.height,
+            data: new Uint8ClampedArray(image.rgba)
+          })
+        : null
+    })
+    commit(combine([pixelCommand(layer, replacePixels(layer, draft.rgba)), ...mapSteps]))
   }
 
   function discardDraft(): void {

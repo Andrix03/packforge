@@ -23,7 +23,7 @@ const RGBA = Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 255])
 describe('DraftStore', () => {
   it('saves and loads a draft exactly', async () => {
     const now = new Date('2026-10-18T10:00:00Z')
-    expect(await store.save(PACK, PATH, 2, 1, RGBA, now)).toEqual({ ok: true })
+    expect(await store.save(PACK, PATH, 2, 1, RGBA, {}, now)).toEqual({ ok: true })
     const draft = await store.load(PACK, PATH)
     expect(draft?.savedAt).toBe(now.toISOString())
     expect(draft && [...draft.rgba]).toEqual([...RGBA])
@@ -67,5 +67,27 @@ describe('DraftStore', () => {
       'garbage'
     )
     expect(await store.load(PACK, PATH)).toBeNull()
+  })
+
+  it('keeps painted maps with the draft, drops them when a later draft has none', async () => {
+    const normal = { width: 2, height: 1, rgba: Uint8Array.from([128, 128, 255, 9, 1, 1, 1, 1]) }
+    expect(await store.save(PACK, PATH, 2, 1, RGBA, { normal })).toEqual({ ok: true })
+    const draft = await store.load(PACK, PATH)
+    expect(draft?.maps.normal && [...draft.maps.normal.rgba]).toEqual([...normal.rgba])
+    expect(draft?.maps.specular).toBeUndefined()
+    await store.save(PACK, PATH, 2, 1, RGBA, {})
+    expect((await store.load(PACK, PATH))?.maps).toEqual({})
+    await store.discard(PACK, PATH)
+    expect(await readdir(join(dir, 'drafts'))).toEqual([])
+  })
+
+  it('refuses maps that are not what they claim', async () => {
+    const bad = [
+      { emission: { width: 1, height: 1, rgba: new Uint8Array(4) } },
+      { normal: { width: 2, height: 1, rgba: new Uint8Array(4) } },
+      { normal: 'x' },
+      [1]
+    ]
+    for (const maps of bad) expect((await store.save(PACK, PATH, 2, 1, RGBA, maps)).ok).toBe(false)
   })
 })

@@ -475,10 +475,10 @@ const handlers: IpcHandlers = {
     return saveModelJson(current.source, path, content)
   },
 
-  'draft:save': async (path, width, height, rgba) => {
+  'draft:save': async (path, width, height, rgba, maps) => {
     const root = folderPackRoot()
     if (!root) return { ok: false, error: 'Nessun pack in cartella aperto.' }
-    return drafts().save(root, path, width, height, rgba)
+    return drafts().save(root, path, width, height, rgba, maps)
   },
 
   'draft:load': async (path) => {

@@ -96,6 +96,60 @@ export default async function fixpass(app) {
     'and is not marked modified'
   )
   app.check((await app.editor.color(4, 13)) === '#3f8f2a', 'the lower half shows its pixels')
+
+  await framesAndMaps(app)
+}
+
+// ---- Frames: the LabPBR maps follow the albedo's frames; "Togli animazione" can be undone.
+async function framesAndMaps(app) {
+  await app.click('Chiudi editor', '.editor-header button')
+  await app.waitFor(`document.querySelector('.texture-tile')`, 10000)
+  await app.openTexture('stone.png')
+  await app.click('Pro', '[role=radio]')
+  await app.click('Anima questa texture')
+  await app.waitFor(`document.querySelector('.frame-actions')`)
+  await app.click('Duplica', '.frame-actions button')
+  await app.sleep(300)
+  await app.key('s', ['ctrl'])
+  await app.sleep(1500)
+  for (const map of ['stone_n.png', 'stone_s.png']) {
+    const size = pngSize(await readFile(join(app.paths.pack, ...BLOCK.split('/'), map)))
+    app.check(size === '16×32', `${map} got the new frame too (${size})`)
+    const mcmeta = await readFile(
+      join(app.paths.pack, ...BLOCK.split('/'), `${map}.mcmeta`),
+      'utf8'
+    )
+      .then(JSON.parse)
+      .catch(() => null)
+    app.check(mcmeta?.animation !== undefined, `${map}.mcmeta animates it`)
+  }
+  // Undo brings the maps back to one frame as well.
+  await app.key('z', ['ctrl'])
+  await app.sleep(300)
+  await app.key('s', ['ctrl'])
+  await app.sleep(1500)
+  const undone = pngSize(await readFile(join(app.paths.pack, ...BLOCK.split('/'), 'stone_n.png')))
+  app.check(undone === '16×16', `undoing the frame shrinks the map back (${undone})`)
+
+  await app.click('Togli animazione', '.frame-actions button')
+  await app.waitFor(`!document.querySelector('.frame-actions')`)
+  await app.key('z', ['ctrl'])
+  await app.sleep(500)
+  app.check(
+    await app.ev(`!!document.querySelector('.frame-actions')`),
+    'Ctrl+Z after "Togli animazione" brings the animation back'
+  )
+  await app.key('y', ['ctrl'])
+  await app.sleep(500)
+  app.check(
+    await app.ev(`!document.querySelector('.frame-actions')`),
+    'and Ctrl+Y removes it again'
+  )
+}
+
+/** "W×H" from a PNG's IHDR. */
+function pngSize(bytes) {
+  return `${bytes.readUInt32BE(16)}×${bytes.readUInt32BE(20)}`
 }
 
 const BLOCK = 'assets/minecraft/textures/block'

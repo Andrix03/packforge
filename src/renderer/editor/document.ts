@@ -5,7 +5,7 @@
 
 import type { Command } from './history'
 import type { PixelBuffer } from './pixels'
-import { frameBounds, spliceRows } from './frames'
+import { applyFrameOp, frameBounds, type FrameOp } from './frames'
 import { stampFloating, type Bounds, type Floating, type Selection } from './selection'
 
 /** Pixels lifted out of a layer (moving/pasting), shown above it until dropped. */
@@ -163,24 +163,35 @@ export class EditorDocument {
     return trimmed ? this.setProperty(id, 'name', trimmed) : null
   }
 
-  /** Merges a layer into the one below it (its opacity is baked in). */
+  /**
+   * Merges a layer into the one below it, as the two look now: each with its own opacity and
+   * visibility baked in, the result at full opacity (the image and the saved PNG don't change).
+   */
   mergeDown(id: number): Command | null {
     const index = this.indexOf(id)
     if (index <= 0) return null
     const upper = this.layers[index]!
     const lower = this.layers[index - 1]!
-    const before = new Uint8ClampedArray(lower.pixels.data)
+    const before = {
+      data: new Uint8ClampedArray(lower.pixels.data),
+      opacity: lower.opacity,
+      visible: lower.visible
+    }
     const previousActive = this.activeId
-    // Composite the two layers alone (lower as-is, upper with its opacity) into the lower one.
+    // Both hidden: the merged layer stays hidden, with what showing both would give.
+    const visible = lower.visible || upper.visible
+    // Composite the two layers alone into the lower one.
     const pair = new EditorDocument(this.width, this.height)
     pair.layers = [
-      { ...lower, visible: true, opacity: 1 },
-      { ...upper, visible: upper.visible }
+      { ...lower, visible: lower.visible || !visible },
+      { ...upper, visible: upper.visible || !visible }
     ]
     pair.recomposite()
     const after = new Uint8ClampedArray(pair.composite.data)
     const merge = (): void => {
       lower.pixels.data.set(after)
+      lower.opacity = 1
+      lower.visible = visible
       this.layers.splice(this.indexOf(upper.id), 1)
       this.activeId = lower.id
       this.recomposite()
@@ -188,7 +199,9 @@ export class EditorDocument {
     merge()
     return {
       undo: () => {
-        lower.pixels.data.set(before)
+        lower.pixels.data.set(before.data)
+        lower.opacity = before.opacity
+        lower.visible = before.visible
         this.layers.splice(this.indexOf(lower.id) + 1, 0, upper)
         this.activeId = previousActive
         this.recomposite()
@@ -208,42 +221,31 @@ export class EditorDocument {
     this.selection = null
   }
 
+  /**
+   * Adds, removes (callers keep at least one) or moves a frame in every layer. `empty`: the texel
+   * of a new empty frame. Null when the op does not apply.
+   */
+  frameOp(frameHeight: number, op: FrameOp, empty?: readonly number[]): Command | null {
+    if (op.kind === 'move') {
+      const other = op.index + op.direction
+      if (other < 0 || other >= this.height / frameHeight) return null
+    }
+    return this.restructure((data) => applyFrameOp(data, this.width, frameHeight, op, empty)!)
+  }
+
   /** New frame at `at`: a copy of frame `copyFrom`, or empty. */
   insertFrame(frameHeight: number, at: number, copyFrom: number | null): Command {
-    return this.restructure((data) => {
-      const rowBytes = this.width * 4
-      const insert =
-        copyFrom === null
-          ? new Uint8ClampedArray(frameHeight * rowBytes)
-          : data.slice(copyFrom * frameHeight * rowBytes, (copyFrom + 1) * frameHeight * rowBytes)
-      return spliceRows(data, this.width, at * frameHeight, 0, insert)
-    })
+    return this.frameOp(frameHeight, { kind: 'insert', at, copyFrom })!
   }
 
   /** Removes frame `index` (callers keep at least one). */
   removeFrame(frameHeight: number, index: number): Command {
-    return this.restructure((data) =>
-      spliceRows(data, this.width, index * frameHeight, frameHeight, null)
-    )
+    return this.frameOp(frameHeight, { kind: 'remove', index })!
   }
 
   /** Swaps frame `index` with its neighbor (-1 = earlier, +1 = later). */
   moveFrame(frameHeight: number, index: number, direction: 1 | -1): Command | null {
-    const other = index + direction
-    if (other < 0 || other >= this.height / frameHeight) return null
-    const first = Math.min(index, other)
-    return this.restructure((data) => {
-      const rowBytes = this.width * 4
-      const a = data.slice(first * frameHeight * rowBytes, (first + 1) * frameHeight * rowBytes)
-      const b = data.slice(
-        (first + 1) * frameHeight * rowBytes,
-        (first + 2) * frameHeight * rowBytes
-      )
-      const swapped = new Uint8ClampedArray(a.length + b.length)
-      swapped.set(b)
-      swapped.set(a, b.length)
-      return spliceRows(data, this.width, first * frameHeight, 2 * frameHeight, swapped)
-    })
+    return this.frameOp(frameHeight, { kind: 'move', index, direction })
   }
 
   /**

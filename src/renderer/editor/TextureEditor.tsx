@@ -24,7 +24,13 @@ import type { SavedPalette } from '../../shared/settings'
 import { EditorDocument } from './document'
 import { FramesPanel } from './FramesPanel'
 import { ShortcutsHelp } from './ShortcutsHelp'
-import { animationFromMcmeta, buildMcmeta, mapMcmeta, type AnimationSettings } from './frames'
+import {
+  animationFromMcmeta,
+  buildMcmeta,
+  frameAfter,
+  mapMcmeta,
+  type AnimationSettings
+} from './frames'
 import { EditorTools, type SelectionAction } from './EditorTools'
 import type { Floating } from './selection'
 import * as selectionActions from './selectionActions'
@@ -198,6 +204,12 @@ export function TextureEditor({
   const [traceOpacity, setTraceOpacity] = useState(0)
   /** Animation being edited (null = plain texture). */
   const [animation, setAnimation] = useState<AnimationSettings | null>(null)
+  /** The same, readable at once by refresh() (state updates land on the next render). */
+  const animationNow = useRef<AnimationSettings | null>(null)
+  const changeAnimation = useCallback((settings: AnimationSettings | null) => {
+    animationNow.current = settings
+    setAnimation(settings)
+  }, [])
   /** Why an existing animation can't be edited here. */
   const [animationNote, setAnimationNote] = useState<string | null>(null)
   /** The mcmeta on disk and its frame count, to keep its other fields when saving. */
@@ -344,6 +356,7 @@ export function TextureEditor({
   /** Recomposites, updates the display canvas and re-renders everything that depends on it. */
   const refresh = useCallback(() => {
     if (!doc || !source) return
+    const animation = animationNow.current
     // Keep the editable area on a whole frame (frames may have been added/removed by undo).
     if (animation) {
       const count = Math.max(1, Math.round(doc.height / animation.frameHeight))
@@ -384,7 +397,7 @@ export function TextureEditor({
     setRevision((r) => r + 1)
     // A moved piece not yet put down, or new animation settings, are changes too.
     setModified(history.modified || floating || animationDirty.current)
-  }, [doc, source, history, animation, maps, channelCanvases, tallCanvases])
+  }, [doc, source, history, maps, channelCanvases, tallCanvases])
 
   const autoRegenerate = channel?.id === 'height' && generator.auto && editedMap !== null
   const commit = useCallback(
@@ -541,12 +554,12 @@ export function TextureEditor({
         }))
         const read = animationFromMcmeta(value.mcmeta, value.doc.width, value.doc.height)
         if (read.kind === 'editable') {
-          setAnimation(read.settings)
+          changeAnimation(read.settings)
           setAnimationNote(null)
           setMcmetaOnDisk({ value: value.mcmeta, frames: read.frameCount })
           value.doc.setFrameView(read.settings.frameHeight, 0)
         } else {
-          setAnimation(null)
+          changeAnimation(null)
           setAnimationNote(read.kind === 'unsupported' ? read.reason : null)
           setMcmetaOnDisk({ value: value.mcmeta, frames: 1 })
         }
@@ -563,7 +576,7 @@ export function TextureEditor({
     return () => {
       cancelled = true
     }
-  }, [target.url, target.mcmetaUrl, normalUrl, specularUrl, tallKey, history])
+  }, [target.url, target.mcmetaUrl, normalUrl, specularUrl, tallKey, history, changeAnimation])
 
   const canSave = doc !== null && !target.readOnly
   /** Writes the texture (and its maps / .mcmeta); true when everything was saved. */
@@ -1421,24 +1434,45 @@ export function TextureEditor({
                   doc.setFrameView(animation.frameHeight, index)
                   refresh()
                 }}
-                onCommand={(command, select) => {
+                onFrameOp={(op) => {
                   settle()
-                  history.push(command)
-                  doc.setFrameView(animation.frameHeight, select)
+                  const { frameHeight } = animation
+                  // The maps follow (Iris animates them from their own strip): same frames, at
+                  // their resolution. Maps of another shape are left alone (the validator says so).
+                  const followers = Object.values(maps ?? {}).flatMap((map) => {
+                    const height = (frameHeight * map.height) / doc.height
+                    const sameShape = map.width * doc.height === map.height * doc.width
+                    return sameShape && Number.isInteger(height) ? [{ map, height }] : []
+                  })
+                  const albedo = doc.frameOp(frameHeight, op)
+                  if (!albedo) return
+                  history.push(
+                    combine([
+                      albedo,
+                      ...followers.map(({ map, height }) => map.frameOp(height, op))
+                    ])
+                  )
+                  doc.setFrameView(frameHeight, frameAfter(op))
                   refresh()
                 }}
                 onSettings={(settings) => {
-                  setAnimation(settings)
+                  changeAnimation(settings)
                   animationDirty.current = true
                   setModified(true)
                 }}
                 onOnionSkin={setOnionSkin}
                 onStopAnimating={() => {
-                  setAnimation(null)
-                  animationDirty.current = true
-                  doc.setFrameView(null)
+                  settle()
+                  // An undo step like the frame operations (Ctrl+Z brings the animation back).
+                  const previous = animation
+                  const apply = (settings: AnimationSettings | null): void => {
+                    changeAnimation(settings)
+                    animationDirty.current = true
+                    doc.setFrameView(settings ? settings.frameHeight : null, 0)
+                  }
+                  apply(null)
+                  history.push({ undo: () => apply(previous), redo: () => apply(null) })
                   refresh()
-                  setModified(true)
                 }}
               />
             )}
@@ -1462,7 +1496,7 @@ export function TextureEditor({
                     // A strip without mcmeta already holds square frames; else one frame.
                     const frameHeight = doc.height % doc.width === 0 ? doc.width : doc.height
                     const settings = { frameHeight, frametime: 4, interpolate: false }
-                    setAnimation(settings)
+                    changeAnimation(settings)
                     animationDirty.current = true
                     doc.setFrameView(frameHeight, 0)
                     refresh()

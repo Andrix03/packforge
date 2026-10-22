@@ -438,6 +438,9 @@ export class BlockPreview {
       }
       part.texture.needsUpdate = true
       for (const map of part.liveMaps) {
+        // The editor may have replaced the bytes (frames added to the map): follow them.
+        const pixels = map.userData['livePixels'] as LiveMapPixels | undefined
+        if (pixels) map.image = pixelsView(pixels)
         const image = map.image as { width: number; height: number }
         reallocateIfResized(map, image.width, image.height)
         map.needsUpdate = true
@@ -1555,11 +1558,17 @@ async function loadMap(url: string): Promise<MapResult> {
   return { ok: true, texture }
 }
 
+/** The editor's map bytes as a texture image (no copy). */
+function pixelsView(pixels: LiveMapPixels): { width: number; height: number; data: Uint8Array } {
+  const { width, height, data } = pixels
+  return { width, height, data: new Uint8Array(data.buffer, data.byteOffset, data.byteLength) }
+}
+
 /** A map being edited: a texture over the editor's own bytes (refreshLiveTextures re-uploads). */
 function liveMap(pixels: LiveMapPixels): MapResult {
-  const { width, height, data } = pixels
-  const view = new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
-  const texture = new THREE.DataTexture(view, width, height)
+  const { width, height, data } = pixelsView(pixels)
+  const texture = new THREE.DataTexture(data, width, height)
+  texture.userData['livePixels'] = pixels
   texture.flipY = true
   texture.magFilter = THREE.NearestFilter
   texture.minFilter = THREE.NearestMipmapLinearFilter

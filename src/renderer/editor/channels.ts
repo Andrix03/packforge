@@ -8,6 +8,8 @@
 import { METALS, type MapKind } from '../../shared/labpbr'
 import { f0Byte } from '../../shared/materialPresets'
 import { EditorDocument } from './document'
+import { applyFrameOp, type FrameOp } from './frames'
+import { combine, type Command } from './history'
 import type { PixelBuffer, Rgba } from './pixels'
 
 export type ChannelId =
@@ -296,6 +298,8 @@ export class EditedMap {
   /** The bytes differ from the file (or, for a new map, from the neutral one). */
   get dirty(): boolean {
     const data = this.buffer.data
+    // Frames added or removed since: a different size is a change even if the start matches.
+    if (data.length !== this.saved.length) return true
     for (let i = 0; i < data.length; i++) if (data[i] !== this.saved[i]) return true
     return false
   }
@@ -311,6 +315,38 @@ export class EditedMap {
     if (!this.existed || bytes.length !== this.saved.length) return false
     for (let i = 0; i < bytes.length; i++) if (bytes[i] !== this.saved[i]) return false
     return true
+  }
+
+  /**
+   * The same frame change as the albedo's (`frameHeight` in this map's pixels): the bytes and every
+   * channel's proxy.
+   * New empty frames are neutral.
+   */
+  frameOp(frameHeight: number, op: FrameOp): Command | null {
+    const buffer = this.buffer as { height: number; data: Uint8ClampedArray }
+    const after = applyFrameOp(buffer.data, this.width, frameHeight, op, NEW_TEXEL[this.kind])
+    if (!after) return null
+    const before = { data: buffer.data, height: buffer.height }
+    const state = { data: after, height: after.length / (this.width * 4) }
+    const apply = (to: typeof state): void => {
+      buffer.data = to.data
+      buffer.height = to.height
+      // A map never written stays "unpainted": its saved state is the neutral map of this size.
+      // A map on disk keeps what the file holds (a different size counts as a change).
+      if (!this.existed) this.saved = new Uint8Array(newMap(this.kind, this.width, to.height).data)
+    }
+    apply(state)
+    const proxies = [...this.proxies].map(([id, doc]) => {
+      const def = channelDef(id)
+      const empty = buildProxy(def, {
+        width: 1,
+        height: 1,
+        data: Uint8ClampedArray.from(NEW_TEXEL[this.kind])
+      })
+      return doc.frameOp(frameHeight, op, [...empty])
+    })
+    const bytes: Command = { undo: () => apply(before), redo: () => apply(state) }
+    return combine([bytes, ...proxies])
   }
 
   /** `bytes`: what was written (the map may have changed during the save). */

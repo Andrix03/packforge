@@ -121,6 +121,41 @@ describe('EditorDocument layer commands', () => {
     expect(getPixel(doc.layers[0]!.pixels, 0, 0)).toEqual(RED)
   })
 
+  it('merging keeps the image as it looks (lower opacity and hidden layers included)', () => {
+    const doc = new EditorDocument(1, 1)
+    setPixel(doc.active.pixels, 0, 0, RED)
+    doc.setOpacity(doc.activeId, 0.5)
+    doc.addLayer()
+    setPixel(doc.active.pixels, 0, 0, [0, 0, 255, 100])
+    doc.recomposite()
+    const shown = getPixel(doc.composite, 0, 0)
+    const merge = doc.mergeDown(doc.activeId)!
+    expect(getPixel(doc.composite, 0, 0)).toEqual(shown)
+    expect(doc.active.opacity).toBe(1)
+    merge.undo()
+    expect(doc.layers[0]!.opacity).toBe(0.5)
+
+    // A hidden upper layer adds nothing; a hidden lower one gives way to the upper.
+    doc.setVisible(doc.activeId, false)
+    doc.recomposite()
+    const hiddenUpper = getPixel(doc.composite, 0, 0)
+    doc.mergeDown(doc.activeId)
+    expect(getPixel(doc.composite, 0, 0)).toEqual(hiddenUpper)
+  })
+
+  it('merging two hidden layers keeps the result hidden', () => {
+    const doc = new EditorDocument(1, 1)
+    setPixel(doc.active.pixels, 0, 0, RED)
+    doc.setVisible(doc.activeId, false)
+    doc.addLayer()
+    setPixel(doc.active.pixels, 0, 0, BLUE)
+    doc.setVisible(doc.activeId, false)
+    doc.mergeDown(doc.activeId)
+    expect(doc.active.visible).toBe(false)
+    expect(getPixel(doc.active.pixels, 0, 0)).toEqual(BLUE)
+    expect(getPixel(doc.composite, 0, 0)[3]).toBe(0)
+  })
+
   it('caps the number of layers', () => {
     const doc = new EditorDocument(1, 1)
     for (let i = 1; i < MAX_LAYERS; i++) doc.addLayer()

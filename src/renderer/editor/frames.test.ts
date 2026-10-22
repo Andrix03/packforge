@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { animationFromMcmeta, buildMcmeta, frameBounds, mapMcmeta, spliceRows } from './frames'
+import {
+  animationFromMcmeta,
+  applyFrameOp,
+  buildMcmeta,
+  frameAfter,
+  frameBounds,
+  mapMcmeta,
+  spliceRows
+} from './frames'
 
 describe('animationFromMcmeta', () => {
   it('reads a standard vertical strip', () => {
@@ -108,5 +116,41 @@ describe('mapMcmeta', () => {
   it('is null without an animation', () => {
     expect(mapMcmeta(null, 1)).toBeNull()
     expect(mapMcmeta(JSON.stringify({ texture: { blur: true } }), 1)).toBeNull()
+  })
+})
+
+describe('applyFrameOp', () => {
+  // A 1-pixel-wide strip of 1-row frames: frame i has red = values[i].
+  const strip = (values: number[]): Uint8ClampedArray =>
+    Uint8ClampedArray.from(values.flatMap((v) => [v, 0, 0, 255]))
+  const reds = (data: Uint8ClampedArray | null): number[] =>
+    data ? Array.from({ length: data.length / 4 }, (_, i) => data[i * 4]!) : []
+
+  it('inserts a copy or an empty frame filled with the given texel', () => {
+    expect(reds(applyFrameOp(strip([1, 2]), 1, 1, { kind: 'insert', at: 1, copyFrom: 0 }))).toEqual(
+      [1, 1, 2]
+    )
+    const empty = applyFrameOp(
+      strip([1, 2]),
+      1,
+      1,
+      { kind: 'insert', at: 2, copyFrom: null },
+      [128, 128, 255, 255]
+    )
+    expect([...empty!.subarray(8, 12)]).toEqual([128, 128, 255, 255])
+  })
+
+  it('removes and moves frames; a move past either end does not apply', () => {
+    expect(reds(applyFrameOp(strip([1, 2, 3]), 1, 1, { kind: 'remove', index: 1 }))).toEqual([1, 3])
+    expect(
+      reds(applyFrameOp(strip([1, 2, 3]), 1, 1, { kind: 'move', index: 0, direction: 1 }))
+    ).toEqual([2, 1, 3])
+    expect(applyFrameOp(strip([1, 2]), 1, 1, { kind: 'move', index: 1, direction: 1 })).toBeNull()
+  })
+
+  it('names the frame shown afterwards', () => {
+    expect(frameAfter({ kind: 'insert', at: 2, copyFrom: null })).toBe(2)
+    expect(frameAfter({ kind: 'remove', index: 0 })).toBe(0)
+    expect(frameAfter({ kind: 'move', index: 1, direction: -1 })).toBe(0)
   })
 })

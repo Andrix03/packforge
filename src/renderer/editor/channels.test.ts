@@ -131,3 +131,38 @@ describe('generator actions', () => {
     expect(map.dirty).toBe(false)
   })
 })
+
+describe('EditedMap.frameOp', () => {
+  it('adds a neutral frame to the bytes and the proxies; undo puts both back', () => {
+    const map = new EditedMap('normal', true, {
+      width: 1,
+      height: 1,
+      data: Uint8ClampedArray.from([10, 20, 30, 40])
+    })
+    const height = map.proxy(channelDef('height'))
+    const command = map.frameOp(1, { kind: 'insert', at: 1, copyFrom: null })!
+    expect(map.height).toBe(2)
+    expect([...map.buffer.data]).toEqual([10, 20, 30, 40, ...NEW_TEXEL.normal])
+    expect(height.height).toBe(2)
+    expect(map.dirty).toBe(true)
+    command.undo()
+    expect(map.height).toBe(1)
+    expect(height.height).toBe(1)
+    expect(map.dirty).toBe(false)
+  })
+
+  it('a map not on disk stays unpainted (not saved as a new file)', () => {
+    const map = new EditedMap('specular', false, newMap('specular', 2, 2))
+    map.frameOp(2, { kind: 'insert', at: 1, copyFrom: 0 })
+    expect(map.height).toBe(4)
+    expect(map.present).toBe(false)
+  })
+
+  it('after a save, undoing the frame counts as a change (the file has two frames)', () => {
+    const map = new EditedMap('normal', true, newMap('normal', 1, 1))
+    const command = map.frameOp(1, { kind: 'insert', at: 1, copyFrom: 0 })!
+    map.markSaved()
+    command.undo()
+    expect(map.dirty).toBe(true)
+  })
+})

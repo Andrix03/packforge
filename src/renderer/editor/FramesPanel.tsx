@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { TICKS_PER_SECOND } from '../../shared/animation'
 import type { EditorDocument } from './document'
-import { MAX_FRAMES, MAX_FRAMETIME, type AnimationSettings } from './frames'
-import type { Command } from './history'
+import { MAX_FRAMES, MAX_FRAMETIME, type AnimationSettings, type FrameOp } from './frames'
 
 const THUMB = 48
 const MS_PER_TICK = 1000 / TICKS_PER_SECOND
@@ -20,7 +19,7 @@ export function FramesPanel({
   onionSkin,
   readOnly,
   onSelect,
-  onCommand,
+  onFrameOp,
   onSettings,
   onOnionSkin,
   onStopAnimating
@@ -34,8 +33,8 @@ export function FramesPanel({
   onionSkin: boolean
   readOnly: boolean
   onSelect: (frame: number) => void
-  /** A frame operation (already applied) and the frame to show afterwards. */
-  onCommand: (command: Command | null, select: number) => void
+  /** A frame operation for the editor to apply (to the colors and the maps). */
+  onFrameOp: (op: FrameOp) => void
   onSettings: (settings: AnimationSettings) => void
   onOnionSkin: (on: boolean) => void
   /** Turns a single-frame animation back into a plain texture. */
@@ -184,9 +183,7 @@ export function FramesPanel({
           <button
             type="button"
             disabled={count >= MAX_FRAMES}
-            onClick={() =>
-              onCommand(doc.insertFrame(frameHeight, current + 1, current), current + 1)
-            }
+            onClick={() => onFrameOp({ kind: 'insert', at: current + 1, copyFrom: current })}
             title="Copia il frame attuale subito dopo"
           >
             Duplica
@@ -194,7 +191,7 @@ export function FramesPanel({
           <button
             type="button"
             disabled={count >= MAX_FRAMES}
-            onClick={() => onCommand(doc.insertFrame(frameHeight, current + 1, null), current + 1)}
+            onClick={() => onFrameOp({ kind: 'insert', at: current + 1, copyFrom: null })}
             title="Nuovo frame vuoto dopo quello attuale"
           >
             + Vuoto
@@ -202,7 +199,7 @@ export function FramesPanel({
           <button
             type="button"
             disabled={current === 0}
-            onClick={() => onCommand(doc.moveFrame(frameHeight, current, -1), current - 1)}
+            onClick={() => onFrameOp({ kind: 'move', index: current, direction: -1 })}
             title="Sposta prima"
             aria-label="Sposta il frame prima"
           >
@@ -211,7 +208,7 @@ export function FramesPanel({
           <button
             type="button"
             disabled={current === count - 1}
-            onClick={() => onCommand(doc.moveFrame(frameHeight, current, 1), current + 1)}
+            onClick={() => onFrameOp({ kind: 'move', index: current, direction: 1 })}
             title="Sposta dopo"
             aria-label="Sposta il frame dopo"
           >
@@ -220,9 +217,7 @@ export function FramesPanel({
           <button
             type="button"
             disabled={count === 1}
-            onClick={() =>
-              onCommand(doc.removeFrame(frameHeight, current), Math.max(0, current - 1))
-            }
+            onClick={() => onFrameOp({ kind: 'remove', index: current })}
             title="Elimina il frame attuale"
           >
             Elimina

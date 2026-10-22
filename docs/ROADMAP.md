@@ -190,7 +190,7 @@ Infrastructure done in 2026-10; the release itself waits for Phases 12a–19 (de
 - [x] First-run guided tutorial (draw your first block) for Beginner mode — six steps that tick by themselves; compact bar in the editor / Prova; "Rifai il tutorial" in the settings
 - [ ] English UI option — done inside Phase 12b: strings move to a dictionary while the screens are rebuilt (~1500–2500 strings; decide library vs own dictionary, who reviews the English)
 - [x] Windows installer — electron-builder: NSIS installer (per-user, IT/EN) built by the GitHub "Release" workflow, portable zip locally (`npm run dist:zip`); unsigned: a code-signing certificate is needed before a public release
-- [ ] Bug fixing — ongoing; audit findings in Phase 12a
+- [ ] Bug fixing — ongoing; audit findings done in Phase 12a (2026-10-22)
 - [x] GitHub Actions CI (typecheck, lint, tests on every push) — `.github/workflows/ci.yml`: windows-latest, Node 24, `npm ci` + `npm run check` (UI scenarios stay local)
 - [x] End-to-end tests of the Electron app (Playwright) — done with our own CDP driver (`scripts/drive`, 42 scenarios, `npm run drive:all`) instead of Playwright
 - [x] Auto-update for new releases — notify-only update check (GitHub latest release, banner + link, setting to turn it off); real auto-install needs signed builds
@@ -218,7 +218,7 @@ Audit + research: `docs/RESEARCH-2026-10-19.md`. Mockup of the new interface: de
 - [x] PNG decode with an output cap; non-integer frame sizes in resize; vanilla-copy check enforced in the exporter
 - [x] Editor: merge-down with lower layer opacity, frame ops restructure `_n`/`_s`, "Togli animazione" undoable, drafts with maps
 - [x] Animation frame size with only `width` or `height`: verify against the game code, then fix if needed — 26.3 `calculateFrameSize`: the other side is the image's own
-- [ ] Smaller items of the report (ignored IPC results, double-submit, WebGL context loss, dialogs re-scanning the pack, 128×+ painting speed)
+- [x] Smaller items of the report (ignored IPC results, double-submit, WebGL context loss, dialogs re-scanning the pack, 128×+ painting speed) — 512×512 stroke ~41 → ~8 ms per move
 
 ## Phase 12b — New interface
 
@@ -241,7 +241,7 @@ official-looking app is against the usage guidelines).
 The biggest theme in popular packs (Modrinth top 300: "models" on 124 packs; "3d" 1401 projects).
 Vanilla model JSON, no mods.
 
-- [ ] Logic: element limits per pack format (coordinates, multi-axis rotation from 1.21.11, `light_emission`, shade), element/face cost
+- [x] Logic: element limits per pack format (coordinates, multi-axis rotation from 1.21.11, `light_emission`, shade), element/face cost — `shared/modelRules.ts` (4192 vanilla 26.3 models pass)
 - [ ] Extrude a texture into a thick 3D item/block model (greedy-merged cuboids, element budget)
 - [ ] "Pixels that pop out" (ores, details): pick pixels by color/selection → raised cuboids with UVs
 - [ ] Parametric presets: torch, lantern/chain, ladder, rails, bushy leaves, grass sides
@@ -250,32 +250,32 @@ Vanilla model JSON, no mods.
 
 ## Phase 14 — Items
 
-- [ ] Logic: read/validate `items/*.json` (all model types, tints, `oversized_in_gui`, `transformation`…) per pack format
+- [x] Logic: read/validate `items/*.json` (all model types, tints, `oversized_in_gui`, `transformation`…) per pack format — `shared/itemDefinition.ts` (+ evaluation for previews; 1658 vanilla definitions pass)
 - [ ] Preview items through their definition (display context, condition, range_dispatch: bow pull, compass…)
 - [ ] Definition editor; "2D in the inventory, 3D in hand" in one click
 - [ ] Migrate old `overrides` / custom_model_data to `items/`
 
 ## Phase 15 — GUI
 
-- [ ] Logic: GUI sprites, `.png.mcmeta` `gui.scaling` (stretch / tile / nine_slice), research which sprites exist per version
+- [x] Logic: GUI sprites, `.png.mcmeta` `gui.scaling` (stretch / tile / nine_slice), research which sprites exist per version — `shared/guiScaling.ts` (layout as the 26.3 code); sprite lists only from the client jar
 - [ ] Nine-slice editor (border handles) with a preview at GUI scale 1–4
 - [ ] Batch recolor (e.g. dark mode) across GUI sprites
 
 ## Phase 16 — Armature e trim
 
-- [ ] Logic: `equipment/*.json`, humanoid layers, 26.3 trim palettes (`textures/palettes/`, `palette` mcmeta)
+- [x] Logic: `equipment/*.json`, humanoid layers, 26.3 trim palettes (`textures/palettes/`, `palette` mcmeta) — `shared/equipment.ts` (palette swap matches all vanilla trims)
 - [ ] Armor painting on the layer template with a 3D player preview
 - [ ] Trim palettes and patterns preview
 
 ## Phase 17 — Diagnosi del pack e porting
 
-- [ ] Version diff from two client jars: textures added / renamed (pixel hash) / removed
+- [ ] Version diff from two client jars: textures added / renamed (pixel hash) / removed — logic done (`shared/packDoctor.ts`); jar reading in main + UI to do
 - [ ] "Missing in my pack" for the target version, migrate renamed files
-- [ ] Lint for what the game silently ignores (names, case, paths, nested zip folder, purple-black)
+- [ ] Lint for what the game silently ignores (names, case, paths, nested zip folder, purple-black) — names/case/old folders in `packDoctor.ts`; purple-black + UI to do
 
 ## Phase 18 — Emissive and mod extras
 
-- [ ] Emissive `_e` textures from the LabPBR emission channel (Continuity / ETF), preview toggle
+- [ ] Emissive `_e` textures from the LabPBR emission channel (Continuity / ETF), preview toggle — logic done (`shared/emissive.ts`); UI to do
 - [ ] Random textures naming for OptiFine/ETF; colormaps / Polytone biome colors; custom sky (later)
 
 ## Phase 19 — Small extras

@@ -35,9 +35,16 @@ export function ValidatorDialog({
 
   useEffect(() => {
     let cancelled = false
-    runValidator(pack, vanilla, (done, total) => {
-      if (!cancelled) setState({ status: 'running', done, total })
-    }).then(
+    // A pack change while it runs starts a new run: the old one stops reading files at once.
+    const controller = new AbortController()
+    runValidator(
+      pack,
+      vanilla,
+      (done, total) => {
+        if (!cancelled) setState({ status: 'running', done, total })
+      },
+      controller.signal
+    ).then(
       (result) => {
         if (!cancelled) setState({ status: 'done', result })
       },
@@ -52,6 +59,7 @@ export function ValidatorDialog({
     )
     return () => {
       cancelled = true
+      controller.abort()
     }
   }, [pack, vanilla, run])
 

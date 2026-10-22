@@ -100,7 +100,9 @@ async function checkGameMcmeta(
 export async function runValidator(
   pack: ValidatorSource,
   vanilla: ValidatorSource | null,
-  onProgress: (done: number, total: number) => void
+  onProgress: (done: number, total: number) => void,
+  /** Stops reading files (a newer run replaced this one). */
+  signal?: AbortSignal
 ): Promise<ValidatorResult> {
   const files = [...pack.files]
   const pairs = findMapPairs(files, vanilla?.files ?? null)
@@ -115,7 +117,7 @@ export async function runValidator(
   onProgress(0, jobs.length)
   let next = 0
   async function worker(): Promise<void> {
-    while (next < jobs.length) {
+    while (next < jobs.length && !signal?.aborted) {
       const job = jobs[next++]!
       issues.push(...(await job()))
       onProgress(++done, jobs.length)

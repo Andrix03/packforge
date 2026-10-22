@@ -52,11 +52,15 @@ export function ResizeDialog({
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
   useEscape(onClose, phase.status !== 'working')
 
+  // Writing changes the pack after every file: sizes are read again once, when it is over.
+  const writing = phase.status === 'working'
   useEffect(() => {
+    if (writing) return
     let cancelled = false
     void (async () => {
       const found: Record<string, { width: number; height: number }> = {}
       for (const texture of textures) {
+        if (cancelled) return
         const size = readPngSize(
           await fetchBytes(pack, texture.albedo).catch(() => new Uint8Array())
         )
@@ -67,7 +71,7 @@ export function ResizeDialog({
     return () => {
       cancelled = true
     }
-  }, [pack, textures])
+  }, [pack, textures, writing])
 
   const histogram = useMemo(
     () => (sizes ? resolutionHistogram(Object.values(sizes).map((s) => s.width)) : []),

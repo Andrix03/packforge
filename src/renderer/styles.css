@@ -3165,3 +3165,63 @@ input.seg-range:focus-visible {
 .before-after-view .ph.after {
   color: var(--ui-green-text);
 }
+/* Texture connesse wizard: the source texture and the method cards. */
+.ctm-source {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.ctm-source-image {
+  width: 192px;
+  height: 192px;
+  image-rendering: pixelated;
+  outline: 2px solid var(--ui-edge-dark);
+  background: repeating-conic-gradient(#3a3a3a 0 25%, #303030 0 50%) 0 0 / 16px 16px;
+}
+.ctm-source-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ctm-methods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.ctm-method {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px;
+  text-align: left;
+  border: 2px solid var(--ui-edge-dark);
+  border-radius: 0;
+  background: var(--ui-sunken);
+  color: var(--ui-text);
+  cursor: pointer;
+}
+.ctm-method.active {
+  outline: 2px solid var(--ui-green-text);
+  outline-offset: -2px;
+}
+.ctm-method:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.ctm-wall,
+.ctm-wall-before {
+  width: 100%;
+  max-width: 420px;
+  image-rendering: pixelated;
+}
+.before-after-view[hidden] {
+  display: none;
+}
+.ctm-wall,
+.ctm-wall-before {
+  height: auto;
+}
+.wizard-files li {
+  overflow-wrap: anywhere;
+}

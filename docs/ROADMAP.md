@@ -242,7 +242,8 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 - [x] Disegna: tool rail, options bar, document tabs, floating view bar, two-column dock, timeline (2026-10-23; one open document as a tab, multiple documents later)
 - [x] Pack, Prova, Effetti, Pubblica in the same style (every current feature kept) — 2026-10-23: Pack and Prova laid out like the canvas; Effetti = the editor on the _n/_s maps, Pubblica = the export
 - [ ] Dedicated Effetti and Pubblica screens as on the canvas (channels list + 2D/3D + light/material/POM/relief docks; checks list + export + in game + Modrinth listing)
-- [ ] Start screen, settings and every dialog restyled; Applica in blocco and Texture connesse as 4-step wizards with Prima/Dopo
+- [x] Start screen, settings and every dialog restyled; Applica in blocco and Texture connesse as 4-step wizards with Prima/Dopo (2026-10-23; dialogs take the new look through the bridge styles)
+- [ ] CTM methods Orizzontale and Verticale (4 tiles each; shown as "in arrivo" in the wizard)
 - [ ] New app icon (`.claude/design-v2/icon/forge-icon.mjs` → `scripts/make-icon.mjs`), header logo, `docs/packforge.gif` for the README
 - [ ] Beginner layout + tutorial updated; drive scenarios updated
 - [ ] Strings into a dictionary (Italian; English when Andrea decides)

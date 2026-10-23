@@ -61,4 +61,38 @@ export default async function wizard(app) {
   await app.click('Chiudi', '.wizard-foot button')
   await app.waitFor(`!document.querySelector('.modal.batch')`)
   app.check(true, 'Chiudi closes the wizard')
+
+  // Texture connesse: Texture → Metodo → Anteprima (wall before / after) → Applica.
+  await app.ev(
+    `[...document.querySelectorAll('.texture-tile')].find((t) => t.title.endsWith('/glass.png')).click()`
+  )
+  await app.sleep(300)
+  await app.click('Texture connesse')
+  await app.waitFor(`document.querySelector('[aria-label="Texture connesse"] .wizard-steps')`)
+  app.check((await current(app)).includes('1 · Texture'), 'CTM: opens on step 1 (Texture)')
+  await app.shot('ctm-1-texture')
+  await app.click('Avanti', '.wizard-foot button')
+  app.check((await current(app)).includes('2 · Metodo'), 'CTM: step 2 (Metodo)')
+  const methods = await app.ev(
+    `[...document.querySelectorAll('.ctm-method')].map((b) => (b.disabled ? '-' : '+') + b.querySelector('strong').textContent).join(' ')`
+  )
+  app.check(methods === '+Completo -Orizzontale -Verticale', `CTM: methods (${methods})`)
+  await app.shot('ctm-2-method')
+  await app.click('Avanti', '.wizard-foot button')
+  app.check((await current(app)).includes('3 · Anteprima'), 'CTM: step 3 (Anteprima)')
+  const shown = () =>
+    app.ev(
+      `[...document.querySelectorAll('[aria-label="Texture connesse"] .before-after-view')].filter((f) => !f.hidden).map((f) => f.querySelector('canvas').className).join(' ')`
+    )
+  app.check((await shown()) === 'ctm-wall', 'CTM: the connected wall first')
+  await app.ev(`(() => {
+    const box = [...document.querySelectorAll('[aria-label="Texture connesse"] .before-after-bar label')]
+      .find((l) => l.textContent.includes('Affiancati'))?.querySelector('input')
+    box?.click()
+  })()`)
+  await app.sleep(200)
+  app.check((await shown()) === 'ctm-wall-before ctm-wall', 'CTM: "Affiancati" shows both walls')
+  await app.shot('ctm-3-preview')
+  await app.click('Annulla', '.wizard-foot button')
+  await app.waitFor(`!document.querySelector('[aria-label="Texture connesse"]')`)
 }

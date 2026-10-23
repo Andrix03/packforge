@@ -23,6 +23,8 @@ import { mapPath, type MapKind } from '../../shared/labpbr'
 import type { DecodedPng } from '../../shared/pngCodec'
 import type { TextureEntry } from '../../shared/textures'
 import { Range } from '../editor/GeneratorPanel'
+import { Picture, Switch } from '../ui/components'
+import { CTM_PICTURES } from '../ui/pictures'
 import { backupBefore } from './backup'
 import { errorMessage, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
@@ -42,7 +44,10 @@ type Phase =
   | { status: 'working'; text: string }
   | { status: 'done'; written: number; errors: string[]; folder: string }
 
-/** Generates the 47 `ctm` tiles of a texture (and its maps) with their `.properties`. */
+/**
+ * Generates the 47 `ctm` tiles of a texture (and its maps) with their `.properties`, in four steps
+ * (canvas: Texture connesse): the texture, the method, the wall before / after, apply.
+ */
 export function CtmDialog({
   source,
   textures,
@@ -61,6 +66,9 @@ export function CtmDialog({
   const [border, setBorder] = useState(1)
   const [withMaps, setWithMaps] = useState(source.normal !== null || source.specular !== null)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
+  const [step, setStep] = useState(0)
+  const [showAfter, setShowAfter] = useState(true)
+  const [both, setBoth] = useState(false)
   useEscape(onClose, phase.status !== 'working')
 
   useEffect(() => {
@@ -173,14 +181,251 @@ export function CtmDialog({
     setPhase({ status: 'done', written, errors, folder })
   })
 
-  if (phase.status !== 'setup') {
-    return (
-      <div className="modal-backdrop" role="presentation">
-        <div className="card modal batch" role="dialog" aria-label="Texture connesse">
-          <h2>Texture connesse</h2>
-          {phase.status === 'working' ? (
-            <p className="small">{phase.text}</p>
-          ) : (
+  const busy = phase.status === 'working'
+  const mapKinds = (['normal', 'specular'] as const).filter((kind) =>
+    kind === 'normal' ? source.normal !== null : source.specular !== null
+  )
+  const fileCount = 47 * (1 + (withMaps ? mapKinds.length : 0)) + 1
+  const ready = loaded !== null && problem === null
+  const create47 = (
+    <button
+      type="button"
+      className={step === 2 ? 'primary' : undefined}
+      disabled={!ready || busy || phase.status === 'done'}
+      onClick={() => {
+        setStep(3)
+        create()
+      }}
+    >
+      Crea i 47 tile
+    </button>
+  )
+
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={() => !busy && onClose()}>
+      <div
+        className="card modal batch wizard"
+        role="dialog"
+        aria-label="Texture connesse"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="wizard-head">
+          <h2>Texture connesse di {source.name}</h2>
+          <ol className="wizard-steps" aria-label="Passi">
+            {CTM_STEPS.map((label, index) => (
+              <li key={label}>
+                <button
+                  type="button"
+                  className={index === step ? 'ore-on' : 'ore'}
+                  aria-current={index === step ? 'step' : undefined}
+                  disabled={
+                    busy ||
+                    (index === 3 && phase.status === 'setup') ||
+                    (index < 3 && phase.status !== 'setup')
+                  }
+                  onClick={() => setStep(index)}
+                >
+                  {index < step ? '✓ ' : ''}
+                  {index + 1} · {label}
+                </button>
+              </li>
+            ))}
+          </ol>
+          <span className="muted small">{loaded ? `${loaded.width}×${loaded.height}` : ''}</span>
+        </header>
+        {image && 'error' in image && <p className="field-error small">{image.error}</p>}
+        {problem && <p className="field-error small">{problem}</p>}
+
+        {/* 1 · Texture */}
+        <section className="wizard-step" hidden={step !== 0}>
+          <p className="muted small">
+            Blocchi uguali vicini si uniscono e il bordo resta solo sui lati liberi (vetro, mattoni,
+            pannelli). La cornice è il bordo della texture: dove due blocchi si toccano sparisce.
+          </p>
+          {loaded && (
+            <div className="ctm-source">
+              <Canvas
+                className="ctm-source-image"
+                width={loaded.width}
+                height={loaded.height}
+                data={Uint8ClampedArray.from(loaded.data)}
+              />
+              <div className="ctm-source-facts">
+                <strong>{source.name}.png</strong>
+                <span className="muted small">
+                  {loaded.width}×{loaded.height}
+                  {problem ? '' : ' · va bene per il metodo completo'}
+                </span>
+                <label
+                  className="small select-field"
+                  title="Facoltativa: la texture senza cornice, usata dove i blocchi si uniscono"
+                >
+                  Interno{' '}
+                  <select
+                    aria-label="Interno"
+                    value={centerPath}
+                    onChange={(event) => setCenterPath(event.target.value)}
+                  >
+                    <option value="">l’interno della texture stessa</option>
+                    {centers.map((t) => (
+                      <option key={t.albedo} value={t.albedo}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* 2 · Metodo */}
+        <section className="wizard-step" hidden={step !== 1}>
+          <div className="ctm-methods" role="radiogroup" aria-label="Metodo">
+            {CTM_METHODS.map((method) => (
+              <button
+                key={method.id}
+                type="button"
+                role="radio"
+                aria-checked={method.id === 'ctm'}
+                className={method.id === 'ctm' ? 'ctm-method active' : 'ctm-method'}
+                disabled={!method.ready}
+                title={
+                  method.ready ? undefined : 'In arrivo: per ora PackForge crea il metodo completo'
+                }
+              >
+                <Picture picture={method.picture} size={40} />
+                <strong>{method.label}</strong>
+                <span className="muted small">{method.note}</span>
+                <span className="small">{method.ready ? method.tiles : 'in arrivo'}</span>
+              </button>
+            ))}
+          </div>
+          {loaded && !problem && (
+            <Range
+              label="Spessore del bordo"
+              value={border}
+              unit=" px"
+              min={1}
+              max={maxBorder(loaded.width)}
+              title="Quanti pixel dal bordo formano la cornice che sparisce dove i blocchi si toccano"
+              onChange={setBorder}
+            />
+          )}
+          {(source.normal || source.specular) && (
+            <label className="inline-check small">
+              <input
+                type="checkbox"
+                checked={withMaps}
+                onChange={(event) => setWithMaps(event.target.checked)}
+              />
+              Crea anche i tile di _n e _s (rilievo e materiale seguono le connessioni)
+            </label>
+          )}
+          <p className="small muted">
+            Funziona con Continuity (Fabric, anche con Iris) e con OptiFine.
+          </p>
+        </section>
+
+        {/* 3 · Anteprima: the wall before (every block framed) and after (connected) */}
+        <section className="wizard-step wizard-preview" hidden={step !== 2}>
+          <div className="wizard-preview-main">
+            {loaded && !problem && (
+              <>
+                <div className="before-after-bar">
+                  <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
+                    Prima
+                  </span>
+                  <Switch
+                    checked={showAfter}
+                    onChange={setShowAfter}
+                    label="Mostra il risultato"
+                    disabled={both}
+                  />
+                  <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
+                    Dopo
+                  </span>
+                  <label className="inline-check small" title="Prima e dopo uno accanto all’altro">
+                    <input
+                      type="checkbox"
+                      checked={both}
+                      onChange={(event) => setBoth(event.target.checked)}
+                    />
+                    Affiancati
+                  </label>
+                </div>
+                <div className={both ? 'before-after-views both' : 'before-after-views'}>
+                  <figure className="before-after-view" hidden={!both && showAfter}>
+                    <figcaption className="ph">Prima</figcaption>
+                    <Canvas className="ctm-wall-before" {...plainWall(loaded)} />
+                    <figcaption className="small muted">
+                      Ogni blocco ha la sua cornice: il muro sembra una griglia.
+                    </figcaption>
+                  </figure>
+                  <figure className="before-after-view" hidden={!both && !showAfter}>
+                    <figcaption className="ph after">Dopo</figcaption>
+                    <Canvas className="ctm-wall" {...wallPreview(loaded, tiles)} />
+                    <figcaption className="small muted">
+                      Le cornici interne spariscono: una sola superficie.
+                    </figcaption>
+                  </figure>
+                </div>
+                <figure className="compare-figure">
+                  <Canvas className="ctm-sheet" {...sheetPreview(loaded, tiles)} />
+                  <figcaption className="small muted">
+                    I 47 tile (come il template di OptiFine)
+                  </figcaption>
+                </figure>
+              </>
+            )}
+          </div>
+          <aside className="wizard-facts">
+            <h3 className="ph">Cosa succede</h3>
+            <div className="wizard-counts">
+              <span>
+                <strong className={exists ? 'count-over' : 'count-new'}>{fileCount}</strong>
+                {exists ? 'riscritti' : 'nuovi'}
+              </span>
+              <span>
+                <strong>1</strong> invariato
+              </span>
+            </div>
+            <p className="small">
+              {source.name}.png non viene toccata: i tile sono file nuovi accanto. Prima di scrivere
+              viene fatto un backup.
+            </p>
+            <p className="small warning-text">
+              Serve Continuity o OptiFine. Senza, il gioco mostra la texture normale: niente si
+              rompe.
+            </p>
+            <h3 className="ph">File che verranno scritti</h3>
+            <ul className="wizard-files">
+              <li className={exists ? 'file-overwrite' : 'file-create'}>
+                {exists ? '~' : '+'} {folder.replace(/^assets\/minecraft\//, '')}/0.png … 46.png
+              </li>
+              {withMaps &&
+                mapKinds.map((kind) => (
+                  <li key={kind} className={exists ? 'file-overwrite' : 'file-create'}>
+                    {exists ? '~' : '+'} i 47 tile {kind === 'normal' ? '_n' : '_s'}
+                  </li>
+                ))}
+              <li className={exists ? 'file-overwrite' : 'file-create'}>
+                {exists ? '~' : '+'} {folder.slice(folder.lastIndexOf('/') + 1)}.properties
+              </li>
+              <li className="file-skip">
+                = {source.albedo.slice(source.albedo.lastIndexOf('/') + 1)}
+              </li>
+            </ul>
+            <p className="small muted">
+              Cartella: {folder}/{exists && ' · esiste già'}
+            </p>
+          </aside>
+        </section>
+
+        {/* 4 · Applica */}
+        <section className="wizard-step" hidden={step !== 3}>
+          {phase.status === 'working' && <p className="small">{phase.text}</p>}
+          {phase.status === 'done' && (
             <>
               <p className="small" data-testid="ctm-result">
                 ✓ {phase.written} tile scritti in {phase.folder}
@@ -192,107 +437,90 @@ export function CtmDialog({
                 </p>
               ))}
               <p className="small muted">
-                In gioco servono Continuity (Fabric, anche con Iris) oppure OptiFine.
+                In gioco servono Continuity (Fabric, anche con Iris) oppure OptiFine: metti due
+                blocchi vicini e la cornice in mezzo sparisce. Il backup è in Pack › Backup.
               </p>
-              <div className="row">
-                <button type="button" className="primary" onClick={onClose}>
-                  Chiudi
-                </button>
-              </div>
             </>
           )}
-        </div>
-      </div>
-    )
-  }
+        </section>
 
-  return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal batch"
-        role="dialog"
-        aria-label="Texture connesse"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>Texture connesse di {source.name}</h2>
-        <p className="muted small">
-          Crea i 47 tile del metodo «ctm»: blocchi uguali vicini si uniscono e il bordo resta solo
-          sui lati liberi (vetro, mattoni, pannelli). Funziona con Continuity (Fabric) e OptiFine.
-        </p>
-        {image && 'error' in image && <p className="field-error small">{image.error}</p>}
-        {problem && <p className="field-error small">{problem}</p>}
-        {loaded && !problem && (
-          <>
-            <Range
-              label="Spessore del bordo"
-              value={border}
-              unit=" px"
-              min={1}
-              max={maxBorder(loaded.width)}
-              title="Quanti pixel dal bordo formano la cornice che sparisce dove i blocchi si toccano"
-              onChange={setBorder}
-            />
-            <label
-              className="small select-field"
-              title="Facoltativa: la texture senza cornice, usata dove i blocchi si uniscono"
-            >
-              Interno{' '}
-              <select
-                aria-label="Interno"
-                value={centerPath}
-                onChange={(event) => setCenterPath(event.target.value)}
-              >
-                <option value="">l’interno della texture stessa</option>
-                {centers.map((t) => (
-                  <option key={t.albedo} value={t.albedo}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="ctm-previews">
-              <figure className="compare-figure">
-                <Canvas className="ctm-wall" {...wallPreview(loaded, tiles)} />
-                <figcaption className="small muted">Anteprima a muro</figcaption>
-              </figure>
-              <figure className="compare-figure">
-                <Canvas className="ctm-sheet" {...sheetPreview(loaded, tiles)} />
-                <figcaption className="small muted">
-                  I 47 tile (come il template di OptiFine)
-                </figcaption>
-              </figure>
-            </div>
-            {(source.normal || source.specular) && (
-              <label className="inline-check small">
-                <input
-                  type="checkbox"
-                  checked={withMaps}
-                  onChange={(event) => setWithMaps(event.target.checked)}
-                />
-                Crea anche i tile di _n e _s (rilievo e materiale seguono le connessioni)
-              </label>
-            )}
-            <p className="small muted">
-              Cartella: {folder}/{exists && ' · esiste già'}
-            </p>
-          </>
-        )}
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={!loaded || problem !== null}
-            onClick={() => create()}
-          >
-            Crea i 47 tile
-          </button>
-          <button type="button" onClick={onClose}>
-            Annulla
-          </button>
-        </div>
+        <footer className="row wizard-foot">
+          {phase.status === 'done' ? (
+            <button type="button" className="primary" onClick={onClose}>
+              Chiudi
+            </button>
+          ) : (
+            <>
+              <button type="button" onClick={onClose} disabled={busy}>
+                Annulla
+              </button>
+              {step > 0 && step < 3 && (
+                <button type="button" onClick={() => setStep(step - 1)}>
+                  ‹ Indietro
+                </button>
+              )}
+              {step < 2 && (
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={!ready}
+                  onClick={() => setStep(step + 1)}
+                >
+                  Avanti: {CTM_STEPS[step + 1]?.toLowerCase()} ›
+                </button>
+              )}
+              {create47}
+            </>
+          )}
+        </footer>
       </div>
     </div>
   )
+}
+
+const CTM_STEPS = ['Texture', 'Metodo', 'Anteprima', 'Applica'] as const
+
+const CTM_METHODS = [
+  {
+    id: 'ctm',
+    label: 'Completo',
+    note: 'Si collega in tutte le direzioni: vetri, finestre, blocchi lisci.',
+    tiles: '47 tessere',
+    picture: CTM_PICTURES.ctm,
+    ready: true
+  },
+  {
+    id: 'horizontal',
+    label: 'Orizzontale',
+    note: 'Solo a destra e sinistra: scaffali, librerie, ringhiere.',
+    tiles: '4 tessere',
+    picture: CTM_PICTURES.h,
+    ready: false
+  },
+  {
+    id: 'vertical',
+    label: 'Verticale',
+    note: 'Solo sopra e sotto: colonne, pilastri, tronchi.',
+    tiles: '4 tessere',
+    picture: CTM_PICTURES.v,
+    ready: false
+  }
+] as const
+
+/** The same wall with every block unconnected (what the game shows without the mod). */
+function plainWall(image: Image): CanvasData {
+  const size = image.width
+  const rows = WALL.length
+  const cols = WALL[0]!.length
+  const width = cols * size
+  const height = rows * size
+  const data = new Uint8ClampedArray(width * height * 4)
+  const tile = Uint8ClampedArray.from({ length: size * size * 4 }, (_, i) => image.data[i] ?? 0)
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++)
+      if (WALL[r]?.[c] === 1) blit(data, width, tile, size, c * size, r * size)
+  }
+  return { width, height, data }
 }
 
 /** The tiles in the template's 12×4 grid (tile i at column i % 12, row ⌊i / 12⌋). */

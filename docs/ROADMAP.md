@@ -228,13 +228,14 @@ document tabs, collapsible panels in a two-column dock, status bar. Beginner = a
 the same editor.
 
 Style (decided 2026-10-23): the Disegna screen of the design canvas "PackForge — nuova
-interfaccia" is the reference, and every other screen is aligned to it in code (no more canvas
-work). An Ore-UI-_inspired_ look drawn by us: neutral greys, raised/sunken 1 px bevels, light
+interfaccia" is the reference: first every other screen is redrawn in that style on the canvas
+(Andrea reviews it there), then the whole design is implemented in code. An Ore-UI-_inspired_ look drawn by us: neutral greys, raised/sunken 1 px bevels, light
 bevelled "ore" buttons and green active state, I/O switches, segmented sliders, Tiny5 pixel font
 (OFL, bundled), our own 16×16 pixel icons. Never Mojang's font, textures, logo or an official look
 (Minecraft usage guidelines).
 
 - [x] Style approved (Disegna on the canvas)
+- [ ] Canvas: Pack, Prova, Effetti, Pubblica redrawn in the Disegna style; start screen, settings, dialogs, Beginner layout added
 - [ ] Design system in code: tokens, Tiny5 bundled, pixel icons, ore buttons, I/O switch, segmented slider, select, panels
 - [ ] Shell: menu bar, Ctrl+K, workspace hotbar, status bar
 - [ ] Disegna: tool rail, options bar, document tabs, floating view bar, two-column dock, timeline

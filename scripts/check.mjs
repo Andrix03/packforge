@@ -19,12 +19,16 @@ const steps = [
         [
           'format (write)',
           bin('prettier'),
-          ['--write', '--log-level=warn', 'src', 'docs', 'scripts']
+          ['--write', '--log-level=warn', 'src', 'scripts', 'README.md', 'CHANGELOG.md']
         ],
         ['lint (fix)', bin('eslint'), ['.', '--fix']]
       ]
     : []),
-  ['format', bin('prettier'), ['--check', '--log-level=warn', 'src', 'docs', 'scripts']],
+  [
+    'format',
+    bin('prettier'),
+    ['--check', '--log-level=warn', 'src', 'scripts', 'README.md', 'CHANGELOG.md']
+  ],
   ['typecheck node', bin('tsc'), ['--noEmit', '-p', 'tsconfig.node.json', '--composite', 'false']],
   ['typecheck web', bin('tsc'), ['--noEmit', '-p', 'tsconfig.web.json', '--composite', 'false']],
   ['lint', bin('eslint'), ['.', '--max-warnings=0']],

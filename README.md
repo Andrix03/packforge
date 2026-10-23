@@ -144,8 +144,9 @@ Free code signing provided by [SignPath.io](https://about.signpath.io), certific
 Every signed file is built by the GitHub Actions workflow of this repository from the tagged
 source, and each signing request is approved by hand.
 
-**Privacy.** PackForge sends nothing about you or your packs anywhere. The only network request it
-makes on its own is asking GitHub for the latest release when it starts, to tell you about an
-update; you can turn that off in Settings. Everything else stays on your computer.
+**Privacy.** This program will not transfer any information to other networked systems unless
+specifically requested by the user or the person installing or operating it. (The only request it
+can make is asking GitHub for the latest release at start, and only after you turn on the update
+check in Settings.)
 
 <sub>NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.</sub>

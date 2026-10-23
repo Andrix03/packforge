@@ -22,7 +22,7 @@ describe('parseSettings', () => {
       recentPacks: [],
       editorMode: 'beginner',
       palettes: [],
-      checkUpdates: true,
+      checkUpdates: false,
       tutorial: { status: 'active', done: [] },
       language: null
     })

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 alpha — 2026-10-24
+
+- English is now the default language; Italian is one click away in Settings.
+- The update check is off until you turn it on in Settings: PackForge makes no network request on
+  its own.
+- Checkboxes and radio buttons in lists (colour variants, batch apply) now look like the rest of the
+  pixel interface.
+- No more native Electron menu bar on Windows and Linux (it sat above PackForge's own).
+- Settings no longer say the system's default editor is "Windows'" on Linux.
+
 ## 0.1.0 alpha — 2026-10-23
 
 The first public build of PackForge. **It is a prototype**: an experiment in what a resource pack

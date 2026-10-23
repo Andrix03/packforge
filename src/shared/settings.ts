@@ -51,11 +51,11 @@ export interface Settings {
   recentPacks: RecentPack[]
   editorMode: EditorMode
   palettes: SavedPalette[]
-  /** Ask GitHub for a newer release at start (notify only, never installs). */
+  /** Ask GitHub for a newer release at start (notify only, never installs). Off until turned on. */
   checkUpdates: boolean
   /** First-run tutorial (Beginner mode). */
   tutorial: TutorialState
-  /** Interface language; null follows the system (Italian systems → it, others → en). */
+  /** Interface language; null = English (the default). */
   language: Language | null
 }
 
@@ -81,7 +81,8 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   // PackForge is for everyone: start simple.
   editorMode: 'beginner',
   palettes: [],
-  checkUpdates: true,
+  // Nothing leaves the PC unless the user asks: the update check is opt-in.
+  checkUpdates: false,
   tutorial: NEW_TUTORIAL,
   language: null
 })
@@ -101,7 +102,7 @@ export function parseSettings(value: unknown): Settings {
       : [],
     editorMode: isEditorMode(record['editorMode']) ? record['editorMode'] : 'beginner',
     palettes: parsePalettes(record['palettes']),
-    checkUpdates: record['checkUpdates'] !== false,
+    checkUpdates: record['checkUpdates'] === true,
     tutorial: parseTutorial(record['tutorial']),
     language: isLanguage(record['language']) ? record['language'] : null
   }

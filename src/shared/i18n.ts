@@ -17,11 +17,6 @@ export function isLanguage(value: unknown): value is Language {
   return value === 'it' || value === 'en'
 }
 
-/** The language for a system locale ("it-IT" → it, anything else → en). */
-export function languageForLocale(locale: string): Language {
-  return locale.toLowerCase().startsWith('it') ? 'it' : 'en'
-}
-
 function initial(): Language {
   const fromPreload = (globalThis as { api?: { language?: unknown } }).api?.language
   return isLanguage(fromPreload) ? fromPreload : 'it'

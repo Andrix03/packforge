@@ -2,13 +2,14 @@
 // pack and user-data folder, launches Electron with a CDP port, runs a scenario, closes the app.
 //
 //   npm run drive -- scripts/drive/scenarios/smoke.mjs [--no-build] [--keep-open] [--pack <dir>]
+//     [--port <n>] [--clean]
 //
 // A scenario is a module whose default export is `async (app) => {}`; see helpers below and
 // scenarios/smoke.mjs. `app.check(condition, label)` records PASS/FAIL lines; the exit code is 1
 // when a check fails or the scenario throws. Screenshots go to a temp folder printed at the end.
 
 import { spawn, spawnSync } from 'node:child_process'
-import { appendFile, mkdir, mkdtemp } from 'node:fs/promises'
+import { appendFile, mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -58,7 +59,8 @@ if (!option('--pack')) {
   if (scenarioOptions.zip) paths.pack = await zipFolder(paths.pack, `${paths.pack}.zip`)
 }
 
-const port = 9300 + Math.floor(Math.random() * 100)
+// --port: all.mjs gives each parallel worker its own; otherwise a random one.
+const port = Number(option('--port')) || 9300 + Math.floor(Math.random() * 100)
 const electron = createRequire(import.meta.url)('electron')
 const child = spawn(
   electron,
@@ -108,8 +110,13 @@ try {
 }
 const failures = results.filter((r) => !r.ok).length
 if (failures > 0) exitCode = 1
+// --clean (all.mjs): a passing run leaves nothing behind (each run's user data is ~10 MB of Chromium
+// files); a failing one keeps its screenshots.
+const clean = flag('--clean') && exitCode === 0 && !flag('--keep-open')
+if (clean)
+  await rm(work, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }).catch(() => {})
 console.log(
-  `${results.length - failures}/${results.length} checks passed · screenshots: ${paths.out}`
+  `${results.length - failures}/${results.length} checks passed, screenshots: ${clean ? 'removed' : paths.out}`
 )
 process.exit(exitCode)
 

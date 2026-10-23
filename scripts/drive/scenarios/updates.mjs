@@ -1,5 +1,5 @@
-// Phase 12 update check: a fake feed (data: URL, no network) announces v9.9.9 → banner with the
-// versions, "Più tardi" hides it; turning the setting off stops the check; links outside the
+// Phase 12 update check, opt-in since 0.1.1: off by default; once on, a fake feed (data: URL, no
+// network) announces v9.9.9 → banner with the versions, "Più tardi" hides it; turning the setting off stops the check; links outside the
 // project's releases are refused (the real "Scarica" link is not clicked: it opens a browser).
 const RELEASE = {
   tag_name: 'v9.9.9',
@@ -13,10 +13,21 @@ export const options = {
 }
 
 export default async function updates(app) {
+  // Opt-in: with the default settings nothing is asked to GitHub.
+  await app.waitFor(`document.querySelector('.shell-hotbar')`)
+  const byDefault = await app.ev(`window.api.invoke('app:checkUpdate')`)
+  app.check(byDefault.status === 'off', `no check until turned on (${byDefault.status})`)
+  app.check(
+    !(await app.ev(`!!document.querySelector('[data-testid=update-banner]')`)),
+    'no banner by default'
+  )
+  await app.ev(`window.api.invoke('settings:setCheckUpdates', true)`)
+  await app.ev(`location.reload()`)
+  await app.sleep(500)
   await app.waitFor(`document.querySelector('[data-testid=update-banner]')`, 10000)
   const banner = await app.ev(`document.querySelector('[data-testid=update-banner]').textContent`)
   app.check(
-    banner.includes('PackForge 9.9.9') && banner.includes('tu hai 0.1.0'),
+    banner.includes('PackForge 9.9.9') && /tu hai \d+\.\d+\.\d+/.test(banner),
     `banner (${banner})`
   )
   await app.shot('01-banner')

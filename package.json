@@ -1,7 +1,7 @@
 {
   "name": "packforge",
   "productName": "PackForge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Minecraft Java Edition resource pack studio with LabPBR preview",
   "private": true,
   "type": "module",
@@ -35,7 +35,8 @@
     "dist:dir": "npm run build && electron-builder --win --x64 --dir --publish never",
     "icon": "node scripts/make-icon.mjs",
     "dist:zip": "npm run build && electron-builder --win zip --x64 --publish never",
-    "dist:linux": "npm run build && electron-builder --linux --x64 --publish never"
+    "dist:linux": "npm run build && electron-builder --linux --x64 --publish never",
+    "drive:clean": "node scripts/drive/clean.mjs"
   },
   "dependencies": {
     "chokidar": "^5.0.0",

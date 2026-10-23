@@ -143,6 +143,36 @@ export async function detectEditors(roots: ProgramRoots): Promise<DetectedEditor
   return found
 }
 
+/** Linux image editors: distribution packages, Flatpak exports, Snap; `root` is "/" (tests: a temp folder). */
+export async function detectLinuxEditors(root: string, home: string): Promise<DetectedEditor[]> {
+  const candidates: DetectedEditor[] = [
+    { name: 'Aseprite', path: join(root, 'usr', 'bin', 'aseprite') },
+    {
+      name: 'Aseprite (Steam)',
+      path: join(home, '.steam', 'steam', 'steamapps', 'common', 'Aseprite', 'aseprite')
+    },
+    { name: 'GIMP', path: join(root, 'usr', 'bin', 'gimp') },
+    {
+      name: 'GIMP (Flatpak)',
+      path: join(root, 'var', 'lib', 'flatpak', 'exports', 'bin', 'org.gimp.GIMP')
+    },
+    { name: 'GIMP (Snap)', path: join(root, 'snap', 'bin', 'gimp') },
+    { name: 'Krita', path: join(root, 'usr', 'bin', 'krita') },
+    {
+      name: 'Krita (Flatpak)',
+      path: join(root, 'var', 'lib', 'flatpak', 'exports', 'bin', 'org.kde.krita')
+    },
+    { name: 'Pinta', path: join(root, 'usr', 'bin', 'pinta') },
+    {
+      name: 'Pinta (Flatpak)',
+      path: join(root, 'var', 'lib', 'flatpak', 'exports', 'bin', 'com.github.PintaProject.Pinta')
+    }
+  ]
+  const found: DetectedEditor[] = []
+  for (const candidate of candidates) if (await fileExists(candidate.path)) found.push(candidate)
+  return found
+}
+
 async function subdirsStartingWith(dir: string, prefix: string): Promise<string[]> {
   try {
     const entries = await readdir(dir, { withFileTypes: true })

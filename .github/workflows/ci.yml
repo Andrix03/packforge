@@ -1,6 +1,6 @@
 # Every push and pull request: formatting, typecheck, lint (0 warnings) and unit tests — the same
 # `npm run check` used locally. The UI scenarios (scripts/drive) need a desktop session and the
-# user's Minecraft jar, so they stay local.
+# user's Minecraft jar, so they stay local. Windows and Ubuntu: the Linux build must pass too.
 name: CI
 
 on:
@@ -12,7 +12,11 @@ permissions:
 
 jobs:
   check:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
       # The checks never start Electron: skip its ~100 MB download.

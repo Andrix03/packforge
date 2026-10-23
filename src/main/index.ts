@@ -1,7 +1,7 @@
 // First: sets the interface language before any module builds its texts.
 import './language'
 import { join } from 'node:path'
-import { app, BrowserWindow, protocol, shell } from 'electron'
+import { app, BrowserWindow, Menu, protocol, shell } from 'electron'
 import { registerIpcHandlers } from './ipc'
 import { handlePackRequest, PACK_SCHEME } from './packProtocol'
 import { getSource } from './session'
@@ -52,6 +52,9 @@ function createWindow(): void {
 }
 
 void app.whenReady().then(() => {
+  // PackForge draws its own menu bar: no native one (it would also expose reload and DevTools).
+  // macOS keeps the standard app menu, which copy/paste and Cmd+Q rely on.
+  if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
   registerIpcHandlers()
   protocol.handle(PACK_SCHEME, (request) => handlePackRequest(request, getSource))
   createWindow()

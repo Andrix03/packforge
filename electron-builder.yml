@@ -38,3 +38,24 @@ nsis:
   language: '1040'
   artifactName: PackForge-Setup-${version}.${ext}
   uninstallDisplayName: PackForge
+  # GPL-3.0: the installer shows the licence before installing.
+  license: LICENSE
+# Linux (built on the GitHub Ubuntu runner): an AppImage that runs on most distributions, and a
+# .deb for Debian/Ubuntu. The game folder is ~/.minecraft (or the Flatpak launcher's).
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+  icon: build/icon.png
+  category: Graphics
+  executableName: packforge
+  synopsis: Minecraft Java resource pack studio with LabPBR preview
+  maintainer: Andrix03 <Andrix03@users.noreply.github.com>
+appImage:
+  artifactName: PackForge-${version}.${ext}
+deb:
+  artifactName: packforge_${version}_amd64.${ext}

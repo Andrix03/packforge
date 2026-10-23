@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   detectEditors,
+  detectLinuxEditors,
   minecraftDirStatus,
   SettingsStore,
   validateEditorPath,
@@ -192,5 +193,13 @@ describe('detectEditors', () => {
 
   it('returns nothing without program folders', async () => {
     expect(await detectEditors({})).toEqual([])
+  })
+
+  it('finds Linux editors from packages, Flatpak and Steam', async () => {
+    await touch('usr', 'bin', 'gimp')
+    await touch('var', 'lib', 'flatpak', 'exports', 'bin', 'org.kde.krita')
+    await touch('home', '.steam', 'steam', 'steamapps', 'common', 'Aseprite', 'aseprite')
+    const found = await detectLinuxEditors(root, join(root, 'home'))
+    expect(found.map((e) => e.name)).toEqual(['Aseprite (Steam)', 'GIMP', 'Krita (Flatpak)'])
   })
 })

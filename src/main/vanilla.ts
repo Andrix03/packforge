@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -18,15 +19,29 @@ export const VANILLA_ASSET_PREFIXES = [
 ] as const
 const MAX_JAR_BYTES = 512 * 1024 * 1024
 
-/** Default `.minecraft` location for the official launcher. */
+/** Where the official launcher keeps `.minecraft` on Linux when installed from Flathub. */
+const FLATPAK_MINECRAFT = ['.var', 'app', 'com.mojang.Minecraft', '.minecraft']
+
+/**
+ * `.minecraft` of the official launcher on a platform. On Linux the Flatpak launcher's folder is
+ * used when it exists and the usual `~/.minecraft` doesn't.
+ */
+export function minecraftDirFor(
+  platform: NodeJS.Platform,
+  home: string,
+  appData: string | undefined,
+  exists: (path: string) => boolean
+): string {
+  if (platform === 'win32') return join(appData ?? join(home, 'AppData', 'Roaming'), '.minecraft')
+  if (platform === 'darwin') return join(home, 'Library', 'Application Support', 'minecraft')
+  const usual = join(home, '.minecraft')
+  const flatpak = join(home, ...FLATPAK_MINECRAFT)
+  return !exists(usual) && exists(flatpak) ? flatpak : usual
+}
+
+/** Default `.minecraft` location for the official launcher on this PC. */
 export function defaultMinecraftDir(): string {
-  if (process.platform === 'win32') {
-    return join(process.env['APPDATA'] ?? join(homedir(), 'AppData', 'Roaming'), '.minecraft')
-  }
-  if (process.platform === 'darwin') {
-    return join(homedir(), 'Library', 'Application Support', 'minecraft')
-  }
-  return join(homedir(), '.minecraft')
+  return minecraftDirFor(process.platform, homedir(), process.env['APPDATA'], existsSync)
 }
 
 /** Installed versions that have a client jar, newest first. */

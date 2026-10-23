@@ -6,6 +6,12 @@
   "private": true,
   "type": "module",
   "author": "Andrea",
+  "license": "GPL-3.0-only",
+  "homepage": "https://github.com/Andrix03/packforge",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Andrix03/packforge.git"
+  },
   "main": "./out/main/index.js",
   "engines": {
     "node": ">=20.19"
@@ -28,7 +34,8 @@
     "dist": "npm run build && electron-builder --win --x64 --publish never",
     "dist:dir": "npm run build && electron-builder --win --x64 --dir --publish never",
     "icon": "node scripts/make-icon.mjs",
-    "dist:zip": "npm run build && electron-builder --win zip --x64 --publish never"
+    "dist:zip": "npm run build && electron-builder --win zip --x64 --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --x64 --publish never"
   },
   "dependencies": {
     "chokidar": "^5.0.0",

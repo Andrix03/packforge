@@ -7,6 +7,7 @@ import { listPackFiles } from './packSource'
 import {
   listInstalledVersions,
   loadVanillaJar,
+  minecraftDirFor,
   readJarFormat,
   VANILLA_ASSET_PREFIXES
 } from './vanilla'
@@ -57,6 +58,27 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await rm(mc, { recursive: true, force: true })
+})
+
+describe('minecraftDirFor', () => {
+  it('finds the official launcher folder on each platform', () => {
+    const none = (): boolean => false
+    expect(minecraftDirFor('win32', 'C:/Users/a', 'C:/Users/a/AppData/Roaming', none)).toBe(
+      join('C:/Users/a/AppData/Roaming', '.minecraft')
+    )
+    expect(minecraftDirFor('darwin', '/Users/a', undefined, none)).toBe(
+      join('/Users/a', 'Library', 'Application Support', 'minecraft')
+    )
+    expect(minecraftDirFor('linux', '/home/a', undefined, none)).toBe(join('/home/a', '.minecraft'))
+  })
+
+  it('uses the Flatpak launcher folder on Linux when only that one exists', () => {
+    const flatpak = join('/home/a', '.var', 'app', 'com.mojang.Minecraft', '.minecraft')
+    expect(minecraftDirFor('linux', '/home/a', undefined, (p) => p === flatpak)).toBe(flatpak)
+    expect(minecraftDirFor('linux', '/home/a', undefined, () => true)).toBe(
+      join('/home/a', '.minecraft')
+    )
+  })
 })
 
 describe('listInstalledVersions', () => {

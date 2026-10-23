@@ -1403,7 +1403,7 @@ export const EN: Readonly<Record<string, string>> = {
   Rimuovi: 'Remove',
   'Trovati su questo PC:': 'Found on this PC:',
   'Usa {0}': 'Use {0}',
-  'Usato dal pulsante «Apri fuori» dell’editor (Aseprite, Photoshop, …): quando lì salvi, PackForge ricarica la texture da solo. Senza un programma scelto si apre quello predefinito di Windows.':
+  'Usato dal pulsante «Apri fuori» dell’editor (Aseprite, Photoshop, …): quando lì salvi, PackForge ricarica la texture da solo. Senza un programma scelto si apre quello predefinito del sistema.':
     "Used by the editor's “Open outside” button (Aseprite, Photoshop, …): when you save there, PackForge reloads the texture by itself. With no program chosen, the system's default one opens.",
   Tutorial: 'Tutorial',
   '«Il tuo primo blocco»: sei passi guidati, in modalità Principiante (stato: {0}).':

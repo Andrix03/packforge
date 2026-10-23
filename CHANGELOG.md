@@ -55,4 +55,9 @@ a copy of your pack.
   icons and pixel fonts (Pixel Operator, Tiny5).
 - English and Italian: the language follows the system and can be changed in Settings.
 
+### Platforms and licence
+
+- Windows: installer and portable zip. Linux: AppImage and .deb (new, very little tested).
+- Free software under the GNU GPL v3.0.
+
 NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.

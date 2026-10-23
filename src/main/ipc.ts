@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { basename, isAbsolute, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
@@ -60,6 +61,7 @@ import { closeSource, getSource, setSource } from './session'
 import type { PackSource } from './packSource'
 import {
   detectEditors,
+  detectLinuxEditors,
   fileExists,
   minecraftDirStatus,
   SettingsStore,
@@ -259,7 +261,9 @@ async function settingsView(): Promise<SettingsView> {
             programFiles: process.env['ProgramFiles'],
             programFilesX86: process.env['ProgramFiles(x86)']
           })
-        : [],
+        : process.platform === 'linux'
+          ? await detectLinuxEditors('/', homedir())
+          : [],
     language: language()
   }
 }

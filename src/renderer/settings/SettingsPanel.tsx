@@ -174,7 +174,7 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
         )}
         <p className="muted small">
           {tr(
-            'Usato dal pulsante «Apri fuori» dell’editor (Aseprite, Photoshop, …): quando lì salvi, PackForge ricarica la texture da solo. Senza un programma scelto si apre quello predefinito di Windows.'
+            'Usato dal pulsante «Apri fuori» dell’editor (Aseprite, Photoshop, …): quando lì salvi, PackForge ricarica la texture da solo. Senza un programma scelto si apre quello predefinito del sistema.'
           )}
         </p>
       </div>

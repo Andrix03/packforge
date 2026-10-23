@@ -2667,3 +2667,88 @@ input[type='radio'] {
   color: var(--ui-muted);
   box-shadow: none;
 }
+
+/* 12b Disegna: the editor fills the shell; its header is the document tab bar. */
+.editor {
+  padding: 0;
+  gap: 0;
+}
+.editor-header {
+  flex-wrap: nowrap;
+  gap: 10px;
+  padding: 4px 8px 0;
+  background: #262626;
+  border-bottom: 1px solid var(--ui-edge-dark);
+}
+.editor-header > div:first-child {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 12px 6px;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-edge-dark);
+  border-bottom: 0;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.editor-header > div:first-child::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  flex: none;
+  background: var(--ui-green);
+}
+.editor-header > div:first-child .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.editor-header > .row {
+  flex-wrap: nowrap;
+  padding-bottom: 4px;
+}
+.editor > .face-tabs,
+.editor > .map-tabs,
+.editor > .channel-tabs,
+.editor > .growth-bar,
+.editor > .draft-banner {
+  padding: 5px 10px;
+  background: #232323;
+  border-bottom: 1px solid var(--ui-edge-dark);
+}
+.editor > .editor-main {
+  border: 0;
+}
+.editor-hotbar,
+.joined {
+  display: flex;
+  align-items: center;
+}
+.editor-hotbar {
+  gap: 8px;
+}
+/* Floating view bar on the canvas (bottom right, above the status line). */
+.editor-body {
+  position: relative;
+}
+.view-bar {
+  position: absolute;
+  right: 12px;
+  bottom: 34px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45);
+}
+.view-bar .vsep {
+  margin: 2px 2px;
+}
+.view-bar .zoom-label {
+  min-width: 60px;
+  padding: 3px 6px;
+  text-align: center;
+}

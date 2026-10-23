@@ -1,3 +1,5 @@
+import { PixelIcon } from '../ui/components'
+import { CMD_ICONS } from '../ui/icons'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cssColor, dialogOpen, drawCanvas, formatColor, isTyping } from './canvasDraw'
 import type { EditorDocument } from './document'
@@ -553,68 +555,79 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
 
   return (
     <div className="editor-body">
-      <div className="editor-toolbar">
-        <button
-          type="button"
-          onClick={() => setStoredViewport(null)}
-          title="Adatta alla finestra (0)"
+      {/* Floating view bar (canvas: bottom right): grid, seamless, zoom, fit, shortcuts. */}
+      <div
+        className="view-bar raised"
+        role="toolbar"
+        aria-label="Vista"
+        title="Rotellina: zoom · tasto centrale o Spazio + trascina: sposta"
+      >
+        <label
+          className={showGrid ? 'ore-on ico toggle-label' : 'ore ico toggle-label'}
+          title="Griglia dei pixel"
         >
-          Adatta
-        </button>
+          <input
+            type="checkbox"
+            className="sr-only"
+            checked={showGrid}
+            onChange={(event) => setShowGrid(event.target.checked)}
+          />
+          <PixelIcon icon={CMD_ICONS.grid} />
+          <span className="sr-only">Griglia</span>
+        </label>
+        {props.onTiling && (
+          <label
+            className={tools?.tiling ? 'ore-on ico toggle-label' : 'ore ico toggle-label'}
+            title="Bordi continui: mostra la texture ripetuta e disegna oltre i bordi (quello che esce da un lato rientra dall'altro)"
+          >
+            <input
+              type="checkbox"
+              className="sr-only"
+              checked={tools?.tiling ?? false}
+              onChange={(event) => props.onTiling?.(event.target.checked)}
+            />
+            <PixelIcon icon={CMD_ICONS.seamless} />
+            <span className="sr-only">Bordi continui</span>
+          </label>
+        )}
+        <span className="vsep" />
         <button
           type="button"
+          className="ore ico"
           onClick={() => zoomCentered(-1)}
           title="Riduci (−)"
           aria-label="Riduci"
         >
-          −
+          <PixelIcon icon={CMD_ICONS.zoomOut} />
         </button>
-        <span className="zoom-label">{zoomPercent !== null ? `${zoomPercent}%` : '—'}</span>
+        <span className="zoom-label sunken">{zoomPercent !== null ? `${zoomPercent}%` : '—'}</span>
         <button
           type="button"
+          className="ore ico"
           onClick={() => zoomCentered(1)}
           title="Ingrandisci (+)"
           aria-label="Ingrandisci"
         >
-          +
+          <PixelIcon icon={CMD_ICONS.zoomIn} />
         </button>
-        <button type="button" onClick={onUndo} disabled={!props.canUndo} title="Annulla (Ctrl+Z)">
-          ↶ Annulla
-        </button>
-        <button type="button" onClick={onRedo} disabled={!props.canRedo} title="Ripeti (Ctrl+Y)">
-          ↷ Ripeti
-        </button>
-        <label className="inline-check">
-          <input
-            type="checkbox"
-            checked={showGrid}
-            onChange={(event) => setShowGrid(event.target.checked)}
-          />
-          Griglia
-        </label>
-        {props.onTiling && (
-          <label
-            className="inline-check"
-            title="Mostra la texture ripetuta e disegna oltre i bordi: quello che esce da un lato rientra dall'altro"
-          >
-            <input
-              type="checkbox"
-              checked={tools?.tiling ?? false}
-              onChange={(event) => props.onTiling?.(event.target.checked)}
-            />
-            Bordi continui
-          </label>
-        )}
         <button
           type="button"
+          className="ore ico"
+          onClick={() => setStoredViewport(null)}
+          title="Adatta alla finestra (0)"
+          aria-label="Adatta"
+        >
+          <PixelIcon icon={CMD_ICONS.fit} />
+        </button>
+        <button
+          type="button"
+          className="ore ico"
           onClick={props.onShowShortcuts}
           title="Tutte le scorciatoie da tastiera (?)"
+          aria-label="Scorciatoie"
         >
-          ⌨ Scorciatoie
+          ?
         </button>
-        <span className="muted small">
-          Rotellina: zoom · tasto centrale o Spazio + trascina: sposta
-        </span>
       </div>
       <div ref={containerRef} className="editor-canvas-wrap">
         {notice && (

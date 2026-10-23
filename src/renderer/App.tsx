@@ -11,6 +11,7 @@ import { PackWorkspace } from './packs/PackWorkspace'
 import { RecentPacksCard } from './packs/RecentPacksCard'
 import { SettingsPanel } from './settings/SettingsPanel'
 import { CommandContext, useCommands, useCommandStore } from './shell/commandContext'
+import { EditorHotbar } from './shell/EditorHotbar'
 import { Shell, type WorkspaceTab } from './shell/Shell'
 import { TestScreen, type TestLive } from './testscreen/TestScreen'
 import { TutorialCard } from './TutorialCard'
@@ -244,12 +245,16 @@ function Window(): React.JSX.Element {
       tabs={tabs}
       onWorkspace={goTo}
       right={
-        !showSettings &&
-        !editorOpen &&
-        !testOpen && (
-          <button type="button" className="ore" onClick={() => setShowSettings(true)}>
-            Impostazioni
-          </button>
+        editorOpen && !testOpen ? (
+          <EditorHotbar />
+        ) : (
+          !showSettings &&
+          !editorOpen &&
+          !testOpen && (
+            <button type="button" className="ore" onClick={() => setShowSettings(true)}>
+              Impostazioni
+            </button>
+          )
         )
       }
       status={{

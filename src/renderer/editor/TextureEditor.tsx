@@ -1025,6 +1025,9 @@ export function TextureEditor({
       menu: 'Modifica',
       area: 'Disegna',
       keys: 'Ctrl Z',
+      // While moving pasted pixels, undo cancels the move.
+      enabled: history.canUndo || editDoc?.floating != null,
+      why: 'Niente da annullare',
       run: undo
     },
     {
@@ -1033,6 +1036,8 @@ export function TextureEditor({
       menu: 'Modifica',
       area: 'Disegna',
       keys: 'Ctrl Y',
+      enabled: history.canRedo,
+      why: 'Niente da ripetere',
       run: redo
     },
     {
@@ -1096,6 +1101,7 @@ export function TextureEditor({
               ● modificata
             </span>
           )}
+          {saving && <span className="badge">Salvataggio…</span>}
           {!modified && savedOnce && <span className="success small">Salvata nel pack</span>}
           {loaded.status === 'ready' && loaded.reducedFrom16Bit && (
             <span
@@ -1112,26 +1118,6 @@ export function TextureEditor({
           )}
         </div>
         <div className="row">
-          <div className="tabs small-tabs" role="radiogroup" aria-label="Modalità dell'editor">
-            {(
-              [
-                ['beginner', 'Principiante', 'Meno strumenti, consigli e avvisi'],
-                ['pro', 'Pro', 'Tutti gli strumenti e le opzioni']
-              ] as const
-            ).map(([value, label, title]) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={mode === value}
-                className={mode === value ? 'tab active' : 'tab'}
-                title={title}
-                onClick={() => changeMode(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
           {pro && (
             <label
               className="inline-check small"
@@ -1172,17 +1158,6 @@ export function TextureEditor({
                 Tieni le mie modifiche
               </button>
             </span>
-          )}
-          {canSave && (
-            <button
-              type="button"
-              className="primary"
-              onClick={() => void save()}
-              disabled={saving || !modified}
-              title="Salva la texture nel pack (Ctrl+S)"
-            >
-              {saving ? 'Salvataggio…' : 'Salva'}
-            </button>
           )}
           {doc && source && (
             <button

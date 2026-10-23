@@ -239,7 +239,7 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 - [x] Canvas v2 approved by Andrea (2026-10-23): Pixel Operator 16 px for readable text (CC0) + Tiny5 for short caps labels; solid 2 px command icons; options bar that scrolls; compact layout ≤ 1280 px; pixel pictures on every preset button; small "i" marker with hover note on switches; Prima/Dopo switch + "Affiancati"; 4-step wizards for Applica in blocco and Texture connesse; new app icon + README animation. Sources: `.claude/design-v2` (canvas JqcK1dpddgx73RbWjsgPf4); design work is closed, code follows it
 - [x] Design system in code (2026-10-23, `src/renderer/ui/`): tokens, Tiny5 + Pixel Operator bundled, pixel icons + pixel pictures, ore buttons, I/O switch, segmented slider, select, panels, info marker
 - [x] Shell: menu bar, Ctrl+K, workspace hotbar, status bar (2026-10-23; screens publish commands through `useCommands`; Effetti and Pubblica tabs light up with their screens)
-- [ ] Disegna: tool rail, options bar, document tabs, floating view bar, two-column dock, timeline
+- [x] Disegna: tool rail, options bar, document tabs, floating view bar, two-column dock, timeline (2026-10-23; one open document as a tab, multiple documents later)
 - [ ] Pack, Prova, Effetti, Pubblica in the same style (every current feature kept)
 - [ ] Start screen, settings and every dialog restyled; Applica in blocco and Texture connesse as 4-step wizards with Prima/Dopo
 - [ ] New app icon (`.claude/design-v2/icon/forge-icon.mjs` → `scripts/make-icon.mjs`), header logo, `docs/packforge.gif` for the README

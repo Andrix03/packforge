@@ -1,6 +1,6 @@
 // Armor and other worn equipment (Phase 16 logic): `assets/<ns>/equipment/<id>.json`, where its
 // textures live, the humanoid texture layout, and armor trims painted through palettes.
-// Research 2026-10-22 (docs/RESEARCH-2026-10-22.md), checked on the 26.3 client data
+// Research 2026-10-22, checked on the 26.3 client data
 // (equipment/*.json, 64×32 humanoid textures, 8×1 trim palettes, `palette` mcmeta). Pure.
 
 import { comparePackVersions, type PackVersion } from './packFormat'

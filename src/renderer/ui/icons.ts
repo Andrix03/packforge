@@ -1,5 +1,5 @@
 // Pixel icons (16×16, two tones: a = full colour, b = shade at 45 %), drawn on the design canvas
-// (.claude/design-v2) and stored as SVG paths. New icons: draw them with pixelArt.ts.
+// and stored as SVG paths. New icons: draw them with pixelArt.ts.
 
 export interface PixelIconData {
   a: string

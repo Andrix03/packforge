@@ -1,8 +1,8 @@
 # Changelog
 
-## 1.0.0 — non ancora rilasciata
+## 0.1.0 alpha — 2026-10-23
 
-La prima versione pubblica di PackForge: un'officina per creare resource pack di Minecraft Java,
+La prima versione pubblica di PackForge, in alpha: un'officina per creare resource pack di Minecraft Java,
 dalla prima texture al pack pubblicato, con l'anteprima degli shader LabPBR.
 
 ### Pack

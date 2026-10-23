@@ -1,6 +1,6 @@
 // Item model definitions (`assets/<ns>/items/<id>.json`, 1.21.4+): reading, checking per pack
 // format, and choosing what to draw for a preview situation (held in hand, in the GUI, a bow
-// being pulled…). Research 2026-10-22 (docs/RESEARCH-2026-10-22.md), checked on the 1658
+// being pulled…). Research 2026-10-22, checked on the 1658
 // definitions of the 26.3 client. Pure.
 
 import { comparePackVersions, type PackVersion } from './packFormat'

@@ -1,7 +1,8 @@
-# Builds the Windows installer and the portable zip (electron-builder), on demand or for a
-# `v*` tag, and keeps them as run artifacts. Nothing is published: making a GitHub release from
-# them stays a manual step. Built here because Windows 11 Smart App Control on a dev PC blocks
-# the unsigned helper electron-builder runs while making the installer.
+# Builds the Windows installer and the portable zip (electron-builder). On demand it only keeps
+# them as run artifacts; for a `v*` tag it also publishes a GitHub release with them, its notes
+# taken from the tag's section of CHANGELOG.md. A normal release, not a pre-release: the app's
+# update check reads releases/latest, which skips pre-releases. Built here because Windows 11
+# Smart App Control on a dev PC blocks the unsigned helper electron-builder runs for the installer.
 name: Release
 
 on:
@@ -11,7 +12,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows:
@@ -33,3 +34,14 @@ jobs:
             release/*.exe
             release/*.zip
           if-no-files-found: error
+      - name: Publish the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          node scripts/release-notes.mjs "${TAG#v}" > notes.md
+          tail -n +3 notes.md > body.md
+          gh release create "$TAG" release/*.exe release/*.zip \
+            --title "PackForge $(head -1 notes.md)" --notes-file body.md

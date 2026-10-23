@@ -1,6 +1,6 @@
 // Draws the app icon: a pack cube with a painted texture, forged over an anvil, amber spark
 // (32×32 pixel art, approved on the design canvas). Writes build/icon.png (256×256, nearest ×8;
-// electron-builder makes the .ico) and docs/packforge.gif (the README animation).
+// electron-builder makes the .ico) and .github/assets/packforge.gif (the README animation).
 // Run: npm run icon
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { deflateSync } from 'node:zlib'
@@ -365,5 +365,5 @@ for (let k = 0; k < 4; k++)
 for (let d = 0; d <= 4; d++) push({ painted: 9, sides: 1, sweep: d, spark: 1 }, 6)
 push({ painted: 9, sides: 1, sweep: -1, spark: 2 }, 160)
 mkdirSync('docs', { recursive: true })
-writeFileSync('docs/packforge.gif', gif(frames, 8, delays, [29, 29, 29]))
-console.log('build/icon.png 256×256 · docs/packforge.gif', frames.length, 'frames')
+writeFileSync('.github/assets/packforge.gif', gif(frames, 8, delays, [29, 29, 29]))
+console.log('build/icon.png 256×256 · .github/assets/packforge.gif', frames.length, 'frames')

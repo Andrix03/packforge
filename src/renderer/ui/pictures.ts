@@ -1,6 +1,6 @@
 // Small pixel pictures (8×8) for preset buttons: light scenes, materials, test scenes, biomes, CTM
 // methods, texture sizes, start fills, issue filters, held-item views, vanilla reference modes.
-// Drawn on the design canvas (.claude/design-v2); rows of palette chars, '' = transparent.
+// Drawn on the design canvas; rows of palette chars, '' = transparent.
 import { pictureBackground } from './pixelArt'
 
 export interface PixelPicture {

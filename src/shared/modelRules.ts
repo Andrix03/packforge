@@ -1,5 +1,5 @@
 // What a block/item model JSON may contain, per resource pack format, and what it costs.
-// Research 2026-10-22 (docs/RESEARCH-2026-10-22.md): minecraft.wiki version pages, checked against
+// Research 2026-10-22: minecraft.wiki version pages, checked against
 // the 26.3 client (CuboidModelElement / CuboidFace deserializers, read with javap). Pure.
 //
 // A model is checked against the range of formats the pack targets: something that makes the

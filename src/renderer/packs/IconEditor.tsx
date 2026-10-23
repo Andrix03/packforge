@@ -8,6 +8,7 @@ import {
   type SquareCrop
 } from '../../shared/crop'
 import type { PackSummary } from '../../shared/ipc'
+import { RangeInput } from '../ui/components'
 
 const VIEWPORT = 256
 const OUTPUT_SIZES = [64, 128, 256, 512] as const
@@ -140,7 +141,7 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
           <div className="icon-controls">
             <label>
               Zoom
-              <input
+              <RangeInput
                 type="range"
                 min={1}
                 max={MAX_ZOOM}

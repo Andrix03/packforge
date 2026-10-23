@@ -19,6 +19,7 @@ import {
   type AssetSources,
   type GrowthStage
 } from './modelSource'
+import { RangeInput } from '../ui/components'
 
 export interface PreviewTarget {
   /** Changes when the texture or its source changes. */
@@ -432,7 +433,7 @@ export function PreviewPanel({
           >
             {growing ? '⏸ Ferma' : '🌱 Crescita'}
           </button>
-          <input
+          <RangeInput
             type="range"
             min={0}
             max={stages.length - 1}
@@ -487,7 +488,7 @@ export function PreviewPanel({
         <span>
           Ora del giorno <strong>{formatHour(hour)}</strong>
         </span>
-        <input
+        <RangeInput
           type="range"
           min={0}
           max={24}

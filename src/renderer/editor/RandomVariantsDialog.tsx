@@ -18,6 +18,7 @@ import {
 } from '../preview/modelSource'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
+import { RangeInput } from '../ui/components'
 
 interface Plan {
   block: string
@@ -274,7 +275,7 @@ export function RandomVariantsDialog({
                   <span>
                     Versioni in più <strong>{count}</strong>
                   </span>
-                  <input
+                  <RangeInput
                     type="range"
                     min={1}
                     max={4}

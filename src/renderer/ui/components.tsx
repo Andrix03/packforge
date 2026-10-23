@@ -1,5 +1,10 @@
 // Building blocks of the 12b interface (style in theme.css, approved on the design canvas).
-import type { ButtonHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes
+} from 'react'
 import type { PixelIconData } from './icons'
 import { pictureCss, type PixelPicture } from './pictures'
 import { segThumbLeft } from './slider'
@@ -241,5 +246,24 @@ export function Panel({
       </button>
       {open && <div className="panel-body">{children}</div>}
     </section>
+  )
+}
+
+/**
+ * Native range input drawn as a segmented slider: green up to the value, ore thumb. Still a real
+ * <input type="range"> (keyboard, aria-label, tests); the fill comes from the --pct variable.
+ */
+export function RangeInput({ className, style, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+  const min = Number(rest.min ?? 0)
+  const max = Number(rest.max ?? 100)
+  const value = Number(rest.value ?? rest.defaultValue ?? min)
+  const pct = max > min ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100)) : 0
+  return (
+    <input
+      type="range"
+      className={['seg-range', className].filter(Boolean).join(' ')}
+      style={{ ...style, ['--pct' as string]: `${pct}%` }}
+      {...rest}
+    />
   )
 }

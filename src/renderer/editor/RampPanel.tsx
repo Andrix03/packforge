@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Rgba } from './pixels'
 import type { RampOptions } from './ramp'
+import { RangeInput } from '../ui/components'
 
 interface RampPanelProps {
   ramp: readonly Rgba[]
@@ -108,7 +109,7 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
             <span className="small muted">
               Spostamento tinta <span className="slider-value">{options.hueShift}°</span>
             </span>
-            <input
+            <RangeInput
               type="range"
               min={0}
               max={30}
@@ -125,7 +126,7 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
             <span className="small muted">
               Contrasto <span className="slider-value">{Math.round(options.contrast * 100)}%</span>
             </span>
-            <input
+            <RangeInput
               type="range"
               min={3}
               max={20}

@@ -44,6 +44,22 @@ import {
   type Sprite,
   type TintOf
 } from './testWorld'
+import { Picture, RangeInput } from '../ui/components'
+import { ITEM_PICTURES, SCENE_PICTURES, type PixelPicture } from '../ui/pictures'
+
+/** Pixel picture of each test scene (design canvas). */
+const SCENE_PICTURE: Partial<Record<string, PixelPicture>> = {
+  block: SCENE_PICTURES.blocco,
+  wall: SCENE_PICTURES.muro,
+  floor: SCENE_PICTURES.pavimento,
+  field: SCENE_PICTURES.distesa,
+  farm: SCENE_PICTURES.campo,
+  mixed: SCENE_PICTURES.altri,
+  house: SCENE_PICTURES.casa,
+  cave: SCENE_PICTURES.grotta,
+  path: SCENE_PICTURES.sentiero,
+  hand: ITEM_PICTURES.hand
+}
 
 /** The texture as it is in the editor, unsaved changes included. */
 export interface TestLive {
@@ -398,6 +414,7 @@ export function TestScreen({
                   className={sceneKind === option.kind ? 'tab active' : 'tab'}
                   onClick={() => setSceneKind(option.kind)}
                 >
+                  {SCENE_PICTURE[option.kind] && <Picture picture={SCENE_PICTURE[option.kind]!} />}
                   {option.label}
                 </button>
               ))}
@@ -456,7 +473,7 @@ export function TestScreen({
                 <span>
                   Distanza <strong>{Math.round(distance)} blocchi</strong>
                 </span>
-                <input
+                <RangeInput
                   type="range"
                   min={1}
                   max={MAX_DISTANCE}
@@ -490,7 +507,7 @@ export function TestScreen({
                   Vento sulle piante{' '}
                   <strong>{wind > 0 ? `${Math.round(wind * 100)}%` : 'no'}</strong>
                 </span>
-                <input
+                <RangeInput
                   type="range"
                   min={0}
                   max={1}
@@ -542,7 +559,7 @@ export function TestScreen({
               <span>
                 Ora del giorno <strong>{formatHour(hour)}</strong>
               </span>
-              <input
+              <RangeInput
                 type="range"
                 min={0}
                 max={24}
@@ -622,7 +639,7 @@ export function TestScreen({
                       {effects.pom > 0 ? `${Math.round(effects.pom * 100)}%` : 'spento'}
                     </strong>
                   </span>
-                  <input
+                  <RangeInput
                     type="range"
                     min={0}
                     max={2}
@@ -641,7 +658,7 @@ export function TestScreen({
                       <span>
                         Passi POM <strong>{effects.pomSamples}</strong>
                       </span>
-                      <input
+                      <RangeInput
                         type="range"
                         min={8}
                         max={128}
@@ -696,7 +713,7 @@ export function TestScreen({
                       {effects.rain > 0 ? `${Math.round(effects.rain * 100)}% bagnato` : 'no'}
                     </strong>
                   </span>
-                  <input
+                  <RangeInput
                     type="range"
                     min={0}
                     max={1}
@@ -793,7 +810,7 @@ export function TestScreen({
                       {effects.exposure.toFixed(1)} EV
                     </strong>
                   </span>
-                  <input
+                  <RangeInput
                     type="range"
                     min={-3}
                     max={3}
@@ -823,7 +840,7 @@ export function TestScreen({
                   <span>
                     Bloom <strong>{effects.bloom > 0 ? effects.bloom.toFixed(2) : 'spento'}</strong>
                   </span>
-                  <input
+                  <RangeInput
                     type="range"
                     min={0}
                     max={2}
@@ -837,7 +854,7 @@ export function TestScreen({
                   <span>
                     Forza emissione <strong>×{effects.emission.toFixed(1)}</strong>
                   </span>
-                  <input
+                  <RangeInput
                     type="range"
                     min={0}
                     max={40}

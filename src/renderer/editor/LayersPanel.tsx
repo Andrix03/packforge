@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MAX_LAYERS, type EditorDocument } from './document'
 import type { Command } from './history'
+import { RangeInput } from '../ui/components'
 
 /**
  * Layers, top layer first (like every paint program). All changes are undo steps except choosing
@@ -86,7 +87,7 @@ export function LayersPanel({
         <span className="small muted">
           Opacità <span className="slider-value">{Math.round(active.opacity * 100)}%</span>
         </span>
-        <input
+        <RangeInput
           type="range"
           min={0}
           max={100}

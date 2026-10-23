@@ -4,6 +4,7 @@ import type {
   NormalOptions,
   OcclusionOptions
 } from '../../shared/pbrGenerator'
+import { RangeInput } from '../ui/components'
 
 export interface GeneratorSettings {
   height: HeightOptions
@@ -215,7 +216,7 @@ export function Range({
       <span className="small muted">
         {label} <span className="slider-value">{format(value)}</span>
       </span>
-      <input
+      <RangeInput
         type="range"
         min={min}
         max={max}

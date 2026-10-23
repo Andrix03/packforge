@@ -1,5 +1,6 @@
 import type { MapKind } from '../../shared/labpbr'
 import { channelsOf, type ChannelDef, type ChannelId } from './channels'
+import { RangeInput } from '../ui/components'
 
 export type Surface = 'color' | MapKind
 
@@ -171,7 +172,7 @@ export function ValuePanel({
             <span className="small muted">
               Valore primario <span className="slider-value">{values.primary}</span>
             </span>
-            <input
+            <RangeInput
               type="range"
               min={0}
               max={channel.max}
@@ -207,7 +208,7 @@ export function ValuePanel({
             <span className="small muted">
               Passo per Sfuma / Rumore <span className="slider-value">{rampStep}</span>
             </span>
-            <input
+            <RangeInput
               type="range"
               min={1}
               max={64}
@@ -224,7 +225,7 @@ export function ValuePanel({
         <span className="small muted">
           Colori sopra <span className="slider-value">{overlay}%</span>
         </span>
-        <input
+        <RangeInput
           type="range"
           min={0}
           max={100}

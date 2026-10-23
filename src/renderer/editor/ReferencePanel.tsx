@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { decodePng } from '../../shared/pngCodec'
 import { getPixel, type Rgba } from './pixels'
+import { RangeInput } from '../ui/components'
 
 export interface LoadedReference {
   /** Display copy, drawn scaled (also traced over the main canvas). */
@@ -107,7 +108,7 @@ export function ReferencePanel({
             <span className="small muted">
               Ricalco sul canvas <span className="slider-value">{traceOpacity}%</span>
             </span>
-            <input
+            <RangeInput
               type="range"
               min={0}
               max={80}

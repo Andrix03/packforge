@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { compareTextures, diffImage, onGrid, type Image } from '../../shared/textureCompare'
 import { useEscape } from '../useEscape'
+import { RangeInput } from '../ui/components'
 
 type View = 'side' | 'wipe'
 
@@ -103,7 +104,7 @@ export function CompareDialog({
               <span className="small muted">
                 Tendina <span className="slider-value">{split}%</span>
               </span>
-              <input
+              <RangeInput
                 type="range"
                 min={0}
                 max={100}

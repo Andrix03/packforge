@@ -313,16 +313,18 @@ function Window(): React.JSX.Element {
         <div className="stack" hidden={showSettings}>
           {pack ? (
             <>
-              <PackOverview
-                pack={pack}
-                onClose={() => void closePack()}
-                onUpdated={(updated, filesChanged) => {
-                  setPack(updated)
-                  if (filesChanged) setWorkspaceKey((key) => key + 1)
-                }}
-              />
               <PackWorkspace
                 key={workspaceKey}
+                overview={
+                  <PackOverview
+                    pack={pack}
+                    onClose={() => void closePack()}
+                    onUpdated={(updated, filesChanged) => {
+                      setPack(updated)
+                      if (filesChanged) setWorkspaceKey((key) => key + 1)
+                    }}
+                  />
+                }
                 pack={pack}
                 onEditTexture={setEditing}
                 onTestTexture={(target) => setTesting({ target, live: null })}

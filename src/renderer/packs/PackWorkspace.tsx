@@ -52,9 +52,12 @@ interface VanillaJar extends SourceFiles {
 export function PackWorkspace({
   pack,
   onEditTexture,
-  onTestTexture
+  onTestTexture,
+  overview
 }: {
   pack: PackSummary
+  /** The pack card, shown at the top of the dock. */
+  overview?: React.ReactNode
   onEditTexture: (target: EditorTarget) => void
   /** Opens the test screen on a pack texture. */
   onTestTexture: (target: EditorTarget) => void
@@ -119,10 +122,20 @@ export function PackWorkspace({
   }
 
   if (packFiles.status === 'loading' || packFiles.status === 'idle') {
-    return <section className="card muted">Lettura dei file…</section>
+    return (
+      <>
+        {overview}
+        <section className="card muted">Lettura dei file…</section>
+      </>
+    )
   }
   if (packFiles.status === 'error') {
-    return <section className="card field-error">{packFiles.message}</section>
+    return (
+      <>
+        {overview}
+        <section className="card field-error">{packFiles.message}</section>
+      </>
+    )
   }
   const base = packFiles.value.assetBase
   const targetOf = (texture: TextureEntry, previewSources: AssetSources): EditorTarget => {
@@ -161,6 +174,7 @@ export function PackWorkspace({
       packName={pack.name}
       onEditTexture={(texture, previewSources) => onEditTexture(targetOf(texture, previewSources))}
       onTestTexture={(texture, previewSources) => onTestTexture(targetOf(texture, previewSources))}
+      overview={overview}
     />
   )
 }
@@ -174,8 +188,10 @@ function Workspace({
   canCreate,
   packName,
   onEditTexture,
-  onTestTexture
+  onTestTexture,
+  overview
 }: {
+  overview: React.ReactNode
   packFiles: SourceFiles
   fileVersions: Readonly<Record<string, number>>
   vanilla: Loadable<VanillaState>
@@ -284,206 +300,217 @@ function Workspace({
         : undefined
 
   return (
-    <section className="workspace-wrap">
-      <div className="mode-bar">
-        <div className="tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeMode === 'pack'}
-            className={activeMode === 'pack' ? 'tab active' : 'tab'}
-            onClick={() => setMode('pack')}
-          >
-            Pack <span className="count">{packTextures.length}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeMode === 'vanilla'}
-            className={activeMode === 'vanilla' ? 'tab active' : 'tab'}
-            onClick={() => setMode('vanilla')}
-            disabled={!vanillaReady}
-            title={vanillaReady ? undefined : vanillaHint(vanilla, jar)}
-          >
-            Vanilla {vanillaReady && <span className="count">{vanillaTextures.length}</span>}
-          </button>
-        </div>
-        <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
-      </div>
-      <div className="tool-bar" role="toolbar" aria-label="Strumenti">
-        <div className="tool-group">
-          <span className="tool-group-label">Pack</span>
-          <button
-            type="button"
-            className="small-button"
-            title="Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)"
-            onClick={() => setInGame(true)}
-          >
-            🎮 Copia nel gioco
-          </button>
-          {canCreate && (
+    <section className="workspace-wrap pack-screen">
+      <div className="pack-main">
+        <div className="mode-bar">
+          <div className="tabs" role="tablist">
             <button
               type="button"
-              className="small-button"
-              title="Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti"
-              onClick={() => setExporting(true)}
+              role="tab"
+              aria-selected={activeMode === 'pack'}
+              className={activeMode === 'pack' ? 'tab active' : 'tab'}
+              onClick={() => setMode('pack')}
             >
-              📦 Esporta
-            </button>
-          )}
-          {canCreate && (
-            <button
-              type="button"
-              className="small-button"
-              title="I backup presi prima di sovrascrivere file: ripristina una versione precedente"
-              onClick={() => setShowBackups(true)}
-            >
-              🕘 Backup
-            </button>
-          )}
-        </div>
-        <div className="tool-group">
-          <span className="tool-group-label">Mappe</span>
-          <button
-            type="button"
-            className="small-button"
-            title="Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani"
-            onClick={() => setValidating(true)}
-          >
-            🔍 Controlla mappe
-          </button>
-          <button
-            type="button"
-            className="small-button"
-            title="Quante texture del pack hanno già _n e _s, e quali mancano"
-            onClick={() => setCovering(true)}
-          >
-            📊 Copertura
-          </button>
-          {canCreate && (
-            <button
-              type="button"
-              className="small-button"
-              title="Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo"
-              onClick={() =>
-                setBatching({ selection: null, maps: { specular: true, normal: false } })
-              }
-            >
-              ⚙ Applica in blocco
-            </button>
-          )}
-          {canCreate && (
-            <button
-              type="button"
-              className="small-button"
-              title="Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe"
-              onClick={() => setResizing(true)}
-            >
-              ↔ Ridimensiona
-            </button>
-          )}
-        </div>
-        {canCreate && (
-          <div className="tool-group">
-            <span className="tool-group-label" data-testid="selected-texture">
-              {testable ? testable.name : 'Scegli una texture'}
-            </span>
-            <button
-              type="button"
-              className="small-button"
-              disabled={!testable || mapKindOf(testable.albedo) !== null}
-              title={
-                testable
-                  ? `Crea le versioni di ${testable.name} in tutti i colori (lana, cemento, vetro colorato…)`
-                  : 'Seleziona prima una texture del pack'
-              }
-              onClick={() => setVarying(testable)}
-            >
-              🎨 Varianti di colore
+              Pack <span className="count">{packTextures.length}</span>
             </button>
             <button
               type="button"
-              className="small-button"
-              disabled={!testable || mapKindOf(testable.albedo) !== null}
-              title={
-                testable
-                  ? `Crea i 47 tile delle texture connesse di ${testable.name} (Continuity / OptiFine)`
-                  : 'Seleziona prima una texture del pack'
-              }
-              onClick={() => setConnecting(testable)}
+              role="tab"
+              aria-selected={activeMode === 'vanilla'}
+              className={activeMode === 'vanilla' ? 'tab active' : 'tab'}
+              onClick={() => setMode('vanilla')}
+              disabled={!vanillaReady}
+              title={vanillaReady ? undefined : vanillaHint(vanilla, jar)}
             >
-              🧩 Texture connesse
+              Vanilla {vanillaReady && <span className="count">{vanillaTextures.length}</span>}
             </button>
           </div>
-        )}
+          <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
+        </div>
+        <div className="workspace-row">
+          <TextureBrowser
+            // Remount per source: tree expansion is rebuilt around the shared folder.
+            key={
+              activeMode === 'vanilla' && jar.status === 'ready'
+                ? `v:${jar.value.assetBase}`
+                : 'pack'
+            }
+            selectedKey={
+              previewSelection?.base === source.assetBase ? previewSelection.textureKey : null
+            }
+            versionOf={activeMode === 'pack' ? (path) => fileVersions[path] ?? 0 : undefined}
+            onSelectTexture={(texture) =>
+              setPreviewSelection({
+                key: `${source.assetBase}|${texture.key}`,
+                base: source.assetBase,
+                textureKey: texture.key,
+                albedo: texture.albedo,
+                mcmeta: texture.mcmeta,
+                name: texture.name,
+                isPack: activeMode === 'pack',
+                sourceLabel:
+                  activeMode === 'vanilla' && jar.status === 'ready'
+                    ? `Vanilla ${jar.value.versionId}`
+                    : 'Pack'
+              })
+            }
+            // Only pack textures are editable: vanilla pixels never enter the pack. Double-clicking
+            // a vanilla texture opens the pack's version, or offers to create one with that name.
+            onOpenTexture={(texture) => {
+              if (activeMode === 'pack') {
+                onEditTexture(texture, previewSources)
+                return
+              }
+              const own = packTextures.find((entry) => entry.key === texture.key)
+              if (own) onEditTexture(own, previewSources)
+              else if (canCreate) {
+                setCreating({ folder: texture.folder, name: texture.name, fromVanilla: true })
+              }
+            }}
+            onNewTexture={
+              canCreate
+                ? () =>
+                    setCreating({
+                      folder: selectedFolder.startsWith('assets/')
+                        ? selectedFolder
+                        : DEFAULT_FOLDER,
+                      name: '',
+                      fromVanilla: false
+                    })
+                : undefined
+            }
+            source={source}
+            textures={textures}
+            marker={marker}
+            coverageKeys={activeMode === 'vanilla' ? packKeys : null}
+            selectedFolder={selectedFolder}
+            onSelectFolder={setSelectedFolder}
+            selectedFile={selectedFile}
+            onSelectFile={setSelectedFile}
+            query={query}
+            onQuery={setQuery}
+          />
+        </div>
       </div>
-
-      <div className="workspace-row">
-        <TextureBrowser
-          // Remount per source: tree expansion is rebuilt around the shared folder.
-          key={
-            activeMode === 'vanilla' && jar.status === 'ready' ? `v:${jar.value.assetBase}` : 'pack'
-          }
-          selectedKey={
-            previewSelection?.base === source.assetBase ? previewSelection.textureKey : null
-          }
-          versionOf={activeMode === 'pack' ? (path) => fileVersions[path] ?? 0 : undefined}
-          onSelectTexture={(texture) =>
-            setPreviewSelection({
-              key: `${source.assetBase}|${texture.key}`,
-              base: source.assetBase,
-              textureKey: texture.key,
-              albedo: texture.albedo,
-              mcmeta: texture.mcmeta,
-              name: texture.name,
-              isPack: activeMode === 'pack',
-              sourceLabel:
-                activeMode === 'vanilla' && jar.status === 'ready'
-                  ? `Vanilla ${jar.value.versionId}`
-                  : 'Pack'
-            })
-          }
-          // Only pack textures are editable: vanilla pixels never enter the pack. Double-clicking
-          // a vanilla texture opens the pack's version, or offers to create one with that name.
-          onOpenTexture={(texture) => {
-            if (activeMode === 'pack') {
-              onEditTexture(texture, previewSources)
-              return
-            }
-            const own = packTextures.find((entry) => entry.key === texture.key)
-            if (own) onEditTexture(own, previewSources)
-            else if (canCreate) {
-              setCreating({ folder: texture.folder, name: texture.name, fromVanilla: true })
-            }
-          }}
-          onNewTexture={
-            canCreate
-              ? () =>
-                  setCreating({
-                    folder: selectedFolder.startsWith('assets/') ? selectedFolder : DEFAULT_FOLDER,
-                    name: '',
-                    fromVanilla: false
-                  })
-              : undefined
-          }
-          source={source}
-          textures={textures}
-          marker={marker}
-          coverageKeys={activeMode === 'vanilla' ? packKeys : null}
-          selectedFolder={selectedFolder}
-          onSelectFolder={setSelectedFolder}
-          selectedFile={selectedFile}
-          onSelectFile={setSelectedFile}
-          query={query}
-          onQuery={setQuery}
-        />
-        {/* Outside the browser so it survives Pack/Vanilla switches. */}
+      {/* Dock: the pack, the 3D preview (outside the browser so it survives Pack/Vanilla switches), the tools. */}
+      <aside className="pack-dock">
+        {overview}
         <PreviewPanel
           target={previewTarget}
           sources={previewSources}
           onTest={testable ? () => onTestTexture(testable, previewSources) : null}
         />
-      </div>
+        <section className="pack-tools">
+          <h3 className="ph">Strumenti del pack</h3>
+          <div className="tool-bar" role="toolbar" aria-label="Strumenti">
+            <div className="tool-group">
+              <span className="tool-group-label">Pack</span>
+              <button
+                type="button"
+                className="small-button"
+                title="Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)"
+                onClick={() => setInGame(true)}
+              >
+                🎮 Copia nel gioco
+              </button>
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title="Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti"
+                  onClick={() => setExporting(true)}
+                >
+                  📦 Esporta
+                </button>
+              )}
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title="I backup presi prima di sovrascrivere file: ripristina una versione precedente"
+                  onClick={() => setShowBackups(true)}
+                >
+                  🕘 Backup
+                </button>
+              )}
+            </div>
+            <div className="tool-group">
+              <span className="tool-group-label">Mappe</span>
+              <button
+                type="button"
+                className="small-button"
+                title="Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani"
+                onClick={() => setValidating(true)}
+              >
+                🔍 Controlla mappe
+              </button>
+              <button
+                type="button"
+                className="small-button"
+                title="Quante texture del pack hanno già _n e _s, e quali mancano"
+                onClick={() => setCovering(true)}
+              >
+                📊 Copertura
+              </button>
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title="Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo"
+                  onClick={() =>
+                    setBatching({ selection: null, maps: { specular: true, normal: false } })
+                  }
+                >
+                  ⚙ Applica in blocco
+                </button>
+              )}
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title="Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe"
+                  onClick={() => setResizing(true)}
+                >
+                  ↔ Ridimensiona
+                </button>
+              )}
+            </div>
+            {canCreate && (
+              <div className="tool-group">
+                <span className="tool-group-label" data-testid="selected-texture">
+                  {testable ? testable.name : 'Scegli una texture'}
+                </span>
+                <button
+                  type="button"
+                  className="small-button"
+                  disabled={!testable || mapKindOf(testable.albedo) !== null}
+                  title={
+                    testable
+                      ? `Crea le versioni di ${testable.name} in tutti i colori (lana, cemento, vetro colorato…)`
+                      : 'Seleziona prima una texture del pack'
+                  }
+                  onClick={() => setVarying(testable)}
+                >
+                  🎨 Varianti di colore
+                </button>
+                <button
+                  type="button"
+                  className="small-button"
+                  disabled={!testable || mapKindOf(testable.albedo) !== null}
+                  title={
+                    testable
+                      ? `Crea i 47 tile delle texture connesse di ${testable.name} (Continuity / OptiFine)`
+                      : 'Seleziona prima una texture del pack'
+                  }
+                  onClick={() => setConnecting(testable)}
+                >
+                  🧩 Texture connesse
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      </aside>
       {varying && (
         <VariantsDialog
           source={varying}

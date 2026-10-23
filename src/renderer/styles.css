@@ -2752,3 +2752,103 @@ input[type='radio'] {
   padding: 3px 6px;
   text-align: center;
 }
+
+/* ---- 12b Pack (canvas: Pack.dc.html): browser in the middle, dock with the pack, 3D, tools ---- */
+.app.wide {
+  padding: 0;
+}
+.app.wide > .stack {
+  height: 100%;
+}
+.pack-screen {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 0;
+}
+.pack-main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+.pack-main > .workspace-row {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+.pack-dock {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px;
+  background: var(--ui-panel);
+  border-left: 1px solid var(--ui-edge-dark);
+}
+/* The pack card, compact in the dock. */
+.pack-dock .overview {
+  gap: 10px;
+  padding: 10px;
+}
+.pack-dock .overview-header {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pack-dock .facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.pack-dock .facts dd {
+  font-family: var(--ui-font);
+  overflow-wrap: anywhere;
+}
+.pack-icon {
+  border-radius: 0;
+  outline: 2px solid var(--ui-edge-dark);
+}
+/* Tools of the pack: labelled groups of full-width buttons, two per row. */
+.pack-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pack-tools h3 {
+  margin: 0;
+}
+.pack-tools .tool-bar {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+.pack-tools .tool-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.pack-tools .tool-group-label {
+  grid-column: 1 / -1;
+  color: var(--ui-muted);
+}
+.pack-tools .tool-group button {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1100px) {
+  .pack-screen {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+/* In the dock the 3D preview flows with the other panels (the dock scrolls, not the preview). */
+.pack-dock > .preview-panel,
+.pack-dock > .overview,
+.pack-dock > .pack-tools {
+  flex: none;
+  overflow: visible;
+}

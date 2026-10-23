@@ -11,6 +11,11 @@ export default async function tiling(app) {
   await app.openTexture('stone.png')
   await app.editor.setHex('e02020')
   await app.click('Bordi continui', 'label')
+  // The canvas redraws the repeated view first: draw only once the mode is on screen.
+  await app.waitFor(
+    `[...document.querySelectorAll('label')].find((l) => l.textContent.includes('Bordi continui'))?.querySelector('input').checked`
+  )
+  await app.sleep(200)
 
   // From pixel 13 to "pixel 18" (two pixels into the right neighbor copy).
   await app.editor.draw([

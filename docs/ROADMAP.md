@@ -243,7 +243,7 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 - [x] Pack, Prova, Effetti, Pubblica in the same style (every current feature kept) — 2026-10-23: Pack and Prova laid out like the canvas; Effetti = the editor on the _n/_s maps, Pubblica = the export
 - [x] Dedicated Effetti and Pubblica screens (2026-10-23): Effetti = the editor on the maps with the LabPBR controls shared with Prova; Pubblica = export and in-game copy side by side
 - [x] Start screen, settings and every dialog restyled; Applica in blocco and Texture connesse as 4-step wizards with Prima/Dopo (2026-10-23; dialogs take the new look through the bridge styles)
-- [ ] CTM methods Orizzontale and Verticale (4 tiles each; shown as "in arrivo" in the wizard)
+- [x] CTM methods Orizzontale and Verticale (2026-10-23; 4 tiles in the OptiFine / Continuity order, checked against Continuity's HorizontalSpriteProvider)
 - [x] New app icon (`npm run icon` → build/icon.png) and `docs/packforge.gif` for the README (2026-10-23)
 - [ ] Beginner layout + tutorial updated; drive scenarios updated
 - [ ] Strings into a dictionary (Italian; English when Andrea decides)

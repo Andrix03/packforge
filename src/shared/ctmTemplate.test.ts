@@ -5,6 +5,8 @@ import {
   ctmPropertiesFor,
   ctmTileImage,
   ctmTiles,
+  lineTileIndex,
+  methodTiles,
   templateProblem,
   type Image
 } from './ctmTemplate'
@@ -69,6 +71,53 @@ describe('ctmTileImage', () => {
 
   it('makes 47 tiles', () => {
     expect(ctmTiles(source, null, { border: 1 })).toHaveLength(47)
+  })
+})
+
+describe('line methods (horizontal, vertical)', () => {
+  const source = glass()
+
+  it('make 4 tiles in the OptiFine / Continuity order', () => {
+    const [start, middle, end, alone] = methodTiles(source, null, { border: 1 }, 'horizontal')
+    // 0 = start of a row: open on the right only.
+    expect(at(start!, 5, 2)).toBe(INSIDE)
+    expect(at(start!, 0, 2)).toBe(FRAME)
+    // 1 = middle: open on both sides, top and bottom bands run through.
+    expect(at(middle!, 0, 2)).toBe(INSIDE)
+    expect(at(middle!, 5, 2)).toBe(INSIDE)
+    expect(at(middle!, 0, 0)).toBe(FRAME)
+    // 2 = end of a row: open on the left only. 3 = alone: the whole frame.
+    expect(at(end!, 0, 2)).toBe(INSIDE)
+    expect(at(end!, 5, 2)).toBe(FRAME)
+    expect([...alone!]).toEqual([...new Uint8ClampedArray(source.data)])
+  })
+
+  it('vertical opens above for the bottom of a column and below for the top', () => {
+    const [bottom, , top] = methodTiles(source, null, { border: 1 }, 'vertical')
+    expect(at(bottom!, 2, 0)).toBe(INSIDE)
+    expect(at(bottom!, 2, 5)).toBe(FRAME)
+    expect(at(top!, 2, 5)).toBe(INSIDE)
+    expect(at(top!, 2, 0)).toBe(FRAME)
+  })
+
+  it('pick the tile from the two neighbours like Continuity', () => {
+    expect(lineTileIndex(false, false)).toBe(3)
+    expect(lineTileIndex(true, false)).toBe(2)
+    expect(lineTileIndex(false, true)).toBe(0)
+    expect(lineTileIndex(true, true)).toBe(1)
+  })
+
+  it('write method and 4 tiles in the properties', () => {
+    const { entries } = ctmPropertiesFor(
+      'assets/minecraft/textures/block/bookshelf.png',
+      'horizontal'
+    )
+    expect(entries).toContainEqual(['method', 'horizontal'])
+    expect(entries).toContainEqual(['tiles', '0-3'])
+    expect(ctmPropertiesFor('assets/minecraft/textures/block/glass.png').entries).toContainEqual([
+      'tiles',
+      '0-46'
+    ])
   })
 })
 

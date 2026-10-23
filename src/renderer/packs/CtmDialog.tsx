@@ -14,7 +14,9 @@ import {
 import {
   ctmFolderFor,
   ctmPropertiesFor,
-  ctmTiles,
+  lineTileIndex,
+  methodTiles,
+  type CtmMethod,
   maxBorder,
   templateProblem,
   type Image
@@ -67,6 +69,7 @@ export function CtmDialog({
   const [withMaps, setWithMaps] = useState(source.normal !== null || source.specular !== null)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
   const [step, setStep] = useState(0)
+  const [method, setMethod] = useState<CtmMethod>('ctm')
   const [showAfter, setShowAfter] = useState(true)
   const [both, setBoth] = useState(false)
   useEscape(onClose, phase.status !== 'working')
@@ -98,8 +101,8 @@ export function CtmDialog({
   const problem = loaded ? templateProblem(loaded) : null
   const usedCenter = centerPath ? center : null
   const tiles = useMemo(
-    () => (loaded && !problem ? ctmTiles(loaded, usedCenter, { border }) : []),
-    [loaded, problem, usedCenter, border]
+    () => (loaded && !problem ? methodTiles(loaded, usedCenter, { border }, method) : []),
+    [loaded, problem, usedCenter, border, method]
   )
   const folder = ctmFolderFor(source.albedo)
   const exists = [...pack.files].some((path) => path.startsWith(`${folder}/`))
@@ -142,7 +145,7 @@ export function CtmDialog({
       else errors.push(`${path.split('/').pop()}: ${saved.error}`)
     }
     for (const [index, tile] of tiles.entries()) {
-      setPhase({ status: 'working', text: `Scrivo i tile… ${index + 1}/47` })
+      setPhase({ status: 'working', text: `Scrivo i tile… ${index + 1}/${tiles.length}` })
       await save(`${folder}/${index}.png`, loaded, tile)
     }
     if (withMaps) {
@@ -156,13 +159,16 @@ export function CtmDialog({
             usedCenter && centerPath && pack.files.has(mapPath(centerPath, kind))
               ? await loadPng(pack, mapPath(centerPath, kind)).catch(() => null)
               : null
-          const mapTiles = ctmTiles(map, centerMap, {
-            border: Math.round((border * map.width) / loaded.width)
-          })
+          const mapTiles = methodTiles(
+            map,
+            centerMap,
+            { border: Math.round((border * map.width) / loaded.width) },
+            method
+          )
           for (const [index, tile] of mapTiles.entries()) {
             setPhase({
               status: 'working',
-              text: `Scrivo le mappe ${kind === 'normal' ? '_n' : '_s'}… ${index + 1}/47`
+              text: `Scrivo le mappe ${kind === 'normal' ? '_n' : '_s'}… ${index + 1}/${mapTiles.length}`
             })
             await save(mapPath(`${folder}/${index}.png`, kind), map, tile)
           }
@@ -171,7 +177,7 @@ export function CtmDialog({
         }
       }
     }
-    const { entries } = ctmPropertiesFor(source.albedo)
+    const { entries } = ctmPropertiesFor(source.albedo, method)
     const properties = await window.api.invoke(
       'ctm:saveProperties',
       `${folder}/${folder.slice(folder.lastIndexOf('/') + 1)}.properties`,
@@ -185,7 +191,10 @@ export function CtmDialog({
   const mapKinds = (['normal', 'specular'] as const).filter((kind) =>
     kind === 'normal' ? source.normal !== null : source.specular !== null
   )
-  const fileCount = 47 * (1 + (withMaps ? mapKinds.length : 0)) + 1
+  const tileCount = method === 'ctm' ? 47 : 4
+  /** The method in use (the cards' loop variable is also called method). */
+  const chosen = method
+  const fileCount = tileCount * (1 + (withMaps ? mapKinds.length : 0)) + 1
   const ready = loaded !== null && problem === null
   const create47 = (
     <button
@@ -197,7 +206,7 @@ export function CtmDialog({
         create()
       }}
     >
-      Crea i 47 tile
+      Crea i {tileCount} tile
     </button>
   )
 
@@ -287,9 +296,9 @@ export function CtmDialog({
                 key={method.id}
                 type="button"
                 role="radio"
-                aria-checked={method.id === 'ctm'}
-                className={method.id === 'ctm' ? 'ctm-method active' : 'ctm-method'}
-                disabled={!method.ready}
+                aria-checked={method.id === chosen}
+                className={method.id === chosen ? 'ctm-method active' : 'ctm-method'}
+                onClick={() => setMethod(method.id)}
                 title={
                   method.ready ? undefined : 'In arrivo: per ora PackForge crea il metodo completo'
                 }
@@ -364,16 +373,22 @@ export function CtmDialog({
                   </figure>
                   <figure className="before-after-view" hidden={!both && !showAfter}>
                     <figcaption className="ph after">Dopo</figcaption>
-                    <Canvas className="ctm-wall" {...wallPreview(loaded, tiles)} />
+                    <Canvas className="ctm-wall" {...wallPreview(loaded, tiles, method)} />
                     <figcaption className="small muted">
-                      Le cornici interne spariscono: una sola superficie.
+                      {method === 'horizontal'
+                        ? 'Si uniscono solo i blocchi affiancati: righe continue.'
+                        : method === 'vertical'
+                          ? 'Si uniscono solo i blocchi impilati: colonne continue.'
+                          : 'Le cornici interne spariscono: una sola superficie.'}
                     </figcaption>
                   </figure>
                 </div>
                 <figure className="compare-figure">
                   <Canvas className="ctm-sheet" {...sheetPreview(loaded, tiles)} />
                   <figcaption className="small muted">
-                    I 47 tile (come il template di OptiFine)
+                    {method === 'ctm'
+                      ? 'I 47 tile (come il template di OptiFine)'
+                      : 'I 4 tile: inizio, mezzo, fine, da solo'}
                   </figcaption>
                 </figure>
               </>
@@ -401,12 +416,13 @@ export function CtmDialog({
             <h3 className="ph">File che verranno scritti</h3>
             <ul className="wizard-files">
               <li className={exists ? 'file-overwrite' : 'file-create'}>
-                {exists ? '~' : '+'} {folder.replace(/^assets\/minecraft\//, '')}/0.png … 46.png
+                {exists ? '~' : '+'} {folder.replace(/^assets\/minecraft\//, '')}/0.png …{' '}
+                {tileCount - 1}.png
               </li>
               {withMaps &&
                 mapKinds.map((kind) => (
                   <li key={kind} className={exists ? 'file-overwrite' : 'file-create'}>
-                    {exists ? '~' : '+'} i 47 tile {kind === 'normal' ? '_n' : '_s'}
+                    {exists ? '~' : '+'} i {tileCount} tile {kind === 'normal' ? '_n' : '_s'}
                   </li>
                 ))}
               <li className={exists ? 'file-overwrite' : 'file-create'}>
@@ -495,7 +511,7 @@ const CTM_METHODS = [
     note: 'Solo a destra e sinistra: scaffali, librerie, ringhiere.',
     tiles: '4 tessere',
     picture: CTM_PICTURES.h,
-    ready: false
+    ready: true
   },
   {
     id: 'vertical',
@@ -503,7 +519,7 @@ const CTM_METHODS = [
     note: 'Solo sopra e sotto: colonne, pilastri, tronchi.',
     tiles: '4 tessere',
     picture: CTM_PICTURES.v,
-    ready: false
+    ready: true
   }
 ] as const
 
@@ -526,17 +542,23 @@ function plainWall(image: Image): CanvasData {
 /** The tiles in the template's 12×4 grid (tile i at column i % 12, row ⌊i / 12⌋). */
 function sheetPreview(image: Image, tiles: readonly Uint8ClampedArray[]): CanvasData {
   const size = image.width
-  const width = size * 12
-  const height = size * 4
+  // 47 tiles: the template's 12×4; the line methods' 4 tiles: one row.
+  const columns = Math.min(12, Math.max(1, tiles.length))
+  const width = size * columns
+  const height = size * Math.max(1, Math.ceil(tiles.length / columns))
   const data = new Uint8ClampedArray(width * height * 4)
   tiles.forEach((tile, index) =>
-    blit(data, width, tile, size, (index % 12) * size, Math.floor(index / 12) * size)
+    blit(data, width, tile, size, (index % columns) * size, Math.floor(index / columns) * size)
   )
   return { width, height, data }
 }
 
 /** The tiles on a small wall, each picking its tile from its neighbours (like the game). */
-function wallPreview(image: Image, tiles: readonly Uint8ClampedArray[]): CanvasData {
+function wallPreview(
+  image: Image,
+  tiles: readonly Uint8ClampedArray[],
+  method: CtmMethod = 'ctm'
+): CanvasData {
   const size = image.width
   const rows = WALL.length
   const cols = WALL[0]!.length
@@ -556,7 +578,13 @@ function wallPreview(image: Image, tiles: readonly Uint8ClampedArray[]): CanvasD
       if (filled(r - 1, c + 1)) mask |= UP_RIGHT
       if (filled(r + 1, c - 1)) mask |= DOWN_LEFT
       if (filled(r + 1, c + 1)) mask |= DOWN_RIGHT
-      const tile = tiles[ctmTile(mask)]
+      const index =
+        method === 'horizontal'
+          ? lineTileIndex(filled(r, c - 1), filled(r, c + 1))
+          : method === 'vertical'
+            ? lineTileIndex(filled(r + 1, c), filled(r - 1, c))
+            : ctmTile(mask)
+      const tile = tiles[index]
       if (tile) blit(data, width, tile, size, c * size, r * size)
     }
   }

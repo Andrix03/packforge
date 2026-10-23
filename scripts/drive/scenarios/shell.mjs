@@ -85,10 +85,7 @@ export default async function shell(app) {
     `[...document.querySelectorAll('.publish-screen > section')].map((s) => s.getAttribute('aria-label')).join('|')`
   )
   app.check(panels === 'Esporta|Prova in gioco', `export and in game side by side (${panels})`)
-  app.check(
-    await app.ev(`!document.querySelector('.modal-backdrop')`),
-    'not a dialog: no backdrop'
-  )
+  app.check(await app.ev(`!document.querySelector('.modal-backdrop')`), 'not a dialog: no backdrop')
   await app.sleep(500)
   await app.shot('shell-pubblica')
   await app.click('Pack', '.shell-tab')

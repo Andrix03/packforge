@@ -107,6 +107,39 @@ export function ctmTileImage(
   return out
 }
 
+/** Methods PackForge generates: the 47-tile `ctm` and the 4-tile `horizontal` / `vertical`. */
+export type CtmMethod = 'ctm' | 'horizontal' | 'vertical'
+
+/**
+ * Neighbour masks of the 4 tiles of the line methods, in tile order. OptiFine and Continuity
+ * (HorizontalSpriteProvider: index map [3, 2, 0, 1] over left = bit 0, right = bit 1; vertical:
+ * below = bit 0, above = bit 1) agree: 0 = connected on the right (start of a row) / above (bottom
+ * of a column), 1 = both sides, 2 = left (end of a row) / below (top of a column), 3 = alone.
+ */
+export const LINE_TILE_MASKS: Readonly<Record<'horizontal' | 'vertical', readonly number[]>> = {
+  horizontal: [RIGHT, LEFT | RIGHT, LEFT, 0],
+  vertical: [UP, UP | DOWN, DOWN, 0]
+}
+
+/** The tiles of a method: 47 for `ctm`, 4 for the line methods. */
+export function methodTiles(
+  bordered: Image,
+  center: Image | null,
+  options: CtmTemplateOptions,
+  method: CtmMethod
+): Uint8ClampedArray[] {
+  if (method === 'ctm') return ctmTiles(bordered, center, options)
+  return LINE_TILE_MASKS[method].map((mask) => ctmTileImage(bordered, center, mask, options))
+}
+
+/**
+ * Tile of a block for a line method from its two neighbours along the line: left / right for
+ * `horizontal`, below / above for `vertical` (the bit order of Continuity).
+ */
+export function lineTileIndex(first: boolean, second: boolean): number {
+  return [3, 2, 0, 1][(first ? 1 : 0) | (second ? 2 : 0)]!
+}
+
 function cornerBit(side: number, edge: number): number {
   if (edge === UP) return side === LEFT ? UP_LEFT : UP_RIGHT
   return side === LEFT ? DOWN_LEFT : DOWN_RIGHT
@@ -116,7 +149,10 @@ function cornerBit(side: number, edge: number): number {
  * The `.properties` of a generated set: tile-based (`matchTiles` = the texture's short name for
  * minecraft textures, `namespace:path` otherwise), connected by tile.
  */
-export function ctmPropertiesFor(texturePath: string): {
+export function ctmPropertiesFor(
+  texturePath: string,
+  method: CtmMethod = 'ctm'
+): {
   tileName: string
   entries: Array<[string, string]>
 } {
@@ -128,9 +164,9 @@ export function ctmPropertiesFor(texturePath: string): {
   return {
     tileName,
     entries: [
-      ['method', 'ctm'],
+      ['method', method],
       ['matchTiles', tileName],
-      ['tiles', '0-46'],
+      ['tiles', method === 'ctm' ? '0-46' : '0-3'],
       ['connect', 'tile']
     ]
   }

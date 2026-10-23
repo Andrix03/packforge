@@ -1,5 +1,7 @@
 // 12b Applica in blocco as a 4-step wizard: Texture → Cosa fare → Anteprima (before/after in 3D,
 // what will be written) → Applica (result).
+import { readdir, readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 const current = (app) =>
   app.ev(`document.querySelector('.wizard-steps [aria-current=step]')?.textContent ?? ''`)
 const views = (app) => app.ev(`document.querySelectorAll('.before-after-view').length`)
@@ -76,7 +78,15 @@ export default async function wizard(app) {
   const methods = await app.ev(
     `[...document.querySelectorAll('.ctm-method')].map((b) => (b.disabled ? '-' : '+') + b.querySelector('strong').textContent).join(' ')`
   )
-  app.check(methods === '+Completo -Orizzontale -Verticale', `CTM: methods (${methods})`)
+  app.check(methods === '+Completo +Orizzontale +Verticale', `CTM: methods (${methods})`)
+  // Horizontal: 4 tiles (start, middle, end, alone).
+  await app.click('Orizzontale', '.ctm-method')
+  app.check(
+    (await app.ev(
+      `document.querySelector('.ctm-method[aria-checked=true] strong').textContent`
+    )) === 'Orizzontale',
+    'CTM: Orizzontale chosen'
+  )
   await app.shot('ctm-2-method')
   await app.click('Avanti', '.wizard-foot button')
   app.check((await current(app)).includes('3 · Anteprima'), 'CTM: step 3 (Anteprima)')
@@ -92,7 +102,34 @@ export default async function wizard(app) {
   })()`)
   await app.sleep(200)
   app.check((await shown()) === 'ctm-wall-before ctm-wall', 'CTM: "Affiancati" shows both walls')
+  const sheet = await app.ev(
+    `(() => { const c = document.querySelector('.ctm-sheet'); return c.width + '×' + c.height })()`
+  )
+  app.check(sheet === '64×16', `CTM: 4 tiles in a row (${sheet})`)
+  const listed = await app.ev(
+    `[...document.querySelectorAll('[aria-label="Texture connesse"] .wizard-files li')].map((l) => l.textContent).join('|')`
+  )
+  app.check(listed.includes('0.png … 3.png'), `CTM: 4 tile files listed (${listed})`)
   await app.shot('ctm-3-preview')
-  await app.click('Annulla', '.wizard-foot button')
+
+  // Apply: 4 tiles and the properties with method=horizontal on disk.
+  await app.ev(
+    `[...document.querySelectorAll('[aria-label="Texture connesse"] .wizard-foot button')].find((b) => b.textContent.startsWith('Crea i 4 tile')).click()`
+  )
+  await app.waitFor(`document.querySelector('[data-testid=ctm-result]')`, 20000)
+  const dir = join(app.paths.pack, 'assets', 'minecraft', 'optifine', 'ctm', 'glass')
+  const written = (await readdir(dir)).sort()
+  app.check(
+    ['0.png', '1.png', '2.png', '3.png'].every((name) => written.includes(name)) &&
+      !written.includes('4.png'),
+    `CTM: exactly 4 tiles written (${written.join(' ')})`
+  )
+  const properties = await readFile(join(dir, 'glass.properties'), 'utf8')
+  app.check(
+    /method=horizontal/.test(properties) && /tiles=0-3/.test(properties),
+    'CTM: glass.properties says method=horizontal, tiles=0-3'
+  )
+  await app.shot('ctm-4-done')
+  await app.click('Chiudi', '.wizard-foot button')
   await app.waitFor(`!document.querySelector('[aria-label="Texture connesse"]')`)
 }

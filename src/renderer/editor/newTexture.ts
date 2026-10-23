@@ -2,6 +2,7 @@
 
 import type { Rgba } from './pixels'
 import { DEFAULT_RAMP, generateRamp, noiseColor, type RampOptions } from './ramp'
+import { tr } from '../../shared/i18n'
 
 /**
  * A softer ramp than the editor default: a starting point should not already trigger the
@@ -18,12 +19,14 @@ export type TextureStart = 'empty' | 'color' | 'noise'
  * only lowercase letters, digits, `_`, `-` and `.`; returns an Italian error or null.
  */
 export function validateTextureName(name: string): string | null {
-  if (name.trim() === '') return 'Scrivi un nome.'
+  if (name.trim() === '') return tr('Scrivi un nome.')
   if (!/^[a-z0-9_.-]+$/.test(name)) {
-    return 'Usa solo lettere minuscole, numeri, _ - e . (Minecraft non accetta altri caratteri).'
+    return tr(
+      'Usa solo lettere minuscole, numeri, _ - e . (Minecraft non accetta altri caratteri).'
+    )
   }
   if (name.startsWith('.') || name.endsWith('.'))
-    return 'Il nome non può iniziare o finire con un punto.'
+    return tr('Il nome non può iniziare o finire con un punto.')
   return null
 }
 
@@ -34,10 +37,10 @@ export function validateTextureName(name: string): string | null {
 export function validateTextureFolder(folder: string): string | null {
   const segments = folder.split('/')
   if (segments.length < 3 || segments[0] !== 'assets' || segments[2] !== 'textures') {
-    return 'La cartella deve essere dentro assets/<namespace>/textures/.'
+    return tr('La cartella deve essere dentro assets/<namespace>/textures/.')
   }
   if (!segments.every((segment) => /^[a-z0-9_.-]+$/.test(segment) && !/^\.+$/.test(segment))) {
-    return 'Le cartelle possono contenere solo lettere minuscole, numeri, _ - e .'
+    return tr('Le cartelle possono contenere solo lettere minuscole, numeri, _ - e .')
   }
   return null
 }

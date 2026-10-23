@@ -5,6 +5,7 @@ import { unzipSync } from 'fflate'
 import type { VanillaVersionInfo } from '../shared/ipc'
 import type { PackVersion } from '../shared/packFormat'
 import type { PackSource } from './packSource'
+import { tr } from '../shared/i18n'
 
 // Vanilla textures are read from the user's own client jar, in memory, for
 // reference only. Nothing from the jar is ever written to disk or a pack.
@@ -80,12 +81,12 @@ export async function loadVanillaJar(
 ): Promise<LoadedJarResult> {
   const installed = await listInstalledVersions(minecraftDir)
   const version = installed.find((v) => v.id === versionId)
-  if (!version) return { ok: false, error: 'Versione di Minecraft non installata.' }
+  if (!version) return { ok: false, error: tr('Versione di Minecraft non installata.') }
 
   const jarPath = join(minecraftDir, 'versions', version.id, `${version.id}.jar`)
   try {
     if ((await stat(jarPath)).size > MAX_JAR_BYTES) {
-      return { ok: false, error: 'Il jar del client è troppo grande.' }
+      return { ok: false, error: tr('Il jar del client è troppo grande.') }
     }
     const data = await readFile(jarPath)
     return {
@@ -94,7 +95,7 @@ export async function loadVanillaJar(
       resourceFormat: readJarFormat(data)
     }
   } catch {
-    return { ok: false, error: `Impossibile leggere il jar di ${version.id}.` }
+    return { ok: false, error: tr('Impossibile leggere il jar di {0}.', version.id) }
   }
 }
 

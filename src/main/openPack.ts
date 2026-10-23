@@ -5,6 +5,7 @@ import type { PackSummary } from '../shared/ipc'
 import { analyzePackMcmeta } from '../shared/mcmeta'
 import { isPng } from '../shared/png'
 import type { PackSource } from './packSource'
+import { tr } from '../shared/i18n'
 
 const MAX_ZIP_BYTES = 1024 ** 3
 const MAX_MCMETA_BYTES = 1024 * 1024
@@ -23,14 +24,14 @@ export type LoadedPackResult =
 /** Opens a pack folder or zip and analyzes its pack.mcmeta. Read-only. */
 export async function openPack(input: unknown): Promise<LoadedPackResult> {
   if (typeof input !== 'string' || !isAbsolute(input)) {
-    return { ok: false, error: 'Percorso del pack non valido.' }
+    return { ok: false, error: tr('Percorso del pack non valido.') }
   }
 
   let isDirectory: boolean
   try {
     isDirectory = (await stat(input)).isDirectory()
   } catch {
-    return { ok: false, error: 'Il percorso non esiste.' }
+    return { ok: false, error: tr('Il percorso non esiste.') }
   }
 
   let files: PackFiles | string
@@ -42,7 +43,7 @@ export async function openPack(input: unknown): Promise<LoadedPackResult> {
     kind = 'zip'
     files = await readZipPack(input)
   } else {
-    return { ok: false, error: 'Scegli una cartella o un file .zip.' }
+    return { ok: false, error: tr('Scegli una cartella o un file .zip.') }
   }
   if (typeof files === 'string') return { ok: false, error: files }
 
@@ -62,9 +63,9 @@ async function readFolderPack(dir: string): Promise<PackFiles | string> {
   try {
     mcmetaSize = (await stat(mcmetaPath)).size
   } catch {
-    return 'Non è un resource pack: manca pack.mcmeta nella cartella.'
+    return tr('Non è un resource pack: manca pack.mcmeta nella cartella.')
   }
-  if (mcmetaSize > MAX_MCMETA_BYTES) return 'pack.mcmeta è troppo grande.'
+  if (mcmetaSize > MAX_MCMETA_BYTES) return tr('pack.mcmeta è troppo grande.')
   const mcmeta = await readFile(mcmetaPath)
 
   let icon: Uint8Array | null = null
@@ -78,7 +79,7 @@ async function readFolderPack(dir: string): Promise<PackFiles | string> {
 }
 
 async function readZipPack(path: string): Promise<PackFiles | string> {
-  if ((await stat(path)).size > MAX_ZIP_BYTES) return 'Lo zip è troppo grande (massimo 1 GB).'
+  if ((await stat(path)).size > MAX_ZIP_BYTES) return tr('Lo zip è troppo grande (massimo 1 GB).')
 
   const names: string[] = []
   let entries: Record<string, Uint8Array>
@@ -95,18 +96,21 @@ async function readZipPack(path: string): Promise<PackFiles | string> {
       }
     })
   } catch {
-    return 'Lo zip è danneggiato o non è un file zip valido.'
+    return tr('Lo zip è danneggiato o non è un file zip valido.')
   }
 
   const mcmeta = entries['pack.mcmeta']
   if (!mcmeta) {
-    if (names.includes('pack.mcmeta')) return 'pack.mcmeta è troppo grande.'
+    if (names.includes('pack.mcmeta')) return tr('pack.mcmeta è troppo grande.')
     const nested = names.find((name) => /^[^/]+\/pack\.mcmeta$/.test(name))
     if (nested) {
       const folder = nested.slice(0, nested.indexOf('/'))
-      return `pack.mcmeta è dentro la cartella "${folder}/": Minecraft lo richiede nella radice dello zip.`
+      return tr(
+        'pack.mcmeta è dentro la cartella "{0}/": Minecraft lo richiede nella radice dello zip.',
+        folder
+      )
     }
-    return 'Non è un resource pack: manca pack.mcmeta nello zip.'
+    return tr('Non è un resource pack: manca pack.mcmeta nello zip.')
   }
   return { mcmeta, icon: entries['pack.png'] ?? null, source: { kind: 'zip', root: path, data } }
 }

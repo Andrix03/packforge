@@ -1,3 +1,4 @@
+import { tr } from '../../shared/i18n'
 // Scenes of the Test screen: where the tested block goes, next to which other blocks.
 // Coordinates are block positions (+X east, +Y up, +Z south); the ground is y = 0.
 
@@ -40,8 +41,8 @@ export const DEFAULT_NEIGHBOURS = ['grass_block', 'dirt', 'oak_planks', 'cobbles
 export const BLOCK_SCENES: readonly SceneDef[] = [
   {
     kind: 'block',
-    label: 'Blocco',
-    hint: 'Il blocco da solo.',
+    label: tr('Blocco'),
+    hint: tr('Il blocco da solo.'),
     focus: [0, 0, 0],
     camera: scaled([0.7, 0.55, 0.85], 3.2),
     fov: 40,
@@ -49,8 +50,8 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   },
   {
     kind: 'wall',
-    label: 'Muro 3×3',
-    hint: 'Ripetuto in un muro: controlla le giunture.',
+    label: tr('Muro 3×3'),
+    hint: tr('Ripetuto in un muro: controlla le giunture.'),
     focus: [0, 0, 0],
     camera: scaled([0.7, 0.55, 0.85], 6),
     fov: 40,
@@ -58,8 +59,8 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   },
   {
     kind: 'floor',
-    label: 'Pavimento 5×5',
-    hint: 'Ripetuto in un pavimento.',
+    label: tr('Pavimento 5×5'),
+    hint: tr('Ripetuto in un pavimento.'),
     focus: [0, 0, 0],
     camera: scaled([0.7, 0.55, 0.85], 8.5),
     fov: 40,
@@ -67,8 +68,8 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   },
   {
     kind: 'field',
-    label: 'Distesa 33×33',
-    hint: 'Una grande distesa: allontanati per vedere come appare da lontano.',
+    label: tr('Distesa 33×33'),
+    hint: tr('Una grande distesa: allontanati per vedere come appare da lontano.'),
     focus: [0, 0, 0],
     camera: scaled([0, 0.45, 1], 24),
     fov: 70,
@@ -76,8 +77,10 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   },
   {
     kind: 'farm',
-    label: 'Campo coltivato',
-    hint: 'Per le colture: file su terra arata, dal seme (davanti) alla pianta matura (in fondo).',
+    label: tr('Campo coltivato'),
+    hint: tr(
+      'Per le colture: file su terra arata, dal seme (davanti) alla pianta matura (in fondo).'
+    ),
     focus: [0, 1, 0],
     camera: [5, 5, 8],
     fov: 70,
@@ -85,8 +88,10 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   },
   {
     kind: 'mixed',
-    label: 'Con altri blocchi',
-    hint: 'La croce centrale e metà del muro sono il tuo blocco; il resto sono i blocchi scelti.',
+    label: tr('Con altri blocchi'),
+    hint: tr(
+      'La croce centrale e metà del muro sono il tuo blocco; il resto sono i blocchi scelti.'
+    ),
     focus: [0, 1, -1],
     camera: [7, 6, 9],
     fov: 70,
@@ -94,8 +99,8 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   },
   {
     kind: 'house',
-    label: 'Angolo di casa',
-    hint: 'Il tuo blocco forma i muri; tronchi, vetro, assi ed erba intorno.',
+    label: tr('Angolo di casa'),
+    hint: tr('Il tuo blocco forma i muri; tronchi, vetro, assi ed erba intorno.'),
     focus: [-1, 2, -1],
     camera: [7, 3.5, 9],
     fov: 70,
@@ -103,8 +108,10 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   },
   {
     kind: 'cave',
-    label: 'Grotta',
-    hint: 'Il tuo blocco forma pareti, soffitto e pavimento di una galleria, rischiarata in fondo da una torcia. Un minerale sta nella sua roccia, qua e là come in miniera.',
+    label: tr('Grotta'),
+    hint: tr(
+      'Il tuo blocco forma pareti, soffitto e pavimento di una galleria, rischiarata in fondo da una torcia. Un minerale sta nella sua roccia, qua e là come in miniera.'
+    ),
     focus: [0, 2, -3],
     camera: [0.6, 0.4, 11],
     fov: 70,
@@ -112,8 +119,8 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   },
   {
     kind: 'path',
-    label: 'Sentiero',
-    hint: 'Il tuo blocco forma un sentiero nell’erba, con un albero.',
+    label: tr('Sentiero'),
+    hint: tr('Il tuo blocco forma un sentiero nell’erba, con un albero.'),
     focus: [0, 0, -1],
     camera: [5, 5, 9],
     fov: 70,
@@ -124,8 +131,8 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
 /** The only scene for item textures: the item held in the right hand, over a lawn. */
 export const HAND_SCENE: SceneDef = {
   kind: 'hand',
-  label: 'In mano',
-  hint: 'L’oggetto tenuto nella mano destra, in prima persona.',
+  label: tr('In mano'),
+  hint: tr('L’oggetto tenuto nella mano destra, in prima persona.'),
   // The eye is 1.62 blocks above the ground's top face (y = 0.5).
   focus: [0, 1.6, -4],
   camera: [0, 0.52, 4],

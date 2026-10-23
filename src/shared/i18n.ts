@@ -38,11 +38,14 @@ export function setLanguage(next: Language): void {
 }
 
 /** The text in the interface language, with {0}, {1}… replaced by `args`. */
-export function tr(key: string, ...args: ReadonlyArray<string | number>): string {
+export function tr(key: string, ...args: readonly unknown[]): string {
   const text = current === 'en' ? (EN[key] ?? key) : key
+  // Like a template literal: every value through String().
   return args.length === 0
     ? text
-    : text.replace(/\{(\d+)\}/g, (m, i: string) => String(args[Number(i)] ?? m))
+    : text.replace(/\{(\d+)\}/g, (m, i: string) =>
+        Number(i) < args.length ? String(args[Number(i)]) : m
+      )
 }
 
 /** Locale for dates and numbers. */

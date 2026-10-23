@@ -7,6 +7,7 @@
 // diamond 17%). Smoothness values are our own starting points: the UI says so.
 
 import { METALS } from './labpbr'
+import { tr } from './i18n'
 
 /** Stored `_s` bytes of a material (emission is not part of it: only the emissive preset writes A). */
 export interface MaterialValues {
@@ -50,85 +51,87 @@ export interface MaterialPreset {
 export const MATERIALS: readonly MaterialPreset[] = [
   {
     id: 'stone',
-    label: 'Pietra',
-    hint: 'Pietra grezza, ciottoli, mattoni: ruvida, poco porosa',
+    label: tr('Pietra'),
+    hint: tr('Pietra grezza, ciottoli, mattoni: ruvida, poco porosa'),
     values: { smoothness: 50, f0: COMMON_F0, porosity: 24 },
     variation: 0.5
   },
   {
     id: 'polished',
-    label: 'Pietra levigata',
-    hint: 'Pietre lucidate, quarzo, calcestruzzo liscio: riflessi morbidi',
+    label: tr('Pietra levigata'),
+    hint: tr('Pietre lucidate, quarzo, calcestruzzo liscio: riflessi morbidi'),
     values: { smoothness: 170, f0: COMMON_F0, porosity: 4 },
     variation: 0.3
   },
   {
     id: 'wood',
-    label: 'Legno',
-    hint: 'Assi e tronchi: opaco, porosità del legno secondo la specifica (12)',
+    label: tr('Legno'),
+    hint: tr('Assi e tronchi: opaco, porosità del legno secondo la specifica (12)'),
     values: { smoothness: 70, f0: COMMON_F0, porosity: 12 },
     variation: 0.5
   },
   {
     id: 'soil',
-    label: 'Terra, sabbia',
-    hint: 'Terra, sabbia, ghiaia: molto ruvida, porosità massima (si scurisce con la pioggia)',
+    label: tr('Terra, sabbia'),
+    hint: tr('Terra, sabbia, ghiaia: molto ruvida, porosità massima (si scurisce con la pioggia)'),
     values: { smoothness: 20, f0: COMMON_F0, porosity: 64 },
     variation: 0.3
   },
   {
     id: 'wool',
-    label: 'Lana, tessuto',
-    hint: 'Lana e tappeti: ruvida, porosità della lana secondo la specifica (38)',
+    label: tr('Lana, tessuto'),
+    hint: tr('Lana e tappeti: ruvida, porosità della lana secondo la specifica (38)'),
     values: { smoothness: 15, f0: COMMON_F0, porosity: 38 },
     variation: 0.2
   },
   {
     id: 'leaves',
-    label: 'Foglie, erba',
-    hint: 'La luce passa attraverso (SSS 50%): foglie, erba, piante',
+    label: tr('Foglie, erba'),
+    hint: tr('La luce passa attraverso (SSS 50%): foglie, erba, piante'),
     values: { smoothness: 90, f0: COMMON_F0, porosity: 160 },
     variation: 0.3
   },
   {
     id: 'glass',
-    label: 'Vetro',
-    hint: 'Liscio come uno specchio, riflette il 4% (indice 1,5)',
+    label: tr('Vetro'),
+    hint: tr('Liscio come uno specchio, riflette il 4% (indice 1,5)'),
     values: { smoothness: 245, f0: COMMON_F0, porosity: 0 },
     variation: 0
   },
   {
     id: 'ice',
-    label: 'Ghiaccio',
-    hint: 'Molto liscio, riflette il 2% (indice 1,31)',
+    label: tr('Ghiaccio'),
+    hint: tr('Molto liscio, riflette il 2% (indice 1,31)'),
     values: { smoothness: 235, f0: f0Byte(1.31), porosity: 0 },
     variation: 0.1
   },
   {
     id: 'metal',
-    label: 'Metallo',
-    hint: 'Blocchi di metallo: scegli quale (il colore della texture tinge i riflessi)',
+    label: tr('Metallo'),
+    hint: tr('Blocchi di metallo: scegli quale (il colore della texture tinge i riflessi)'),
     values: { smoothness: 190, f0: 230, porosity: 0 },
     variation: 0.3
   },
   {
     id: 'ore',
-    label: 'Minerale',
-    hint: 'Pietra con gemme o metallo: i pixel colorati diventano la gemma, il resto pietra',
+    label: tr('Minerale'),
+    hint: tr('Pietra con gemme o metallo: i pixel colorati diventano la gemma, il resto pietra'),
     values: { smoothness: 50, f0: COMMON_F0, porosity: 24 },
     variation: 0.5
   },
   {
     id: 'crop',
-    label: 'Coltura',
-    hint: 'Grano, carote, bacche…: le foglie verdi lasciano passare la luce, le parti secche un po’, i frutti sono lisci e pieni',
+    label: tr('Coltura'),
+    hint: tr(
+      'Grano, carote, bacche…: le foglie verdi lasciano passare la luce, le parti secche un po’, i frutti sono lisci e pieni'
+    ),
     values: { smoothness: 90, f0: COMMON_F0, porosity: 170 },
     variation: 0.3
   },
   {
     id: 'emissive',
-    label: 'Luminoso',
-    hint: 'Pietra luminosa, lanterne, lampade: i pixel chiari emettono luce',
+    label: tr('Luminoso'),
+    hint: tr('Pietra luminosa, lanterne, lampade: i pixel chiari emettono luce'),
     values: { smoothness: 60, f0: COMMON_F0, porosity: 0 },
     variation: 0.3
   }
@@ -146,25 +149,37 @@ export interface Gem {
 
 /** What the colored pixels of an ore become. */
 export const GEMS: readonly Gem[] = [
-  { id: 'diamond', label: 'Diamante', values: { smoothness: 225, f0: f0Byte(2.42), porosity: 0 } },
-  { id: 'emerald', label: 'Smeraldo', values: { smoothness: 220, f0: f0Byte(1.58), porosity: 0 } },
-  { id: 'quartz', label: 'Quarzo', values: { smoothness: 200, f0: f0Byte(1.54), porosity: 0 } },
+  {
+    id: 'diamond',
+    label: tr('Diamante'),
+    values: { smoothness: 225, f0: f0Byte(2.42), porosity: 0 }
+  },
+  {
+    id: 'emerald',
+    label: tr('Smeraldo'),
+    values: { smoothness: 220, f0: f0Byte(1.58), porosity: 0 }
+  },
+  { id: 'quartz', label: tr('Quarzo'), values: { smoothness: 200, f0: f0Byte(1.54), porosity: 0 } },
   {
     id: 'lapis',
-    label: 'Lapislazzuli',
+    label: tr('Lapislazzuli'),
     values: { smoothness: 140, f0: f0Byte(1.5), porosity: 0 }
   },
-  { id: 'redstone', label: 'Redstone', values: { smoothness: 110, f0: f0Byte(1.5), porosity: 8 } },
-  { id: 'coal', label: 'Carbone', values: { smoothness: 70, f0: f0Byte(1.5), porosity: 8 } },
-  { id: 'iron', label: 'Ferro', values: { smoothness: 150, f0: 230, porosity: 0 } },
-  { id: 'gold', label: 'Oro', values: { smoothness: 180, f0: 231, porosity: 0 } },
-  { id: 'copper', label: 'Rame', values: { smoothness: 160, f0: 234, porosity: 0 } }
+  {
+    id: 'redstone',
+    label: tr('Redstone'),
+    values: { smoothness: 110, f0: f0Byte(1.5), porosity: 8 }
+  },
+  { id: 'coal', label: tr('Carbone'), values: { smoothness: 70, f0: f0Byte(1.5), porosity: 8 } },
+  { id: 'iron', label: tr('Ferro'), values: { smoothness: 150, f0: 230, porosity: 0 } },
+  { id: 'gold', label: tr('Oro'), values: { smoothness: 180, f0: 231, porosity: 0 } },
+  { id: 'copper', label: tr('Rame'), values: { smoothness: 160, f0: 234, porosity: 0 } }
 ]
 
 /** Metals for the metal preset: the predefined ones, then "the albedo is the reflection". */
 export const METAL_CHOICES: ReadonlyArray<{ value: number; label: string }> = [
   ...METALS.map((metal) => ({ value: metal.value, label: metal.label })),
-  { value: 255, label: 'Dal colore della texture' }
+  { value: 255, label: tr('Dal colore della texture') }
 ]
 
 export interface MaterialOptions {
@@ -192,9 +207,13 @@ export const DEFAULT_MATERIAL: MaterialOptions = {
 
 /** Parts of a crop texture told apart by color (0 = transparent). */
 export const CROP_PARTS = [
-  { id: 'leaf', label: 'Foglie', values: { smoothness: 90, f0: COMMON_F0, porosity: 170 } },
-  { id: 'dry', label: 'Secco, maturo', values: { smoothness: 55, f0: COMMON_F0, porosity: 110 } },
-  { id: 'fruit', label: 'Frutto', values: { smoothness: 140, f0: COMMON_F0, porosity: 0 } }
+  { id: 'leaf', label: tr('Foglie'), values: { smoothness: 90, f0: COMMON_F0, porosity: 170 } },
+  {
+    id: 'dry',
+    label: tr('Secco, maturo'),
+    values: { smoothness: 55, f0: COMMON_F0, porosity: 110 }
+  },
+  { id: 'fruit', label: tr('Frutto'), values: { smoothness: 140, f0: COMMON_F0, porosity: 0 } }
 ] as const satisfies ReadonlyArray<{ id: string; label: string; values: MaterialValues }>
 
 /**

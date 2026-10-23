@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MAX_PALETTE_COLORS, MAX_PALETTES, type SavedPalette } from '../../shared/settings'
 import { toHex8 } from './color'
 import { fromHex, type Rgba } from './pixels'
+import { tr } from '../../shared/i18n'
 
 /**
  * Saved palettes (kept in the settings, shared by every texture): save the ramp or the texture's
@@ -28,7 +29,7 @@ export function PalettesPanel({
   function save(colors: readonly Rgba[]): void {
     if (full || colors.length === 0) return
     const palette: SavedPalette = {
-      name: name.trim() || `Palette ${palettes.length + 1}`,
+      name: name.trim() || tr('Palette {0}', palettes.length + 1),
       colors: colors.slice(0, MAX_PALETTE_COLORS).map(toHex8)
     }
     onChange([...palettes, palette])
@@ -43,14 +44,14 @@ export function PalettesPanel({
   return (
     <section className="palettes-panel">
       <h3 className="panel-title">
-        Palette salvate{' '}
+        {tr('Palette salvate')}{' '}
         <span className="muted">
           ({palettes.length}/{MAX_PALETTES})
         </span>
       </h3>
       <input
         className="palette-name"
-        placeholder="Nome della nuova palette"
+        placeholder={tr('Nome della nuova palette')}
         value={name}
         maxLength={40}
         onChange={(event) => setName(event.target.value)}
@@ -61,18 +62,18 @@ export function PalettesPanel({
           className="small-button"
           disabled={full}
           onClick={() => save(ramp)}
-          title="Salva le tonalità della rampa come palette"
+          title={tr('Salva le tonalità della rampa come palette')}
         >
-          Salva rampa
+          {tr('Salva rampa')}
         </button>
         <button
           type="button"
           className="small-button"
           disabled={full || textureColors.length === 0}
           onClick={() => save(textureColors)}
-          title="Salva i colori usati dalla texture"
+          title={tr('Salva i colori usati dalla texture')}
         >
-          Salva colori texture
+          {tr('Salva colori texture')}
         </button>
       </div>
       {palettes.map((palette, index) => {
@@ -88,15 +89,15 @@ export function PalettesPanel({
                   type="button"
                   className="small-button"
                   onClick={() => onUseAsRamp(colors)}
-                  title="Usa questi colori come rampa per Ombra e Rumore"
+                  title={tr('Usa questi colori come rampa per Ombra e Rumore')}
                 >
-                  Usa come rampa
+                  {tr('Usa come rampa')}
                 </button>
                 <button
                   type="button"
                   className="small-button"
-                  aria-label={`Elimina ${palette.name}`}
-                  title="Elimina la palette"
+                  aria-label={tr('Elimina {0}', palette.name)}
+                  title={tr('Elimina la palette')}
                   onClick={() => onChange(palettes.filter((_, i) => i !== index))}
                 >
                   ×
@@ -112,7 +113,7 @@ export function PalettesPanel({
                   style={{
                     background: `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})`
                   }}
-                  title="Sinistro: primario, destro: secondario"
+                  title={tr('Sinistro: primario, destro: secondario')}
                   onClick={(event) => pick(event, color)}
                   onContextMenu={(event) => pick(event, color)}
                 />

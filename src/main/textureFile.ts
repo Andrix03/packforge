@@ -6,9 +6,10 @@ import { encodePng, MAX_IMAGE_PIXELS, MAX_IMAGE_SIDE } from '../shared/pngCodec'
 import { isLockError, serializedOn, writeFileAtomic } from './atomicWrite'
 import type { EditResult } from './editMcmeta'
 import { isSafePackPath, type PackSource } from './packSource'
+import { tr } from '../shared/i18n'
 
-const READ_ONLY = 'I pack zip sono in sola lettura: estrai il pack in una cartella.'
-const BAD_PATH = 'Percorso della texture non valido.'
+const READ_ONLY = tr('I pack zip sono in sola lettura: estrai il pack in una cartella.')
+const BAD_PATH = tr('Percorso della texture non valido.')
 export const MAX_MCMETA_BYTES = 1024 * 1024
 
 /**
@@ -25,12 +26,12 @@ export async function saveTexture(
   if (source.kind !== 'folder') return { ok: false, error: READ_ONLY }
   if (!isPngPath(path)) return { ok: false, error: BAD_PATH }
   if (!isSide(width) || !isSide(height) || width * height > MAX_IMAGE_PIXELS) {
-    return { ok: false, error: 'Dimensioni della texture non valide.' }
+    return { ok: false, error: tr('Dimensioni della texture non valide.') }
   }
   if (!(rgba instanceof Uint8Array) || rgba.length !== width * height * 4) {
-    return { ok: false, error: 'Dati della texture non validi.' }
+    return { ok: false, error: tr('Dati della texture non validi.') }
   }
-  return writeInPack(source.root, path, encodePng({ width, height, data: rgba }), 'la texture')
+  return writeInPack(source.root, path, encodePng({ width, height, data: rgba }), tr('la texture'))
 }
 
 /**
@@ -53,19 +54,19 @@ export async function saveTextureMcmeta(
       return { ok: true }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
-      return { ok: false, error: `Impossibile eliminare il file .mcmeta: ${detail}` }
+      return { ok: false, error: tr('Impossibile eliminare il file .mcmeta: {0}', detail) }
     }
   }
   if (typeof content !== 'string' || Buffer.byteLength(content) > MAX_MCMETA_BYTES) {
-    return { ok: false, error: 'Contenuto del file .mcmeta non valido.' }
+    return { ok: false, error: tr('Contenuto del file .mcmeta non valido.') }
   }
   try {
     const parsed: unknown = JSON.parse(content)
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error()
   } catch {
-    return { ok: false, error: 'Il file .mcmeta deve contenere un oggetto JSON.' }
+    return { ok: false, error: tr('Il file .mcmeta deve contenere un oggetto JSON.') }
   }
-  return writeInPack(source.root, path, Buffer.from(content, 'utf8'), 'il file .mcmeta')
+  return writeInPack(source.root, path, Buffer.from(content, 'utf8'), tr('il file .mcmeta'))
 }
 
 export const MAX_PROPERTIES_BYTES = 64 * 1024
@@ -81,16 +82,16 @@ export async function saveCtmProperties(
 ): Promise<EditResult> {
   if (source.kind !== 'folder') return { ok: false, error: READ_ONLY }
   if (typeof path !== 'string' || !isSafePackPath(path) || !isCtmProperties(path)) {
-    return { ok: false, error: 'Percorso del file .properties non valido.' }
+    return { ok: false, error: tr('Percorso del file .properties non valido.') }
   }
   if (
     typeof content !== 'string' ||
     Buffer.byteLength(content) > MAX_PROPERTIES_BYTES ||
     content.includes('\0')
   ) {
-    return { ok: false, error: 'Contenuto del file .properties non valido.' }
+    return { ok: false, error: tr('Contenuto del file .properties non valido.') }
   }
-  return writeInPack(source.root, path, Buffer.from(content, 'utf8'), 'il file .properties')
+  return writeInPack(source.root, path, Buffer.from(content, 'utf8'), tr('il file .properties'))
 }
 
 export const MAX_MODEL_JSON_BYTES = 256 * 1024
@@ -106,18 +107,18 @@ export async function saveModelJson(
 ): Promise<EditResult> {
   if (source.kind !== 'folder') return { ok: false, error: READ_ONLY }
   if (typeof path !== 'string' || !isSafePackPath(path) || !isBlockJsonPath(path)) {
-    return { ok: false, error: 'Percorso del modello o blockstate non valido.' }
+    return { ok: false, error: tr('Percorso del modello o blockstate non valido.') }
   }
   if (typeof content !== 'string' || Buffer.byteLength(content) > MAX_MODEL_JSON_BYTES) {
-    return { ok: false, error: 'Contenuto del modello non valido.' }
+    return { ok: false, error: tr('Contenuto del modello non valido.') }
   }
   try {
     const parsed: unknown = JSON.parse(content)
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error()
   } catch {
-    return { ok: false, error: 'Il modello non è un oggetto JSON valido.' }
+    return { ok: false, error: tr('Il modello non è un oggetto JSON valido.') }
   }
-  return writeInPack(source.root, path, Buffer.from(content, 'utf8'), 'il modello')
+  return writeInPack(source.root, path, Buffer.from(content, 'utf8'), tr('il modello'))
 }
 
 /** Atomic write of any file of a folder pack (restoring backups); `path` must be safe. */
@@ -127,7 +128,7 @@ export async function writePackBytes(
   bytes: Uint8Array
 ): Promise<EditResult> {
   if (!isSafePackPath(path)) return { ok: false, error: BAD_PATH }
-  return writeInPack(packRoot, path, bytes, 'il file')
+  return writeInPack(packRoot, path, bytes, tr('il file'))
 }
 
 async function writeInPack(
@@ -154,8 +155,11 @@ async function writeInPack(
     return {
       ok: false,
       error: locked
-        ? `Impossibile salvare ${what}: il file è bloccato da un altro programma (editor esterno, antivirus?). Chiudilo lì e riprova.`
-        : `Impossibile salvare ${what}: ${detail}`
+        ? tr(
+            'Impossibile salvare {0}: il file è bloccato da un altro programma (editor esterno, antivirus?). Chiudilo lì e riprova.',
+            what
+          )
+        : tr('Impossibile salvare {0}: {1}', what, detail)
     }
   }
 }
@@ -192,7 +196,7 @@ async function deepestExisting(path: string): Promise<string> {
       await realpath(current)
       return current
     } catch {
-      if (dirname(current) === current) throw new Error('Cartella non trovata.')
+      if (dirname(current) === current) throw new Error(tr('Cartella non trovata.'))
     }
   }
 }

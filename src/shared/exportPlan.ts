@@ -8,6 +8,7 @@
 // APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT" — CREDITS.txt always includes it.
 
 import { mapKindOf } from './labpbr'
+import { tr } from './i18n'
 
 /** The project file at the pack root (never exported, ignored by the game). */
 export const PROJECT_FILE = 'packforge.json'
@@ -22,7 +23,7 @@ export interface License {
 }
 
 export const LICENSES: readonly License[] = [
-  { id: 'all-rights-reserved', name: 'Tutti i diritti riservati', url: null },
+  { id: 'all-rights-reserved', name: tr('Tutti i diritti riservati'), url: null },
   { id: 'CC-BY-4.0', name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
   {
     id: 'CC-BY-SA-4.0',
@@ -113,11 +114,11 @@ export function validVersion(version: string): boolean {
 export function strayReason(path: string): string | null {
   const parts = path.split('/')
   const name = parts.at(-1)!.toLowerCase()
-  if (parts.some((p) => p.startsWith('.'))) return 'file o cartella nascosti'
-  if (name === 'thumbs.db' || name === 'desktop.ini') return 'file di sistema di Windows'
+  if (parts.some((p) => p.startsWith('.'))) return tr('file o cartella nascosti')
+  if (name === 'thumbs.db' || name === 'desktop.ini') return tr('file di sistema di Windows')
   if (/\.(psd|psb|kra|aseprite|ase|xcf|pdn|blend|clip|sai2?)$/.test(name))
-    return 'file di lavoro di un editor'
-  if (/(\.tmp|\.bak|~)$/.test(name)) return 'file temporaneo'
+    return tr('file di lavoro di un editor')
+  if (/(\.tmp|\.bak|~)$/.test(name)) return tr('file temporaneo')
   return null
 }
 
@@ -126,9 +127,9 @@ export type ExportVariant =
 
 export function variantLabel(variant: ExportVariant): string {
   return variant.kind === 'full'
-    ? 'completo'
+    ? tr('completo')
     : variant.kind === 'no-pbr'
-      ? 'senza PBR'
+      ? tr('senza PBR')
       : `${variant.resolution}×`
 }
 

@@ -4,6 +4,7 @@
 // and only exist where the rectangle borders transparency. Pure.
 
 import { VANILLA_MAX_FACES } from './modelRules'
+import { tr } from './i18n'
 
 export interface PixelRect {
   x: number
@@ -76,11 +77,15 @@ export function extrudeModel(
   options: ExtrudeOptions = DEFAULT_EXTRUDE
 ): ExtrudeResult {
   const rects = opaqueRects(width, height, opaque)
-  if (rects.length === 0) return { ok: false, error: 'La texture è tutta trasparente.' }
+  if (rects.length === 0) return { ok: false, error: tr('La texture è tutta trasparente.') }
   if (rects.length > options.budget) {
     return {
       ok: false,
-      error: `Servirebbero ${rects.length} elementi (massimo ${options.budget}): troppi colori sparsi o pixel isolati. Semplifica la sagoma o alza il limite.`
+      error: tr(
+        'Servirebbero {0} elementi (massimo {1}): troppi colori sparsi o pixel isolati. Semplifica la sagoma o alza il limite.',
+        rects.length,
+        options.budget
+      )
     }
   }
   const scale = 16 / Math.max(width, height)

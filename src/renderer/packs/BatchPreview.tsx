@@ -12,6 +12,7 @@ import { Switch } from '../ui/components'
 import { errorMessage, loadPng } from './packFetch'
 import type { BatchSettings } from './runBatch'
 import type { ValidatorSource } from './runValidator'
+import { tr } from '../../shared/i18n'
 
 type After =
   | { status: 'loading' }
@@ -91,13 +92,13 @@ export function BatchPreview({
 
   const beforeView = (
     <figure className="before-after-view">
-      <figcaption className="ph">Prima</figcaption>
+      <figcaption className="ph">{tr('Prima')}</figcaption>
       <PreviewPanel target={target} sources={sources} />
     </figure>
   )
   const afterView = (
     <figure className="before-after-view">
-      <figcaption className="ph after">Dopo</figcaption>
+      <figcaption className="ph after">{tr('Dopo')}</figcaption>
       {after.status === 'ready' ? (
         <PreviewPanel
           target={target}
@@ -108,7 +109,7 @@ export function BatchPreview({
       ) : after.status === 'error' ? (
         <p className="field-error small">{after.message}</p>
       ) : (
-        <p className="muted small">Calcolo le mappe…</p>
+        <p className="muted small">{tr('Calcolo le mappe…')}</p>
       )}
     </figure>
   )
@@ -117,24 +118,24 @@ export function BatchPreview({
     <div className="before-after">
       <div className="before-after-bar">
         <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
-          Prima
+          {tr('Prima')}
         </span>
         <Switch
           checked={showAfter}
           onChange={setShowAfter}
-          label="Mostra il risultato"
+          label={tr('Mostra il risultato')}
           disabled={both}
         />
         <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
-          Dopo
+          {tr('Dopo')}
         </span>
-        <label className="inline-check small" title="Prima e dopo uno accanto all’altro">
+        <label className="inline-check small" title={tr('Prima e dopo uno accanto all’altro')}>
           <input
             type="checkbox"
             checked={both}
             onChange={(event) => setBoth(event.target.checked)}
           />
-          Affiancati
+          {tr('Affiancati')}
         </label>
       </div>
       <div className={both ? 'before-after-views both' : 'before-after-views'}>
@@ -142,8 +143,9 @@ export function BatchPreview({
         {(both || showAfter) && afterView}
       </div>
       <p className="muted small">
-        Prima = come la vede il gioco senza shader. Dopo = con le mappe che verranno scritte, come
-        con uno shader LabPBR (Iris): senza shader in gioco non cambia niente.
+        {tr(
+          'Prima = come la vede il gioco senza shader. Dopo = con le mappe che verranno scritte, come con uno shader LabPBR (Iris): senza shader in gioco non cambia niente.'
+        )}
       </p>
     </div>
   )

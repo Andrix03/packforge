@@ -3,6 +3,7 @@ import { TICKS_PER_SECOND } from '../../shared/animation'
 import type { EditorDocument } from './document'
 import { MAX_FRAMES, MAX_FRAMETIME, type AnimationSettings, type FrameOp } from './frames'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 const THUMB = 48
 const MS_PER_TICK = 1000 / TICKS_PER_SECOND
@@ -112,12 +113,13 @@ export function FramesPanel({
   return (
     <section className="card frames-panel">
       <div className="row frames-header">
-        <strong className="small">Animazione</strong>
-        <span className="muted small">
-          {count} frame, {seconds} s per giro
-        </span>
-        <label className="inline-check small" title="Durata di ogni frame (20 tick = 1 secondo)">
-          Tick per frame
+        <strong className="small">{tr('Animazione')}</strong>
+        <span className="muted small">{tr('{0} frame, {1} s per giro', count, seconds)}</span>
+        <label
+          className="inline-check small"
+          title={tr('Durata di ogni frame (20 tick = 1 secondo)')}
+        >
+          {tr('Tick per frame')}
           <input
             type="number"
             min={1}
@@ -131,33 +133,39 @@ export function FramesPanel({
             }}
           />
         </label>
-        <label className="inline-check small" title="Sfuma gradualmente da un frame al successivo">
+        <label
+          className="inline-check small"
+          title={tr('Sfuma gradualmente da un frame al successivo')}
+        >
           <input
             type="checkbox"
             checked={settings.interpolate}
             disabled={readOnly}
             onChange={(event) => onSettings({ ...settings, interpolate: event.target.checked })}
           />
-          Interpola
+          {tr('Interpola')}
         </label>
-        <label className="inline-check small" title="Mostra il frame precedente in trasparenza">
+        <label
+          className="inline-check small"
+          title={tr('Mostra il frame precedente in trasparenza')}
+        >
           <input
             type="checkbox"
             checked={onionSkin}
             onChange={(event) => onOnionSkin(event.target.checked)}
           />
-          Onion skin
+          {tr('Onion skin')}
         </label>
         <button type="button" className="small-button" onClick={() => setPlaying((p) => !p)}>
           {playing ? (
             <>
               <Glyph name="stop" />
-              Ferma
+              {tr('Ferma')}
             </>
           ) : (
             <>
               <Glyph name="play" />
-              Anteprima
+              {tr('Anteprima')}
             </>
           )}
         </button>
@@ -173,7 +181,7 @@ export function FramesPanel({
                 type="button"
                 className={index === current ? 'frame-thumb active' : 'frame-thumb'}
                 onClick={() => onSelect(index)}
-                title={`Frame ${index + 1}`}
+                title={tr('Frame {0}', index + 1)}
               >
                 <canvas
                   ref={(canvas) => {
@@ -195,24 +203,24 @@ export function FramesPanel({
             type="button"
             disabled={count >= MAX_FRAMES}
             onClick={() => onFrameOp({ kind: 'insert', at: current + 1, copyFrom: current })}
-            title="Copia il frame attuale subito dopo"
+            title={tr('Copia il frame attuale subito dopo')}
           >
-            Duplica
+            {tr('Duplica')}
           </button>
           <button
             type="button"
             disabled={count >= MAX_FRAMES}
             onClick={() => onFrameOp({ kind: 'insert', at: current + 1, copyFrom: null })}
-            title="Nuovo frame vuoto dopo quello attuale"
+            title={tr('Nuovo frame vuoto dopo quello attuale')}
           >
-            + Vuoto
+            {tr('+ Vuoto')}
           </button>
           <button
             type="button"
             disabled={current === 0}
             onClick={() => onFrameOp({ kind: 'move', index: current, direction: -1 })}
-            title="Sposta prima"
-            aria-label="Sposta il frame prima"
+            title={tr('Sposta prima')}
+            aria-label={tr('Sposta il frame prima')}
           >
             <Glyph name="prev" alone />
           </button>
@@ -220,8 +228,8 @@ export function FramesPanel({
             type="button"
             disabled={current === count - 1}
             onClick={() => onFrameOp({ kind: 'move', index: current, direction: 1 })}
-            title="Sposta dopo"
-            aria-label="Sposta il frame dopo"
+            title={tr('Sposta dopo')}
+            aria-label={tr('Sposta il frame dopo')}
           >
             <Glyph name="play" alone />
           </button>
@@ -229,13 +237,17 @@ export function FramesPanel({
             type="button"
             disabled={count === 1}
             onClick={() => onFrameOp({ kind: 'remove', index: current })}
-            title="Elimina il frame attuale"
+            title={tr('Elimina il frame attuale')}
           >
-            Elimina
+            {tr('Elimina')}
           </button>
           {count === 1 && (
-            <button type="button" onClick={onStopAnimating} title="Torna a una texture normale">
-              Togli animazione
+            <button
+              type="button"
+              onClick={onStopAnimating}
+              title={tr('Torna a una texture normale')}
+            >
+              {tr('Togli animazione')}
             </button>
           )}
         </div>

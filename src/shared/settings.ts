@@ -1,5 +1,6 @@
 // User settings persisted by main in `<userData>/settings.json`.
 
+import { isLanguage, type Language } from './i18n'
 import { NEW_TUTORIAL, parseTutorial, type TutorialState } from './tutorial'
 
 /** Beginner shows fewer tools plus tips and warnings; Pro shows everything. Same files either way. */
@@ -54,6 +55,8 @@ export interface Settings {
   checkUpdates: boolean
   /** First-run tutorial (Beginner mode). */
   tutorial: TutorialState
+  /** Interface language; null follows the system (Italian systems → it, others → en). */
+  language: Language | null
 }
 
 export interface RecentPack {
@@ -79,7 +82,8 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   editorMode: 'beginner',
   palettes: [],
   checkUpdates: true,
-  tutorial: NEW_TUTORIAL
+  tutorial: NEW_TUTORIAL,
+  language: null
 })
 
 /**
@@ -98,7 +102,8 @@ export function parseSettings(value: unknown): Settings {
     editorMode: isEditorMode(record['editorMode']) ? record['editorMode'] : 'beginner',
     palettes: parsePalettes(record['palettes']),
     checkUpdates: record['checkUpdates'] !== false,
-    tutorial: parseTutorial(record['tutorial'])
+    tutorial: parseTutorial(record['tutorial']),
+    language: isLanguage(record['language']) ? record['language'] : null
   }
 }
 
@@ -165,6 +170,8 @@ export interface SettingsView {
   /** Whether the configured editor still exists on disk (true when none is set). */
   externalEditorExists: boolean
   detectedEditors: DetectedEditor[]
+  /** The language in use now (the setting, or the system's). */
+  language: Language
 }
 
 /** Display name for an editor path, e.g. `C:\…\Aseprite.exe` → `Aseprite`. */

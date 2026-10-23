@@ -3,6 +3,7 @@ import type { Rgba } from './pixels'
 import type { RampOptions } from './ramp'
 import { Glyph, RangeInput } from '../ui/components'
 import { NAV_ICONS } from '../ui/icons'
+import { tr } from '../../shared/i18n'
 
 interface RampPanelProps {
   ramp: readonly Rgba[]
@@ -38,9 +39,9 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
   return (
     <section className="ramp-panel">
       <h3 className="panel-title">
-        Rampa{' '}
+        {tr('Rampa')}{' '}
         <span className="muted">
-          {props.custom ? '(personalizzata)' : props.locked ? '' : '(segue il primario)'}
+          {props.custom ? '(personalizzata)' : props.locked ? '' : tr('(segue il primario)')}
         </span>
       </h3>
       <div className={editing ? 'ramp-swatches editing' : 'ramp-swatches'}>
@@ -52,8 +53,8 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
             style={{ background: `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})` }}
             title={
               editing
-                ? 'Sinistro: sostituisci con il colore primario. Destro: togli'
-                : 'Sinistro: primario, destro: secondario'
+                ? tr('Sinistro: sostituisci con il colore primario. Destro: togli')
+                : tr('Sinistro: primario, destro: secondario')
             }
             onClick={(event) => pick(event, color, index)}
             onContextMenu={(event) => pick(event, color, index)}
@@ -64,9 +65,9 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
         type="button"
         className="small-button"
         onClick={props.onFromPrimary}
-        title="Crea una nuova rampa partendo dal colore primario"
+        title={tr('Crea una nuova rampa partendo dal colore primario')}
       >
-        Nuova rampa dal primario
+        {tr('Nuova rampa dal primario')}
       </button>
       {props.pro && (
         <div className="row ramp-edit">
@@ -75,14 +76,14 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
             className="small-button"
             aria-pressed={editing}
             onClick={() => setEditing((e) => !e)}
-            title="Modifica le tonalità una per una"
+            title={tr('Modifica le tonalità una per una')}
           >
             {editing ? (
-              'Fine'
+              tr('Fine')
             ) : (
               <>
                 <Glyph icon={NAV_ICONS.pencil} />
-                Modifica
+                {tr('Modifica')}
               </>
             )}
           </button>
@@ -91,9 +92,9 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
               type="button"
               className="small-button"
               onClick={props.onAddShade}
-              title="Aggiungi il colore primario alla rampa"
+              title={tr('Aggiungi il colore primario alla rampa')}
             >
-              + Primario
+              {tr('+ Primario')}
             </button>
           )}
           {props.custom && (
@@ -101,10 +102,10 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
               type="button"
               className="small-button"
               onClick={props.onResetAuto}
-              title="Torna alla rampa automatica con hue shifting"
+              title={tr('Torna alla rampa automatica con hue shifting')}
             >
               <Glyph name="reset" />
-              Automatica
+              {tr('Automatica')}
             </button>
           )}
         </div>
@@ -113,10 +114,10 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
         <>
           <label
             className="color-slider"
-            title="Quanto le ombre vanno verso il blu e le luci verso il giallo"
+            title={tr('Quanto le ombre vanno verso il blu e le luci verso il giallo')}
           >
             <span className="small muted">
-              Spostamento tinta <span className="slider-value">{options.hueShift}°</span>
+              {tr('Spostamento tinta')} <span className="slider-value">{options.hueShift}°</span>
             </span>
             <RangeInput
               type="range"
@@ -130,10 +131,13 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
           </label>
           <label
             className="color-slider"
-            title="Differenza di luminosità tra due tonalità vicine. Le texture vanilla hanno poco contrasto."
+            title={tr(
+              'Differenza di luminosità tra due tonalità vicine. Le texture vanilla hanno poco contrasto.'
+            )}
           >
             <span className="small muted">
-              Contrasto <span className="slider-value">{Math.round(options.contrast * 100)}%</span>
+              {tr('Contrasto')}{' '}
+              <span className="slider-value">{Math.round(options.contrast * 100)}%</span>
             </span>
             <RangeInput
               type="range"
@@ -145,7 +149,7 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
               }
             />
           </label>
-          <div className="tabs small-tabs" role="radiogroup" aria-label="Numero di tonalità">
+          <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Numero di tonalità')}>
             {[1, 2, 3].map((steps) => (
               <button
                 key={steps}
@@ -155,7 +159,7 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
                 className={options.steps === steps ? 'tab active' : 'tab'}
                 onClick={() => props.onOptions({ ...options, steps })}
               >
-                {steps * 2 + 1} tonalità
+                {tr('{0} tonalità', steps * 2 + 1)}
               </button>
             ))}
           </div>

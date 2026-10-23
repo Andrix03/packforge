@@ -13,6 +13,7 @@ import { basename, dirname, isAbsolute, join, relative } from 'node:path'
 import { filesForVariant } from '../shared/exportPlan'
 import { isIgnoredWatchPath } from './changeBatcher'
 import { listPackFiles, type PackSource } from './packSource'
+import { tr } from '../shared/i18n'
 
 // Copy of a folder pack into `<.minecraft>/resourcepacks/<name>`, kept in step (mirror).
 //
@@ -40,11 +41,12 @@ export async function syncTargetFor(minecraftDir: string, source: PackSource): P
   if (source.kind !== 'folder') {
     return {
       ok: false,
-      error:
+      error: tr(
         'I pack zip non si copiano: mettili tu nella cartella resourcepacks (o estraili in una cartella).'
+      )
     }
   }
-  if (!isAbsolute(minecraftDir)) return { ok: false, error: 'Cartella .minecraft non valida.' }
+  if (!isAbsolute(minecraftDir)) return { ok: false, error: tr('Cartella .minecraft non valida.') }
   const resourcepacks = join(minecraftDir, 'resourcepacks')
   const name = basename(source.root)
   try {
@@ -53,12 +55,13 @@ export async function syncTargetFor(minecraftDir: string, source: PackSource): P
     if (packs && isInside(root, packs)) {
       return {
         ok: false,
-        error:
+        error: tr(
           'Il pack è già nella cartella resourcepacks: in gioco si vede direttamente, non serve copiarlo.'
+        )
       }
     }
   } catch {
-    return { ok: false, error: 'Cartella del pack non trovata.' }
+    return { ok: false, error: tr('Cartella del pack non trovata.') }
   }
   return { ok: true, target: { resourcepacks, path: join(resourcepacks, name), name } }
 }
@@ -96,19 +99,22 @@ export async function mirrorPack(
   target: SyncTarget,
   caseInsensitive = process.platform === 'win32'
 ): Promise<{ ok: true; result: MirrorResult } | { ok: false; error: string }> {
-  if (source.kind !== 'folder') return { ok: false, error: 'Solo i pack in cartella.' }
+  if (source.kind !== 'folder') return { ok: false, error: tr('Solo i pack in cartella.') }
   const state = await syncState(target)
   if (state === 'foreign') {
     return {
       ok: false,
-      error: `In resourcepacks c’è già una cartella «${target.name}» che PackForge non ha creato: non la tocco. Rinominala o spostala.`
+      error: tr(
+        'In resourcepacks c’è già una cartella «{0}» che PackForge non ha creato: non la tocco. Rinominala o spostala.',
+        target.name
+      )
     }
   }
   // The target must really be inside resourcepacks (no link redirecting it elsewhere): checked
   // before creating anything in it, and again once it exists.
   const outside = {
     ok: false,
-    error: 'La cartella di destinazione non è dentro resourcepacks.'
+    error: tr('La cartella di destinazione non è dentro resourcepacks.')
   } as const
   await mkdir(target.resourcepacks, { recursive: true })
   const packs = await realpath(target.resourcepacks)
@@ -120,7 +126,7 @@ export async function mirrorPack(
   if (state === 'missing') {
     await writeFile(
       join(real, SYNC_MARKER),
-      'Copia creata da PackForge: viene aggiornata e può essere cancellata.\n'
+      tr('Copia creata da PackForge: viene aggiornata e può essere cancellata.\n')
     )
   }
 

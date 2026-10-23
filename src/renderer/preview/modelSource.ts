@@ -13,6 +13,7 @@ import { assetUrl } from '../../shared/ipc'
 import { growthVariants, stageBaseNames, stemTint } from '../../shared/crops'
 import { mapPath } from '../../shared/labpbr'
 import type { MeshPart, Rgb } from './BlockPreview'
+import { tr } from '../../shared/i18n'
 
 /** Where preview assets come from: the pack first, then the vanilla jar. */
 export interface AssetSources {
@@ -174,7 +175,7 @@ export async function loadBlockMesh(
       stages: [],
       choiceWeights: [],
       choice: 0,
-      warnings: [`Nessun blockstate valido per "${block}".`]
+      warnings: [tr('Nessun blockstate valido per "{0}".', block)]
     }
   }
   const resolved = new Map<string, Promise<ResolvedModel>>()
@@ -229,11 +230,13 @@ export async function loadBlockMesh(
     )
     warnings.push(...model.warnings)
     if (model.elements.length === 0 && model.warnings.length === 0) {
-      warnings.push(`Il modello ${ref.model} non ha elementi (forma speciale disegnata dal gioco).`)
+      warnings.push(
+        tr('Il modello {0} non ha elementi (forma speciale disegnata dal gioco).', ref.model)
+      )
     }
     if (ref.uvlock && (ref.x !== 0 || ref.y !== 0)) {
       warnings.push(
-        'Questa variante usa "uvlock": le texture ruotate potrebbero differire dal gioco.'
+        tr('Questa variante usa "uvlock": le texture ruotate potrebbero differire dal gioco.')
       )
     }
     for (const quad of buildQuads(model, ref)) {
@@ -245,7 +248,7 @@ export async function loadBlockMesh(
         if (color) tint = color
         else {
           warnings.push(
-            `La tinta di "${block}" non è simulata: alcune facce sono mostrate senza colore.`
+            tr('La tinta di "{0}" non è simulata: alcune facce sono mostrate senza colore.', block)
           )
         }
       }

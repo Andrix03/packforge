@@ -20,6 +20,7 @@ import {
   UP_LEFT,
   UP_RIGHT
 } from './ctm'
+import { tr } from './i18n'
 
 export interface Image {
   width: number
@@ -39,9 +40,13 @@ export function maxBorder(size: number): number {
 /** Why the texture cannot be a CTM source (not square, too small), or null. */
 export function templateProblem(image: { width: number; height: number }): string | null {
   if (image.width !== image.height) {
-    return `Serve una texture quadrata (questa è ${image.width}×${image.height}: le texture animate non sono supportate).`
+    return tr(
+      'Serve una texture quadrata (questa è {0}×{1}: le texture animate non sono supportate).',
+      image.width,
+      image.height
+    )
   }
-  if (image.width < 4) return 'La texture è troppo piccola.'
+  if (image.width < 4) return tr('La texture è troppo piccola.')
   return null
 }
 

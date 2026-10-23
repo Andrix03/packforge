@@ -5,6 +5,7 @@ import { useEscape } from '../useEscape'
 import { Glyph } from '../ui/components'
 import { GLYPHS } from '../ui/glyphs'
 import { CMD_ICONS, type PixelIconData } from '../ui/icons'
+import { tr } from '../../shared/i18n'
 
 const SEVERITY: Record<Severity, { icon: PixelIconData; label: string }> = {
   error: { icon: GLYPHS.cross, label: 'errori' },
@@ -71,19 +72,20 @@ export function ValidatorDialog({
       <div
         className="card modal validator"
         role="dialog"
-        aria-label="Controllo delle mappe"
+        aria-label={tr('Controllo delle mappe')}
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>Controllo delle mappe _n / _s</h2>
+        <h2>{tr('Controllo delle mappe _n / _s')}</h2>
         <p className="muted small">
-          Dimensioni e animazione rispetto alla texture (come le legge Iris), emissione, altezza e
-          file orfani.
+          {tr(
+            'Dimensioni e animazione rispetto alla texture (come le legge Iris), emissione, altezza e file orfani.'
+          )}
           {!vanilla &&
-            ' Carica un jar vanilla per controllare anche le mappe delle texture del gioco.'}
+            tr(' Carica un jar vanilla per controllare anche le mappe delle texture del gioco.')}
         </p>
         {state.status === 'running' && (
           <p className="small" data-testid="validator-progress">
-            Controllo… {state.done}/{state.total}
+            {tr('Controllo… {0}/{1}', state.done, state.total)}
           </p>
         )}
         {state.status === 'error' && <p className="field-error small">{state.message}</p>}
@@ -99,10 +101,10 @@ export function ValidatorDialog({
               setRun((r) => r + 1)
             }}
           >
-            Ricontrolla
+            {tr('Ricontrolla')}
           </button>
           <button type="button" className="primary" onClick={onClose}>
-            Chiudi
+            {tr('Chiudi')}
           </button>
         </div>
       </div>
@@ -124,7 +126,7 @@ function Results({
     return (
       <p className="small" data-testid="validator-summary">
         <Glyph name="check" />
-        Nessun problema in {maps === 1 ? '1 mappa' : `${maps} mappe`}.
+        {tr('Nessun problema in {0}.', maps === 1 ? tr('1 mappa') : tr('{0} mappe', maps))}
       </p>
     )
   }
@@ -134,7 +136,7 @@ function Results({
   return (
     <>
       <p className="small" data-testid="validator-summary">
-        {maps === 1 ? '1 mappa controllata' : `${maps} mappe controllate`}:{' '}
+        {maps === 1 ? tr('1 mappa controllata') : tr('{0} mappe controllate', maps)}:{' '}
         {counts.map(([severity, n], i) => (
           <span key={severity}>
             {i > 0 && ', '}
@@ -174,7 +176,7 @@ function IssueRow({
       </div>
       {canOpen(issue.path) && (
         <button type="button" className="small-button" onClick={() => onOpen(issue.path)}>
-          Apri
+          {tr('Apri')}
         </button>
       )}
     </li>

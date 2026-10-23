@@ -22,6 +22,7 @@ import {
 import { Glyph, RangeInput } from '../ui/components'
 import { CMD_ICONS, NAV_ICONS } from '../ui/icons'
 import { GLYPHS } from '../ui/glyphs'
+import { tr } from '../../shared/i18n'
 
 export interface PreviewTarget {
   /** Changes when the texture or its source changes. */
@@ -52,9 +53,9 @@ export interface LiveTexture {
 type Shape = 'cube' | 'block'
 
 const SCENES: Array<{ value: PreviewScene; label: string }> = [
-  { value: 'block', label: 'Blocco' },
-  { value: 'wall', label: 'Muro 3×3' },
-  { value: 'floor', label: 'Pavimento 5×5' }
+  { value: 'block', label: tr('Blocco') },
+  { value: 'wall', label: tr('Muro 3×3') },
+  { value: 'floor', label: tr('Pavimento 5×5') }
 ]
 
 /** Game hours per real second while the day/night cycle plays. */
@@ -246,7 +247,7 @@ export function PreviewPanel({
       setStatus({
         text: [
           `${reports.length} texture`,
-          animated ? `${animated} animate` : '',
+          animated ? tr('{0} animate', animated) : '',
           mesh.variant?.key ?? ''
         ]
           .filter(Boolean)
@@ -316,13 +317,13 @@ export function PreviewPanel({
               </span>
             </>
           ) : (
-            <span className="muted">Seleziona una texture per vederla in 3D</span>
+            <span className="muted">{tr('Seleziona una texture per vederla in 3D')}</span>
           )
         ) : (
           <>
-            <strong>{block ?? 'Scegli un blocco'}</strong>
+            <strong>{block ?? tr('Scegli un blocco')}</strong>
             <span className="muted small">
-              {block && status ? status.text : 'Modelli e texture: prima il pack, poi vanilla'}
+              {block && status ? status.text : tr('Modelli e texture: prima il pack, poi vanilla')}
             </span>
           </>
         )}
@@ -333,14 +334,14 @@ export function PreviewPanel({
           type="button"
           className="small-button"
           onClick={onTest}
-          title="Scene, distanza, confronto con vanilla e blocchi vicini"
+          title={tr('Scene, distanza, confronto con vanilla e blocchi vicini')}
         >
           <Glyph icon={NAV_ICONS.cube} />
-          Prova in gioco
+          {tr('Prova in gioco')}
         </button>
       )}
 
-      <div className="tabs small-tabs" role="radiogroup" aria-label="Forma">
+      <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Forma')}>
         {(['cube', 'block'] as const).map((value) => (
           <button
             key={value}
@@ -350,7 +351,7 @@ export function PreviewPanel({
             className={shape === value ? 'tab active' : 'tab'}
             onClick={() => setShape(value)}
           >
-            {value === 'cube' ? 'Cubo' : 'Modello del blocco'}
+            {value === 'cube' ? tr('Cubo') : tr('Modello del blocco')}
           </button>
         ))}
       </div>
@@ -364,8 +365,8 @@ export function PreviewPanel({
               setBlockInput(event.target.value)
               setVariantKey(null)
             }}
-            placeholder={blocks.length ? 'es. oak_stairs' : 'Nessun blockstate disponibile'}
-            aria-label="Blocco"
+            placeholder={blocks.length ? 'es. oak_stairs' : tr('Nessun blockstate disponibile')}
+            aria-label={tr('Blocco')}
             aria-invalid={blockInput.trim() !== '' && !block}
             spellCheck={false}
           />
@@ -375,7 +376,7 @@ export function PreviewPanel({
             ))}
           </datalist>
           <label className="inline-select">
-            <span className="muted small">Bioma (erba, foglie)</span>
+            <span className="muted small">{tr('Bioma (erba, foglie)')}</span>
             <select value={biomeId} onChange={(event) => setBiomeId(event.target.value)}>
               {BIOMES.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -388,9 +389,9 @@ export function PreviewPanel({
             <select
               value={variantKey ?? ''}
               onChange={(event) => setVariantKey(event.target.value || null)}
-              aria-label="Variante"
+              aria-label={tr('Variante')}
             >
-              <option value="">Variante predefinita</option>
+              <option value="">{tr('Variante predefinita')}</option>
               {variants.map((v) => (
                 <option key={v.key} value={v.key}>
                   {v.key}
@@ -402,41 +403,41 @@ export function PreviewPanel({
       )}
 
       {shape === 'block' && block && choices.count > 1 && (
-        <div className="choice-bar" role="group" aria-label="Varianti casuali">
+        <div className="choice-bar" role="group" aria-label={tr('Varianti casuali')}>
           <button
             type="button"
             className="small-button"
-            aria-label="Variante precedente"
+            aria-label={tr('Variante precedente')}
             onClick={() => setChoice((choices.shown + choices.count - 1) % choices.count)}
           >
             <Glyph name="prev" alone />
           </button>
           <span className="small" data-testid="random-choice">
             <Glyph name="dice" />
-            Variante {choices.shown + 1} di {choices.count}
+            {tr('Variante {0} di {1}', choices.shown + 1, choices.count)}
           </span>
           <button
             type="button"
             className="small-button"
-            aria-label="Variante successiva"
+            aria-label={tr('Variante successiva')}
             onClick={() => setChoice((choices.shown + 1) % choices.count)}
           >
             <Glyph name="play" alone />
           </button>
-          <span className="muted small">nel gioco: una a caso per blocco</span>
+          <span className="muted small">{tr('nel gioco: una a caso per blocco')}</span>
         </div>
       )}
       {showsGrowth && (
-        <div className="growth-bar" role="group" aria-label="Crescita">
+        <div className="growth-bar" role="group" aria-label={tr('Crescita')}>
           <button
             type="button"
             className="small-button"
             aria-pressed={growing}
             onClick={() => setGrowing((on) => !on)}
-            title="Mostra gli stadi uno dopo l’altro, come cresce nel gioco"
+            title={tr('Mostra gli stadi uno dopo l’altro, come cresce nel gioco')}
           >
             <Glyph icon={growing ? GLYPHS.pause : CMD_ICONS.beginner} />
-            {growing ? 'Ferma' : 'Crescita'}
+            {growing ? tr('Ferma') : tr('Crescita')}
           </button>
           <RangeInput
             type="range"
@@ -447,21 +448,19 @@ export function PreviewPanel({
               setGrowing(false)
               setVariantKey(stages[Number(event.target.value)]?.key ?? null)
             }}
-            aria-label="Stadio di crescita"
+            aria-label={tr('Stadio di crescita')}
           />
-          <span className="muted small">
-            Stadio {stageIndex + 1}/{stages.length}
-          </span>
+          <span className="muted small">{tr('Stadio {0}/{1}', stageIndex + 1, stages.length)}</span>
           <label
             className="checkbox-inline small"
-            title="Le piante ondeggiano come con gli shader (Iris): il pack da solo non lo fa"
+            title={tr('Le piante ondeggiano come con gli shader (Iris): il pack da solo non lo fa')}
           >
             <input
               type="checkbox"
               checked={windy}
               onChange={(event) => setWindy(event.target.checked)}
             />
-            Vento
+            {tr('Vento')}
           </label>
         </div>
       )}
@@ -472,9 +471,9 @@ export function PreviewPanel({
         </span>
       ))}
 
-      <canvas ref={canvasRef} className="preview-canvas" aria-label="Anteprima 3D" />
+      <canvas ref={canvasRef} className="preview-canvas" aria-label={tr('Anteprima 3D')} />
 
-      <div className="tabs small-tabs" role="radiogroup" aria-label="Scena">
+      <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Scena')}>
         {SCENES.map((option) => (
           <button
             key={option.value}
@@ -491,7 +490,7 @@ export function PreviewPanel({
 
       <label className="preview-control">
         <span>
-          Ora del giorno <strong>{formatHour(hour)}</strong>
+          {tr('Ora del giorno')} <strong>{formatHour(hour)}</strong>
         </span>
         <RangeInput
           type="range"
@@ -508,7 +507,7 @@ export function PreviewPanel({
       <div className="row wrap">
         <button type="button" onClick={() => setCycling((on) => !on)}>
           <Glyph name={cycling ? 'pause' : 'play'} />
-          {cycling ? 'Ferma ciclo' : 'Ciclo giorno/notte'}
+          {cycling ? tr('Ferma ciclo') : tr('Ciclo giorno/notte')}
         </button>
         <label className="checkbox-inline">
           <input
@@ -516,10 +515,10 @@ export function PreviewPanel({
             checked={autoRotate}
             onChange={(event) => setAutoRotate(event.target.checked)}
           />
-          Rotazione automatica
+          {tr('Rotazione automatica')}
         </label>
       </div>
-      <span className="muted small">Trascina per ruotare, rotella per lo zoom.</span>
+      <span className="muted small">{tr('Trascina per ruotare, rotella per lo zoom.')}</span>
     </aside>
   )
 }
@@ -528,7 +527,13 @@ function describeTexture(report: PartReport): Status {
   const size = report.size ? `${report.size.width}×${report.size.height}` : ''
   const animation = report.animation
   const text = animation
-    ? `${size}, animata: ${animation.frames.length} frame, ${(animation.totalTicks / 20).toFixed(1)} s${animation.interpolate ? ', sfumata' : ''}`
+    ? tr(
+        '{0}, animata: {1} frame, {2} s{3}',
+        size,
+        animation.frames.length,
+        (animation.totalTicks / 20).toFixed(1),
+        animation.interpolate ? ', sfumata' : ''
+      )
     : size
   return { text, problems: report.problem ? [report.problem] : [] }
 }

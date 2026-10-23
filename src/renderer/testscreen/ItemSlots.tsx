@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { tr } from '../../shared/i18n'
 
 type Source = string | HTMLCanvasElement
 
@@ -39,10 +40,12 @@ export function ItemSlots({
   return (
     <div className="item-slots">
       <div className="row wrap">
-        <strong className="small">Inventario e barra</strong>
-        <span className="muted small">1 = la tua texture{vanilla ? ', 2 = vanilla' : ''}</span>
+        <strong className="small">{tr('Inventario e barra')}</strong>
+        <span className="muted small">
+          {tr('1 = la tua texture{0}', vanilla ? ', 2 = vanilla' : '')}
+        </span>
         <label className="inline-select">
-          <span className="muted small">Scala GUI</span>
+          <span className="muted small">{tr('Scala GUI')}</span>
           <select value={scale} onChange={(event) => setScale(Number(event.target.value))}>
             {[1, 2, 3, 4].map((value) => (
               <option key={value} value={value}>
@@ -52,7 +55,11 @@ export function ItemSlots({
           </select>
         </label>
       </div>
-      <canvas ref={canvasRef} className="item-slots-canvas" aria-label="Slot dell'inventario" />
+      <canvas
+        ref={canvasRef}
+        className="item-slots-canvas"
+        aria-label={tr("Slot dell'inventario")}
+      />
     </div>
   )
 }

@@ -10,6 +10,7 @@ import { fromHex, toHex, type Rgba } from '../editor/pixels'
 import { decodePng } from '../../shared/pngCodec'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
+import { tr } from '../../shared/i18n'
 
 export interface NewTextureRequest {
   folder: string
@@ -23,11 +24,11 @@ export interface NewTextureRequest {
 const STARTS: Array<{ value: TextureStart; label: string; hint: string }> = [
   {
     value: 'noise',
-    label: 'Rumore',
-    hint: 'Tonalità casuali del colore: base per pietra, terra, ghiaia'
+    label: tr('Rumore'),
+    hint: tr('Tonalità casuali del colore: base per pietra, terra, ghiaia')
   },
-  { value: 'color', label: 'Colore pieno', hint: 'Tutta del colore scelto' },
-  { value: 'empty', label: 'Vuota', hint: 'Trasparente: per foglie, fiori, vetro' }
+  { value: 'color', label: tr('Colore pieno'), hint: tr('Tutta del colore scelto') },
+  { value: 'empty', label: tr('Vuota'), hint: tr('Trasparente: per foglie, fiori, vetro') }
 ]
 
 /**
@@ -60,7 +61,7 @@ export function NewTextureDialog({
   const problem =
     validateTextureFolder(folder.replace(/\/+$/, '')) ??
     validateTextureName(name) ??
-    (existing.has(path) ? 'Questa texture esiste già nel pack: aprila dalla griglia.' : null)
+    (existing.has(path) ? tr('Questa texture esiste già nel pack: aprila dalla griglia.') : null)
 
   const create = useSingleFlight(async (): Promise<void> => {
     if (problem) return
@@ -76,7 +77,7 @@ export function NewTextureDialog({
         // Only a texture of the pack is copied (never a vanilla one).
         const response = await fetch(copyFrom.url, { cache: 'no-store' })
         const decoded = decodePng(new Uint8Array(await response.arrayBuffer()))
-        if (!decoded.ok) throw new Error(`Non riesco a leggere ${copyFrom.path}.`)
+        if (!decoded.ok) throw new Error(tr('Non riesco a leggere {0}.', copyFrom.path))
         const { width, height, data } = decoded.image
         image = { width, height, rgba: new Uint8Array(data) }
       } else if (start !== 'copy') {
@@ -103,22 +104,23 @@ export function NewTextureDialog({
       <form
         className="card modal form"
         role="dialog"
-        aria-label="Nuova texture"
+        aria-label={tr('Nuova texture')}
         onClick={(event) => event.stopPropagation()}
         onSubmit={(event) => {
           event.preventDefault()
           create()
         }}
       >
-        <h2>Nuova texture</h2>
+        <h2>{tr('Nuova texture')}</h2>
         {request.fromVanilla && (
           <p className="muted small">
-            Stesso nome della texture vanilla, così la sostituisce nel gioco. I pixel partono da
-            zero: la texture vanilla resta solo un riferimento.
+            {tr(
+              'Stesso nome della texture vanilla, così la sostituisce nel gioco. I pixel partono da zero: la texture vanilla resta solo un riferimento.'
+            )}
           </p>
         )}
         <label>
-          Cartella
+          {tr('Cartella')}
           <input
             value={folder}
             onChange={(event) => setFolder(event.target.value)}
@@ -126,7 +128,7 @@ export function NewTextureDialog({
           />
         </label>
         <label>
-          Nome (senza .png)
+          {tr('Nome (senza .png)')}
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -136,13 +138,15 @@ export function NewTextureDialog({
         </label>
         {copyFrom && (
           <p className="muted small">
-            «Copia» parte da {copyFrom.path.slice(copyFrom.path.lastIndexOf('/') + 1)} del tuo pack:
-            ritocchi solo quello che cambia crescendo.
+            {tr(
+              '«Copia» parte da {0} del tuo pack: ritocchi solo quello che cambia crescendo.',
+              copyFrom.path.slice(copyFrom.path.lastIndexOf('/') + 1)
+            )}
           </p>
         )}
         <div className="field" hidden={start === 'copy'}>
-          Dimensione
-          <div className="tabs small-tabs" role="radiogroup" aria-label="Dimensione">
+          {tr('Dimensione')}
+          <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Dimensione')}>
             {TEXTURE_SIZES.map((value) => (
               <button
                 key={value}
@@ -152,7 +156,9 @@ export function NewTextureDialog({
                 className={size === value ? 'tab active' : 'tab'}
                 onClick={() => setSize(value)}
                 title={
-                  value === 16 ? 'Come le texture vanilla' : `${value / 16}× la risoluzione vanilla`
+                  value === 16
+                    ? tr('Come le texture vanilla')
+                    : tr('{0}× la risoluzione vanilla', value / 16)
                 }
               >
                 {value}×{value}
@@ -161,8 +167,8 @@ export function NewTextureDialog({
           </div>
         </div>
         <div className="field">
-          Si parte da
-          <div className="tabs small-tabs" role="radiogroup" aria-label="Punto di partenza">
+          {tr('Si parte da')}
+          <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Punto di partenza')}>
             {copyFrom && (
               <button
                 type="button"
@@ -170,9 +176,9 @@ export function NewTextureDialog({
                 aria-checked={start === 'copy'}
                 className={start === 'copy' ? 'tab active' : 'tab'}
                 onClick={() => setStart('copy')}
-                title={`Copia di ${copyFrom.path} (stessa dimensione)`}
+                title={tr('Copia di {0} (stessa dimensione)', copyFrom.path)}
               >
-                Copia dello stadio prima
+                {tr('Copia dello stadio prima')}
               </button>
             )}
             {STARTS.map((option) => (
@@ -200,17 +206,17 @@ export function NewTextureDialog({
                 if (parsed) setColor(parsed)
               }}
             />
-            Colore di base {toHex(color)}
+            {tr('Colore di base {0}', toHex(color))}
           </label>
         )}
         <p className="muted small path">{path}</p>
         {(problem ?? error) && <p className="field-error small">{problem ?? error}</p>}
         <div className="row">
           <button type="submit" className="primary" disabled={busy || problem !== null}>
-            {busy ? 'Creazione…' : 'Crea e apri nell’editor'}
+            {busy ? 'Creazione…' : tr('Crea e apri nell’editor')}
           </button>
           <button type="button" onClick={onCancel}>
-            Annulla
+            {tr('Annulla')}
           </button>
         </div>
       </form>

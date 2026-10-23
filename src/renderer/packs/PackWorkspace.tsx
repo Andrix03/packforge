@@ -24,6 +24,7 @@ import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 import { Glyph } from '../ui/components'
 import { CMD_ICONS, NAV_ICONS } from '../ui/icons'
+import { tr } from '../../shared/i18n'
 
 const DEFAULT_FOLDER = 'assets/minecraft/textures/block'
 const MAX_SEARCH_RESULTS = 500
@@ -131,7 +132,7 @@ export function PackWorkspace({
     return (
       <>
         {overview}
-        <section className="card muted">Lettura dei file…</section>
+        <section className="card muted">{tr('Lettura dei file…')}</section>
       </>
     )
   }
@@ -303,19 +304,19 @@ function Workspace({
   const textures = activeMode === 'vanilla' ? vanillaTextures : packTextures
   const marker: TextureMarker | undefined =
     activeMode === 'vanilla'
-      ? { keys: packKeys, label: 'P', title: 'Questa texture è già nel tuo pack' }
+      ? { keys: packKeys, label: 'P', title: tr('Questa texture è già nel tuo pack') }
       : vanillaReady
-        ? { keys: vanillaKeys, label: 'V', title: 'Sostituisce la texture vanilla' }
+        ? { keys: vanillaKeys, label: 'V', title: tr('Sostituisce la texture vanilla') }
         : undefined
 
-  const zipNote = 'I pack .zip si aprono in sola lettura'
+  const zipNote = tr('I pack .zip si aprono in sola lettura')
   // Published only while the screen is visible (hidden under the editor its dialogs would not show).
   useCommands(
     visible
       ? [
           {
             id: 'pack:export',
-            label: 'Esporta il pack (zip)…',
+            label: tr('Esporta il pack (zip)…'),
             menu: 'Pack',
             area: 'Pubblica',
             enabled: canCreate,
@@ -324,14 +325,14 @@ function Workspace({
           },
           {
             id: 'pack:ingame',
-            label: 'Copia nel gioco…',
+            label: tr('Copia nel gioco…'),
             menu: 'Pack',
             area: 'Pubblica',
             run: () => setInGame(true)
           },
           {
             id: 'pack:backups',
-            label: 'Backup…',
+            label: tr('Backup…'),
             menu: 'Pack',
             area: 'Pack',
             enabled: canCreate,
@@ -340,21 +341,21 @@ function Workspace({
           },
           {
             id: 'pack:validate',
-            label: 'Controlla mappe',
+            label: tr('Controlla mappe'),
             menu: 'Mappe PBR',
             area: 'Pack',
             run: () => setValidating(true)
           },
           {
             id: 'pack:coverage',
-            label: 'Copertura: cosa manca',
+            label: tr('Copertura: cosa manca'),
             menu: 'Mappe PBR',
             area: 'Pack',
             run: () => setCovering(true)
           },
           {
             id: 'pack:batch',
-            label: 'Applica in blocco…',
+            label: tr('Applica in blocco…'),
             menu: 'Mappe PBR',
             area: 'Pack',
             enabled: canCreate,
@@ -363,7 +364,7 @@ function Workspace({
           },
           {
             id: 'pack:resize',
-            label: 'Ridimensiona il pack…',
+            label: tr('Ridimensiona il pack…'),
             menu: 'Pack',
             area: 'Pack',
             enabled: canCreate,
@@ -386,7 +387,7 @@ function Workspace({
               className={activeMode === 'pack' ? 'tab active' : 'tab'}
               onClick={() => setMode('pack')}
             >
-              Pack <span className="count">{packTextures.length}</span>
+              {tr('Pack')} <span className="count">{packTextures.length}</span>
             </button>
             <button
               type="button"
@@ -397,7 +398,8 @@ function Workspace({
               disabled={!vanillaReady}
               title={vanillaReady ? undefined : vanillaHint(vanilla, jar)}
             >
-              Vanilla {vanillaReady && <span className="count">{vanillaTextures.length}</span>}
+              {tr('Vanilla')}{' '}
+              {vanillaReady && <span className="count">{vanillaTextures.length}</span>}
             </button>
           </div>
           <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
@@ -476,91 +478,103 @@ function Workspace({
           onTest={testable ? () => onTestTexture(testable, previewSources) : null}
         />
         <section className="pack-tools">
-          <h3 className="ph">Strumenti del pack</h3>
-          <div className="tool-bar" role="toolbar" aria-label="Strumenti">
+          <h3 className="ph">{tr('Strumenti del pack')}</h3>
+          <div className="tool-bar" role="toolbar" aria-label={tr('Strumenti')}>
             <div className="tool-group">
-              <span className="tool-group-label">Pack</span>
+              <span className="tool-group-label">{tr('Pack')}</span>
               <button
                 type="button"
                 className="small-button"
-                title="Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)"
+                title={tr(
+                  'Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)'
+                )}
                 onClick={() => setInGame(true)}
               >
                 <Glyph name="gamepad" />
-                Copia nel gioco
+                {tr('Copia nel gioco')}
               </button>
               {canCreate && (
                 <button
                   type="button"
                   className="small-button"
-                  title="Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti"
+                  title={tr(
+                    'Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti'
+                  )}
                   onClick={() => setExporting(true)}
                 >
                   <Glyph icon={NAV_ICONS.chest} />
-                  Esporta
+                  {tr('Esporta')}
                 </button>
               )}
               {canCreate && (
                 <button
                   type="button"
                   className="small-button"
-                  title="I backup presi prima di sovrascrivere file: ripristina una versione precedente"
+                  title={tr(
+                    'I backup presi prima di sovrascrivere file: ripristina una versione precedente'
+                  )}
                   onClick={() => setShowBackups(true)}
                 >
                   <Glyph name="clock" />
-                  Backup
+                  {tr('Backup')}
                 </button>
               )}
             </div>
             <div className="tool-group">
-              <span className="tool-group-label">Mappe</span>
+              <span className="tool-group-label">{tr('Mappe')}</span>
               <button
                 type="button"
                 className="small-button"
-                title="Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani"
+                title={tr(
+                  'Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani'
+                )}
                 onClick={() => setValidating(true)}
               >
                 <Glyph icon={NAV_ICONS.search} />
-                Controlla mappe
+                {tr('Controlla mappe')}
               </button>
               <button
                 type="button"
                 className="small-button"
-                title="Quante texture del pack hanno già _n e _s, e quali mancano"
+                title={tr('Quante texture del pack hanno già _n e _s, e quali mancano')}
                 onClick={() => setCovering(true)}
               >
                 <Glyph name="chart" />
-                Copertura
+                {tr('Copertura')}
               </button>
               {canCreate && (
                 <button
                   type="button"
                   className="small-button"
-                  title="Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo"
+                  title={tr(
+                    'Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo'
+                  )}
                   onClick={() =>
                     setBatching({ selection: null, maps: { specular: true, normal: false } })
                   }
                 >
                   <Glyph name="gear" />
-                  Applica in blocco
+                  {tr('Applica in blocco')}
                 </button>
               )}
               {canCreate && (
                 <button
                   type="button"
                   className="small-button"
-                  title="Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe"
+                  title={tr(
+                    'Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe'
+                  )}
                   onClick={() => setResizing(true)}
                 >
                   <Glyph name="resize" />
-                  Ridimensiona
+                  {tr('Ridimensiona')}
                 </button>
               )}
             </div>
             {canCreate && (
               <div className="tool-group">
                 <span className="tool-group-label" data-testid="selected-texture">
-                  {testable ? testable.name : 'Scegli una texture'}
+                  {testable ? testable.name : tr('Scegli una texture')}
                 </span>
                 <button
                   type="button"
@@ -568,13 +582,16 @@ function Workspace({
                   disabled={!testable || mapKindOf(testable.albedo) !== null}
                   title={
                     testable
-                      ? `Crea le versioni di ${testable.name} in tutti i colori (lana, cemento, vetro colorato…)`
-                      : 'Seleziona prima una texture del pack'
+                      ? tr(
+                          'Crea le versioni di {0} in tutti i colori (lana, cemento, vetro colorato…)',
+                          testable.name
+                        )
+                      : tr('Seleziona prima una texture del pack')
                   }
                   onClick={() => setVarying(testable)}
                 >
                   <Glyph icon={CMD_ICONS.color} />
-                  Varianti di colore
+                  {tr('Varianti di colore')}
                 </button>
                 <button
                   type="button"
@@ -582,13 +599,16 @@ function Workspace({
                   disabled={!testable || mapKindOf(testable.albedo) !== null}
                   title={
                     testable
-                      ? `Crea i 47 tile delle texture connesse di ${testable.name} (Continuity / OptiFine)`
-                      : 'Seleziona prima una texture del pack'
+                      ? tr(
+                          'Crea i 47 tile delle texture connesse di {0} (Continuity / OptiFine)',
+                          testable.name
+                        )
+                      : tr('Seleziona prima una texture del pack')
                   }
                   onClick={() => setConnecting(testable)}
                 >
                   <Glyph name="connected" />
-                  Texture connesse
+                  {tr('Texture connesse')}
                 </button>
               </div>
             )}
@@ -703,15 +723,17 @@ function VanillaPicker({
   if (versions.length === 0) {
     return (
       <span className="muted small">
-        Nessuna versione di Minecraft trovata in {minecraftDir}: avvia il gioco una volta dal
-        launcher.
+        {tr(
+          'Nessuna versione di Minecraft trovata in {0}: avvia il gioco una volta dal launcher.',
+          minecraftDir
+        )}
       </span>
     )
   }
   const currentId = jar.status === 'ready' ? jar.value.versionId : ''
   return (
     <label className="vanilla-picker">
-      <span className="muted small">Riferimento vanilla</span>
+      <span className="muted small">{tr('Riferimento vanilla')}</span>
       <select
         value={currentId}
         onChange={(event) => onSelect(event.target.value)}
@@ -725,16 +747,18 @@ function VanillaPicker({
           </option>
         ))}
       </select>
-      {jar.status === 'loading' && <span className="muted small">Caricamento…</span>}
+      {jar.status === 'loading' && <span className="muted small">{tr('Caricamento…')}</span>}
       {jar.status === 'error' && <span className="field-error">{jar.message}</span>}
       {jar.status === 'ready' && jar.value.resourceFormat && (
-        <span className="muted small">formato {formatPackVersion(jar.value.resourceFormat)}</span>
+        <span className="muted small">
+          {tr('formato {0}', formatPackVersion(jar.value.resourceFormat))}
+        </span>
       )}
       <span
         className="muted small"
-        title="Le texture vanilla sono solo di riferimento: non vengono copiate né esportate."
+        title={tr('Le texture vanilla sono solo di riferimento: non vengono copiate né esportate.')}
       >
-        solo riferimento
+        {tr('solo riferimento')}
       </span>
     </label>
   )
@@ -796,19 +820,19 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
 
   const summary = trimmedQuery
     ? `${matches.length} risultati${matches.length > MAX_SEARCH_RESULTS ? ` (mostrati ${MAX_SEARCH_RESULTS})` : ''}`
-    : `${selectedFolder || 'radice'}: ${matches.length} texture`
+    : tr('{0}: {1} texture', selectedFolder || tr('radice'), matches.length)
   const detail =
     covered !== null
-      ? `, ${covered} di ${matches.length} già nel pack`
+      ? tr(', {0} di {1} già nel pack', covered, matches.length)
       : matches.length > 0
-        ? `, ${withMaps} con mappe PBR`
+        ? tr(', {0} con mappe PBR', withMaps)
         : ''
 
   return (
     <div className="workspace">
       <aside className="card tree-panel">
         {findFolder(tree, selectedFolder) === null && selectedFolder !== '' && (
-          <p className="muted small">La cartella {selectedFolder} non esiste qui.</p>
+          <p className="muted small">{tr('La cartella {0} non esiste qui.', selectedFolder)}</p>
         )}
         <FileTree
           root={tree}
@@ -824,7 +848,9 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
           onSelectFile={selectFile}
         />
         {source.truncated && (
-          <p className="muted small">Il pack contiene troppi file: l'elenco è incompleto.</p>
+          <p className="muted small">
+            {tr("Il pack contiene troppi file: l'elenco è incompleto.")}
+          </p>
         )}
       </aside>
 
@@ -834,16 +860,16 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
             type="search"
             value={query}
             onChange={(event) => props.onQuery(event.target.value)}
-            placeholder="Cerca texture…"
-            aria-label="Cerca texture"
+            placeholder={tr('Cerca texture…')}
+            aria-label={tr('Cerca texture')}
           />
           {props.onNewTexture && (
             <button
               type="button"
               onClick={props.onNewTexture}
-              title="Crea una nuova texture nel pack"
+              title={tr('Crea una nuova texture nel pack')}
             >
-              + Nuova texture
+              {tr('+ Nuova texture')}
             </button>
           )}
           <span className="muted small">
@@ -865,7 +891,9 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
           />
         ) : (
           <p className="muted">
-            {trimmedQuery ? 'Nessuna texture trovata.' : 'Nessuna texture PNG in questa cartella.'}
+            {trimmedQuery
+              ? tr('Nessuna texture trovata.')
+              : tr('Nessuna texture PNG in questa cartella.')}
           </p>
         )}
       </div>
@@ -896,10 +924,10 @@ function pickVanillaVersion(versions: VanillaVersionInfo[], pack: PackSummary): 
 }
 
 function vanillaHint(vanilla: Loadable<VanillaState>, jar: Loadable<VanillaJar>): string {
-  if (jar.status === 'loading' || vanilla.status === 'loading') return 'Caricamento del jar…'
+  if (jar.status === 'loading' || vanilla.status === 'loading') return tr('Caricamento del jar…')
   if (jar.status === 'error') return jar.message
   if (vanilla.status === 'error') return vanilla.message
-  return 'Nessuna versione di Minecraft installata.'
+  return tr('Nessuna versione di Minecraft installata.')
 }
 
 /**

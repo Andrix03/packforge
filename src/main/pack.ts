@@ -4,6 +4,7 @@ import type { CreatePackResult } from '../shared/ipc'
 import { buildPackMcmeta, serializeMcmeta } from '../shared/mcmeta'
 import { findRelease } from '../shared/packFormat'
 import { parseCreatePackRequest } from '../shared/validate'
+import { tr } from '../shared/i18n'
 
 /** Creates `<parentDir>/<name>/` with pack.mcmeta and the vanilla texture folder. */
 export async function createPack(input: unknown): Promise<CreatePackResult> {
@@ -11,27 +12,29 @@ export async function createPack(input: unknown): Promise<CreatePackResult> {
   if (!parsed.ok) return parsed
   const { parentDir, name, description, gameVersion } = parsed.value
 
-  if (!isAbsolute(parentDir)) return { ok: false, error: 'Percorso di destinazione non valido.' }
+  if (!isAbsolute(parentDir))
+    return { ok: false, error: tr('Percorso di destinazione non valido.') }
   try {
     if (!(await stat(parentDir)).isDirectory()) {
-      return { ok: false, error: 'La destinazione non è una cartella.' }
+      return { ok: false, error: tr('La destinazione non è una cartella.') }
     }
   } catch {
-    return { ok: false, error: 'La cartella di destinazione non esiste.' }
+    return { ok: false, error: tr('La cartella di destinazione non esiste.') }
   }
 
   // Validated by parseCreatePackRequest.
   const release = findRelease(gameVersion)
-  if (!release) return { ok: false, error: `Versione di Minecraft non supportata: ${gameVersion}` }
+  if (!release)
+    return { ok: false, error: tr('Versione di Minecraft non supportata: {0}', gameVersion) }
 
   const packDir = join(parentDir, name)
   try {
     await mkdir(packDir)
   } catch (error) {
     if (isErrnoCode(error, 'EEXIST')) {
-      return { ok: false, error: `Esiste già una cartella "${name}" in questa posizione.` }
+      return { ok: false, error: tr('Esiste già una cartella "{0}" in questa posizione.', name) }
     }
-    return { ok: false, error: `Impossibile creare la cartella: ${errorMessage(error)}` }
+    return { ok: false, error: tr('Impossibile creare la cartella: {0}', errorMessage(error)) }
   }
 
   try {
@@ -41,7 +44,7 @@ export async function createPack(input: unknown): Promise<CreatePackResult> {
   } catch (error) {
     // Only remove the folder we just created, never a pre-existing one.
     await rm(packDir, { recursive: true, force: true })
-    return { ok: false, error: `Impossibile scrivere il pack: ${errorMessage(error)}` }
+    return { ok: false, error: tr('Impossibile scrivere il pack: {0}', errorMessage(error)) }
   }
 
   return { ok: true, path: packDir }

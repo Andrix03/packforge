@@ -9,6 +9,7 @@ import {
 } from '../shared/settings'
 import { listInstalledVersions } from './vanilla'
 import { writeFileAtomic } from './atomicWrite'
+import { tr } from '../shared/i18n'
 
 /** Settings persisted as JSON; writes are atomic (temp file + rename) and serialized. */
 export class SettingsStore {
@@ -50,25 +51,25 @@ export class SettingsStore {
 
 /** Validates a user-chosen `.minecraft` folder. Returns an Italian error or null. */
 export async function validateMinecraftDir(path: unknown): Promise<string | null> {
-  if (typeof path !== 'string' || !isAbsolute(path)) return 'Percorso non valido.'
+  if (typeof path !== 'string' || !isAbsolute(path)) return tr('Percorso non valido.')
   try {
-    if (!(await stat(path)).isDirectory()) return 'Il percorso non è una cartella.'
+    if (!(await stat(path)).isDirectory()) return tr('Il percorso non è una cartella.')
   } catch {
-    return 'La cartella non esiste.'
+    return tr('La cartella non esiste.')
   }
   return null
 }
 
 /** Validates an editor executable. Returns an Italian error or null. */
 export async function validateEditorPath(path: unknown): Promise<string | null> {
-  if (typeof path !== 'string' || !isAbsolute(path)) return 'Percorso non valido.'
+  if (typeof path !== 'string' || !isAbsolute(path)) return tr('Percorso non valido.')
   if (process.platform === 'win32' && extname(path).toLowerCase() !== '.exe') {
-    return 'Scegli un programma .exe.'
+    return tr('Scegli un programma .exe.')
   }
   try {
-    if (!(await stat(path)).isFile()) return 'Il percorso non è un file.'
+    if (!(await stat(path)).isFile()) return tr('Il percorso non è un file.')
   } catch {
-    return 'Il programma non esiste.'
+    return tr('Il programma non esiste.')
   }
   return null
 }

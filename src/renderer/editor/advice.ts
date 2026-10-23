@@ -6,6 +6,7 @@
 
 import { luma, usedColors } from './color'
 import type { PixelBuffer } from './pixels'
+import { tr } from '../../shared/i18n'
 
 export interface Advice {
   id: 'too-many-colors' | 'extremes-touch' | 'high-contrast'
@@ -26,7 +27,11 @@ export function analyzeTexture(buffer: PixelBuffer): Advice[] {
   if (colors.length > MAX_SUGGESTED_COLORS) {
     advice.push({
       id: 'too-many-colors',
-      message: `Usa ${colors.length} colori: quasi tutte le texture vanilla ne usano meno di ${MAX_SUGGESTED_COLORS}. Prova a riunire le tonalità quasi uguali.`
+      message: tr(
+        'Usa {0} colori: quasi tutte le texture vanilla ne usano meno di {1}. Prova a riunire le tonalità quasi uguali.',
+        colors.length,
+        MAX_SUGGESTED_COLORS
+      )
     })
   }
   const darkest = colors[0]
@@ -42,7 +47,11 @@ export function analyzeTexture(buffer: PixelBuffer): Advice[] {
     if (touches > 0) {
       advice.push({
         id: 'extremes-touch',
-        message: `Il colore più scuro tocca il più chiaro in ${touches} ${touches === 1 ? 'punto' : 'punti'}: mettici in mezzo una tonalità di passaggio.`
+        message: tr(
+          'Il colore più scuro tocca il più chiaro in {0} {1}: mettici in mezzo una tonalità di passaggio.',
+          touches,
+          touches === 1 ? 'punto' : 'punti'
+        )
       })
     }
   }
@@ -50,8 +59,9 @@ export function analyzeTexture(buffer: PixelBuffer): Advice[] {
   if (spread > HIGH_CONTRAST) {
     advice.push({
       id: 'high-contrast',
-      message:
+      message: tr(
         'Il contrasto è molto alto: rispetto alle texture vanilla può sembrare un materiale diverso. Avvicina le tonalità.'
+      )
     })
   }
   return advice

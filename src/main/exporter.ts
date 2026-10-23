@@ -26,6 +26,7 @@ import { factorBetween, scaleMcmeta, scaleNearest, type Factor } from '../shared
 import { writeFileAtomic } from './atomicWrite'
 import { listPackFiles, type PackSource } from './packSource'
 import { writePackBytes } from './textureFile'
+import { tr } from '../shared/i18n'
 
 // Export of a folder pack to a versioned zip (see shared/exportPlan.ts for what goes in).
 
@@ -58,7 +59,7 @@ export async function checkExport(
 ): Promise<ExportCheck> {
   const check: ExportCheck = { errors: [], warnings: [], vanillaCopies: [], stray: [], files: 0 }
   if (source.kind !== 'folder') {
-    check.errors.push('Solo i pack in cartella si esportano (un pack zip è già un export).')
+    check.errors.push(tr('Solo i pack in cartella si esportano (un pack zip è già un export).'))
     return check
   }
   const { files } = await listPackFiles(source)
@@ -68,7 +69,7 @@ export async function checkExport(
   }
   check.files = filesForVariant(files, { kind: 'full' }).length
   if (!files.includes('pack.mcmeta')) {
-    check.errors.push('Manca pack.mcmeta: il gioco non riconosce il pack.')
+    check.errors.push(tr('Manca pack.mcmeta: il gioco non riconosce il pack.'))
   } else {
     const analysis = analyzePackMcmeta(await readFile(join(source.root, 'pack.mcmeta'), 'utf8'))
     for (const issue of analysis.issues) {
@@ -76,22 +77,26 @@ export async function checkExport(
       else check.warnings.push(issue.message)
     }
   }
-  if (!files.includes('pack.png')) check.warnings.push('Manca pack.png: il pack non avrà un’icona.')
+  if (!files.includes('pack.png'))
+    check.warnings.push(tr('Manca pack.png: il pack non avrà un’icona.'))
   if (vanilla?.kind === 'zip') {
     check.vanillaCopies = await findVanillaCopies(source.root, files, vanilla.data)
     if (check.vanillaCopies.length > 0) {
       check.errors.push(
-        `${check.vanillaCopies.length} texture sono identiche a quelle del gioco: non si possono ridistribuire (e non servono, il gioco le ha già). Toglile dal pack.`
+        tr(
+          '{0} texture sono identiche a quelle del gioco: non si possono ridistribuire (e non servono, il gioco le ha già). Toglile dal pack.',
+          check.vanillaCopies.length
+        )
       )
     }
   } else {
     check.warnings.push(
-      'Carica un jar vanilla per controllare che il pack non contenga texture del gioco.'
+      tr('Carica un jar vanilla per controllare che il pack non contenga texture del gioco.')
     )
   }
   if (check.stray.length > 0) {
     check.warnings.push(
-      `${check.stray.length} file di lavoro o di sistema restano fuori dallo zip.`
+      tr('{0} file di lavoro o di sistema restano fuori dallo zip.', check.stray.length)
     )
   }
   return check
@@ -141,9 +146,11 @@ export async function buildExport(
     vanilla?: PackSource | null
   }
 ): Promise<ExportResult> {
-  if (source.kind !== 'folder') return { ok: false, error: 'Solo i pack in cartella si esportano.' }
+  if (source.kind !== 'folder')
+    return { ok: false, error: tr('Solo i pack in cartella si esportano.') }
   const { packName, info, variant, overwrite } = options
-  if (!isAbsolute(options.dir)) return { ok: false, error: 'Cartella di destinazione non valida.' }
+  if (!isAbsolute(options.dir))
+    return { ok: false, error: tr('Cartella di destinazione non valida.') }
   const root = await realpath(source.root)
   const dir = resolve(options.dir)
   // Compare real paths on both sides: 8.3 short names (C:\Users\RUNNER~1) or junctions would
@@ -152,7 +159,7 @@ export async function buildExport(
   if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) {
     return {
       ok: false,
-      error: 'La destinazione non può stare dentro il pack (finirebbe nel prossimo export).'
+      error: tr('La destinazione non può stare dentro il pack (finirebbe nel prossimo export).')
     }
   }
   const target = join(dir, exportFileName(packName, info.version, variant))
@@ -163,7 +170,7 @@ export async function buildExport(
       () => false
     ))
   ) {
-    return { ok: false, error: `${target} esiste già.`, exists: true }
+    return { ok: false, error: tr('{0} esiste già.', target), exists: true }
   }
 
   const { files } = await listPackFiles(source)
@@ -173,7 +180,11 @@ export async function buildExport(
     if (copies.length > 0) {
       return {
         ok: false,
-        error: `${copies.length} texture sono identiche a quelle del gioco (es. ${copies[0]}): toglile dal pack prima di esportare.`
+        error: tr(
+          '{0} texture sono identiche a quelle del gioco (es. {1}): toglile dal pack prima di esportare.',
+          copies.length,
+          copies[0]
+        )
       }
     }
   }
@@ -226,7 +237,10 @@ export async function buildExport(
   } catch (error) {
     return {
       ok: false,
-      error: `Scrittura non riuscita: ${error instanceof Error ? error.message : String(error)}`
+      error: tr(
+        'Scrittura non riuscita: {0}',
+        error instanceof Error ? error.message : String(error)
+      )
     }
   }
   return {
@@ -266,7 +280,7 @@ export async function writeListing(
   source: PackSource,
   options: { packName: string; info: ProjectInfo; dir: string }
 ): Promise<ListingResult> {
-  if (source.kind !== 'folder') return { ok: false, error: 'Solo i pack in cartella.' }
+  if (source.kind !== 'folder') return { ok: false, error: tr('Solo i pack in cartella.') }
   const root = await realpath(source.root)
   const { files } = await listPackFiles(source)
   const widths = new Map<string, number>()

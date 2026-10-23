@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { assetUrl } from '../../shared/ipc'
 import { mapKindOf } from '../../shared/labpbr'
 import type { TextureEntry } from '../../shared/textures'
+import { tr } from '../../shared/i18n'
 
 interface TextureGridProps {
   textures: readonly TextureEntry[]
@@ -72,14 +73,20 @@ export function TextureGrid({
                   // A map whose texture is not in the pack (the game's): no maps of its own.
                   <span
                     className="map-badge on"
-                    title="Mappa LabPBR di una texture che il pack non contiene (di solito quella del gioco): si modifica come immagine"
+                    title={tr(
+                      'Mappa LabPBR di una texture che il pack non contiene (di solito quella del gioco): si modifica come immagine'
+                    )}
                   >
-                    mappa
+                    {tr('mappa')}
                   </span>
                 ) : (
                   <>
-                    <Badge on={texture.normal !== null} label="N" title="Mappa normal (_n)" />
-                    <Badge on={texture.specular !== null} label="S" title="Mappa specular (_s)" />
+                    <Badge on={texture.normal !== null} label="N" title={tr('Mappa normal (_n)')} />
+                    <Badge
+                      on={texture.specular !== null}
+                      label="S"
+                      title={tr('Mappa specular (_s)')}
+                    />
                   </>
                 )}
                 {marker?.keys.has(texture.key) && (
@@ -90,7 +97,7 @@ export function TextureGrid({
                 {texture.mcmeta && (
                   <span
                     className="map-badge on"
-                    title="Ha un file .png.mcmeta (animazione o altre proprietà)"
+                    title={tr('Ha un file .png.mcmeta (animazione o altre proprietà)')}
                   >
                     M
                   </span>
@@ -114,7 +121,7 @@ function Badge({
   title: string
 }): React.JSX.Element {
   return (
-    <span className={`map-badge${on ? ' on' : ''}`} title={on ? title : `${title}: mancante`}>
+    <span className={`map-badge${on ? ' on' : ''}`} title={on ? title : tr('{0}: mancante', title)}>
       {label}
     </span>
   )

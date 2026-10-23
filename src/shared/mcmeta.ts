@@ -7,6 +7,7 @@ import {
   type GameRelease,
   type PackVersion
 } from './packFormat'
+import { tr } from './i18n'
 
 /** A format as written in pack.mcmeta: `74` means `[74, 0]` (or any minor, for max_format). */
 export type McmetaFormat = number | [number, number]
@@ -90,7 +91,7 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
     root = JSON.parse(text.replace(/^\uFEFF/, ''))
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause)
-    error(`pack.mcmeta non è un JSON valido: ${detail}`)
+    error(tr('pack.mcmeta non è un JSON valido: {0}', detail))
     return {
       description: '',
       descriptionKind: 'missing',
@@ -102,7 +103,7 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
 
   const pack = isRecord(root) ? root['pack'] : undefined
   if (!isRecord(pack)) {
-    error('Manca la sezione "pack" in pack.mcmeta.')
+    error(tr('Manca la sezione "pack" in pack.mcmeta.'))
     return {
       description: '',
       descriptionKind: 'missing',
@@ -114,7 +115,7 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
 
   let description = ''
   let descriptionKind: McmetaAnalysis['descriptionKind'] = 'missing'
-  if (pack['description'] === undefined) warning('Manca la descrizione ("description").')
+  if (pack['description'] === undefined) warning(tr('Manca la descrizione ("description").'))
   else {
     description = textComponentToPlain(pack['description'])
     descriptionKind = typeof pack['description'] === 'string' ? 'string' : 'component'
@@ -124,7 +125,7 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
   let packFormat: number | null = null
   if (pack['pack_format'] !== undefined) {
     if (isFormatInt(pack['pack_format'])) packFormat = pack['pack_format']
-    else error('"pack_format" deve essere un numero intero non negativo.')
+    else error(tr('"pack_format" deve essere un numero intero non negativo.'))
   }
 
   // supported_formats
@@ -133,10 +134,12 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
     supportedFormats = parseSupportedFormats(pack['supported_formats'])
     if (!supportedFormats) {
       error(
-        '"supported_formats" non valido: usa un intero, [min, max] o {min_inclusive, max_inclusive}.'
+        tr(
+          '"supported_formats" non valido: usa un intero, [min, max] o {min_inclusive, max_inclusive}.'
+        )
       )
     } else if (supportedFormats.min > supportedFormats.max) {
-      error('"supported_formats": il minimo è maggiore del massimo.')
+      error(tr('"supported_formats": il minimo è maggiore del massimo.'))
       supportedFormats = null
     }
   }
@@ -146,14 +149,14 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
   const hasMin = pack['min_format'] !== undefined
   const hasMax = pack['max_format'] !== undefined
   if (hasMin !== hasMax) {
-    error('"min_format" e "max_format" vanno specificati insieme.')
+    error(tr('"min_format" e "max_format" vanno specificati insieme.'))
   } else if (hasMin && hasMax) {
     const min = parseFormatVersion(pack['min_format'], 0)
     const max = parseFormatVersion(pack['max_format'], ANY_MINOR)
-    if (!min) error('"min_format" non valido: usa un intero o [maggiore, minore].')
-    if (!max) error('"max_format" non valido: usa un intero o [maggiore, minore].')
+    if (!min) error(tr('"min_format" non valido: usa un intero o [maggiore, minore].'))
+    if (!max) error(tr('"max_format" non valido: usa un intero o [maggiore, minore].'))
     if (min && max) {
-      if (comparePackVersions(min, max) > 0) error('"min_format" è maggiore di "max_format".')
+      if (comparePackVersions(min, max) > 0) error(tr('"min_format" è maggiore di "max_format".'))
       else range = { min, max }
     }
   }
@@ -161,27 +164,31 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
   // Cross-field rules (25w31a): legacy fields are required when supporting
   // formats below 65 and forbidden otherwise.
   if (pack['pack_format'] === undefined && !hasMin && !hasMax) {
-    error('Manca il formato del pack: serve "pack_format" oppure "min_format"/"max_format".')
+    error(tr('Manca il formato del pack: serve "pack_format" oppure "min_format"/"max_format".'))
   }
   if (range) {
     const supportsLegacy = range.min.major < MODERN_FORMAT_MIN_MAJOR
     if (supportsLegacy && pack['pack_format'] === undefined) {
-      error('Per supportare versioni precedenti alla 1.21.9 serve anche "pack_format".')
+      error(tr('Per supportare versioni precedenti alla 1.21.9 serve anche "pack_format".'))
     }
     if (supportsLegacy && pack['supported_formats'] === undefined) {
-      warning('Per supportare versioni precedenti alla 1.21.9 serve anche "supported_formats".')
+      warning(tr('Per supportare versioni precedenti alla 1.21.9 serve anche "supported_formats".'))
     }
     if (!supportsLegacy && pack['supported_formats'] !== undefined) {
       error(
-        '"supported_formats" non è consentito se il pack supporta solo il formato 65 o successivi: va rimosso.'
+        tr(
+          '"supported_formats" non è consentito se il pack supporta solo il formato 65 o successivi: va rimosso.'
+        )
       )
     }
   } else if (!hasMin && packFormat !== null && packFormat >= MODERN_FORMAT_MIN_MAJOR) {
-    error(`Dal formato ${MODERN_FORMAT_MIN_MAJOR} (1.21.9+) servono "min_format" e "max_format".`)
+    error(
+      tr('Dal formato {0} (1.21.9+) servono "min_format" e "max_format".', MODERN_FORMAT_MIN_MAJOR)
+    )
   }
   if (packFormat !== null && supportedFormats) {
     if (packFormat < supportedFormats.min || packFormat > supportedFormats.max) {
-      warning('"pack_format" è fuori dall\'intervallo di "supported_formats".')
+      warning(tr('"pack_format" è fuori dall\'intervallo di "supported_formats".'))
     }
   }
 
@@ -193,7 +200,7 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
     compatibleReleases(formats).length === 0
   ) {
     warning(
-      'Nessuna versione di Minecraft gestita da PackForge (dalla 1.20 alla 26.3) è compatibile.'
+      tr('Nessuna versione di Minecraft gestita da PackForge (dalla 1.20 alla 26.3) è compatibile.')
     )
   }
   return { description, descriptionKind, formats, overlays, issues }
@@ -204,7 +211,7 @@ function analyzeOverlays(section: unknown, error: (message: string) => void): Ov
   if (section === undefined) return []
   const entries = isRecord(section) ? section['entries'] : undefined
   if (!Array.isArray(entries)) {
-    error('"overlays" deve contenere una lista "entries".')
+    error(tr('"overlays" deve contenere una lista "entries".'))
     return []
   }
 
@@ -212,25 +219,25 @@ function analyzeOverlays(section: unknown, error: (message: string) => void): Ov
   entries.forEach((entry, index) => {
     const where = `Overlay ${index + 1}`
     if (!isRecord(entry) || typeof entry['directory'] !== 'string' || entry['directory'] === '') {
-      error(`${where}: manca "directory".`)
+      error(tr('{0}: manca "directory".', where))
       return
     }
     const directory = entry['directory']
     if (!/^[a-zA-Z0-9_.-]+$/.test(directory)) {
-      error(`Overlay "${directory}": il nome della cartella contiene caratteri non ammessi.`)
+      error(tr('Overlay "{0}": il nome della cartella contiene caratteri non ammessi.', directory))
     }
 
     let range: OverlayInfo['range'] = null
     const hasMin = entry['min_format'] !== undefined
     const hasMax = entry['max_format'] !== undefined
     if (hasMin !== hasMax) {
-      error(`Overlay "${directory}": "min_format" e "max_format" vanno specificati insieme.`)
+      error(tr('Overlay "{0}": "min_format" e "max_format" vanno specificati insieme.', directory))
     } else if (hasMin) {
       const min = parseFormatVersion(entry['min_format'], 0)
       const max = parseFormatVersion(entry['max_format'], ANY_MINOR)
-      if (!min || !max) error(`Overlay "${directory}": "min_format"/"max_format" non validi.`)
+      if (!min || !max) error(tr('Overlay "{0}": "min_format"/"max_format" non validi.', directory))
       else if (comparePackVersions(min, max) > 0) {
-        error(`Overlay "${directory}": "min_format" è maggiore di "max_format".`)
+        error(tr('Overlay "{0}": "min_format" è maggiore di "max_format".', directory))
       } else range = { min, max }
     }
 
@@ -238,12 +245,12 @@ function analyzeOverlays(section: unknown, error: (message: string) => void): Ov
     if (entry['formats'] !== undefined) {
       formats = parseSupportedFormats(entry['formats'])
       if (!formats || formats.min > formats.max) {
-        error(`Overlay "${directory}": "formats" non valido.`)
+        error(tr('Overlay "{0}": "formats" non valido.', directory))
         formats = null
       }
     }
     if (!hasMin && entry['formats'] === undefined) {
-      error(`Overlay "${directory}": servono "min_format" e "max_format".`)
+      error(tr('Overlay "{0}": servono "min_format" e "max_format".', directory))
     }
     overlays.push({ directory, range, formats })
   })
@@ -256,12 +263,18 @@ function analyzeOverlays(section: unknown, error: (message: string) => void): Ov
   for (const overlay of overlays) {
     if (reachesLegacy && !overlay.formats && overlay.range) {
       error(
-        `Overlay "${overlay.directory}": serve "formats", perché almeno un overlay copre versioni precedenti alla 1.21.9.`
+        tr(
+          'Overlay "{0}": serve "formats", perché almeno un overlay copre versioni precedenti alla 1.21.9.',
+          overlay.directory
+        )
       )
     }
     if (!reachesLegacy && overlay.formats) {
       error(
-        `Overlay "${overlay.directory}": "formats" non è consentito se nessun overlay copre versioni precedenti alla 1.21.9.`
+        tr(
+          'Overlay "{0}": "formats" non è consentito se nessun overlay copre versioni precedenti alla 1.21.9.',
+          overlay.directory
+        )
       )
     }
   }

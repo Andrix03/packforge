@@ -1,6 +1,7 @@
 import type { MapKind } from '../../shared/labpbr'
 import { channelsOf, type ChannelDef, type ChannelId } from './channels'
 import { Glyph, RangeInput } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 export type Surface = 'color' | MapKind
 
@@ -14,12 +15,12 @@ export interface MapTabInfo {
 
 const SURFACE_LABELS: Record<MapKind, { label: string; title: string }> = {
   normal: {
-    label: 'Rilievo _n',
-    title: 'Altezza (POM), occlusione e normali: il file _n.png accanto alla texture'
+    label: tr('Rilievo _n'),
+    title: tr('Altezza (POM), occlusione e normali: il file _n.png accanto alla texture')
   },
   specular: {
-    label: 'Materiale _s',
-    title: 'Levigatezza, riflettanza/metalli, porosità ed emissione: il file _s.png'
+    label: tr('Materiale _s'),
+    title: tr('Levigatezza, riflettanza/metalli, porosità ed emissione: il file _s.png')
   }
 }
 
@@ -39,25 +40,25 @@ export function MapTabs({
 }): React.JSX.Element {
   return (
     <div className="map-tabs">
-      <div className="face-tabs" role="tablist" aria-label="Cosa dipingi">
-        <span className="muted small">Dipingi:</span>
+      <div className="face-tabs" role="tablist" aria-label={tr('Cosa dipingi')}>
+        <span className="muted small">{tr('Dipingi:')}</span>
         <button
           type="button"
           role="tab"
           aria-selected={surface === 'color'}
           className={surface === 'color' ? 'tab active' : 'tab'}
-          title="I colori della texture"
+          title={tr('I colori della texture')}
           onClick={() => onSurface('color')}
         >
-          Colore
+          {tr('Colore')}
         </button>
         {maps.map((map) => {
           const { label, title } = SURFACE_LABELS[map.kind]
           const status = map.error
-            ? ` — non leggibile: ${map.error}`
+            ? tr(' — non leggibile: {0}', map.error)
             : map.existed
               ? ''
-              : ' — non esiste ancora: si crea al salvataggio, se la dipingi'
+              : tr(' — non esiste ancora: si crea al salvataggio, se la dipingi')
           return (
             <button
               key={map.kind}
@@ -76,8 +77,8 @@ export function MapTabs({
         })}
       </div>
       {surface !== 'color' && (
-        <div className="face-tabs channel-tabs" role="tablist" aria-label="Canale">
-          <span className="muted small">Canale:</span>
+        <div className="face-tabs channel-tabs" role="tablist" aria-label={tr('Canale')}>
+          <span className="muted small">{tr('Canale:')}</span>
           {channelsOf(surface).map((def) => (
             <button
               key={def.id}
@@ -141,8 +142,8 @@ export function ValuePanel({
           <div className="color-slots">
             {(
               [
-                ['primary', 'Primario', 'clic sinistro'],
-                ['secondary', 'Secondario', 'clic destro']
+                ['primary', tr('Primario'), tr('clic sinistro')],
+                ['secondary', tr('Secondario'), tr('clic destro')]
               ] as const
             ).map(([slot, label, hint]) => (
               <label key={slot} className="value-slot">
@@ -155,7 +156,7 @@ export function ValuePanel({
                   min={0}
                   max={channel.max}
                   value={values[slot]}
-                  aria-label={`Valore ${label.toLowerCase()}`}
+                  aria-label={tr('Valore {0}', label.toLowerCase())}
                   onChange={(event) => set(slot, Number(event.target.value))}
                 />
               </label>
@@ -163,7 +164,7 @@ export function ValuePanel({
             <button
               type="button"
               onClick={() => onValues({ primary: values.secondary, secondary: values.primary })}
-              title="Scambia i valori (X)"
+              title={tr('Scambia i valori (X)')}
             >
               <Glyph name="swap" />
               <kbd>X</kbd>
@@ -171,7 +172,7 @@ export function ValuePanel({
           </div>
           <label className="color-slider">
             <span className="small muted">
-              Valore primario <span className="slider-value">{values.primary}</span>
+              {tr('Valore primario')} <span className="slider-value">{values.primary}</span>
             </span>
             <RangeInput
               type="range"
@@ -184,14 +185,18 @@ export function ValuePanel({
           </label>
           {channel.presets.length > 0 && (
             <section>
-              <h3 className="panel-title">Valori tipici</h3>
+              <h3 className="panel-title">{tr('Valori tipici')}</h3>
               <div className="value-presets">
                 {channel.presets.map((preset) => (
                   <button
                     key={preset.label}
                     type="button"
                     className="small-button"
-                    title={`${preset.hint ? preset.hint + ' — ' : ''}${preset.value} (clic sinistro: primario, destro: secondario)`}
+                    title={tr(
+                      '{0}{1} (clic sinistro: primario, destro: secondario)',
+                      preset.hint ? preset.hint + ' — ' : '',
+                      preset.value
+                    )}
                     onClick={(event) => pick(event, preset.value)}
                     onContextMenu={(event) => pick(event, preset.value)}
                   >
@@ -204,10 +209,10 @@ export function ValuePanel({
           )}
           <label
             className="color-slider"
-            title="Distanza tra i grigi usati da Sfuma e Rumore (5 grigi attorno al primario)"
+            title={tr('Distanza tra i grigi usati da Sfuma e Rumore (5 grigi attorno al primario)')}
           >
             <span className="small muted">
-              Passo per Sfuma / Rumore <span className="slider-value">{rampStep}</span>
+              {tr('Passo per Sfuma / Rumore')} <span className="slider-value">{rampStep}</span>
             </span>
             <RangeInput
               type="range"
@@ -221,10 +226,10 @@ export function ValuePanel({
       )}
       <label
         className="color-slider"
-        title="Disegna i colori della texture sopra il canale, solo per orientarsi"
+        title={tr('Disegna i colori della texture sopra il canale, solo per orientarsi')}
       >
         <span className="small muted">
-          Colori sopra <span className="slider-value">{overlay}%</span>
+          {tr('Colori sopra')} <span className="slider-value">{overlay}%</span>
         </span>
         <RangeInput
           type="range"

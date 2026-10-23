@@ -3,6 +3,7 @@ import { buildPackMcmeta, serializeMcmeta } from '../../shared/mcmeta'
 import { formatPackVersion, GAME_RELEASES, LATEST_RELEASE } from '../../shared/packFormat'
 import { validatePackDescription, validatePackName } from '../../shared/validate'
 import { DescriptionEditor } from './DescriptionEditor'
+import { tr } from '../../shared/i18n'
 
 type SubmitState =
   | { status: 'idle' }
@@ -66,15 +67,15 @@ export function NewPackForm({ onCreated }: NewPackFormProps): React.JSX.Element 
 
   return (
     <form className="card form" onSubmit={(event) => void handleSubmit(event)} noValidate>
-      <h2>Nuovo pack</h2>
+      <h2>{tr('Nuovo pack')}</h2>
 
       <label>
-        Nome
+        {tr('Nome')}
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
           onBlur={() => setTouched(true)}
-          placeholder="Il mio pack PBR"
+          placeholder={tr('Il mio pack PBR')}
           aria-invalid={nameError !== null}
           autoFocus
         />
@@ -82,7 +83,7 @@ export function NewPackForm({ onCreated }: NewPackFormProps): React.JSX.Element 
       </label>
 
       <div className="field">
-        <span>Descrizione</span>
+        <span>{tr('Descrizione')}</span>
         <DescriptionEditor
           value={description}
           onChange={setDescription}
@@ -92,36 +93,38 @@ export function NewPackForm({ onCreated }: NewPackFormProps): React.JSX.Element 
       </div>
 
       <label>
-        Versione di Minecraft
+        {tr('Versione di Minecraft')}
         <select value={gameVersion} onChange={(event) => setGameVersion(event.target.value)}>
           {GAME_RELEASES.map((r) => (
             <option key={r.version} value={r.version}>
-              {r.version} — formato {formatPackVersion(r.resourceFormat)}
+              {tr('{0} — formato {1}', r.version, formatPackVersion(r.resourceFormat))}
             </option>
           ))}
         </select>
       </label>
 
       <div className="field">
-        <span>Cartella di destinazione</span>
+        <span>{tr('Cartella di destinazione')}</span>
         <div className="row">
-          <code className="path">{parentDir ?? 'Nessuna cartella scelta'}</code>
+          <code className="path">{parentDir ?? tr('Nessuna cartella scelta')}</code>
           <button type="button" onClick={() => void pickDirectory()}>
-            Sfoglia…
+            {tr('Sfoglia…')}
           </button>
         </div>
       </div>
 
       <details>
-        <summary>Anteprima pack.mcmeta</summary>
+        <summary>{tr('Anteprima pack.mcmeta')}</summary>
         <pre>{mcmetaPreview}</pre>
       </details>
 
       <div className="row">
         <button type="submit" className="primary" disabled={!canSubmit}>
-          {submit.status === 'saving' ? 'Creazione…' : 'Crea pack'}
+          {submit.status === 'saving' ? 'Creazione…' : tr('Crea pack')}
         </button>
-        {submit.status === 'done' && <span className="success">Pack creato in {submit.path}</span>}
+        {submit.status === 'done' && (
+          <span className="success">{tr('Pack creato in {0}', submit.path)}</span>
+        )}
         {submit.status === 'error' && <span className="field-error">{submit.message}</span>}
       </div>
     </form>

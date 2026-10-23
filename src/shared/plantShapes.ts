@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // Shapes for plant models (crops, flowers): block model JSON written into the pack, so they work
 // in the vanilla game without mods. Research 2026-10-19: Vanilla+ Crops uses a "bushy cross" of
 // 4–6 planes tilted at ±22.5° and ±45° and a taller ripe wheat; vanilla crops are 4 planes
@@ -11,17 +12,21 @@
 export type PlantShape = 'crop' | 'cross' | 'bushy' | 'tall'
 
 export const PLANT_SHAPES: ReadonlyArray<{ id: PlantShape; label: string; hint: string }> = [
-  { id: 'crop', label: 'Vanilla', hint: 'I 4 piani a cancelletto delle colture del gioco.' },
-  { id: 'cross', label: 'Croce', hint: '2 piani in diagonale, come i fiori e l’erba.' },
+  {
+    id: 'crop',
+    label: tr('Vanilla'),
+    hint: tr('I 4 piani a cancelletto delle colture del gioco.')
+  },
+  { id: 'cross', label: tr('Croce'), hint: tr('2 piani in diagonale, come i fiori e l’erba.') },
   {
     id: 'bushy',
-    label: 'Cespuglio',
-    hint: '4 piani inclinati verso l’esterno (22,5°) più 2 diagonali: una pianta più piena.'
+    label: tr('Cespuglio'),
+    hint: tr('4 piani inclinati verso l’esterno (22,5°) più 2 diagonali: una pianta più piena.')
   },
   {
     id: 'tall',
-    label: 'Alta',
-    hint: 'Sale di un blocco: una seconda texture (<nome>_top) disegna la parte di sopra.'
+    label: tr('Alta'),
+    hint: tr('Sale di un blocco: una seconda texture (<nome>_top) disegna la parte di sopra.')
   }
 ]
 

@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // Biome tint for faces with a tintindex (Java Edition).
 // Sources (verified 2026-10-18): https://minecraft.wiki/w/Biome (colormap
 // sampling, biome temperature/downfall, special colors, fixed spruce/birch
@@ -17,20 +18,20 @@ export interface Biome {
 }
 
 export const BIOMES: readonly Biome[] = [
-  { id: 'plains', label: 'Pianure', temperature: 0.8, downfall: 0.4 },
-  { id: 'forest', label: 'Foresta', temperature: 0.7, downfall: 0.8 },
-  { id: 'birch_forest', label: 'Foresta di betulle', temperature: 0.6, downfall: 0.6 },
-  { id: 'jungle', label: 'Giungla', temperature: 0.95, downfall: 0.9 },
+  { id: 'plains', label: tr('Pianure'), temperature: 0.8, downfall: 0.4 },
+  { id: 'forest', label: tr('Foresta'), temperature: 0.7, downfall: 0.8 },
+  { id: 'birch_forest', label: tr('Foresta di betulle'), temperature: 0.6, downfall: 0.6 },
+  { id: 'jungle', label: tr('Giungla'), temperature: 0.95, downfall: 0.9 },
   {
     id: 'badlands',
-    label: 'Badlands',
+    label: tr('Badlands'),
     temperature: 2.0,
     downfall: 0.0,
     overrides: { grass: '#90814d', foliage: '#9e814d', dry_foliage: '#9e814d' }
   },
   {
     id: 'cherry_grove',
-    label: 'Ciliegeto',
+    label: tr('Ciliegeto'),
     temperature: 0.5,
     downfall: 0.8,
     overrides: { grass: '#b6db61', foliage: '#b6db61' }

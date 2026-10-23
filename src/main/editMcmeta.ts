@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { replaceFile, serializedOn } from './atomicWrite'
 import type { PackSource } from './packSource'
+import { tr } from '../shared/i18n'
 
 // Edits pack.mcmeta in place: only the requested fields change, everything
 // else (language, filter, overlays, unknown fields) is preserved.
@@ -23,7 +24,7 @@ export function editPackObject(
   if (source.kind !== 'folder') {
     return Promise.resolve({
       ok: false,
-      error: 'I pack zip sono in sola lettura: estrai il pack in una cartella.'
+      error: tr('I pack zip sono in sola lettura: estrai il pack in una cartella.')
     })
   }
   const file = join(source.root, 'pack.mcmeta')
@@ -40,12 +41,12 @@ async function editFile(
   } catch {
     return {
       ok: false,
-      error: 'pack.mcmeta non è un JSON valido: correggilo prima di modificarlo.'
+      error: tr('pack.mcmeta non è un JSON valido: correggilo prima di modificarlo.')
     }
   }
   const pack = isRecord(root) ? root['pack'] : undefined
   if (!isRecord(root) || !isRecord(pack)) {
-    return { ok: false, error: 'Manca la sezione "pack" in pack.mcmeta.' }
+    return { ok: false, error: tr('Manca la sezione "pack" in pack.mcmeta.') }
   }
 
   change(pack, root)
@@ -54,7 +55,7 @@ async function editFile(
     await replaceFile(file, `${JSON.stringify(root, null, 2)}\n`)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
-    return { ok: false, error: `Impossibile salvare pack.mcmeta: ${detail}` }
+    return { ok: false, error: tr('Impossibile salvare pack.mcmeta: {0}', detail) }
   }
   return { ok: true }
 }

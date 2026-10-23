@@ -1,4 +1,5 @@
 import { shortcutsFor } from './shortcuts'
+import { tr } from '../../shared/i18n'
 
 /** Window with every keyboard shortcut available in the current mode. */
 export function ShortcutsHelp({
@@ -13,18 +14,20 @@ export function ShortcutsHelp({
       <section
         className="card modal shortcuts-help"
         role="dialog"
-        aria-label="Scorciatoie da tastiera"
+        aria-label={tr('Scorciatoie da tastiera')}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="row">
-          <h2>Scorciatoie da tastiera</h2>
+          <h2>{tr('Scorciatoie da tastiera')}</h2>
           <button type="button" onClick={onClose}>
-            Chiudi
+            {tr('Chiudi')}
           </button>
         </div>
         {!pro && (
           <p className="muted small">
-            Modalità Principiante: in Pro trovi anche forme, selezioni e le loro scorciatoie.
+            {tr(
+              'Modalità Principiante: in Pro trovi anche forme, selezioni e le loro scorciatoie.'
+            )}
           </p>
         )}
         <div className="shortcut-groups">

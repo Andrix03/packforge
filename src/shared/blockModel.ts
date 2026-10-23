@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // Block models and block states (Java Edition), resolved from JSON.
 // Formats checked against the 26.3 client jar (2883 models, 1288 states) and
 // https://minecraft.wiki/w/Model on 2026-10-18:
@@ -99,7 +100,7 @@ export async function resolveModel(id: string, load: JsonLoader): Promise<Resolv
 
   while (current && chain.length < MAX_PARENT_DEPTH) {
     if (seen.has(current)) {
-      warnings.push(`Riferimento circolare tra modelli: ${current}.`)
+      warnings.push(tr('Riferimento circolare tra modelli: {0}.', current))
       break
     }
     seen.add(current)
@@ -107,7 +108,7 @@ export async function resolveModel(id: string, load: JsonLoader): Promise<Resolv
     if (current.startsWith('minecraft:builtin/')) break
     const json = await load(modelPath(current))
     if (!isRecord(json)) {
-      warnings.push(`Modello mancante o non valido: ${current}.`)
+      warnings.push(tr('Modello mancante o non valido: {0}.', current))
       break
     }
     chain.push(json)
@@ -172,7 +173,7 @@ function parseElement(
     const face = raw['faces'][direction]
     if (!isRecord(face) || typeof face['texture'] !== 'string') continue
     const texture = resolveTextureVariable(face['texture'], textures)
-    if (!texture) warnings.push(`Variabile texture non definita: ${face['texture']}.`)
+    if (!texture) warnings.push(tr('Variabile texture non definita: {0}.', face['texture']))
     const uv = face['uv']
     faces[direction] = {
       uv:

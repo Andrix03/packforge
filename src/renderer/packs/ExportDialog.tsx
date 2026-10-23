@@ -14,6 +14,7 @@ import { RESOLUTIONS } from '../../shared/resize'
 import { DialogFrame, Glyph } from '../ui/components'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
+import { tr } from '../../shared/i18n'
 
 type Phase =
   | { status: 'setup' }
@@ -84,15 +85,18 @@ export function ExportDialog({
   const exportAll = useSingleFlight(async (): Promise<void> => {
     if (
       blocking &&
-      !window.confirm('Il controllo ha trovato errori (vedi sopra). Esportare comunque?')
+      !window.confirm(tr('Il controllo ha trovato errori (vedi sopra). Esportare comunque?'))
     ) {
       return
     }
-    setPhase({ status: 'working', text: 'Salvo il progetto…' })
+    setPhase({ status: 'working', text: tr('Salvo il progetto…') })
     // The zip takes its version and changelog from the saved project: stop if it wasn't saved.
     const saved = await window.api.invoke('project:save', project)
     if (!saved.ok) {
-      const error = `Impossibile salvare versione e note del progetto: ${saved.error ?? 'errore sconosciuto'}`
+      const error = tr(
+        'Impossibile salvare versione e note del progetto: {0}',
+        saved.error ?? tr('errore sconosciuto')
+      )
       setPhase({
         status: 'done',
         results: variants.map((variant) => ({ variant, result: { ok: false, error } })),
@@ -102,7 +106,7 @@ export function ExportDialog({
     }
     const results: Array<{ variant: ExportVariant; result: ExportResult }> = []
     for (const variant of variants) {
-      setPhase({ status: 'working', text: `Creo lo zip ${variantLabel(variant)}…` })
+      setPhase({ status: 'working', text: tr('Creo lo zip {0}…', variantLabel(variant)) })
       let result = await window.api.invoke('export:build', variant, dir, false)
       if (!result.ok && result.exists && window.confirm(`${result.error} Sovrascriverlo?`)) {
         result = await window.api.invoke('export:build', variant, dir, true)
@@ -111,7 +115,7 @@ export function ExportDialog({
     }
     let listing: ListingResult | null = null
     if (withListing) {
-      setPhase({ status: 'working', text: 'Preparo la scheda per Modrinth / CurseForge…' })
+      setPhase({ status: 'working', text: tr('Preparo la scheda per Modrinth / CurseForge…') })
       listing = await window.api.invoke('export:listing', dir)
     }
     setPhase({ status: 'done', results, listing })
@@ -119,8 +123,8 @@ export function ExportDialog({
 
   if (phase.status !== 'setup') {
     return (
-      <DialogFrame embedded={embedded} label="Esporta">
-        <h2>Esporta</h2>
+      <DialogFrame embedded={embedded} label={tr('Esporta')}>
+        <h2>{tr('Esporta')}</h2>
         {phase.status === 'working' ? (
           <p className="small">{phase.text}</p>
         ) : (
@@ -131,7 +135,16 @@ export function ExportDialog({
                 data-testid="export-listing"
               >
                 {phase.listing.ok
-                  ? `Scheda per Modrinth / CurseForge: ${phase.listing.dir}${phase.listing.kept.length > 0 ? ` (${phase.listing.kept.length} file già presenti lasciati com’erano)` : ''}`
+                  ? tr(
+                      'Scheda per Modrinth / CurseForge: {0}{1}',
+                      phase.listing.dir,
+                      phase.listing.kept.length > 0
+                        ? tr(
+                            ' ({0} file già presenti lasciati com’erano)',
+                            phase.listing.kept.length
+                          )
+                        : ''
+                    )
                   : phase.listing.error}
               </p>
             )}
@@ -148,7 +161,7 @@ export function ExportDialog({
                     <strong>{variantLabel(variant)}</strong>
                     <p className="small">
                       {result.ok
-                        ? `${result.path}, ${result.files} file, ${(result.bytes / 1024).toFixed(0)} KB${result.kept.length > 0 ? `, ${result.kept.length} texture lasciate alla loro risoluzione` : ''}`
+                        ? `${result.path}, ${result.files} file, ${(result.bytes / 1024).toFixed(0)} KB${result.kept.length > 0 ? tr(', {0} texture lasciate alla loro risoluzione', result.kept.length) : ''}`
                         : result.error}
                     </p>
                   </div>
@@ -161,11 +174,11 @@ export function ExportDialog({
                   type="button"
                   onClick={() => void window.api.invoke('export:openFolder', dir)}
                 >
-                  Apri la cartella
+                  {tr('Apri la cartella')}
                 </button>
               )}
               <button type="button" className="primary" onClick={onClose}>
-                Chiudi
+                {tr('Chiudi')}
               </button>
             </div>
           </>
@@ -175,31 +188,31 @@ export function ExportDialog({
   }
 
   return (
-    <DialogFrame embedded={embedded} label="Esporta" onBackdrop={onClose}>
-      <h2>Esporta il pack</h2>
+    <DialogFrame embedded={embedded} label={tr('Esporta')} onBackdrop={onClose}>
+      <h2>{tr('Esporta il pack')}</h2>
 
-      <h3 className="panel-title">1. Progetto</h3>
+      <h3 className="panel-title">{tr('1. Progetto')}</h3>
       <div className="export-grid">
         <label className="small">
-          Versione
+          {tr('Versione')}
           <input
-            aria-label="Versione"
+            aria-label={tr('Versione')}
             value={project.version}
             onChange={(event) => set({ version: event.target.value.trim() })}
           />
         </label>
         <label className="small">
-          Autore
+          {tr('Autore')}
           <input
-            aria-label="Autore"
+            aria-label={tr('Autore')}
             value={project.author}
             onChange={(event) => set({ author: event.target.value })}
           />
         </label>
         <label className="small">
-          Licenza
+          {tr('Licenza')}
           <select
-            aria-label="Licenza"
+            aria-label={tr('Licenza')}
             value={project.license}
             onChange={(event) => set({ license: event.target.value })}
           >
@@ -212,12 +225,12 @@ export function ExportDialog({
         </label>
       </div>
       {!versionOk && (
-        <p className="field-error small">Versione non valida (es. 1.0.0, 2.1-beta).</p>
+        <p className="field-error small">{tr('Versione non valida (es. 1.0.0, 2.1-beta).')}</p>
       )}
       <label className="small">
-        Novità di questa versione (finiscono in CHANGELOG.md)
+        {tr('Novità di questa versione (finiscono in CHANGELOG.md)')}
         <textarea
-          aria-label="Novità"
+          aria-label={tr('Novità')}
           rows={3}
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
@@ -225,9 +238,9 @@ export function ExportDialog({
       </label>
       <CreditsEditor credits={project.credits} onChange={(credits) => set({ credits })} />
 
-      <h3 className="panel-title">2. Controllo</h3>
+      <h3 className="panel-title">{tr('2. Controllo')}</h3>
       {!check ? (
-        <p className="small">Controllo…</p>
+        <p className="small">{tr('Controllo…')}</p>
       ) : (
         <div data-testid="export-check">
           {check.errors.map((e) => (
@@ -253,7 +266,7 @@ export function ExportDialog({
           ))}
           {check.stray.length > 0 && (
             <p className="small muted">
-              Fuori dallo zip:{' '}
+              {tr('Fuori dallo zip:')}{' '}
               {check.stray
                 .slice(0, 8)
                 .map((s) => `${s.path.split('/').pop()} (${s.reason})`)
@@ -264,36 +277,38 @@ export function ExportDialog({
           {check.errors.length === 0 && check.warnings.length === 0 && (
             <p className="small">
               <Glyph name="check" />
-              Tutto a posto: {check.files} file.
+              {tr('Tutto a posto: {0} file.', check.files)}
             </p>
           )}
           <button type="button" className="small-button" onClick={() => setCheckRun((r) => r + 1)}>
-            Ricontrolla
+            {tr('Ricontrolla')}
           </button>
         </div>
       )}
 
-      <h3 className="panel-title">3. Varianti</h3>
+      <h3 className="panel-title">{tr('3. Varianti')}</h3>
       <label className="inline-check small">
         <input type="checkbox" checked={full} onChange={(event) => setFull(event.target.checked)} />
-        Completo
+        {tr('Completo')}
       </label>
-      <label className="inline-check small" title="Senza _n e _s: per chi non usa shader">
+      <label className="inline-check small" title={tr('Senza _n e _s: per chi non usa shader')}>
         <input type="checkbox" checked={base} onChange={(event) => setBase(event.target.checked)} />
-        Senza PBR (file «-base»)
+        {tr('Senza PBR (file «-base»)')}
       </label>
       <label
         className="inline-check small"
-        title="Texture di blocchi, oggetti ed entità a un’altra risoluzione (pixel netti); le GUI restano com’erano"
+        title={tr(
+          'Texture di blocchi, oggetti ed entità a un’altra risoluzione (pixel netti); le GUI restano com’erano'
+        )}
       >
         <input
           type="checkbox"
           checked={resolution !== null}
           onChange={(event) => setResolution(event.target.checked ? 16 : null)}
         />
-        Anche a
+        {tr('Anche a')}
         <select
-          aria-label="Risoluzione export"
+          aria-label={tr('Risoluzione export')}
           value={resolution ?? 16}
           disabled={resolution === null}
           onChange={(event) => setResolution(Number(event.target.value))}
@@ -308,17 +323,19 @@ export function ExportDialog({
 
       <label
         className="inline-check small"
-        title="description-en.md, description-it.md e listing.txt con riassunto, versioni del gioco e tag consigliati"
+        title={tr(
+          'description-en.md, description-it.md e listing.txt con riassunto, versioni del gioco e tag consigliati'
+        )}
       >
         <input
           type="checkbox"
           checked={withListing}
           onChange={(event) => setWithListing(event.target.checked)}
         />
-        Prepara anche la scheda per Modrinth / CurseForge
+        {tr('Prepara anche la scheda per Modrinth / CurseForge')}
       </label>
 
-      <h3 className="panel-title">4. Destinazione</h3>
+      <h3 className="panel-title">{tr('4. Destinazione')}</h3>
       <p className="small" data-testid="export-dir">
         {dir}
       </p>
@@ -332,19 +349,16 @@ export function ExportDialog({
               .then((d) => d && setDir(d))
           }
         >
-          Cambia…
+          {tr('Cambia…')}
         </button>
       </div>
 
       <details className="small export-rules">
-        <summary>Pubblicare e guadagnare: cosa dicono le regole di Minecraft</summary>
+        <summary>{tr('Pubblicare e guadagnare: cosa dicono le regole di Minecraft')}</summary>
         <p>
-          Dall’EULA di Minecraft: i contenuti che crei sono tuoi «purché tu non li venda / non
-          cerchi di guadagnarci». Le donazioni sono ammesse se il donatore non riceve qualcosa che
-          solo lui può usare: un pack riservato a chi paga (es. un livello Patreon) rischia di
-          violarle. Gli export includono sempre in CREDITS.txt l’avvertenza «NOT AN OFFICIAL
-          MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT». Non è un
-          parere legale: in caso di dubbio leggi le linee guida su minecraft.net.
+          {tr(
+            'Dall’EULA di Minecraft: i contenuti che crei sono tuoi «purché tu non li venda / non cerchi di guadagnarci». Le donazioni sono ammesse se il donatore non riceve qualcosa che solo lui può usare: un pack riservato a chi paga (es. un livello Patreon) rischia di violarle. Gli export includono sempre in CREDITS.txt l’avvertenza «NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT». Non è un parere legale: in caso di dubbio leggi le linee guida su minecraft.net.'
+          )}
         </p>
       </details>
 
@@ -355,10 +369,10 @@ export function ExportDialog({
           disabled={variants.length === 0 || !versionOk || !info}
           onClick={() => exportAll()}
         >
-          Esporta {variants.length === 1 ? '1 zip' : `${variants.length} zip`}
+          {tr('Esporta {0}', variants.length === 1 ? '1 zip' : `${variants.length} zip`)}
         </button>
         <button type="button" onClick={onClose}>
-          Annulla
+          {tr('Annulla')}
         </button>
       </div>
     </DialogFrame>
@@ -374,12 +388,12 @@ function CreditsEditor({
 }): React.JSX.Element {
   return (
     <div className="credits-editor">
-      <span className="small">Crediti (CREDITS.txt)</span>
+      <span className="small">{tr('Crediti (CREDITS.txt)')}</span>
       {credits.map((credit, index) => (
         <div key={index} className="row">
           <input
-            aria-label={`Nome ${index + 1}`}
-            placeholder="Nome"
+            aria-label={tr('Nome {0}', index + 1)}
+            placeholder={tr('Nome')}
             value={credit.name}
             onChange={(event) =>
               onChange(
@@ -389,7 +403,7 @@ function CreditsEditor({
           />
           <input
             aria-label={`Contributo ${index + 1}`}
-            placeholder="Cosa ha fatto (es. suoni, CC BY 4.0)"
+            placeholder={tr('Cosa ha fatto (es. suoni, CC BY 4.0)')}
             value={credit.what}
             onChange={(event) =>
               onChange(
@@ -402,7 +416,7 @@ function CreditsEditor({
             className="small-button"
             onClick={() => onChange(credits.filter((_, i) => i !== index))}
           >
-            Togli
+            {tr('Togli')}
           </button>
         </div>
       ))}
@@ -411,7 +425,7 @@ function CreditsEditor({
         className="small-button"
         onClick={() => onChange([...credits, { name: '', what: '' }])}
       >
-        + Credito
+        {tr('+ Credito')}
       </button>
     </div>
   )

@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // LabPBR 1.3 material maps: decode/encode of the `_n` and `_s` textures. Pure, shared by the
 // preview (the shader mirrors these formulas) and the future PBR tools.
 // Source (verified 2026-10-18): https://shaderlabs.org/wiki/LabPBR_Material_Standard
@@ -34,50 +35,50 @@ export const METALS: readonly PredefinedMetal[] = [
   {
     value: 230,
     id: 'iron',
-    label: 'Ferro',
+    label: tr('Ferro'),
     n: [2.9114, 2.9497, 2.5845],
     k: [3.0893, 2.9318, 2.767]
   },
   {
     value: 231,
     id: 'gold',
-    label: 'Oro',
+    label: tr('Oro'),
     n: [0.18299, 0.42108, 1.3734],
     k: [3.4242, 2.3459, 1.7704]
   },
   {
     value: 232,
     id: 'aluminum',
-    label: 'Alluminio',
+    label: tr('Alluminio'),
     n: [1.3456, 0.96521, 0.61722],
     k: [7.4746, 6.3995, 5.3031]
   },
   {
     value: 233,
     id: 'chrome',
-    label: 'Cromo',
+    label: tr('Cromo'),
     n: [3.1071, 3.1812, 2.323],
     k: [3.3314, 3.3291, 3.135]
   },
   {
     value: 234,
     id: 'copper',
-    label: 'Rame',
+    label: tr('Rame'),
     n: [0.27105, 0.67693, 1.3164],
     k: [3.6092, 2.6248, 2.2921]
   },
-  { value: 235, id: 'lead', label: 'Piombo', n: [1.91, 1.83, 1.44], k: [3.51, 3.4, 3.18] },
+  { value: 235, id: 'lead', label: tr('Piombo'), n: [1.91, 1.83, 1.44], k: [3.51, 3.4, 3.18] },
   {
     value: 236,
     id: 'platinum',
-    label: 'Platino',
+    label: tr('Platino'),
     n: [2.3757, 2.0847, 1.8453],
     k: [4.2655, 3.7153, 3.1365]
   },
   {
     value: 237,
     id: 'silver',
-    label: 'Argento',
+    label: tr('Argento'),
     n: [0.15943, 0.14512, 0.13547],
     k: [3.9291, 3.19, 2.3808]
   }
@@ -222,18 +223,18 @@ export type MetalMode = 'spec' | 'albedo' | 'untinted'
 export const METAL_MODES: ReadonlyArray<{ id: MetalMode; label: string; hint: string }> = [
   {
     id: 'spec',
-    label: 'Come la spec',
-    hint: '230–237 metalli predefiniti, riflessi tinti dall’albedo (spec LabPBR, Photon).'
+    label: tr('Come la spec'),
+    hint: tr('230–237 metalli predefiniti, riflessi tinti dall’albedo (spec LabPBR, Photon).')
   },
   {
     id: 'albedo',
-    label: 'Senza metalli predefiniti',
-    hint: 'Tutto 230–255 letto come 255: albedo come F0 (alcuni shader pack).'
+    label: tr('Senza metalli predefiniti'),
+    hint: tr('Tutto 230–255 letto come 255: albedo come F0 (alcuni shader pack).')
   },
   {
     id: 'untinted',
-    label: 'Metalli senza tinta',
-    hint: '230–237 col colore del metallo reale, senza tinta dell’albedo.'
+    label: tr('Metalli senza tinta'),
+    hint: tr('230–237 col colore del metallo reale, senza tinta dell’albedo.')
   }
 ]
 

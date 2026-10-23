@@ -9,6 +9,7 @@ import {
 import { STEP_EVENT } from './tutorialEvents'
 import { Glyph } from './ui/components'
 import { CMD_ICONS } from './ui/icons'
+import { tr } from '../shared/i18n'
 
 /** Restarts the tutorial from the settings ("Rifai il tutorial"). */
 export const TUTORIAL_RESET_EVENT = 'packforge:tutorial-reset'
@@ -85,7 +86,7 @@ export function TutorialCard({
           {done}/{TUTORIAL_STEPS.length}: <strong>{step.title}</strong>: {step.hint}
         </span>
         <button type="button" className="small-button" onClick={turnOff}>
-          Nascondi
+          {tr('Nascondi')}
         </button>
       </div>
     )
@@ -100,15 +101,15 @@ export function TutorialCard({
         onClick={() => setOpen(true)}
       >
         <Glyph name="book" />
-        Tutorial {done}/{TUTORIAL_STEPS.length}
+        {tr('Tutorial {0}/{1}', done, TUTORIAL_STEPS.length)}
       </button>
     )
   }
 
   return (
-    <aside className="tutorial-card" aria-label="Tutorial" data-testid="tutorial">
+    <aside className="tutorial-card" aria-label={tr('Tutorial')} data-testid="tutorial">
       <div className="tutorial-head">
-        <strong>Il tuo primo blocco</strong>
+        <strong>{tr('Il tuo primo blocco')}</strong>
         <span className="muted small">
           {done}/{TUTORIAL_STEPS.length}
         </span>
@@ -116,7 +117,7 @@ export function TutorialCard({
       {state.status === 'done' ? (
         <p className="small">
           <Glyph icon={CMD_ICONS.pro} />
-          Fatto! Hai creato, salvato, provato e portato nel gioco il tuo primo blocco.
+          {tr('Fatto! Hai creato, salvato, provato e portato nel gioco il tuo primo blocco.')}
         </p>
       ) : (
         <ol className="tutorial-steps small">
@@ -136,10 +137,10 @@ export function TutorialCard({
       )}
       <div className="row">
         <button type="button" className="small-button" onClick={() => setOpen(false)}>
-          Riduci
+          {tr('Riduci')}
         </button>
         <button type="button" className="small-button" onClick={turnOff}>
-          {state.status === 'done' ? 'Chiudi' : 'Nascondi il tutorial'}
+          {state.status === 'done' ? tr('Chiudi') : tr('Nascondi il tutorial')}
         </button>
       </div>
     </aside>

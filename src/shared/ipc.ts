@@ -16,10 +16,12 @@ import type {
 } from './exportPlan'
 import type { McmetaAnalysis } from './mcmeta'
 import type { PackVersion } from './packFormat'
+import type { Language } from './i18n'
 import type { EditorMode, RecentPackStatus, SavedPalette, SettingsView } from './settings'
 import type { CreatePackRequest } from './validate'
 import type { TutorialState } from './tutorial'
 import type { VersionRangeRequest } from './versionRange'
+import { tr } from './i18n'
 
 export interface AppInfo {
   name: string
@@ -184,6 +186,10 @@ export interface IpcContract {
   'settings:setEditorMode': { args: [mode: EditorMode]; result: SettingsUpdateResult }
   'settings:setCheckUpdates': { args: [on: boolean]; result: SettingsUpdateResult }
   'settings:setTutorial': { args: [state: TutorialState]; result: SettingsUpdateResult }
+  /** Saved for the next start (the language is fixed while the app runs). */
+  'settings:setLanguage': { args: [language: Language]; result: SettingsUpdateResult }
+  /** Restarts PackForge (after changing the language). */
+  'app:restart': { args: []; result: void }
   /** Asks GitHub for the latest release (skipped when turned off in the settings). */
   'app:checkUpdate': { args: []; result: UpdateCheck }
   /** Opens a release page of this project in the browser (other links are refused). */
@@ -274,6 +280,8 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setEditorMode': true,
   'settings:setCheckUpdates': true,
   'settings:setTutorial': true,
+  'settings:setLanguage': true,
+  'app:restart': true,
   'app:checkUpdate': true,
   'app:openRelease': true,
   'settings:setPalettes': true,
@@ -388,7 +396,12 @@ export type IpcSubscribe = <C extends IpcEventChannel>(
 export interface PackForgeApi {
   invoke: IpcInvoke
   on: IpcSubscribe
+  /** Interface language of this run, read by shared/i18n before any module uses it. */
+  language: Language
 }
+
+/** Synchronous channel the preload asks the language on (not an invoke channel). */
+export const LANGUAGE_CHANNEL = 'i18n:language'
 
 /** Minimal shape of `ipcRenderer` needed to receive events. */
 export interface EventTransport {
@@ -400,7 +413,7 @@ export interface EventTransport {
 export function createSubscribe(transport: EventTransport): IpcSubscribe {
   return (channel, listener) => {
     if (!isIpcEventChannel(channel)) {
-      throw new Error(`Evento IPC non consentito: ${String(channel)}`)
+      throw new Error(tr('Evento IPC non consentito: {0}', String(channel)))
     }
     // The Electron event object is not passed on (it exposes sender internals).
     const wrapped = (_event: unknown, payload: unknown): void =>
@@ -426,7 +439,7 @@ export interface HandleTransport {
 export function createInvoke(transport: InvokeTransport): IpcInvoke {
   return (channel, ...args) => {
     if (!isIpcChannel(channel)) {
-      return Promise.reject(new Error(`Canale IPC non consentito: ${String(channel)}`))
+      return Promise.reject(new Error(tr('Canale IPC non consentito: {0}', String(channel))))
     }
     return transport.invoke(channel, ...args) as Promise<IpcResult<typeof channel>>
   }

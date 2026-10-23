@@ -1,5 +1,6 @@
 import type { TreeFolder } from '../../shared/fileTree'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 interface FileTreeProps {
   root: TreeFolder
@@ -13,7 +14,7 @@ interface FileTreeProps {
 
 export function FileTree(props: FileTreeProps): React.JSX.Element {
   return (
-    <ul className="tree" role="tree" aria-label="File del pack">
+    <ul className="tree" role="tree" aria-label={tr('File del pack')}>
       <FolderItem {...props} folder={props.root} depth={0} />
     </ul>
   )

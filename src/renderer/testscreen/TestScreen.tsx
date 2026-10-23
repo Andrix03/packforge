@@ -37,6 +37,7 @@ import { Glyph, Picture, RangeInput } from '../ui/components'
 import { ITEM_PICTURES, SCENE_PICTURES, type PixelPicture } from '../ui/pictures'
 import { NAV_ICONS } from '../ui/icons'
 import { GLYPHS } from '../ui/glyphs'
+import { tr } from '../../shared/i18n'
 
 /** Pixel picture of each test scene (design canvas). */
 const SCENE_PICTURE: Partial<Record<string, PixelPicture>> = {
@@ -232,10 +233,10 @@ export function TestScreen({
         ...report.main.filter((r) => r.problem).map((r) => `${r.key.split('|')[0]}: ${r.problem}`)
       ]
       if (comparing && !isItem && !theirs) {
-        problems.push('Vanilla non ha questo blocco: a destra ci sono solo gli altri blocchi.')
+        problems.push(tr('Vanilla non ha questo blocco: a destra ci sono solo gli altri blocchi.'))
       }
       setStatus({
-        text: `${placements.length} ${placements.length === 1 ? 'blocco' : 'blocchi'}, ${world.length} ${world.length === 1 ? 'tipo' : 'tipi'}`,
+        text: `${placements.length} ${placements.length === 1 ? tr('blocco') : tr('blocchi')}, ${world.length} ${world.length === 1 ? tr('tipo') : tr('tipi')}`,
         problems: [...new Set(problems)]
       })
     }
@@ -312,11 +313,11 @@ export function TestScreen({
     <section className="test-screen">
       <header className="editor-header">
         <div>
-          <strong>Prova: {target.name}</strong>
+          <strong>{tr('Prova: {0}', target.name)}</strong>
           <span className="muted small"> {target.path}</span>
           {live?.modified && (
-            <span className="badge" title="La prova usa la texture così com'è nell'editor">
-              con le modifiche non salvate
+            <span className="badge" title={tr("La prova usa la texture così com'è nell'editor")}>
+              {tr('con le modifiche non salvate')}
             </span>
           )}
         </div>
@@ -326,12 +327,14 @@ export function TestScreen({
               className={shot.ok ? 'toast small' : 'toast error small'}
               data-testid="screenshot-result"
             >
-              {shot.ok ? `Salvato: ${shot.path}` : shot.error}
+              {shot.ok ? tr('Salvato: {0}', shot.path) : shot.error}
             </span>
           )}
           <button
             type="button"
-            title="Salva un'immagine di questa vista (per la pagina del pack su Modrinth o CurseForge) nella cartella degli export"
+            title={tr(
+              "Salva un'immagine di questa vista (per la pagina del pack su Modrinth o CurseForge) nella cartella degli export"
+            )}
             onClick={() => {
               const png = previewRef.current?.screenshot()
               if (!png) return
@@ -339,15 +342,15 @@ export function TestScreen({
             }}
           >
             <Glyph name="camera" />
-            Screenshot
+            {tr('Screenshot')}
           </button>
           <button type="button" className="primary" onClick={onBack}>
             <Glyph icon={NAV_ICONS.pencil} />
-            Torna a disegnare
+            {tr('Torna a disegnare')}
           </button>
           {onClose && (
             <button type="button" onClick={onClose}>
-              Chiudi prova
+              {tr('Chiudi prova')}
             </button>
           )}
         </div>
@@ -365,27 +368,29 @@ export function TestScreen({
               .join(' ')}
           >
             <div className="test-canvas-box">
-              <canvas ref={canvasRef} className="test-canvas" aria-label="Prova 3D" />
+              <canvas ref={canvasRef} className="test-canvas" aria-label={tr('Prova 3D')} />
               {comparingPom && (
                 <>
                   <div className="test-divider" />
-                  <span className="test-label left">Con POM</span>
-                  <span className="test-label right">Senza POM</span>
+                  <span className="test-label left">{tr('Con POM')}</span>
+                  <span className="test-label right">{tr('Senza POM')}</span>
                 </>
               )}
               {comparing && (
                 <>
                   <div className="test-divider" />
-                  <span className="test-label left">Il tuo pack</span>
-                  <span className="test-label right">Vanilla</span>
+                  <span className="test-label left">{tr('Il tuo pack')}</span>
+                  <span className="test-label right">{tr('Vanilla')}</span>
                 </>
               )}
             </div>
           </div>
           <span className="muted small test-help">
             {fly
-              ? 'Volo libero: trascina per guardarti intorno, W A S D per muoverti, Spazio e Maiusc per salire e scendere.'
-              : 'Trascina per ruotare, rotella per avvicinarti.'}{' '}
+              ? tr(
+                  'Volo libero: trascina per guardarti intorno, W A S D per muoverti, Spazio e Maiusc per salire e scendere.'
+                )
+              : tr('Trascina per ruotare, rotella per avvicinarti.')}{' '}
             {scene.hint}
           </span>
           {isItem && (
@@ -399,8 +404,8 @@ export function TestScreen({
 
         <aside className="card test-side">
           <section className="test-section">
-            <strong>Scena</strong>
-            <div className="tabs small-tabs wrap" role="radiogroup" aria-label="Scena">
+            <strong>{tr('Scena')}</strong>
+            <div className="tabs small-tabs wrap" role="radiogroup" aria-label={tr('Scena')}>
               {scenes.map((option) => (
                 <button
                   key={option.kind}
@@ -417,13 +422,15 @@ export function TestScreen({
             </div>
             {!isItem && (
               <label className="test-field">
-                <span className="muted small">Blocco provato (vuoto = la texture su un cubo)</span>
+                <span className="muted small">
+                  {tr('Blocco provato (vuoto = la texture su un cubo)')}
+                </span>
                 <input
                   list={listId}
                   value={blockInput}
                   onChange={(event) => setBlockInput(event.target.value)}
-                  placeholder="es. stone"
-                  aria-label="Blocco provato"
+                  placeholder={tr('es. stone')}
+                  aria-label={tr('Blocco provato')}
                   aria-invalid={blockInput.trim() !== '' && !block}
                   spellCheck={false}
                 />
@@ -431,13 +438,15 @@ export function TestScreen({
             )}
             {sceneKind === 'mixed' && (
               <div className="test-neighbours">
-                <span className="muted small">Blocchi vicini (prima il pack, poi vanilla)</span>
+                <span className="muted small">
+                  {tr('Blocchi vicini (prima il pack, poi vanilla)')}
+                </span>
                 {neighbours.map((name, index) => (
                   <input
                     key={index}
                     list={listId}
                     value={name}
-                    aria-label={`Blocco vicino ${index + 1}`}
+                    aria-label={tr('Blocco vicino {0}', index + 1)}
                     aria-invalid={name.trim() !== '' && !blockSet.has(name.trim())}
                     spellCheck={false}
                     onChange={(event) =>
@@ -463,11 +472,11 @@ export function TestScreen({
           </section>
 
           <section className="test-section">
-            <strong>Vista</strong>
+            <strong>{tr('Vista')}</strong>
             {!isItem && (
               <label className="preview-control">
                 <span>
-                  Distanza <strong>{Math.round(distance)} blocchi</strong>
+                  {tr('Distanza')} <strong>{tr('{0} blocchi', Math.round(distance))}</strong>
                 </span>
                 <RangeInput
                   type="range"
@@ -476,7 +485,7 @@ export function TestScreen({
                   step={0.5}
                   value={Math.min(distance, MAX_DISTANCE)}
                   disabled={fly}
-                  aria-label="Distanza"
+                  aria-label={tr('Distanza')}
                   onChange={(event) => setDistance(Number(event.target.value))}
                 />
               </label>
@@ -484,24 +493,28 @@ export function TestScreen({
             {!isItem && (
               <label
                 className="checkbox-inline"
-                title="Come nel gioco (livelli mipmap: 4): da lontano i dettagli si fondono in un colore medio"
+                title={tr(
+                  'Come nel gioco (livelli mipmap: 4): da lontano i dettagli si fondono in un colore medio'
+                )}
               >
                 <input
                   type="checkbox"
                   checked={mipmaps}
                   onChange={(event) => setMipmaps(event.target.checked)}
                 />
-                Mipmap come nel gioco
+                {tr('Mipmap come nel gioco')}
               </label>
             )}
             {!isItem && (
               <label
                 className="preview-control"
-                title="Le piante (colture, fiori, erba alta) ondeggiano come con gli shader (Iris): il pack da solo non lo fa"
+                title={tr(
+                  'Le piante (colture, fiori, erba alta) ondeggiano come con gli shader (Iris): il pack da solo non lo fa'
+                )}
               >
                 <span>
-                  Vento sulle piante{' '}
-                  <strong>{wind > 0 ? `${Math.round(wind * 100)}%` : 'no'}</strong>
+                  {tr('Vento sulle piante')}{' '}
+                  <strong>{wind > 0 ? `${Math.round(wind * 100)}%` : tr('no')}</strong>
                 </span>
                 <RangeInput
                   type="range"
@@ -509,7 +522,7 @@ export function TestScreen({
                   max={1}
                   step={0.05}
                   value={wind}
-                  aria-label="Vento"
+                  aria-label={tr('Vento')}
                   onChange={(event) => setWind(Number(event.target.value))}
                 />
               </label>
@@ -519,7 +532,12 @@ export function TestScreen({
                 className="checkbox-inline"
                 title={
                   ctm.set
-                    ? `${ctm.set.path} (${ctm.set.method}, ${ctm.set.tiles.length} tile): in gioco servono Continuity o OptiFine`
+                    ? tr(
+                        '{0} ({1}, {2} tile): in gioco servono Continuity o OptiFine',
+                        ctm.set.path,
+                        ctm.set.method,
+                        ctm.set.tiles.length
+                      )
                     : (ctm.reason ?? '')
                 }
               >
@@ -529,12 +547,17 @@ export function TestScreen({
                   disabled={!ctm.set}
                   onChange={(event) => setCtmOn(event.target.checked)}
                 />
-                Texture connesse{ctm.set ? ` (${ctm.set.method})` : ' (non mostrabili)'}
+                {tr(
+                  'Texture connesse{0}',
+                  ctm.set ? ` (${ctm.set.method})` : tr(' (non mostrabili)')
+                )}
               </label>
             )}
             <label
               className="checkbox-inline"
-              title={vanillaSources ? '' : 'Carica il jar vanilla dalla scheda Vanilla del pack'}
+              title={
+                vanillaSources ? '' : tr('Carica il jar vanilla dalla scheda Vanilla del pack')
+              }
             >
               <input
                 type="checkbox"
@@ -542,19 +565,19 @@ export function TestScreen({
                 disabled={!vanillaSources}
                 onChange={(event) => setCompare(event.target.checked)}
               />
-              Confronta con vanilla (affiancato)
+              {tr('Confronta con vanilla (affiancato)')}
             </label>
             <button type="button" aria-pressed={fly} onClick={() => setFly((on) => !on)}>
               <Glyph icon={fly ? GLYPHS.reset : NAV_ICONS.move} />
-              {fly ? 'Torna a ruotare' : 'Volo libero'}
+              {fly ? tr('Torna a ruotare') : tr('Volo libero')}
             </button>
           </section>
 
           <section className="test-section">
-            <strong>Luce e bioma</strong>
+            <strong>{tr('Luce e bioma')}</strong>
             <label className="preview-control">
               <span>
-                Ora del giorno <strong>{formatHour(hour)}</strong>
+                {tr('Ora del giorno')} <strong>{formatHour(hour)}</strong>
               </span>
               <RangeInput
                 type="range"
@@ -563,7 +586,7 @@ export function TestScreen({
                 step={0.05}
                 value={hour}
                 disabled={!followsHour}
-                aria-label="Ora del giorno"
+                aria-label={tr('Ora del giorno')}
                 onChange={(event) => {
                   setCycling(false)
                   setHour(normalizeHour(Number(event.target.value)))
@@ -572,15 +595,17 @@ export function TestScreen({
             </label>
             <button type="button" disabled={!followsHour} onClick={() => setCycling((on) => !on)}>
               <Glyph name={cycling ? 'pause' : 'play'} />
-              {cycling ? 'Ferma ciclo' : 'Ciclo giorno/notte'}
+              {cycling ? tr('Ferma ciclo') : tr('Ciclo giorno/notte')}
             </button>
             {!followsHour && (
               <span className="muted small">
-                La luce segue il preset degli effetti (scegli «Ora del giorno» per usare l’ora).
+                {tr(
+                  'La luce segue il preset degli effetti (scegli «Segui l’ora» per usare l’ora).'
+                )}
               </span>
             )}
             <label className="inline-select">
-              <span className="muted small">Bioma (erba, foglie)</span>
+              <span className="muted small">{tr('Bioma (erba, foglie)')}</span>
               <select value={biomeId} onChange={(event) => setBiomeId(event.target.value)}>
                 {BIOMES.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -592,26 +617,26 @@ export function TestScreen({
           </section>
 
           <section className="test-section">
-            <strong>Effetti (LabPBR)</strong>
+            <strong>{tr('Effetti (LabPBR)')}</strong>
             <label
               className="checkbox-inline"
-              title="Come con uno shader LabPBR (Iris): normali, riflessi, metalli, emissione"
+              title={tr('Come con uno shader LabPBR (Iris): normali, riflessi, metalli, emissione')}
             >
               <input
                 type="checkbox"
                 checked={effectsOn}
                 onChange={(event) => setEffectsOn(event.target.checked)}
               />
-              Mostra effetti
+              {tr('Mostra effetti')}
             </label>
-            <span className="muted small" aria-label="Mappe LabPBR">
-              Mappe di questa texture: <Glyph name={hasNormal ? 'check' : 'cross'} />
+            <span className="muted small" aria-label={tr('Mappe LabPBR')}>
+              {tr('Mappe di questa texture:')} <Glyph name={hasNormal ? 'check' : 'cross'} />
               <span data-map="n" data-ok={hasNormal}>
-                _n (normali)
+                {tr('_n (normali)')}
               </span>{' '}
               <Glyph name={hasSpecular ? 'check' : 'cross'} />
               <span data-map="s" data-ok={hasSpecular}>
-                _s (materiale)
+                {tr('_s (materiale)')}
               </span>
             </span>
             {effectsOn && (
@@ -627,7 +652,7 @@ export function TestScreen({
                         checked={comparingPom}
                         onChange={(event) => setPomCompare(event.target.checked)}
                       />
-                      Confronta con e senza POM (affiancato)
+                      {tr('Confronta con e senza POM (affiancato)')}
                     </label>
                   )
                 }

@@ -3,6 +3,7 @@
 import { PixelIcon } from '../ui/components'
 import { CMD_ICONS } from '../ui/icons'
 import { useCommandList, useCommandStore } from './commandContext'
+import { tr } from '../../shared/i18n'
 
 export function EditorHotbar() {
   const commands = useCommandList()
@@ -20,8 +21,8 @@ export function EditorHotbar() {
         <button
           type="button"
           className="ore ico"
-          title="Annulla (Ctrl+Z)"
-          aria-label="Annulla"
+          title={tr('Annulla (Ctrl+Z)')}
+          aria-label={tr('Annulla')}
           disabled={find('editor:undo')?.enabled === false}
           onClick={() => store.run('editor:undo')}
         >
@@ -30,36 +31,36 @@ export function EditorHotbar() {
         <button
           type="button"
           className="ore ico"
-          title="Ripeti (Ctrl+Y)"
-          aria-label="Ripeti"
+          title={tr('Ripeti (Ctrl+Y)')}
+          aria-label={tr('Ripeti')}
           disabled={find('editor:redo')?.enabled === false}
           onClick={() => store.run('editor:redo')}
         >
           <PixelIcon icon={CMD_ICONS.redo} />
         </button>
       </div>
-      <div className="joined" role="radiogroup" aria-label="Modalità dell'editor">
+      <div className="joined" role="radiogroup" aria-label={tr("Modalità dell'editor")}>
         <button
           type="button"
           role="radio"
           aria-checked={!proOn}
           className={proOn ? 'ore' : 'ore-on'}
-          title="Principiante: meno strumenti, consigli e avvisi"
+          title={tr('Principiante: meno strumenti, consigli e avvisi')}
           onClick={() => beginner && store.run(beginner.id)}
         >
           <PixelIcon icon={CMD_ICONS.beginner} />
-          <span>Principiante</span>
+          <span>{tr('Principiante')}</span>
         </button>
         <button
           type="button"
           role="radio"
           aria-checked={proOn}
           className={proOn ? 'ore-on' : 'ore'}
-          title="Pro: tutti gli strumenti e le opzioni"
+          title={tr('Pro: tutti gli strumenti e le opzioni')}
           onClick={() => pro && store.run(pro.id)}
         >
           <PixelIcon icon={CMD_ICONS.pro} />
-          <span>Pro</span>
+          <span>{tr('Pro')}</span>
         </button>
       </div>
       <button
@@ -67,10 +68,10 @@ export function EditorHotbar() {
         className={save.enabled === false ? 'ore ico' : 'ore-on ico'}
         title={
           save.enabled === false
-            ? `Salva (Ctrl+S) — ${save.why ?? ''}`
-            : 'Salva la texture nel pack (Ctrl+S)'
+            ? tr('Salva (Ctrl+S) — {0}', save.why ?? '')
+            : tr('Salva la texture nel pack (Ctrl+S)')
         }
-        aria-label="Salva"
+        aria-label={tr('Salva')}
         disabled={save.enabled === false}
         onClick={() => store.run('editor:save')}
       >

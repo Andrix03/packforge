@@ -5,6 +5,7 @@ import { decodePng, encodePng, MAX_IMAGE_PIXELS, MAX_IMAGE_SIDE } from '../share
 import { writeFileAtomic } from './atomicWrite'
 import { isSafePackPath } from './packSource'
 import type { DraftImage, DraftMaps } from '../shared/ipc'
+import { tr } from '../shared/i18n'
 
 // Unsaved editor work, kept OUTSIDE the pack (in the app's user data) so a crash or a forgotten
 // save never loses it and never leaves stray files in the pack. One draft per pack texture.
@@ -48,16 +49,16 @@ export class DraftStore {
     now = new Date()
   ): Promise<DraftResult> {
     if (typeof path !== 'string' || !isSafePackPath(path) || !path.toLowerCase().endsWith('.png')) {
-      return { ok: false, error: 'Percorso della texture non valido.' }
+      return { ok: false, error: tr('Percorso della texture non valido.') }
     }
     if (!isSide(width) || !isSide(height) || width * height > MAX_IMAGE_PIXELS) {
-      return { ok: false, error: 'Dimensioni della texture non valide.' }
+      return { ok: false, error: tr('Dimensioni della texture non valide.') }
     }
     if (!(rgba instanceof Uint8Array) || rgba.length !== width * height * 4) {
-      return { ok: false, error: 'Dati della texture non validi.' }
+      return { ok: false, error: tr('Dati della texture non validi.') }
     }
     const images = draftMaps(maps)
-    if (!images) return { ok: false, error: 'Dati delle mappe non validi.' }
+    if (!images) return { ok: false, error: tr('Dati delle mappe non validi.') }
     const base = this.base(packRoot, path)
     const kinds = MAP_KINDS.filter((kind) => images[kind])
     const meta: DraftMeta = {
@@ -83,7 +84,7 @@ export class DraftStore {
       return { ok: true }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
-      return { ok: false, error: `Impossibile salvare la bozza: ${detail}` }
+      return { ok: false, error: tr('Impossibile salvare la bozza: {0}', detail) }
     }
   }
 

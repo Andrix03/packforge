@@ -5,6 +5,7 @@
 
 import { comparePackVersions, type PackVersion } from './packFormat'
 import { firstRelease, type FormatRange, type ModelIssue, type ModelSeverity } from './modelRules'
+import { tr } from './i18n'
 
 export type ItemNode =
   | { type: 'model'; model: string; tints: unknown[] }
@@ -84,13 +85,16 @@ export function parseItemDefinition(json: unknown, range: FormatRange): ParsedIt
   const tooOld = (feature: PackVersion): boolean => comparePackVersions(range.min, feature) < 0
   const reaches = (feature: PackVersion): boolean => comparePackVersions(range.max, feature) >= 0
   if (!isRecord(json)) {
-    add('error', 'La definizione non è un oggetto JSON.')
+    add('error', tr('La definizione non è un oggetto JSON.'))
     return { root: null, issues }
   }
   if (tooOld(ITEM_FEATURES.definitions)) {
     add(
       'info',
-      `Le definizioni items/ esistono dalla ${firstRelease(ITEM_FEATURES.definitions)}: prima il gioco usa models/item.`
+      tr(
+        'Le definizioni items/ esistono dalla {0}: prima il gioco usa models/item.',
+        firstRelease(ITEM_FEATURES.definitions)
+      )
     )
   }
   for (const [key, feature] of [
@@ -98,26 +102,30 @@ export function parseItemDefinition(json: unknown, range: FormatRange): ParsedIt
     ['swap_animation_scale', ITEM_FEATURES.swapAnimationScale]
   ] as const) {
     if (json[key] !== undefined && tooOld(feature)) {
-      add('warning', `"${key}" funziona dalla ${firstRelease(feature)}: prima è ignorato.`)
+      add('warning', tr('"{0}" funziona dalla {1}: prima è ignorato.', key, firstRelease(feature)))
     }
   }
 
   const node = (value: unknown, where: string): ItemNode | null => {
     if (!isRecord(value) || typeof value['type'] !== 'string') {
-      add('error', `${where}: manca "type".`)
+      add('error', tr('{0}: manca "type".', where))
       return null
     }
     if (value['transformation'] !== undefined && tooOld(ITEM_FEATURES.transformation)) {
       add(
         'error',
-        `${where}: "transformation" funziona dalla ${firstRelease(ITEM_FEATURES.transformation)}.`
+        tr(
+          '{0}: "transformation" funziona dalla {1}.',
+          where,
+          firstRelease(ITEM_FEATURES.transformation)
+        )
       )
     }
     const type = withoutNamespace(value['type'])
     switch (type) {
       case 'model': {
         if (typeof value['model'] !== 'string') {
-          add('error', `${where}: "model" deve essere l’id di un modello.`)
+          add('error', tr('{0}: "model" deve essere l’id di un modello.', where))
           return null
         }
         const tints = Array.isArray(value['tints']) ? value['tints'] : []
@@ -127,16 +135,16 @@ export function parseItemDefinition(json: unknown, range: FormatRange): ParsedIt
               ? withoutNamespace(tint['type'])
               : null
           if (kind === null || !TINTS.has(kind)) {
-            add('error', `${where}: tinta sconosciuta (${String(kind)}).`)
+            add('error', tr('{0}: tinta sconosciuta ({1}).', where, String(kind)))
           } else if (kind === 'map_color' && reaches(MAP_COLOR_REMOVED)) {
-            add('error', `${where}: la tinta "map_color" non esiste più dalla 26.3.`)
+            add('error', tr('{0}: la tinta "map_color" non esiste più dalla 26.3.', where))
           }
         }
         return { type, model: value['model'], tints }
       }
       case 'composite': {
         const models = Array.isArray(value['models']) ? value['models'] : null
-        if (!models) add('error', `${where}: "models" deve essere una lista.`)
+        if (!models) add('error', tr('{0}: "models" deve essere una lista.', where))
         return {
           type,
           models: (models ?? []).flatMap((m, i) => node(m, `${where}.models[${i}]`) ?? [])
@@ -145,7 +153,7 @@ export function parseItemDefinition(json: unknown, range: FormatRange): ParsedIt
       case 'condition': {
         const onTrue = node(value['on_true'], `${where}.on_true`)
         const onFalse = node(value['on_false'], `${where}.on_false`)
-        if (typeof value['property'] !== 'string') add('error', `${where}: manca "property".`)
+        if (typeof value['property'] !== 'string') add('error', tr('{0}: manca "property".', where))
         if (!onTrue || !onFalse) return null
         return { type, property: withoutNamespace(String(value['property'])), onTrue, onFalse }
       }
@@ -159,7 +167,7 @@ export function parseItemDefinition(json: unknown, range: FormatRange): ParsedIt
             model
           })
         }
-        if (typeof value['property'] !== 'string') add('error', `${where}: manca "property".`)
+        if (typeof value['property'] !== 'string') add('error', tr('{0}: manca "property".', where))
         return {
           type,
           property: withoutNamespace(String(value['property'])),
@@ -178,7 +186,7 @@ export function parseItemDefinition(json: unknown, range: FormatRange): ParsedIt
           if (!isRecord(entry) || typeof entry['threshold'] !== 'number' || !model) continue
           entries.push({ threshold: entry['threshold'], model })
         }
-        if (typeof value['property'] !== 'string') add('error', `${where}: manca "property".`)
+        if (typeof value['property'] !== 'string') add('error', tr('{0}: manca "property".', where))
         return {
           type,
           property: withoutNamespace(String(value['property'])),
@@ -196,25 +204,33 @@ export function parseItemDefinition(json: unknown, range: FormatRange): ParsedIt
           isRecord(value['model']) && typeof value['model']['type'] === 'string'
             ? withoutNamespace(value['model']['type'])
             : null
-        if (typeof value['base'] !== 'string') add('error', `${where}: manca "base".`)
+        if (typeof value['base'] !== 'string') add('error', tr('{0}: manca "base".', where))
         const rule = special === null ? undefined : SPECIALS[special]
         if (!rule) {
-          add('error', `${where}: modello speciale sconosciuto (${String(special)}).`)
+          add('error', tr('{0}: modello speciale sconosciuto ({1}).', where, String(special)))
         } else if (rule.removed && reaches(rule.removed)) {
           add(
             'error',
-            `${where}: lo speciale "${special}" non esiste più dalla ${firstRelease(rule.removed)}.`
+            tr(
+              '{0}: lo speciale "{1}" non esiste più dalla {2}.',
+              where,
+              special,
+              firstRelease(rule.removed)
+            )
           )
         } else if (tooOld(rule.since)) {
           add(
             'error',
-            `${where}: lo speciale "${special}" esiste dalla ${firstRelease(rule.since)}.`
+            tr('{0}: lo speciale "{1}" esiste dalla {2}.', where, special, firstRelease(rule.since))
           )
         }
         return { type, special: special ?? '', base: String(value['base'] ?? '') }
       }
       default:
-        add('error', `${where}: tipo "${type}" sconosciuto: il gioco non carica la definizione.`)
+        add(
+          'error',
+          tr('{0}: tipo "{1}" sconosciuto: il gioco non carica la definizione.', where, type)
+        )
         return null
     }
   }

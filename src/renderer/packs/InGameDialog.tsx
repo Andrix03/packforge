@@ -3,24 +3,28 @@ import type { SyncStatus } from '../../shared/ipc'
 import { announceStep } from '../tutorialEvents'
 import { DialogFrame, Glyph } from '../ui/components'
 import { useEscape } from '../useEscape'
+import { locale, tr } from '../../shared/i18n'
 
 /** Debug hotkeys useful while testing a pack (minecraft.wiki "Debug hotkey", 26.x). */
 const HOTKEYS: ReadonlyArray<[string, string]> = [
-  ['F3 + T', 'Ricarica i resource pack (texture, modelli, suoni): da premere dopo ogni modifica'],
-  ['F3 + A', 'Ricarica i chunk caricati'],
-  ['F3 + G', 'Mostra i confini dei chunk'],
-  ['F3 + B', 'Mostra le hitbox delle entità'],
-  ['F3 + H', 'Tooltip avanzati degli oggetti (id, durabilità)'],
-  ['F3 + Esc', 'Pausa senza menu (solo giocatore singolo): utile per guardare da vicino'],
-  ['F3 + F4', 'Cambia modalità di gioco'],
-  ['F3 + N', 'Passa a spettatore e ritorno']
+  [
+    'F3 + T',
+    tr('Ricarica i resource pack (texture, modelli, suoni): da premere dopo ogni modifica')
+  ],
+  ['F3 + A', tr('Ricarica i chunk caricati')],
+  ['F3 + G', tr('Mostra i confini dei chunk')],
+  ['F3 + B', tr('Mostra le hitbox delle entità')],
+  ['F3 + H', tr('Tooltip avanzati degli oggetti (id, durabilità)')],
+  ['F3 + Esc', tr('Pausa senza menu (solo giocatore singolo): utile per guardare da vicino')],
+  ['F3 + F4', tr('Cambia modalità di gioco')],
+  ['F3 + N', tr('Passa a spettatore e ritorno')]
 ]
 
 /** Iris defaults (Iris guide; they can be changed in Controlli). */
 const IRIS_KEYS: ReadonlyArray<[string, string]> = [
-  ['R', 'Ricarica lo shader pack (dopo aver cambiato _n / _s basta F3 + T)'],
-  ['K', 'Attiva / disattiva gli shader: confronto immediato con e senza'],
-  ['O', 'Menu degli shader pack, con lo sfondo trasparente']
+  ['R', tr('Ricarica lo shader pack (dopo aver cambiato _n / _s basta F3 + T)')],
+  ['K', tr('Attiva / disattiva gli shader: confronto immediato con e senza')],
+  ['O', tr('Menu degli shader pack, con lo sfondo trasparente')]
 ]
 
 /** Test the pack in the game: its copy in resourcepacks and the keys to remember. */
@@ -58,10 +62,10 @@ export function InGameDialog({
 
   const last = status?.last
   return (
-    <DialogFrame embedded={embedded} label="Prova in gioco" onBackdrop={onClose}>
-      <h2>Prova {packName} in gioco</h2>
+    <DialogFrame embedded={embedded} label={tr('Prova in gioco')} onBackdrop={onClose}>
+      <h2>{tr('Prova {0} in gioco', packName)}</h2>
 
-      <h3 className="panel-title">1. Copia nella cartella resourcepacks</h3>
+      <h3 className="panel-title">{tr('1. Copia nella cartella resourcepacks')}</h3>
       {!status ? (
         <p className="small">…</p>
       ) : !status.available ? (
@@ -72,13 +76,14 @@ export function InGameDialog({
         <>
           <p className="small" data-testid="sync-target">
             {status.target}
-            {status.state === 'missing' && ', non ancora copiato'}
-            {status.state === 'ours' && ', copia di PackForge'}
+            {status.state === 'missing' && tr(', non ancora copiato')}
+            {status.state === 'ours' && tr(', copia di PackForge')}
           </p>
           {status.state === 'foreign' && (
             <p className="field-error small">
-              Lì c’è già una cartella con questo nome che PackForge non ha creato: non la tocco.
-              Rinominala o spostala, poi riprova.
+              {tr(
+                'Lì c’è già una cartella con questo nome che PackForge non ha creato: non la tocco. Rinominala o spostala, poi riprova.'
+              )}
             </p>
           )}
           <div className="row">
@@ -88,15 +93,17 @@ export function InGameDialog({
               disabled={busy || status.state === 'foreign'}
               onClick={() => void copyNow()}
             >
-              {status.state === 'ours' ? 'Aggiorna la copia' : 'Copia nel gioco'}
+              {status.state === 'ours' ? tr('Aggiorna la copia') : tr('Copia nel gioco')}
             </button>
             <button type="button" onClick={() => void window.api.invoke('sync:openFolder')}>
-              Apri la cartella resourcepacks
+              {tr('Apri la cartella resourcepacks')}
             </button>
           </div>
           <label
             className="inline-check small"
-            title="Ogni volta che salvi (o un file del pack cambia), la copia si aggiorna da sola: in gioco basta F3 + T"
+            title={tr(
+              'Ogni volta che salvi (o un file del pack cambia), la copia si aggiorna da sola: in gioco basta F3 + T'
+            )}
           >
             <input
               type="checkbox"
@@ -106,43 +113,53 @@ export function InGameDialog({
                 void window.api.invoke('sync:setAuto', event.target.checked).then(setStatus)
               }
             />
-            Aggiorna la copia da sola dopo ogni modifica
+            {tr('Aggiorna la copia da sola dopo ogni modifica')}
           </label>
           {last && (
             <p className={last.error ? 'field-error small' : 'small muted'} data-testid="sync-last">
               {last.error ??
-                `Ultima copia alle ${new Date(last.at).toLocaleTimeString('it-IT')}: ${last.copied} file copiati, ${last.removed} rimossi.`}
+                tr(
+                  'Ultima copia alle {0}: {1} file copiati, {2} rimossi.',
+                  new Date(last.at).toLocaleTimeString(locale()),
+                  last.copied,
+                  last.removed
+                )}
             </p>
           )}
           <p className="small muted">
-            È una copia, non un collegamento: Minecraft ignora i collegamenti in resourcepacks se
-            non sono autorizzati in allowed_symlinks.txt.
+            {tr(
+              'È una copia, non un collegamento: Minecraft ignora i collegamenti in resourcepacks se non sono autorizzati in allowed_symlinks.txt.'
+            )}
           </p>
         </>
       )}
 
-      <h3 className="panel-title">2. In gioco</h3>
+      <h3 className="panel-title">{tr('2. In gioco')}</h3>
       <ol className="small ingame-steps">
         <li>
-          Opzioni <Glyph name="arrowRight" /> Pacchetti di risorse: sposta «{packName}» nella
-          colonna di destra (più in alto = vince sugli altri).
+          {tr('Opzioni')} <Glyph name="arrowRight" />{' '}
+          {tr(
+            'Pacchetti di risorse: sposta «{0}» nella colonna di destra (più in alto = vince sugli altri).',
+            packName
+          )}
         </li>
-        <li>Dopo ogni modifica salvata premi F3 + T.</li>
+        <li>{tr('Dopo ogni modifica salvata premi F3 + T.')}</li>
         <li>
-          Per _n e _s serve uno shader pack LabPBR con Iris (Fabric); per le texture connesse
-          Continuity (o OptiFine).
+          {tr(
+            'Per _n e _s serve uno shader pack LabPBR con Iris (Fabric); per le texture connesse Continuity (o OptiFine).'
+          )}
         </li>
-        <li>Se il pack appare in rosso, il pack_format non è quello della tua versione.</li>
+        <li>{tr('Se il pack appare in rosso, il pack_format non è quello della tua versione.')}</li>
       </ol>
 
-      <h3 className="panel-title">Tasti utili</h3>
+      <h3 className="panel-title">{tr('Tasti utili')}</h3>
       <KeyTable rows={HOTKEYS} />
-      <h3 className="panel-title">Shader (Iris)</h3>
+      <h3 className="panel-title">{tr('Shader (Iris)')}</h3>
       <KeyTable rows={IRIS_KEYS} />
 
       <div className="row">
         <button type="button" onClick={onClose}>
-          Chiudi
+          {tr('Chiudi')}
         </button>
       </div>
     </DialogFrame>

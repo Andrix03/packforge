@@ -23,7 +23,8 @@ describe('parseSettings', () => {
       editorMode: 'beginner',
       palettes: [],
       checkUpdates: true,
-      tutorial: { status: 'active', done: [] }
+      tutorial: { status: 'active', done: [] },
+      language: null
     })
   })
 

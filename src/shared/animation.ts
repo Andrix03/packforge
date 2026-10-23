@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // Texture animation from `<texture>.png.mcmeta` (the "animation" section).
 // Source: https://minecraft.wiki/w/Resource_pack (texture animation
 // properties), verified 2026-10-18.
@@ -38,12 +39,12 @@ export function parseAnimation(
 ): AnimationResult {
   const section = isRecord(mcmeta) ? mcmeta['animation'] : undefined
   if (section === undefined) return { ok: true, animation: null }
-  if (!isRecord(section)) return fail('"animation" deve essere un oggetto.')
+  if (!isRecord(section)) return fail(tr('"animation" deve essere un oggetto.'))
 
   const width = optionalPositiveInt(section['width'])
   const height = optionalPositiveInt(section['height'])
   if (width === false || height === false) {
-    return fail('"width" e "height" devono essere interi positivi.')
+    return fail(tr('"width" e "height" devono essere interi positivi.'))
   }
   // As the game (26.3 AnimationMetadataSection.calculateFrameSize, read with javap): neither
   // given → square frames of the smaller image side; only one given → the other side is the
@@ -53,32 +54,40 @@ export function parseAnimation(
   const frameHeight = height ?? (width !== undefined ? imageHeight : smaller)
   if (imageWidth % frameWidth !== 0 || imageHeight % frameHeight !== 0) {
     return fail(
-      `L'immagine (${imageWidth}×${imageHeight}) non è divisibile in frame da ${frameWidth}×${frameHeight}: il gioco mostrerà la texture mancante.`
+      tr(
+        "L'immagine ({0}×{1}) non è divisibile in frame da {2}×{3}: il gioco mostrerà la texture mancante.",
+        imageWidth,
+        imageHeight,
+        frameWidth,
+        frameHeight
+      )
     )
   }
   const columns = imageWidth / frameWidth
   const frameCount = columns * (imageHeight / frameHeight)
 
   const frametime = optionalPositiveInt(section['frametime'])
-  if (frametime === false) return fail('"frametime" deve essere un intero positivo.')
+  if (frametime === false) return fail(tr('"frametime" deve essere un intero positivo.'))
   const defaultTime = frametime ?? 1
 
   const interpolate = section['interpolate'] ?? false
-  if (typeof interpolate !== 'boolean') return fail('"interpolate" deve essere true o false.')
+  if (typeof interpolate !== 'boolean') return fail(tr('"interpolate" deve essere true o false.'))
 
   let frames: AnimationFrame[]
   if (section['frames'] === undefined) {
     frames = Array.from({ length: frameCount }, (_, index) => ({ index, time: defaultTime }))
   } else {
     if (!Array.isArray(section['frames']) || section['frames'].length === 0) {
-      return fail('"frames" deve essere una lista non vuota.')
+      return fail(tr('"frames" deve essere una lista non vuota.'))
     }
     frames = []
     for (const entry of section['frames']) {
       const frame = parseFrame(entry, defaultTime)
-      if (!frame) return fail('Ogni frame deve essere un indice o {"index", "time"} validi.')
+      if (!frame) return fail(tr('Ogni frame deve essere un indice o {"index", "time"} validi.'))
       if (frame.index >= frameCount) {
-        return fail(`Il frame ${frame.index} non esiste: l'immagine ne contiene ${frameCount}.`)
+        return fail(
+          tr("Il frame {0} non esiste: l'immagine ne contiene {1}.", frame.index, frameCount)
+        )
       }
       frames.push(frame)
     }

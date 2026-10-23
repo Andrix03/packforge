@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { decodePng } from '../../shared/pngCodec'
 import { getPixel, type Rgba } from './pixels'
 import { RangeInput } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 export interface LoadedReference {
   /** Display copy, drawn scaled (also traced over the main canvas). */
@@ -84,18 +85,18 @@ export function ReferencePanel({
   return (
     <section className="card reference-panel">
       <div className="row">
-        <strong className="small">Riferimento vanilla</strong>
+        <strong className="small">{tr('Riferimento vanilla')}</strong>
         <span className="muted small">{label}</span>
       </div>
       {!url ? (
-        <p className="muted small">Il gioco non ha una texture con questo nome.</p>
+        <p className="muted small">{tr('Il gioco non ha una texture con questo nome.')}</p>
       ) : failed ? (
-        <p className="field-error small">Impossibile leggere la texture vanilla.</p>
+        <p className="field-error small">{tr('Impossibile leggere la texture vanilla.')}</p>
       ) : (
         <>
           <div
             className="reference-image"
-            title="Clic sinistro: prendi il colore come primario, destro: come secondario"
+            title={tr('Clic sinistro: prendi il colore come primario, destro: come secondario')}
             onClick={pick}
             onContextMenu={pick}
           >
@@ -103,10 +104,10 @@ export function ReferencePanel({
           </div>
           <label
             className="color-slider"
-            title="Mostra la texture vanilla sopra il canvas per ricalcarla"
+            title={tr('Mostra la texture vanilla sopra il canvas per ricalcarla')}
           >
             <span className="small muted">
-              Ricalco sul canvas <span className="slider-value">{traceOpacity}%</span>
+              {tr('Ricalco sul canvas')} <span className="slider-value">{traceOpacity}%</span>
             </span>
             <RangeInput
               type="range"
@@ -118,8 +119,9 @@ export function ReferencePanel({
             />
           </label>
           <p className="muted small">
-            Solo riferimento: puoi guardarla, ricalcarla e prenderne i colori, ma i suoi pixel non
-            entrano nel pack.
+            {tr(
+              'Solo riferimento: puoi guardarla, ricalcarla e prenderne i colori, ma i suoi pixel non entrano nel pack.'
+            )}
           </p>
         </>
       )}

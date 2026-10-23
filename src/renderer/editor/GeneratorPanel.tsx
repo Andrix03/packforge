@@ -5,6 +5,7 @@ import type {
   OcclusionOptions
 } from '../../shared/pbrGenerator'
 import { RangeInput } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 export interface GeneratorSettings {
   height: HeightOptions
@@ -39,121 +40,130 @@ export function GeneratorPanel({
   const setNormals = (change: Partial<NormalOptions>): void =>
     onSettings({ ...settings, normals: { ...normals, ...change } })
   return (
-    <section className="card generator-panel" aria-label="Generatore di rilievo">
-      <h3 className="panel-title">Generatore di rilievo</h3>
+    <section className="card generator-panel" aria-label={tr('Generatore di rilievo')}>
+      <h3 className="panel-title">{tr('Generatore di rilievo')}</h3>
       <button
         type="button"
         className="primary"
         disabled={heightFromColor !== null}
         title={
           heightFromColor ??
-          'Altezza dai colori, poi normali e occlusione dall’altezza (un solo passo da annullare)'
+          tr(
+            'Altezza dai colori, poi normali e occlusione dall’altezza (un solo passo da annullare)'
+          )
         }
         onClick={() => onGenerate('all')}
       >
-        Genera tutto dai colori
+        {tr('Genera tutto dai colori')}
       </button>
 
-      <h4 className="small">Altezza dai colori</h4>
+      <h4 className="small">{tr('Altezza dai colori')}</h4>
       <p className="small muted">
-        I pixel chiari restano in superficie, quelli scuri scendono (fughe, crepe).
+        {tr('I pixel chiari restano in superficie, quelli scuri scendono (fughe, crepe).')}
       </p>
       <Range
-        label="Profondità"
+        label={tr('Profondità')}
         value={Math.round(height.depth * 100)}
         unit="%"
         min={0}
         max={100}
-        title="Quanto scende il pixel più scuro: 100% = il 25% del blocco previsto da LabPBR"
+        title={tr('Quanto scende il pixel più scuro: 100% = il 25% del blocco previsto da LabPBR')}
         onChange={(value) => setHeight({ depth: value / 100 })}
       />
       <Range
-        label="Sfocatura"
+        label={tr('Sfocatura')}
         value={height.blur}
         unit=" px"
         min={0}
         max={4}
-        title="Ammorbidisce il rilievo; 0 = ogni pixel ha la sua altezza (pixel art)"
+        title={tr('Ammorbidisce il rilievo; 0 = ogni pixel ha la sua altezza (pixel art)')}
         onChange={(blur) => setHeight({ blur })}
       />
       <Range
-        label="Gradini"
+        label={tr('Gradini')}
         value={height.steps}
         unit=""
         min={0}
         max={8}
-        title="Arrotonda l’altezza a pochi livelli, per un rilievo a cubetti; 0 = continuo"
+        title={tr('Arrotonda l’altezza a pochi livelli, per un rilievo a cubetti; 0 = continuo')}
         onChange={(steps) => setHeight({ steps })}
         format={(value) => (value < 2 ? 'no' : String(value))}
       />
-      <label className="inline-check small" title="I pixel chiari diventano bassi invece che alti">
+      <label
+        className="inline-check small"
+        title={tr('I pixel chiari diventano bassi invece che alti')}
+      >
         <input
           type="checkbox"
           checked={height.invert}
           onChange={(event) => setHeight({ invert: event.target.checked })}
         />
-        Inverti
+        {tr('Inverti')}
       </label>
       <label
         className="inline-check small"
-        title="Il pixel più scuro va in fondo e il più chiaro in superficie, qualunque sia la texture"
+        title={tr(
+          'Il pixel più scuro va in fondo e il più chiaro in superficie, qualunque sia la texture'
+        )}
       >
         <input
           type="checkbox"
           checked={height.autoLevels}
           onChange={(event) => setHeight({ autoLevels: event.target.checked })}
         />
-        Livelli automatici
+        {tr('Livelli automatici')}
       </label>
       <button
         type="button"
         disabled={heightFromColor !== null}
-        title={heightFromColor ?? 'Sostituisce il canale Altezza'}
+        title={heightFromColor ?? tr('Sostituisce il canale Altezza')}
         onClick={() => onGenerate('height')}
       >
-        Genera altezza
+        {tr('Genera altezza')}
       </button>
       {heightFromColor && <p className="small muted">{heightFromColor}</p>}
 
-      <h4 className="small">Normali e occlusione dall’altezza</h4>
+      <h4 className="small">{tr('Normali e occlusione dall’altezza')}</h4>
       <Range
-        label="Forza normali"
+        label={tr('Forza normali')}
         value={Math.round(normals.strength * 100)}
         unit="%"
         min={10}
         max={400}
-        title="100% = la pendenza vera del rilievo (quella che disegna il POM); di più = esagerata"
+        title={tr(
+          '100% = la pendenza vera del rilievo (quella che disegna il POM); di più = esagerata'
+        )}
         onChange={(value) => setNormals({ strength: value / 100 })}
       />
       <label
         className="small select-field"
-        title="Sobel è il classico; Scharr è più preciso in diagonale"
+        title={tr('Sobel è il classico; Scharr è più preciso in diagonale')}
       >
-        Filtro{' '}
+        {tr('Filtro')}{' '}
         <select
           value={normals.filter}
           onChange={(event) => setNormals({ filter: event.target.value as NormalFilter })}
         >
-          <option value="sobel">Sobel</option>
-          <option value="scharr">Scharr</option>
+          <option value="sobel">{tr('Sobel')}</option>
+          <option value="scharr">{tr('Scharr')}</option>
         </select>
       </label>
-      <label className="inline-check small" title="Scrive anche il canale Occlusione (B)">
+      <label className="inline-check small" title={tr('Scrive anche il canale Occlusione (B)')}>
         <input
           type="checkbox"
           checked={settings.withOcclusion}
           onChange={(event) => onSettings({ ...settings, withOcclusion: event.target.checked })}
         />
-        Occlusione
+        {tr('Occlusione')}
       </label>
       {settings.withOcclusion && (
         <Range
-          label="Forza occlusione"
+          label={tr('Forza occlusione')}
           value={Math.round(occlusion.strength * 100)}
           unit="%"
           min={0}
           max={100}
-          title="Quanto si scuriscono le fessure circondate da pixel più alti"
+          title={tr('Quanto si scuriscono le fessure circondate da pixel più alti')}
           onChange={(value) =>
             onSettings({ ...settings, occlusion: { ...occlusion, strength: value / 100 } })
           }
@@ -161,32 +171,34 @@ export function GeneratorPanel({
       )}
       <button
         type="button"
-        title="Sostituisce le normali (e l’occlusione) partendo dal canale Altezza"
+        title={tr('Sostituisce le normali (e l’occlusione) partendo dal canale Altezza')}
         onClick={() => onGenerate('fromHeight')}
       >
-        Genera normali{settings.withOcclusion ? ' e occlusione' : ''}
+        {tr('Genera normali{0}', settings.withOcclusion ? tr(' e occlusione') : '')}
       </button>
       <label
         className="inline-check small"
-        title="Dopo ogni tratto sul canale Altezza rigenera le normali (e l’occlusione)"
+        title={tr('Dopo ogni tratto sul canale Altezza rigenera le normali (e l’occlusione)')}
       >
         <input
           type="checkbox"
           checked={settings.auto}
           onChange={(event) => onSettings({ ...settings, auto: event.target.checked })}
         />
-        Aggiorna mentre dipingi l’altezza
+        {tr('Aggiorna mentre dipingi l’altezza')}
       </label>
       <label
         className="inline-check small"
-        title="I bordi si collegano come quando il blocco si ripete; togli la spunta per texture che non si ripetono"
+        title={tr(
+          'I bordi si collegano come quando il blocco si ripete; togli la spunta per texture che non si ripetono'
+        )}
       >
         <input
           type="checkbox"
           checked={settings.wrap}
           onChange={(event) => onSettings({ ...settings, wrap: event.target.checked })}
         />
-        Bordi ripetibili
+        {tr('Bordi ripetibili')}
       </label>
     </section>
   )

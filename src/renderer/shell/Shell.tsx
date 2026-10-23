@@ -6,6 +6,7 @@ import { PixelIcon } from '../ui/components'
 import { NAV_ICONS } from '../ui/icons'
 import { useCommandList, useCommandStore } from './commandContext'
 import './shell.css'
+import { tr } from '../../shared/i18n'
 
 const MENU_ORDER = [
   'File',
@@ -19,6 +20,25 @@ const MENU_ORDER = [
   'Aiuto'
 ]
 
+/** Menu and area names are Italian keys (commands group by them): shown translated. */
+const NAMES: Readonly<Record<string, string>> = {
+  File: tr('File'),
+  Modifica: tr('Modifica'),
+  Immagine: tr('Immagine'),
+  Livelli: tr('Livelli'),
+  Seleziona: tr('Seleziona'),
+  'Mappe PBR': tr('Mappe PBR'),
+  Pack: tr('Pack'),
+  Visualizza: tr('Visualizza'),
+  Aiuto: tr('Aiuto'),
+  Disegna: tr('Disegna'),
+  Effetti: tr('Effetti'),
+  Prova: tr('Prova'),
+  Pubblica: tr('Pubblica'),
+  PackForge: 'PackForge'
+}
+const nameOf = (key: string): string => NAMES[key] ?? key
+
 export interface WorkspaceTab {
   id: Workspace
   enabled: boolean
@@ -27,11 +47,11 @@ export interface WorkspaceTab {
 }
 
 const TABS: { id: Workspace; label: string; icon: keyof typeof NAV_ICONS }[] = [
-  { id: 'pack', label: 'Pack', icon: 'chest' },
-  { id: 'disegna', label: 'Disegna', icon: 'pencil' },
-  { id: 'prova', label: 'Prova', icon: 'cube' },
-  { id: 'effetti', label: 'Effetti', icon: 'spark' },
-  { id: 'pubblica', label: 'Pubblica', icon: 'upload' }
+  { id: 'pack', label: tr('Pack'), icon: 'chest' },
+  { id: 'disegna', label: tr('Disegna'), icon: 'pencil' },
+  { id: 'prova', label: tr('Prova'), icon: 'cube' },
+  { id: 'effetti', label: tr('Effetti'), icon: 'spark' },
+  { id: 'pubblica', label: tr('Pubblica'), icon: 'upload' }
 ]
 
 export function Shell({
@@ -80,7 +100,7 @@ export function Shell({
           <strong>{title}</strong>
           <span className="muted">{subtitle}</span>
         </div>
-        <nav className="shell-tabs" aria-label="Spazi di lavoro">
+        <nav className="shell-tabs" aria-label={tr('Spazi di lavoro')}>
           {TABS.map((tab) => {
             const state = tabs.find((t) => t.id === tab.id)
             const active = workspace === tab.id
@@ -149,7 +169,7 @@ function MenuBar({ onSearch }: { onSearch: () => void }) {
     <div className="shell-menubar" ref={bar}>
       <span className="shell-logo">
         <PixelIcon icon={NAV_ICONS.logo} />
-        <span>PackForge</span>
+        <span>{tr('PackForge')}</span>
       </span>
       <div className="shell-menus" role="menubar">
         {menus.map(([name, list]) => (
@@ -163,10 +183,10 @@ function MenuBar({ onSearch }: { onSearch: () => void }) {
               onClick={() => setOpen(open === name ? null : name)}
               onPointerEnter={() => open !== null && open !== name && setOpen(name)}
             >
-              {name}
+              {nameOf(name)}
             </button>
             {open === name && (
-              <div className="shell-dropdown raised" role="menu" aria-label={name}>
+              <div className="shell-dropdown raised" role="menu" aria-label={nameOf(name)}>
                 {list.map((command) => (
                   <button
                     key={command.id}
@@ -190,11 +210,11 @@ function MenuBar({ onSearch }: { onSearch: () => void }) {
         type="button"
         className="shell-search sunken"
         onClick={onSearch}
-        aria-label="Cerca un comando (Ctrl+K)"
+        aria-label={tr('Cerca un comando (Ctrl+K)')}
       >
         <PixelIcon icon={NAV_ICONS.search} />
-        <span className="muted">Cerca un comando</span>
-        <span className="mk">Ctrl K</span>
+        <span className="muted">{tr('Cerca un comando')}</span>
+        <span className="mk">{tr('Ctrl K')}</span>
       </button>
     </div>
   )
@@ -219,13 +239,13 @@ function CommandSearch({ onClose }: { onClose: () => void }) {
       className="shell-search-backdrop"
       onPointerDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="shell-search-box raised" role="dialog" aria-label="Cerca un comando">
+      <div className="shell-search-box raised" role="dialog" aria-label={tr('Cerca un comando')}>
         <input
           className="ui-field"
           autoFocus
           value={query}
-          placeholder="Scrivi cosa vuoi fare…"
-          aria-label="Comando da cercare"
+          placeholder={tr('Scrivi cosa vuoi fare…')}
+          aria-label={tr('Comando da cercare')}
           onChange={(e) => {
             setQuery(e.target.value)
             setPicked(0)
@@ -246,8 +266,10 @@ function CommandSearch({ onClose }: { onClose: () => void }) {
             }
           }}
         />
-        <div className="shell-results" role="listbox" aria-label="Comandi">
-          {results.length === 0 && <span className="muted">Nessun comando con queste parole.</span>}
+        <div className="shell-results" role="listbox" aria-label={tr('Comandi')}>
+          {results.length === 0 && (
+            <span className="muted">{tr('Nessun comando con queste parole.')}</span>
+          )}
           {results.map((command, index) => (
             <button
               key={command.id}
@@ -261,7 +283,7 @@ function CommandSearch({ onClose }: { onClose: () => void }) {
               onClick={() => run(command)}
             >
               <span>{command.label}</span>
-              <span className="muted">{command.area}</span>
+              <span className="muted">{nameOf(command.area)}</span>
               {command.keys && <span className="mk">{command.keys}</span>}
             </button>
           ))}

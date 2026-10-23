@@ -7,6 +7,7 @@ import {
   type MaterialOptions
 } from '../../shared/materialPresets'
 import { Range } from './GeneratorPanel'
+import { tr } from '../../shared/i18n'
 
 /** Material presets that fill the `_s` channels from the albedo. */
 export function MaterialPanel({
@@ -32,11 +33,12 @@ export function MaterialPanel({
 }): React.JSX.Element {
   const preset = materialPreset(options.preset)
   return (
-    <section className="card generator-panel" aria-label="Materiale">
-      <h3 className="panel-title">Materiale</h3>
+    <section className="card generator-panel" aria-label={tr('Materiale')}>
+      <h3 className="panel-title">{tr('Materiale')}</h3>
       <p className="small muted">
-        Riempie levigatezza, riflettanza e porosità partendo dai colori della texture. Sono valori
-        di partenza scelti da noi: la specifica LabPBR non dà tabelle per materiale.
+        {tr(
+          'Riempie levigatezza, riflettanza e porosità partendo dai colori della texture. Sono valori di partenza scelti da noi: la specifica LabPBR non dà tabelle per materiale.'
+        )}
       </p>
       <MaterialFields
         options={options}
@@ -50,12 +52,17 @@ export function MaterialPanel({
         disabled={disabled !== null}
         title={
           disabled ??
-          'Sostituisce levigatezza, riflettanza e porosità (un solo passo da annullare). L’emissione cambia solo con “Luminoso”.'
+          tr(
+            'Sostituisce levigatezza, riflettanza e porosità (un solo passo da annullare). L’emissione cambia solo con “Luminoso”.'
+          )
         }
         onClick={onApply}
       >
-        Applica {preset.label.toLowerCase()}
-        {selectionActive ? ' alla selezione' : ''}
+        {tr(
+          'Applica {0}{1}',
+          preset.label.toLowerCase(),
+          selectionActive ? tr(' alla selezione') : ''
+        )}
       </button>
       {disabled && <p className="small muted">{disabled}</p>}
     </section>
@@ -80,7 +87,11 @@ export function MaterialFields({
   const set = (change: Partial<MaterialOptions>): void => onOptions({ ...options, ...change })
   return (
     <>
-      <div className="value-presets material-presets" role="group" aria-label="Preset materiale">
+      <div
+        className="value-presets material-presets"
+        role="group"
+        aria-label={tr('Preset materiale')}
+      >
         {MATERIALS.map((material) => (
           <button
             key={material.id}
@@ -97,8 +108,11 @@ export function MaterialFields({
       <p className="small muted">{preset.hint}</p>
 
       {preset.id === 'metal' && (
-        <label className="small select-field" title="Il metallo predefinito (canale G 230–237)">
-          Metallo{' '}
+        <label
+          className="small select-field"
+          title={tr('Il metallo predefinito (canale G 230–237)')}
+        >
+          {tr('Metallo')}{' '}
           <select
             value={options.metal}
             onChange={(event) => set({ metal: Number(event.target.value) })}
@@ -113,8 +127,8 @@ export function MaterialFields({
       )}
       {preset.id === 'ore' && (
         <>
-          <label className="small select-field" title="Cosa diventano i pixel colorati">
-            Gemma{' '}
+          <label className="small select-field" title={tr('Cosa diventano i pixel colorati')}>
+            {tr('Gemma')}{' '}
             <select value={options.gem} onChange={(event) => set({ gem: event.target.value })}>
               {GEMS.map((gem) => (
                 <option key={gem.id} value={gem.id}>
@@ -124,17 +138,19 @@ export function MaterialFields({
             </select>
           </label>
           <Range
-            label="Sensibilità"
+            label={tr('Sensibilità')}
             value={Math.round((0.5 - options.accentThreshold) * 200)}
             unit="%"
             min={0}
             max={90}
-            title="Quanto deve differire un pixel dalla pietra per contare come gemma: più alta = più pixel"
+            title={tr(
+              'Quanto deve differire un pixel dalla pietra per contare come gemma: più alta = più pixel'
+            )}
             onChange={(value) => set({ accentThreshold: 0.5 - value / 200 })}
           />
           {accentCount !== null && (
             <p className="small muted" data-testid="accent-count">
-              Pixel gemma: {accentCount}
+              {tr('Pixel gemma: {0}', accentCount)}
             </p>
           )}
         </>
@@ -146,22 +162,26 @@ export function MaterialFields({
       )}
       {preset.id === 'emissive' && (
         <Range
-          label="Brilla da"
+          label={tr('Brilla da')}
           value={Math.round(options.glowThreshold * 100)}
           unit="%"
           min={0}
           max={100}
-          title="Chiarezza da cui un pixel emette luce: i più chiari brillano di più, gli altri restano spenti"
+          title={tr(
+            'Chiarezza da cui un pixel emette luce: i più chiari brillano di più, gli altri restano spenti'
+          )}
           onChange={(value) => set({ glowThreshold: value / 100 })}
         />
       )}
       <Range
-        label="Variazione"
+        label={tr('Variazione')}
         value={Math.round(options.variation * 100)}
         unit="%"
         min={0}
         max={100}
-        title="I pixel scuri (fessure) diventano più ruvidi, quelli chiari più lisci; 0 = tutto uguale"
+        title={tr(
+          'I pixel scuri (fessure) diventano più ruvidi, quelli chiari più lisci; 0 = tutto uguale'
+        )}
         onChange={(value) => set({ variation: value / 100 })}
       />
     </>

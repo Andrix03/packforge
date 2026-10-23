@@ -3,6 +3,7 @@
 
 import { parseAnimation } from '../../shared/animation'
 import type { Bounds } from './selection'
+import { tr } from '../../shared/i18n'
 
 export interface AnimationSettings {
   frameHeight: number
@@ -30,8 +31,9 @@ export function animationFromMcmeta(mcmeta: unknown, width: number, height: numb
   if (animation.columns !== 1 || animation.frameWidth !== width) {
     return {
       kind: 'unsupported',
-      reason:
+      reason: tr(
         'I frame sono disposti su più colonne: l’editor dei frame gestisce solo la striscia verticale standard.'
+      )
     }
   }
   const frametime = animation.frames[0]?.time ?? 1

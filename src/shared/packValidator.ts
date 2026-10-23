@@ -9,6 +9,7 @@
 
 import { parseAnimation } from './animation'
 import { mapKindOf, type MapKind } from './labpbr'
+import { tr } from './i18n'
 
 export type Severity = 'error' | 'warning' | 'info'
 
@@ -78,24 +79,31 @@ export function checkOrphans(
       ? {
           severity: 'warning',
           path,
-          message: `${what}: né il pack né il gioco hanno ${name}. Funziona solo se un altro pack attivo sotto questo la fornisce.`
+          message: tr(
+            '{0}: né il pack né il gioco hanno {1}. Funziona solo se un altro pack attivo sotto questo la fornisce.',
+            what,
+            name
+          )
         }
       : {
           severity: 'info',
           path,
-          message: `Il pack non ha ${name}: va bene se esiste nel gioco o in un pack sotto questo (carica il jar vanilla per verificarlo).`
+          message: tr(
+            'Il pack non ha {0}: va bene se esiste nel gioco o in un pack sotto questo (carica il jar vanilla per verificarlo).',
+            name
+          )
         }
   }
   for (const pair of pairs) {
     if (!pair.albedo) {
-      issues.push(orphan(pair.path, pair.path.replace(/_[ns].png$/i, '.png'), 'Mappa orfana'))
+      issues.push(orphan(pair.path, pair.path.replace(/_[ns].png$/i, '.png'), tr('Mappa orfana')))
     }
   }
   for (const path of packFiles) {
     if (!/.png.mcmeta$/i.test(path)) continue
     const png = path.slice(0, -'.mcmeta'.length)
     if (!pack.has(png) && !vanillaFiles?.has(png))
-      issues.push(orphan(path, png, 'File .mcmeta orfano'))
+      issues.push(orphan(path, png, tr('File .mcmeta orfano')))
   }
   return issues
 }
@@ -128,7 +136,12 @@ export function checkTextureMcmeta(
     {
       severity: 'error',
       path,
-      message: `Animazione non valida per la texture del gioco (${png.width}×${png.height}): ${parsed.error}`
+      message: tr(
+        'Animazione non valida per la texture del gioco ({0}×{1}): {2}',
+        png.width,
+        png.height,
+        parsed.error
+      )
     }
   ]
 }
@@ -166,7 +179,7 @@ export function checkMapShape(
   if (typeof own === 'string') {
     // parseAnimation speaks of textures (missing texture); a broken map is just not used.
     const reason = own.replace(/: il gioco mostrerà la texture mancante\.$/, '.')
-    return issue('error', `Animazione della mappa non valida, Iris non la usa. ${reason}`)
+    return issue('error', tr('Animazione della mappa non valida, Iris non la usa. {0}', reason))
   }
   const base = frameOf(albedo.width, albedo.height, albedo.mcmeta)
   if (typeof base === 'string') return []
@@ -176,13 +189,22 @@ export function checkMapShape(
   if (base.count > 1 && own.count === 1 && map.height > map.width) {
     return issue(
       'error',
-      `La texture è animata ma manca ${mcmetaName}: Iris schiaccia tutta la striscia in un solo frame. Apri la texture in PackForge e premi Ctrl+S: lo crea.`
+      tr(
+        'La texture è animata ma manca {0}: Iris schiaccia tutta la striscia in un solo frame. Apri la texture in PackForge e premi Ctrl+S: lo crea.',
+        mcmetaName
+      )
     )
   }
   if (own.width * base.height !== own.height * base.width) {
     return issue(
       'error',
-      `Proporzioni diverse dalla texture (frame ${own.width}×${own.height} contro ${base.width}×${base.height}): la mappa viene deformata.`
+      tr(
+        'Proporzioni diverse dalla texture (frame {0}×{1} contro {2}×{3}): la mappa viene deformata.',
+        own.width,
+        own.height,
+        base.width,
+        base.height
+      )
     )
   }
   if (own.width !== base.width) {
@@ -192,12 +214,24 @@ export function checkMapShape(
         ? {
             severity: 'info',
             path,
-            message: `Più piccola della texture (${own.width}×${own.height} contro ${base.width}×${base.height}): viene ingrandita a pixel netti, va bene.`
+            message: tr(
+              'Più piccola della texture ({0}×{1} contro {2}×{3}): viene ingrandita a pixel netti, va bene.',
+              own.width,
+              own.height,
+              base.width,
+              base.height
+            )
           }
         : {
             severity: 'warning',
             path,
-            message: `Dimensione ${own.width}×${own.height} contro ${base.width}×${base.height}: viene ridimensionata con sfumatura, che mescola i valori (metalli, emissione). Meglio la stessa dimensione della texture.`
+            message: tr(
+              'Dimensione {0}×{1} contro {2}×{3}: viene ridimensionata con sfumatura, che mescola i valori (metalli, emissione). Meglio la stessa dimensione della texture.',
+              own.width,
+              own.height,
+              base.width,
+              base.height
+            )
           }
     )
   }
@@ -205,7 +239,11 @@ export function checkMapShape(
     issues.push({
       severity: 'warning',
       path,
-      message: `${own.count} frame contro i ${base.count} della texture: le animazioni non vanno di pari passo.`
+      message: tr(
+        '{0} frame contro i {1} della texture: le animazioni non vanno di pari passo.',
+        own.count,
+        base.count
+      )
     })
   }
   return issues
@@ -258,29 +296,39 @@ export function checkSpecular(path: string, image: Image, albedo: Image | null):
     issues.push({
       severity: 'warning',
       path,
-      message:
+      message: tr(
         'Tutti i pixel emettono luce (alpha tra 1 e 254). In LabPBR l’alpha è l’emissione e 255 vuol dire spenta: se il blocco non deve brillare, porta l’alpha a 255.'
+      )
     })
   }
   if (wiped > 0) {
     issues.push({
       severity: 'warning',
       path,
-      message: `${plural(wiped, 'pixel è', 'pixel sono')} completamente trasparenti e neri: un editor che tratta l’alpha come trasparenza può averne cancellato i valori (riflettanza 0 = nessun riflesso).`
+      message: tr(
+        '{0} completamente trasparenti e neri: un editor che tratta l’alpha come trasparenza può averne cancellato i valori (riflettanza 0 = nessun riflesso).',
+        plural(wiped, tr('pixel è'), tr('pixel sono'))
+      )
     })
   }
   if (undefinedMetal > 0) {
     issues.push({
       severity: 'warning',
       path,
-      message: `${plural(undefinedMetal, 'pixel ha', 'pixel hanno')} il verde tra 238 e 254: non sono metalli definiti da LabPBR (usa 230–237 o 255).`
+      message: tr(
+        '{0} il verde tra 238 e 254: non sono metalli definiti da LabPBR (usa 230–237 o 255).',
+        plural(undefinedMetal, tr('pixel ha'), tr('pixel hanno'))
+      )
     })
   }
   if (lightOnHoles > 0) {
     issues.push({
       severity: 'info',
       path,
-      message: `${plural(lightOnHoles, 'pixel emette', 'pixel emettono')} luce dove la texture è trasparente: non si vede.`
+      message: tr(
+        '{0} luce dove la texture è trasparente: non si vede.',
+        plural(lightOnHoles, tr('pixel emette'), tr('pixel emettono'))
+      )
     })
   }
   return issues
@@ -308,21 +356,28 @@ export function checkNormal(path: string, image: Image, albedo: Image | null = n
     issues.push({
       severity: 'error',
       path,
-      message:
+      message: tr(
         'Altezza 0 ovunque (alpha trasparente): tutto il blocco sprofonda nel rilievo POM. Probabilmente il file è stato salvato con l’alpha come trasparenza; un _n senza rilievo ha alpha 255.'
+      )
     })
   } else if (zero > 0) {
     issues.push({
       severity: 'warning',
       path,
-      message: `${plural(zero, 'pixel ha', 'pixel hanno')} altezza 0: la specifica consiglia almeno 1, alcuni shader pack sbagliano il rilievo POM con lo 0.`
+      message: tr(
+        '{0} altezza 0: la specifica consiglia almeno 1, alcuni shader pack sbagliano il rilievo POM con lo 0.',
+        plural(zero, tr('pixel ha'), tr('pixel hanno'))
+      )
     })
   }
   if (invalid > 0) {
     issues.push({
       severity: 'warning',
       path,
-      message: `${plural(invalid, 'normale è', 'normali sono')} fuori scala (rosso e verde troppo lontani da 128 insieme): lo shader le schiaccia. Rigenera le normali dall’altezza.`
+      message: tr(
+        '{0} fuori scala (rosso e verde troppo lontani da 128 insieme): lo shader le schiaccia. Rigenera le normali dall’altezza.',
+        plural(invalid, tr('normale è'), tr('normali sono'))
+      )
     })
   }
   return issues

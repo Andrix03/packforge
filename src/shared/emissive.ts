@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // Emissive overlays (Phase 18 logic): `<name>_e.png` drawn fullbright over the texture by
 // OptiFine, Continuity (blocks, items) and ETF (entities), made from the LabPBR emission channel
 // (`_s` alpha 0–254, 255 = none) that shader packs read. Research 2026-10-22: the suffix is `_e`
@@ -66,7 +67,8 @@ export function emissiveProperties(suffix: string): string | null {
 
 /** A valid suffix: `_` then lowercase letters/digits, not one LabPBR already uses. */
 export function validEmissiveSuffix(suffix: string): string | null {
-  if (!/^_[a-z0-9]+$/.test(suffix)) return 'Il suffisso è "_" seguito da lettere minuscole o cifre.'
-  if (suffix === '_n' || suffix === '_s') return `"${suffix}" è già usato dalle mappe LabPBR.`
+  if (!/^_[a-z0-9]+$/.test(suffix))
+    return tr('Il suffisso è "_" seguito da lettere minuscole o cifre.')
+  if (suffix === '_n' || suffix === '_s') return tr('"{0}" è già usato dalle mappe LabPBR.', suffix)
   return null
 }

@@ -18,6 +18,7 @@ import type { ValidatorSource } from './runValidator'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 /** Rows drawn at most in the texture list (the filter narrows big packs). */
 const MAX_ROWS = 400
@@ -27,7 +28,7 @@ type Phase =
   | { status: 'running'; done: number; total: number }
   | { status: 'done'; result: BatchResult }
 
-const STEPS = ['Texture', 'Cosa fare', 'Anteprima', 'Applica'] as const
+const STEPS = [tr('Texture'), tr('Cosa fare'), tr('Anteprima'), tr('Applica')] as const
 
 /**
  * Applies a material preset (`_s`) and/or the relief generator (`_n`) to many textures, in four
@@ -120,7 +121,12 @@ export function BatchDialog({
     if (
       counts.overwrite > 0 &&
       !window.confirm(
-        `Sovrascrivere ${counts.overwrite === 1 ? '1 mappa esistente' : `${counts.overwrite} mappe esistenti`}? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).`
+        tr(
+          'Sovrascrivere {0}? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).',
+          counts.overwrite === 1
+            ? tr('1 mappa esistente')
+            : tr('{0} mappe esistenti', counts.overwrite)
+        )
       )
     ) {
       return
@@ -135,7 +141,10 @@ export function BatchDialog({
         })
     )
     if (
-      !(await backupBefore(`Applica in blocco (${materialPreset(material.preset).label})`, touched))
+      !(await backupBefore(
+        tr('Applica in blocco ({0})', materialPreset(material.preset).label),
+        touched
+      ))
     ) {
       return
     }
@@ -155,7 +164,7 @@ export function BatchDialog({
   const running = phase.status === 'running'
   const summary = (
     <p className="small" data-testid="batch-summary">
-      Crea {counts.create}, sovrascrive {counts.overwrite}, salta {counts.skip}
+      {tr('Crea {0}, sovrascrive {1}, salta {2}', counts.create, counts.overwrite, counts.skip)}
     </p>
   )
 
@@ -164,12 +173,12 @@ export function BatchDialog({
       <div
         className="card modal batch wizard"
         role="dialog"
-        aria-label="Applica in blocco"
+        aria-label={tr('Applica in blocco')}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="wizard-head">
-          <h2>Applica in blocco</h2>
-          <ol className="wizard-steps" aria-label="Passi">
+          <h2>{tr('Applica in blocco')}</h2>
+          <ol className="wizard-steps" aria-label={tr('Passi')}>
             {STEPS.map((label, index) => (
               <li key={label}>
                 <button
@@ -190,22 +199,22 @@ export function BatchDialog({
             ))}
           </ol>
           <span className="muted small">
-            {chosen.length} di {textures.length} texture
+            {tr('{0} di {1} texture', chosen.length, textures.length)}
           </span>
         </header>
 
         {/* 1 · Texture */}
         <section className="wizard-step" hidden={step !== 0}>
           <p className="muted small">
-            Crea le mappe di tante texture insieme: il materiale (_s) e/o il rilievo (_n), calcolati
-            dai colori di ciascuna come nell’editor. Il segno _n o _s vuol dire che quella mappa
-            esiste già.
+            {tr(
+              'Crea le mappe di tante texture insieme: il materiale (_s) e/o il rilievo (_n), calcolati dai colori di ciascuna come nell’editor. Il segno _n o _s vuol dire che quella mappa esiste già.'
+            )}
           </p>
           <div className="row">
             <input
               type="search"
-              aria-label="Filtra texture"
-              placeholder="Filtra per nome o cartella, es. planks"
+              aria-label={tr('Filtra texture')}
+              placeholder={tr('Filtra per nome o cartella, es. planks')}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -216,13 +225,13 @@ export function BatchDialog({
                 setSelected((all) => new Set([...all, ...visible.map((t) => t.albedo)]))
               }
             >
-              Seleziona visibili
+              {tr('Seleziona visibili')}
             </button>
             <button type="button" className="small-button" onClick={() => setSelected(new Set())}>
-              Nessuna
+              {tr('Nessuna')}
             </button>
           </div>
-          <ul className="batch-list" aria-label="Texture">
+          <ul className="batch-list" aria-label={tr('Texture')}>
             {visible.slice(0, MAX_ROWS).map((texture) => (
               <li key={texture.albedo}>
                 <label className="batch-row small">
@@ -243,7 +252,11 @@ export function BatchDialog({
           </ul>
           {visible.length > MAX_ROWS && (
             <p className="small muted">
-              Mostrate {MAX_ROWS} di {visible.length}: usa il filtro per trovare le altre.
+              {tr(
+                'Mostrate {0} di {1}: usa il filtro per trovare le altre.',
+                MAX_ROWS,
+                visible.length
+              )}
             </p>
           )}
         </section>
@@ -256,7 +269,7 @@ export function BatchDialog({
               checked={doSpecular}
               onChange={(event) => setDoSpecular(event.target.checked)}
             />
-            Materiale (_s)
+            {tr('Materiale (_s)')}
           </label>
           {doSpecular && (
             <div className="generator-panel batch-section">
@@ -269,17 +282,19 @@ export function BatchDialog({
               checked={doNormal}
               onChange={(event) => setDoNormal(event.target.checked)}
             />
-            Rilievo (_n): altezza dai colori, normali e occlusione
+            {tr('Rilievo (_n): altezza dai colori, normali e occlusione')}
           </label>
           {doNormal && (
             <div className="generator-panel batch-section">
               <Range
-                label="Profondità"
+                label={tr('Profondità')}
                 value={Math.round(depth * 100)}
                 unit="%"
                 min={0}
                 max={100}
-                title="Quanto scende il pixel più scuro: 100% = il 25% del blocco previsto da LabPBR"
+                title={tr(
+                  'Quanto scende il pixel più scuro: 100% = il 25% del blocco previsto da LabPBR'
+                )}
                 onChange={(value) => setDepth(value / 100)}
               />
               <label className="inline-check small">
@@ -288,23 +303,23 @@ export function BatchDialog({
                   checked={occlusion}
                   onChange={(event) => setOcclusion(event.target.checked)}
                 />
-                Occlusione
+                {tr('Occlusione')}
               </label>
               <label
                 className="inline-check small"
-                title="Togli la spunta per texture che non si ripetono"
+                title={tr('Togli la spunta per texture che non si ripetono')}
               >
                 <input
                   type="checkbox"
                   checked={wrap}
                   onChange={(event) => setWrap(event.target.checked)}
                 />
-                Bordi ripetibili
+                {tr('Bordi ripetibili')}
               </label>
             </div>
           )}
 
-          <h3 className="panel-title">Mappe già presenti</h3>
+          <h3 className="panel-title">{tr('Mappe già presenti')}</h3>
           <label className="inline-radio small">
             <input
               type="radio"
@@ -312,7 +327,7 @@ export function BatchDialog({
               checked={!overwrite}
               onChange={() => setOverwrite(false)}
             />
-            Lasciale come sono (consigliato)
+            {tr('Lasciale come sono (consigliato)')}
           </label>
           <label className="inline-radio small">
             <input
@@ -321,7 +336,7 @@ export function BatchDialog({
               checked={overwrite}
               onChange={() => setOverwrite(true)}
             />
-            Sovrascrivile (l’emissione di un _s esistente resta)
+            {tr('Sovrascrivile (l’emissione di un _s esistente resta)')}
           </label>
         </section>
 
@@ -330,7 +345,7 @@ export function BatchDialog({
           <div className="wizard-preview-main">
             {chosen.length > 1 && (
               <label className="inline-select small">
-                Texture mostrata
+                {tr('Texture mostrata')}
                 <select
                   value={sample?.albedo ?? ''}
                   onChange={(event) => setPreviewed(event.target.value)}
@@ -357,36 +372,37 @@ export function BatchDialog({
             ) : (
               <p className="muted small">
                 {chosen.length === 0
-                  ? 'Scegli almeno una texture al passo 1.'
-                  : 'Anteprima non disponibile.'}
+                  ? tr('Scegli almeno una texture al passo 1.')
+                  : tr('Anteprima non disponibile.')}
               </p>
             )}
           </div>
           <aside className="wizard-facts">
-            <h3 className="ph">Cosa succede</h3>
+            <h3 className="ph">{tr('Cosa succede')}</h3>
             <div className="wizard-counts">
               <span>
-                <strong className="count-new">{counts.create}</strong> nuove
+                <strong className="count-new">{counts.create}</strong> {tr('nuove')}
               </span>
               <span>
                 <strong className={counts.overwrite > 0 ? 'count-over' : ''}>
                   {counts.overwrite}
                 </strong>{' '}
-                riscritte
+                {tr('riscritte')}
               </span>
               <span>
-                <strong>{counts.skip}</strong> saltate
+                <strong>{counts.skip}</strong> {tr('saltate')}
               </span>
             </div>
             <p className="small">
-              {chosen.length === 1 ? '1 texture' : `${chosen.length} texture`}: il colore (.png) non
-              viene toccato. Prima di scrivere viene fatto un backup (Pack › Backup per tornare
-              indietro).
+              {tr(
+                '{0}: il colore (.png) non viene toccato. Prima di scrivere viene fatto un backup (Pack › Backup per tornare indietro).',
+                chosen.length === 1 ? '1 texture' : `${chosen.length} texture`
+              )}
             </p>
             <p className="small warning-text">
-              Si vede solo con uno shader LabPBR (Iris). Senza shader il gioco resta uguale.
+              {tr('Si vede solo con uno shader LabPBR (Iris). Senza shader il gioco resta uguale.')}
             </p>
-            <h3 className="ph">File che verranno scritti</h3>
+            <h3 className="ph">{tr('File che verranno scritti')}</h3>
             <ul className="wizard-files">
               {files.slice(0, 60).map((file) => (
                 <li key={file.path} className={`file-${file.action}`}>
@@ -394,7 +410,9 @@ export function BatchDialog({
                   {file.path.slice(file.path.lastIndexOf('/') + 1)}
                 </li>
               ))}
-              {files.length > 60 && <li className="muted">… altri {files.length - 60}</li>}
+              {files.length > 60 && (
+                <li className="muted">{tr('… altri {0}', files.length - 60)}</li>
+              )}
             </ul>
           </aside>
         </section>
@@ -403,7 +421,7 @@ export function BatchDialog({
         <section className="wizard-step" hidden={step !== 3}>
           {phase.status === 'running' && (
             <p className="small" data-testid="batch-progress">
-              Applico… {phase.done}/{phase.total}
+              {tr('Applico… {0}/{1}', phase.done, phase.total)}
             </p>
           )}
           {phase.status === 'done' && (
@@ -411,9 +429,9 @@ export function BatchDialog({
               <p className="small" data-testid="batch-result">
                 <Glyph name="check" />
                 {phase.result.written === 1
-                  ? '1 mappa scritta'
-                  : `${phase.result.written} mappe scritte`}
-                {phase.result.errors.length > 0 && `, ${phase.result.errors.length} errori`}
+                  ? tr('1 mappa scritta')
+                  : tr('{0} mappe scritte', phase.result.written)}
+                {phase.result.errors.length > 0 && tr(', {0} errori', phase.result.errors.length)}
               </p>
               {phase.result.errors.length > 0 && (
                 <ul className="validator-issues">
@@ -431,8 +449,9 @@ export function BatchDialog({
                 </ul>
               )}
               <p className="small muted">
-                Un backup è stato preso prima di scrivere: Pack › Backup lo ripristina. In gioco:
-                F3+T per ricaricare il pack, con uno shader LabPBR acceso.
+                {tr(
+                  'Un backup è stato preso prima di scrivere: Pack › Backup lo ripristina. In gioco: F3+T per ricaricare il pack, con uno shader LabPBR acceso.'
+                )}
               </p>
             </>
           )}
@@ -441,21 +460,21 @@ export function BatchDialog({
         <footer className="row wizard-foot">
           {phase.status === 'done' ? (
             <button type="button" className="primary" onClick={onClose}>
-              Chiudi
+              {tr('Chiudi')}
             </button>
           ) : (
             <>
               <button type="button" onClick={onClose} disabled={running}>
-                Annulla
+                {tr('Annulla')}
               </button>
               {step > 0 && step < 3 && (
                 <button type="button" onClick={() => setStep(step - 1)}>
-                  ‹ Indietro
+                  {tr('‹ Indietro')}
                 </button>
               )}
               {step < 2 && (
                 <button type="button" className="primary" onClick={() => setStep(step + 1)}>
-                  Avanti: {STEPS[step + 1]?.toLowerCase()} ›
+                  {tr('Avanti: {0} ›', STEPS[step + 1]?.toLowerCase())}
                 </button>
               )}
               {summary}
@@ -465,7 +484,7 @@ export function BatchDialog({
                 disabled={work === 0 || running}
                 onClick={() => apply()}
               >
-                Applica a {work === 1 ? '1 mappa' : `${work} mappe`}
+                {tr('Applica a {0}', work === 1 ? tr('1 mappa') : tr('{0} mappe', work))}
               </button>
             </>
           )}

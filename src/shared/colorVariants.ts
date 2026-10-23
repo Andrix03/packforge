@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // Color variants of a texture (e.g. every wool color from one wool). Pure.
 //
 // Colors: the 16 dyes' `textureDiffuseColor` read from the 26.3 client (DyeColor). Recoloring
@@ -14,22 +15,22 @@ export interface Dye {
 }
 
 export const DYES: readonly Dye[] = [
-  { id: 'white', label: 'Bianco', hex: 'f9fffe' },
-  { id: 'light_gray', label: 'Grigio chiaro', hex: '9d9d97' },
-  { id: 'gray', label: 'Grigio', hex: '474f52' },
-  { id: 'black', label: 'Nero', hex: '1d1d21' },
-  { id: 'brown', label: 'Marrone', hex: '835432' },
-  { id: 'red', label: 'Rosso', hex: 'b02e26' },
-  { id: 'orange', label: 'Arancione', hex: 'f9801d' },
-  { id: 'yellow', label: 'Giallo', hex: 'fed83d' },
-  { id: 'lime', label: 'Lime', hex: '80c71f' },
-  { id: 'green', label: 'Verde', hex: '5e7c16' },
-  { id: 'cyan', label: 'Ciano', hex: '169c9c' },
-  { id: 'light_blue', label: 'Azzurro', hex: '3ab3da' },
-  { id: 'blue', label: 'Blu', hex: '3c44aa' },
-  { id: 'purple', label: 'Viola', hex: '8932b8' },
-  { id: 'magenta', label: 'Magenta', hex: 'c74ebd' },
-  { id: 'pink', label: 'Rosa', hex: 'f38baa' }
+  { id: 'white', label: tr('Bianco'), hex: 'f9fffe' },
+  { id: 'light_gray', label: tr('Grigio chiaro'), hex: '9d9d97' },
+  { id: 'gray', label: tr('Grigio'), hex: '474f52' },
+  { id: 'black', label: tr('Nero'), hex: '1d1d21' },
+  { id: 'brown', label: tr('Marrone'), hex: '835432' },
+  { id: 'red', label: tr('Rosso'), hex: 'b02e26' },
+  { id: 'orange', label: tr('Arancione'), hex: 'f9801d' },
+  { id: 'yellow', label: tr('Giallo'), hex: 'fed83d' },
+  { id: 'lime', label: tr('Lime'), hex: '80c71f' },
+  { id: 'green', label: tr('Verde'), hex: '5e7c16' },
+  { id: 'cyan', label: tr('Ciano'), hex: '169c9c' },
+  { id: 'light_blue', label: tr('Azzurro'), hex: '3ab3da' },
+  { id: 'blue', label: tr('Blu'), hex: '3c44aa' },
+  { id: 'purple', label: tr('Viola'), hex: '8932b8' },
+  { id: 'magenta', label: tr('Magenta'), hex: 'c74ebd' },
+  { id: 'pink', label: tr('Rosa'), hex: 'f38baa' }
 ]
 
 // Longest ids first, so "light_blue" is not read as "blue".

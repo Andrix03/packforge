@@ -72,12 +72,13 @@ import {
   loadVanillaJar,
   VANILLA_ASSET_PREFIXES
 } from './vanilla'
+import { isLanguage, language, tr } from '../shared/i18n'
 
 const DIRECTORY_TITLES: Record<DirectoryPurpose, string> = {
-  packDestination: 'Scegli la cartella di destinazione',
-  openPack: 'Apri la cartella di un resource pack',
-  minecraftDir: 'Scegli la cartella .minecraft',
-  exportDestination: 'Scegli dove salvare gli export'
+  packDestination: tr('Scegli la cartella di destinazione'),
+  openPack: tr('Apri la cartella di un resource pack'),
+  minecraftDir: tr('Scegli la cartella .minecraft'),
+  exportDestination: tr('Scegli dove salvare gli export')
 }
 
 const CASE_INSENSITIVE_PATHS = process.platform === 'win32'
@@ -171,7 +172,7 @@ const AUTO_SYNC_DELAY_MS = 600
 async function syncStatus(): Promise<SyncStatus> {
   const current = getSource('pack')
   const empty = { target: null, state: null, auto: false, last: null }
-  if (!current) return { available: false, reason: 'Nessun pack aperto.', ...empty }
+  if (!current) return { available: false, reason: tr('Nessun pack aperto.'), ...empty }
   const check = await syncTargetFor(await minecraftDir(), current.source)
   if (!check.ok) return { available: false, reason: check.error, ...empty }
   return {
@@ -202,7 +203,12 @@ async function mirrorNow(onlyGeneration: number | null): Promise<SyncStatus> {
           : { at: Date.now(), copied: 0, removed: 0, error: mirrored.error }
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error)
-        lastSync = { at: Date.now(), copied: 0, removed: 0, error: `Copia non riuscita: ${detail}` }
+        lastSync = {
+          at: Date.now(),
+          copied: 0,
+          removed: 0,
+          error: tr('Copia non riuscita: {0}', detail)
+        }
       }
       // A failed copy stops the automatic one (it would fail again on every save).
       if (lastSync.error) autoSync = false
@@ -253,7 +259,8 @@ async function settingsView(): Promise<SettingsView> {
             programFiles: process.env['ProgramFiles'],
             programFilesX86: process.env['ProgramFiles(x86)']
           })
-        : []
+        : [],
+    language: language()
   }
 }
 
@@ -271,7 +278,7 @@ async function updateSetting(
     await save(value as string | null)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
-    return { ok: false, error: `Impossibile salvare le impostazioni: ${detail}` }
+    return { ok: false, error: tr('Impossibile salvare le impostazioni: {0}', detail) }
   }
   return { ok: true, view: await settingsView() }
 }
@@ -314,22 +321,22 @@ const handlers: IpcHandlers = {
       // Untrusted input: unknown purposes fall back to a generic title.
       title: Object.hasOwn(DIRECTORY_TITLES, purpose)
         ? DIRECTORY_TITLES[purpose]
-        : 'Scegli una cartella',
+        : tr('Scegli una cartella'),
       properties: ['openDirectory', 'createDirectory']
     }),
 
   'dialog:pickPackZip': () =>
     showOpenDialog({
-      title: 'Apri un resource pack (.zip)',
+      title: tr('Apri un resource pack (.zip)'),
       properties: ['openFile'],
       filters: [{ name: 'Resource pack', extensions: ['zip'] }]
     }),
 
   'dialog:pickExecutable': () =>
     showOpenDialog({
-      title: "Scegli l'editor di immagini",
+      title: tr("Scegli l'editor di immagini"),
       properties: ['openFile'],
-      filters: process.platform === 'win32' ? [{ name: 'Programmi', extensions: ['exe'] }] : []
+      filters: process.platform === 'win32' ? [{ name: tr('Programmi'), extensions: ['exe'] }] : []
     }),
 
   // Renderer input is untrusted: createPack/openPack re-validate everything.
@@ -370,13 +377,13 @@ const handlers: IpcHandlers = {
 
   'pack:listFiles': async () => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     try {
       const { files, truncated } = await listPackFiles(current.source)
       return { ok: true, files, truncated, assetBase: assetBase('pack', current.generation) }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
-      return { ok: false, error: `Impossibile leggere i file del pack: ${detail}` }
+      return { ok: false, error: tr('Impossibile leggere i file del pack: {0}', detail) }
     }
   },
 
@@ -388,8 +395,9 @@ const handlers: IpcHandlers = {
 
   'pack:refreshSummary': async () => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
-    if (current.source.kind !== 'folder') return { ok: false, error: 'Solo i pack in cartella.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    if (current.source.kind !== 'folder')
+      return { ok: false, error: tr('Solo i pack in cartella.') }
     // The session source is unchanged, so thumbnail URLs stay valid.
     const reopened = await openPack(current.source.root)
     return reopened.ok ? { ok: true, pack: reopened.pack } : reopened
@@ -397,8 +405,8 @@ const handlers: IpcHandlers = {
 
   'pack:updateDescription': async (description) => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
-    if (typeof description !== 'string') return { ok: false, error: 'Descrizione non valida.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    if (typeof description !== 'string') return { ok: false, error: tr('Descrizione non valida.') }
     const invalid = validatePackDescription(description)
     if (invalid) return { ok: false, error: invalid }
 
@@ -414,16 +422,16 @@ const handlers: IpcHandlers = {
 
   'pack:pickIconSource': async () => {
     const path = await showOpenDialog({
-      title: "Scegli un'immagine per l'icona del pack",
+      title: tr("Scegli un'immagine per l'icona del pack"),
       properties: ['openFile'],
-      filters: [{ name: 'Immagini', extensions: ICON_IMAGE_EXTENSIONS }]
+      filters: [{ name: tr('Immagini'), extensions: ICON_IMAGE_EXTENSIONS }]
     })
     return path ? readIconSource(path) : null
   },
 
   'pack:setIcon': async (pngBase64) => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     const written = await writePackIcon(current.source, pngBase64)
     if (!written.ok) return written
     const reopened = await openPack(current.source.root)
@@ -432,29 +440,29 @@ const handlers: IpcHandlers = {
 
   'texture:save': async (path, width, height, rgba) => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     return saveTexture(current.source, path, width, height, rgba)
   },
 
   'texture:saveMcmeta': async (path, content) => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     return saveTextureMcmeta(current.source, path, content)
   },
 
   'texture:openExternal': async (path) => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     const file = await packPngFile(current.source, path)
     if (!file)
-      return { ok: false, error: 'File non trovato nel pack (i pack zip non si aprono fuori).' }
+      return { ok: false, error: tr('File non trovato nel pack (i pack zip non si aprono fuori).') }
     const editor = (await settings().get()).externalEditor
     if (!editor) {
       const error = await shell.openPath(file)
       return error ? { ok: false, error } : { ok: true }
     }
     if (!(await fileExists(editor))) {
-      return { ok: false, error: 'Il programma scelto nelle Impostazioni non esiste più.' }
+      return { ok: false, error: tr('Il programma scelto nelle Impostazioni non esiste più.') }
     }
     // No shell: the path is one argument, whatever characters it has.
     return new Promise((done) => {
@@ -465,7 +473,7 @@ const handlers: IpcHandlers = {
         windowsHide: true
       })
       child.once('error', (error) =>
-        done({ ok: false, error: `Avvio non riuscito: ${error.message}` })
+        done({ ok: false, error: tr('Avvio non riuscito: {0}', error.message) })
       )
       child.once('spawn', () => {
         child.unref()
@@ -476,19 +484,19 @@ const handlers: IpcHandlers = {
 
   'ctm:saveProperties': async (path, content) => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     return saveCtmProperties(current.source, path, content)
   },
 
   'model:saveJson': async (path, content) => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     return saveModelJson(current.source, path, content)
   },
 
   'draft:save': async (path, width, height, rgba, maps) => {
     const root = folderPackRoot()
-    if (!root) return { ok: false, error: 'Nessun pack in cartella aperto.' }
+    if (!root) return { ok: false, error: tr('Nessun pack in cartella aperto.') }
     return drafts().save(root, path, width, height, rgba, maps)
   },
 
@@ -504,7 +512,7 @@ const handlers: IpcHandlers = {
 
   'pack:updateVersions': async (request) => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     const parsed = parseVersionRangeRequest(request)
     if (!parsed.ok) return parsed
     const { min, max, overlays } = parsed.value
@@ -532,7 +540,10 @@ const handlers: IpcHandlers = {
       const detail = error instanceof Error ? error.message : String(error)
       return {
         ok: false,
-        error: `pack.mcmeta salvato, ma non è stato possibile creare le cartelle overlay: ${detail}`
+        error: tr(
+          'pack.mcmeta salvato, ma non è stato possibile creare le cartelle overlay: {0}',
+          detail
+        )
       }
     }
     const reopened = await openPack(current.source.root)
@@ -578,7 +589,7 @@ const handlers: IpcHandlers = {
 
   'project:save': async (info) => {
     const root = folderPackRoot()
-    if (!root) return { ok: false, error: 'Solo i pack in cartella hanno un progetto.' }
+    if (!root) return { ok: false, error: tr('Solo i pack in cartella hanno un progetto.') }
     return saveProject(root, info)
   },
 
@@ -586,7 +597,7 @@ const handlers: IpcHandlers = {
     const current = getSource('pack')
     if (!current) {
       return {
-        errors: ['Nessun pack aperto.'],
+        errors: [tr('Nessun pack aperto.')],
         warnings: [],
         vanillaCopies: [],
         stray: [],
@@ -599,12 +610,12 @@ const handlers: IpcHandlers = {
   'export:build': async (variant, dir, overwrite) => {
     const current = getSource('pack')
     if (!current || current.source.kind !== 'folder') {
-      return { ok: false, error: 'Solo i pack in cartella si esportano.' }
+      return { ok: false, error: tr('Solo i pack in cartella si esportano.') }
     }
     const parsed = parseVariant(variant)
-    if (!parsed) return { ok: false, error: 'Variante non valida.' }
+    if (!parsed) return { ok: false, error: tr('Variante non valida.') }
     if (dir !== null && (typeof dir !== 'string' || !isAbsolute(dir))) {
-      return { ok: false, error: 'Cartella di destinazione non valida.' }
+      return { ok: false, error: tr('Cartella di destinazione non valida.') }
     }
     const root = current.source.root
     return buildExport(current.source, {
@@ -620,9 +631,9 @@ const handlers: IpcHandlers = {
   'export:listing': async (dir) => {
     const current = getSource('pack')
     if (!current || current.source.kind !== 'folder')
-      return { ok: false, error: 'Solo i pack in cartella.' }
+      return { ok: false, error: tr('Solo i pack in cartella.') }
     if (dir !== null && (typeof dir !== 'string' || !isAbsolute(dir))) {
-      return { ok: false, error: 'Cartella non valida.' }
+      return { ok: false, error: tr('Cartella non valida.') }
     }
     const root = current.source.root
     return writeListing(current.source, {
@@ -639,9 +650,9 @@ const handlers: IpcHandlers = {
 
   'export:saveScreenshot': async (name, png) => {
     const current = getSource('pack')
-    if (!current) return { ok: false, error: 'Nessun pack aperto.' }
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     if (!(png instanceof Uint8Array) || png.length > MAX_SCREENSHOT_BYTES || !isPng(png)) {
-      return { ok: false, error: 'Immagine non valida.' }
+      return { ok: false, error: tr('Immagine non valida.') }
     }
     const safe =
       (typeof name === 'string' ? name : 'screenshot')
@@ -673,7 +684,7 @@ const handlers: IpcHandlers = {
 
   'backup:create': async (label, paths) => {
     const root = folderPackRoot()
-    if (!root) return { ok: false, error: 'Solo i pack in cartella hanno i backup.' }
+    if (!root) return { ok: false, error: tr('Solo i pack in cartella hanno i backup.') }
     return backups().create(root, label, paths)
   },
 
@@ -684,7 +695,7 @@ const handlers: IpcHandlers = {
 
   'backup:restore': async (id) => {
     const root = folderPackRoot()
-    if (!root) return { ok: false, error: 'Nessun pack in cartella aperto.' }
+    if (!root) return { ok: false, error: tr('Nessun pack in cartella aperto.') }
     return backups().restore(root, id)
   },
 
@@ -721,7 +732,7 @@ const handlers: IpcHandlers = {
       await settings().update({ palettes: parsePalettes(palettes) })
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
-      return { ok: false, error: `Impossibile salvare le palette: ${detail}` }
+      return { ok: false, error: tr('Impossibile salvare le palette: {0}', detail) }
     }
     return { ok: true, view: await settingsView() }
   },
@@ -731,9 +742,25 @@ const handlers: IpcHandlers = {
       await settings().update({ tutorial: parseTutorial(state) })
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
-      return { ok: false, error: `Impossibile salvare le impostazioni: ${detail}` }
+      return { ok: false, error: tr('Impossibile salvare le impostazioni: {0}', detail) }
     }
     return { ok: true, view: await settingsView() }
+  },
+
+  'settings:setLanguage': async (language) => {
+    if (!isLanguage(language)) return { ok: false, error: tr('Lingua non valida.') }
+    try {
+      await settings().update({ language })
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      return { ok: false, error: tr('Impossibile salvare le impostazioni: {0}', detail) }
+    }
+    return { ok: true, view: await settingsView() }
+  },
+
+  'app:restart': () => {
+    app.relaunch()
+    app.exit(0)
   },
 
   'settings:setCheckUpdates': async (on) => {
@@ -741,7 +768,7 @@ const handlers: IpcHandlers = {
       await settings().update({ checkUpdates: on === true })
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
-      return { ok: false, error: `Impossibile salvare le impostazioni: ${detail}` }
+      return { ok: false, error: tr('Impossibile salvare le impostazioni: {0}', detail) }
     }
     return { ok: true, view: await settingsView() }
   },
@@ -774,12 +801,12 @@ const handlers: IpcHandlers = {
   },
 
   'settings:setEditorMode': async (mode) => {
-    if (!isEditorMode(mode)) return { ok: false, error: 'Modalità non valida.' }
+    if (!isEditorMode(mode)) return { ok: false, error: tr('Modalità non valida.') }
     try {
       await settings().update({ editorMode: mode })
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
-      return { ok: false, error: `Impossibile salvare le impostazioni: ${detail}` }
+      return { ok: false, error: tr('Impossibile salvare le impostazioni: {0}', detail) }
     }
     return { ok: true, view: await settingsView() }
   }

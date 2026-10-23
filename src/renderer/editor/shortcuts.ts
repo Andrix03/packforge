@@ -2,6 +2,7 @@
 // TOOLS so the list can't drift from the real bindings.
 
 import { TOOLS } from './tools'
+import { tr } from '../../shared/i18n'
 
 export interface Shortcut {
   keys: string
@@ -17,7 +18,7 @@ export interface ShortcutGroup {
 
 export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
   {
-    title: 'Strumenti',
+    title: tr('Strumenti'),
     items: TOOLS.map((tool) => ({
       keys: tool.shortcut,
       label: tool.label,
@@ -25,45 +26,45 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
     }))
   },
   {
-    title: 'Colori e pennello',
+    title: tr('Colori e pennello'),
     items: [
-      { keys: 'X', label: 'Scambia primario e secondario' },
-      { keys: 'Alt + clic', label: 'Contagocce temporaneo' },
-      { keys: '[  ]', label: 'Pennello più piccolo / più grande' },
-      { keys: 'Maiusc (forme)', label: 'Linea dritta, quadrato, cerchio', pro: true }
+      { keys: 'X', label: tr('Scambia primario e secondario') },
+      { keys: tr('Alt + clic'), label: tr('Contagocce temporaneo') },
+      { keys: '[  ]', label: tr('Pennello più piccolo / più grande') },
+      { keys: tr('Maiusc (forme)'), label: tr('Linea dritta, quadrato, cerchio'), pro: true }
     ]
   },
   {
-    title: 'Vista',
+    title: tr('Vista'),
     items: [
-      { keys: 'Rotellina', label: 'Zoom sul punto del mouse' },
-      { keys: '+  -', label: 'Zoom avanti / indietro' },
-      { keys: '0', label: 'Adatta alla finestra' },
-      { keys: 'Spazio + trascina', label: 'Sposta la vista (anche tasto centrale)' },
-      { keys: 'T', label: 'Bordi continui (texture che si ripete)' },
-      { keys: ',  .', label: 'Frame precedente / successivo (animazioni)' }
+      { keys: tr('Rotellina'), label: tr('Zoom sul punto del mouse') },
+      { keys: '+  -', label: tr('Zoom avanti / indietro') },
+      { keys: '0', label: tr('Adatta alla finestra') },
+      { keys: tr('Spazio + trascina'), label: tr('Sposta la vista (anche tasto centrale)') },
+      { keys: 'T', label: tr('Bordi continui (texture che si ripete)') },
+      { keys: ',  .', label: tr('Frame precedente / successivo (animazioni)') }
     ]
   },
   {
-    title: 'Modifica',
+    title: tr('Modifica'),
     items: [
-      { keys: 'Ctrl+Z', label: 'Annulla' },
-      { keys: 'Ctrl+Y', label: 'Ripeti (anche Ctrl+Maiusc+Z)' },
-      { keys: 'Ctrl+S', label: 'Salva nel pack' },
-      { keys: '?  F1', label: 'Questo elenco' }
+      { keys: 'Ctrl+Z', label: tr('Annulla') },
+      { keys: 'Ctrl+Y', label: tr('Ripeti (anche Ctrl+Maiusc+Z)') },
+      { keys: 'Ctrl+S', label: tr('Salva nel pack') },
+      { keys: '?  F1', label: tr('Questo elenco') }
     ]
   },
   {
-    title: 'Selezione',
+    title: tr('Selezione'),
     items: [
-      { keys: 'Ctrl+A', label: 'Seleziona tutto', pro: true },
-      { keys: 'Ctrl+D', label: 'Deseleziona', pro: true },
-      { keys: 'Ctrl+C  Ctrl+X  Ctrl+V', label: 'Copia, taglia, incolla', pro: true },
-      { keys: 'Canc', label: 'Cancella i pixel selezionati', pro: true },
-      { keys: 'Maiusc+H  Maiusc+V', label: 'Rifletti orizzontale / verticale', pro: true },
-      { keys: 'Maiusc+R', label: 'Ruota di 90°', pro: true },
-      { keys: 'Invio', label: 'Appoggia il pezzo spostato', pro: true },
-      { keys: 'Esc', label: 'Annulla lo spostamento / deseleziona', pro: true }
+      { keys: 'Ctrl+A', label: tr('Seleziona tutto'), pro: true },
+      { keys: 'Ctrl+D', label: tr('Deseleziona'), pro: true },
+      { keys: 'Ctrl+C  Ctrl+X  Ctrl+V', label: tr('Copia, taglia, incolla'), pro: true },
+      { keys: tr('Canc'), label: tr('Cancella i pixel selezionati'), pro: true },
+      { keys: tr('Maiusc+H  Maiusc+V'), label: tr('Rifletti orizzontale / verticale'), pro: true },
+      { keys: tr('Maiusc+R'), label: tr('Ruota di 90°'), pro: true },
+      { keys: tr('Invio'), label: tr('Appoggia il pezzo spostato'), pro: true },
+      { keys: 'Esc', label: tr('Annulla lo spostamento / deseleziona'), pro: true }
     ]
   }
 ]

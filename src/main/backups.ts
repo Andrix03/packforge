@@ -3,6 +3,7 @@ import { copyFile, mkdir, readdir, readFile, realpath, rm, stat, writeFile } fro
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { isSafePackPath } from './packSource'
 import { writePackBytes } from './textureFile'
+import { tr } from '../shared/i18n'
 
 // Backups taken BEFORE an operation overwrites pack files (batch, variants, resize, CTM, editor
 // saves). Kept OUTSIDE the pack, in the app's user data: `<dir>/<pack id>/<backup id>/`
@@ -51,14 +52,14 @@ export class BackupStore {
     now = new Date()
   ): Promise<BackupResult> {
     if (typeof label !== 'string' || label.length === 0 || label.length > 200) {
-      return { ok: false, error: 'Nome del backup non valido.' }
+      return { ok: false, error: tr('Nome del backup non valido.') }
     }
     if (!Array.isArray(paths) || paths.length > MAX_FILES_PER_BACKUP) {
-      return { ok: false, error: 'Elenco dei file non valido.' }
+      return { ok: false, error: tr('Elenco dei file non valido.') }
     }
     const unique = [...new Set(paths)]
     if (!unique.every((p): p is string => typeof p === 'string' && isSafePackPath(p))) {
-      return { ok: false, error: 'Percorso non valido nel backup.' }
+      return { ok: false, error: tr('Percorso non valido nel backup.') }
     }
     const root = await realpath(packRoot)
     // Sortable and unique enough: time + a short random part.
@@ -87,7 +88,10 @@ export class BackupStore {
       await rm(folder, { recursive: true, force: true })
       return {
         ok: false,
-        error: `Backup non riuscito: ${error instanceof Error ? error.message : String(error)}`
+        error: tr(
+          'Backup non riuscito: {0}',
+          error instanceof Error ? error.message : String(error)
+        )
       }
     }
     await this.prune(root)
@@ -121,9 +125,9 @@ export class BackupStore {
   ): Promise<{ ok: true; restored: number; removed: number } | { ok: false; error: string }> {
     const root = await realpath(packRoot)
     if (typeof id !== 'string' || !/^[\w-]+$/.test(id))
-      return { ok: false, error: 'Backup non valido.' }
+      return { ok: false, error: tr('Backup non valido.') }
     const manifest = await this.manifest(root, id)
-    if (!manifest) return { ok: false, error: 'Backup non trovato.' }
+    if (!manifest) return { ok: false, error: tr('Backup non trovato.') }
     this.restoring.add(id)
     try {
       return await this.restoreFiles(root, id, manifest)
@@ -137,7 +141,7 @@ export class BackupStore {
     id: string,
     manifest: Manifest
   ): Promise<{ ok: true; restored: number; removed: number } | { ok: false; error: string }> {
-    const before = await this.create(root, `Prima di ripristinare «${manifest.label}»`, [
+    const before = await this.create(root, tr('Prima di ripristinare «{0}»', manifest.label), [
       ...manifest.saved,
       ...manifest.created
     ])

@@ -1,3 +1,4 @@
+import { tr } from '../../shared/i18n'
 interface OpenPackCardProps {
   onPick: (path: string) => void
   busy: boolean
@@ -17,17 +18,17 @@ export function OpenPackCard({ onPick, busy, error }: OpenPackCardProps): React.
 
   return (
     <section className="card form">
-      <h2>Apri pack</h2>
-      <p className="muted">Apri una cartella o uno zip che contiene pack.mcmeta.</p>
+      <h2>{tr('Apri pack')}</h2>
+      <p className="muted">{tr('Apri una cartella o uno zip che contiene pack.mcmeta.')}</p>
       <div className="row">
         <button type="button" onClick={() => void pickFolder()} disabled={busy}>
-          Apri cartella…
+          {tr('Apri cartella…')}
         </button>
         <button type="button" onClick={() => void pickZip()} disabled={busy}>
-          Apri zip…
+          {tr('Apri zip…')}
         </button>
       </div>
-      {busy && <span className="muted">Apertura…</span>}
+      {busy && <span className="muted">{tr('Apertura…')}</span>}
       {error && <span className="field-error">{error}</span>}
     </section>
   )

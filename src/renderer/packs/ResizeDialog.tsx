@@ -14,6 +14,7 @@ import { errorMessage, fetchBytes, fetchText, loadPng, type FileSource } from '.
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 /** Rows drawn at most (the filter narrows big packs). */
 const MAX_ROWS = 400
@@ -112,7 +113,13 @@ export function ResizeDialog({
           const scaled = scaleNearest(image, factor)
           if (!scaled)
             throw new Error(
-              `${path.split('/').pop()} non si può portare a ${target}× (${image.width}×${image.height})`
+              tr(
+                '{0} non si può portare a {1}× ({2}×{3})',
+                path.split('/').pop(),
+                target,
+                image.width,
+                image.height
+              )
             )
           if (scaled.lossy && !lossy.includes(texture.name)) lossy.push(texture.name)
           const mcmetaPath = `${path}.mcmeta`
@@ -130,12 +137,20 @@ export function ResizeDialog({
   }
 
   const apply = useSingleFlight(async (): Promise<void> => {
-    setPhase({ status: 'working', text: 'Preparo…' })
+    setPhase({ status: 'working', text: tr('Preparo…') })
     const { files, lossy, errors } = await prepare()
     const question =
-      `Riscrivere ${files.length === 1 ? '1 file' : `${files.length} file`} a ${target}×? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).` +
+      tr(
+        'Riscrivere {0} a {1}×? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).',
+        files.length === 1 ? '1 file' : `${files.length} file`,
+        target
+      ) +
       (lossy.length > 0
-        ? `\n\nRimpicciolendo perdono dettagli: ${lossy.slice(0, 12).join(', ')}${lossy.length > 12 ? '…' : ''}`
+        ? tr(
+            '\n\nRimpicciolendo perdono dettagli: {0}{1}',
+            lossy.slice(0, 12).join(', '),
+            lossy.length > 12 ? '…' : ''
+          )
         : '')
     if (files.length === 0 || !window.confirm(question)) {
       if (files.length === 0) setPhase({ status: 'done', written: 0, errors })
@@ -145,13 +160,13 @@ export function ResizeDialog({
     const touched = files.flatMap((file) =>
       file.mcmeta !== null ? [file.path, `${file.path}.mcmeta`] : [file.path]
     )
-    if (!(await backupBefore(`Ridimensiona a ${target}×`, touched))) {
+    if (!(await backupBefore(tr('Ridimensiona a {0}×', target), touched))) {
       setPhase({ status: 'setup' })
       return
     }
     let written = 0
     for (const [index, file] of files.entries()) {
-      setPhase({ status: 'working', text: `Scrivo… ${index + 1}/${files.length}` })
+      setPhase({ status: 'working', text: tr('Scrivo… {0}/{1}', index + 1, files.length) })
       const saved = await window.api.invoke(
         'texture:save',
         file.path,
@@ -179,8 +194,8 @@ export function ResizeDialog({
   if (phase.status !== 'setup') {
     return (
       <div className="modal-backdrop" role="presentation">
-        <div className="card modal batch" role="dialog" aria-label="Ridimensiona">
-          <h2>Ridimensiona</h2>
+        <div className="card modal batch" role="dialog" aria-label={tr('Ridimensiona')}>
+          <h2>{tr('Ridimensiona')}</h2>
           {phase.status === 'working' ? (
             <p className="small">{phase.text}</p>
           ) : (
@@ -188,7 +203,7 @@ export function ResizeDialog({
               <p className="small" data-testid="resize-result">
                 <Glyph name="check" />
                 {phase.written === 1 ? '1 file riscritto' : `${phase.written} file riscritti`}
-                {phase.errors.length > 0 && `, ${phase.errors.length} errori`}
+                {phase.errors.length > 0 && tr(', {0} errori', phase.errors.length)}
               </p>
               {phase.errors.map((error) => (
                 <p key={error} className="field-error small">
@@ -197,7 +212,7 @@ export function ResizeDialog({
               ))}
               <div className="row">
                 <button type="button" className="primary" onClick={onClose}>
-                  Chiudi
+                  {tr('Chiudi')}
                 </button>
               </div>
             </>
@@ -212,27 +227,27 @@ export function ResizeDialog({
       <div
         className="card modal batch"
         role="dialog"
-        aria-label="Ridimensiona"
+        aria-label={tr('Ridimensiona')}
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>Ridimensiona (pixel netti)</h2>
+        <h2>{tr('Ridimensiona (pixel netti)')}</h2>
         <p className="muted small">
-          Porta le texture a una sola risoluzione, insieme a _n e _s: il gioco calcola le mipmap
-          dell’atlante sulla texture più piccola, quindi un pack con risoluzioni miste perde qualità
-          da lontano. Solo rapporti interi (×2, ×4, metà…), così i pixel restano netti.
+          {tr(
+            'Porta le texture a una sola risoluzione, insieme a _n e _s: il gioco calcola le mipmap dell’atlante sulla texture più piccola, quindi un pack con risoluzioni miste perde qualità da lontano. Solo rapporti interi (×2, ×4, metà…), così i pixel restano netti.'
+          )}
         </p>
         {!sizes ? (
-          <p className="small">Leggo le dimensioni…</p>
+          <p className="small">{tr('Leggo le dimensioni…')}</p>
         ) : (
           <p className="small" data-testid="resize-histogram">
-            Nel pack: {histogram.map((h) => `${h.resolution}× ${h.count}`).join(', ')}
+            {tr('Nel pack:')} {histogram.map((h) => `${h.resolution}× ${h.count}`).join(', ')}
           </p>
         )}
         <div className="row">
           <label className="small select-field">
-            Risoluzione{' '}
+            {tr('Risoluzione')}{' '}
             <select
-              aria-label="Risoluzione"
+              aria-label={tr('Risoluzione')}
               value={target}
               onChange={(event) => setTarget(Number(event.target.value))}
             >
@@ -257,20 +272,20 @@ export function ResizeDialog({
               )
             }
           >
-            Seleziona quelle non a {target}×
+            {tr('Seleziona quelle non a {0}×', target)}
           </button>
           <button type="button" className="small-button" onClick={() => setSelected(new Set())}>
-            Nessuna
+            {tr('Nessuna')}
           </button>
         </div>
         <input
           type="search"
-          aria-label="Filtra texture"
-          placeholder="Filtra per nome o cartella"
+          aria-label={tr('Filtra texture')}
+          placeholder={tr('Filtra per nome o cartella')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <ul className="batch-list" aria-label="Texture">
+        <ul className="batch-list" aria-label={tr('Texture')}>
           {visible.slice(0, MAX_ROWS).map((texture) => {
             const size = sizes?.[texture.albedo]
             const factor = factorOf(texture)
@@ -292,8 +307,8 @@ export function ResizeDialog({
                   {texture.name}
                   <span className="muted">
                     {size ? `${size.width}×${size.height}` : '…'}
-                    {size && !factor && ', non si può portare a questa risoluzione'}
-                    {factor && factor.up === 1 && factor.down === 1 && ', già così'}
+                    {size && !factor && tr(', non si può portare a questa risoluzione')}
+                    {factor && factor.up === 1 && factor.down === 1 && tr(', già così')}
                   </span>
                 </label>
               </li>
@@ -306,10 +321,10 @@ export function ResizeDialog({
             checked={withMaps}
             onChange={(event) => setWithMaps(event.target.checked)}
           />
-          Ridimensiona anche _n e _s (valori esatti, nessuna sfumatura)
+          {tr('Ridimensiona anche _n e _s (valori esatti, nessuna sfumatura)')}
         </label>
         <p className="small" data-testid="resize-summary">
-          Da ridimensionare: {work.length}
+          {tr('Da ridimensionare: {0}', work.length)}
           {incompatible.length > 0 && `, incompatibili: ${incompatible.length}`}
         </p>
         <div className="row">
@@ -319,10 +334,10 @@ export function ResizeDialog({
             disabled={work.length === 0}
             onClick={() => apply()}
           >
-            Ridimensiona {work.length === 1 ? '1 texture' : `${work.length} texture`}
+            {tr('Ridimensiona {0}', work.length === 1 ? '1 texture' : `${work.length} texture`)}
           </button>
           <button type="button" onClick={onClose}>
-            Annulla
+            {tr('Annulla')}
           </button>
         </div>
       </div>

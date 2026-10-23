@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // Pack Doctor (Phase 17 logic): what changed between two game versions, how to port a pack's
 // files across a rename, and file names the game silently ignores. Pure: main reads the jars and
 // hashes the decoded pixels; nothing from a jar is ever copied into a pack.
@@ -122,7 +123,7 @@ export function lintPaths(files: Iterable<string>): PathIssue[] {
     if (parts.length < 3) {
       issues.push({
         path,
-        message: 'Fuori da una cartella namespace (assets/<namespace>/…): ignorato.'
+        message: tr('Fuori da una cartella namespace (assets/<namespace>/…): ignorato.')
       })
       continue
     }
@@ -130,13 +131,14 @@ export function lintPaths(files: Iterable<string>): PathIssue[] {
     if (/[A-Z]/.test(inside)) {
       issues.push({
         path,
-        message: 'Lettere maiuscole nel percorso: il gioco non vede il file (solo minuscole).'
+        message: tr('Lettere maiuscole nel percorso: il gioco non vede il file (solo minuscole).')
       })
     } else if (/[^a-z0-9_.\-/]/.test(inside)) {
       issues.push({
         path,
-        message:
+        message: tr(
           'Caratteri non ammessi (spazi, accenti…): il gioco ignora il file. Usa a–z, 0–9, _ - .'
+        )
       })
     }
     const rest = parts.slice(2).join('/')
@@ -144,7 +146,7 @@ export function lintPaths(files: Iterable<string>): PathIssue[] {
       if (rest.startsWith(old)) {
         issues.push({
           path,
-          message: `Cartella "${old}" delle versioni prima della 1.13: ora è "${now}".`
+          message: tr('Cartella "{0}" delle versioni prima della 1.13: ora è "{1}".', old, now)
         })
       }
     }

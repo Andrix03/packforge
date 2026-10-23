@@ -1,3 +1,4 @@
+import { tr } from '../../shared/i18n'
 // Editor tool definitions (data only, shared by the tool panel and the shortcuts).
 
 export type ToolId =
@@ -61,80 +62,100 @@ export interface ToolInfo {
 export const TOOLS: readonly ToolInfo[] = [
   {
     id: 'pencil',
-    label: 'Matita',
+    label: tr('Matita'),
     shortcut: 'B',
-    tip: 'Sinistro = colore primario, destro = secondario. Ogni pixel deve avere uno scopo: niente sfumature morbide.'
+    tip: tr(
+      'Sinistro = colore primario, destro = secondario. Ogni pixel deve avere uno scopo: niente sfumature morbide.'
+    )
   },
   {
     id: 'eraser',
-    label: 'Gomma',
+    label: tr('Gomma'),
     shortcut: 'E',
-    tip: 'Rende i pixel trasparenti. Sui blocchi pieni (pietra, terra) di solito non serve: usala per foglie, vetro, fiori.'
+    tip: tr(
+      'Rende i pixel trasparenti. Sui blocchi pieni (pietra, terra) di solito non serve: usala per foglie, vetro, fiori.'
+    )
   },
   {
     id: 'fill',
-    label: 'Secchiello',
+    label: tr('Secchiello'),
     shortcut: 'G',
-    tip: 'Riempie l’area dello stesso colore. "Globale" cambia quel colore in tutta la texture: utile per ricolorare.'
+    tip: tr(
+      'Riempie l’area dello stesso colore. "Globale" cambia quel colore in tutta la texture: utile per ricolorare.'
+    )
   },
   {
     id: 'shade',
-    label: 'Ombra',
+    label: tr('Ombra'),
     shortcut: 'S',
-    tip: 'Sinistro scurisce, destro schiarisce, di un passo lungo la rampa. Funziona solo sui colori della rampa.'
+    tip: tr(
+      'Sinistro scurisce, destro schiarisce, di un passo lungo la rampa. Funziona solo sui colori della rampa.'
+    )
   },
   {
     id: 'noise',
-    label: 'Rumore',
+    label: tr('Rumore'),
     shortcut: 'N',
-    tip: 'Riempie l\u2019area con tonalità casuali della rampa: la base per pietra, terra e ghiaia. Poi ritocca a mano.'
+    tip: tr(
+      'Riempie l’area con tonalità casuali della rampa: la base per pietra, terra e ghiaia. Poi ritocca a mano.'
+    )
   },
   {
     id: 'picker',
-    label: 'Contagocce',
+    label: tr('Contagocce'),
     shortcut: 'I',
-    tip: 'Sinistro prende il colore primario, destro il secondario. Con gli altri strumenti tieni premuto Alt.'
+    tip: tr(
+      'Sinistro prende il colore primario, destro il secondario. Con gli altri strumenti tieni premuto Alt.'
+    )
   },
   {
     id: 'line',
-    label: 'Linea',
+    label: tr('Linea'),
     shortcut: 'L',
-    tip: 'Trascina da un punto all’altro. Con Maiusc la linea resta orizzontale, verticale o a 45°.',
+    tip: tr(
+      'Trascina da un punto all’altro. Con Maiusc la linea resta orizzontale, verticale o a 45°.'
+    ),
     pro: true
   },
   {
     id: 'rect',
-    label: 'Rettangolo',
+    label: tr('Rettangolo'),
     shortcut: 'U',
-    tip: 'Trascina da un angolo all’altro. Maiusc = quadrato. "Pieno" lo riempie.',
+    tip: tr('Trascina da un angolo all’altro. Maiusc = quadrato. "Pieno" lo riempie.'),
     pro: true
   },
   {
     id: 'ellipse',
-    label: 'Ellisse',
+    label: tr('Ellisse'),
     shortcut: 'O',
-    tip: 'Trascina il riquadro che contiene l’ellisse. Maiusc = cerchio. "Pieno" la riempie.',
+    tip: tr('Trascina il riquadro che contiene l’ellisse. Maiusc = cerchio. "Pieno" la riempie.'),
     pro: true
   },
   {
     id: 'select',
-    label: 'Selezione',
+    label: tr('Selezione'),
     shortcut: 'M',
-    tip: 'Trascina un rettangolo. Poi: Ctrl+C/X/V, Canc, Maiusc+H/V rifletti, Maiusc+R ruota. Esc deseleziona.',
+    tip: tr(
+      'Trascina un rettangolo. Poi: Ctrl+C/X/V, Canc, Maiusc+H/V rifletti, Maiusc+R ruota. Esc deseleziona.'
+    ),
     pro: true
   },
   {
     id: 'wand',
-    label: 'Bacchetta',
+    label: tr('Bacchetta'),
     shortcut: 'W',
-    tip: 'Seleziona i pixel dello stesso colore (Area o Globale). Utile per ricolorare o spostare un dettaglio.',
+    tip: tr(
+      'Seleziona i pixel dello stesso colore (Area o Globale). Utile per ricolorare o spostare un dettaglio.'
+    ),
     pro: true
   },
   {
     id: 'move',
-    label: 'Sposta',
+    label: tr('Sposta'),
     shortcut: 'V',
-    tip: 'Trascina la selezione (o tutto il livello). Invio la appoggia, Esc annulla lo spostamento.',
+    tip: tr(
+      'Trascina la selezione (o tutto il livello). Invio la appoggia, Esc annulla lo spostamento.'
+    ),
     pro: true
   }
 ]

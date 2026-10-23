@@ -7,6 +7,7 @@ import {
   type GameRelease,
   type PackVersion
 } from './packFormat'
+import { tr } from './i18n'
 
 // Writing multi-version packs (rules from snapshot 25w31a):
 // - formats >= 65 are declared with min_format/max_format;
@@ -78,13 +79,13 @@ export function buildOverlayEntries(specs: readonly OverlaySpec[]): OverlayEntry
  * history mentions upper case too; the stricter set is used.
  */
 export function validateOverlayDirectory(name: string): string | null {
-  if (name.length === 0) return 'Il nome della cartella overlay è obbligatorio.'
+  if (name.length === 0) return tr('Il nome della cartella overlay è obbligatorio.')
   if (!/^[a-z0-9_.-]+$/.test(name)) {
-    return 'Cartella overlay: usa solo lettere minuscole, numeri, "_", "-" e ".".'
+    return tr('Cartella overlay: usa solo lettere minuscole, numeri, "_", "-" e ".".')
   }
-  if (name === '.' || name === '..') return 'Nome della cartella overlay non valido.'
+  if (name === '.' || name === '..') return tr('Nome della cartella overlay non valido.')
   if (name === 'assets' || name === 'data') {
-    return `"${name}" è già una cartella del pack: scegli un altro nome.`
+    return tr('"{0}" è già una cartella del pack: scegli un altro nome.', name)
   }
   return null
 }
@@ -105,23 +106,23 @@ export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string
 
 /** Validates untrusted input for `pack:updateVersions`. */
 export function parseVersionRangeRequest(input: unknown): ParseResult<ResolvedVersionRange> {
-  if (typeof input !== 'object' || input === null) return fail('Richiesta non valida.')
+  if (typeof input !== 'object' || input === null) return fail(tr('Richiesta non valida.'))
   const { minVersion, maxVersion, overlays } = input as Record<string, unknown>
-  const range = resolveRange(minVersion, maxVersion, 'del pack')
+  const range = resolveRange(minVersion, maxVersion, tr('del pack'))
   if (!range.ok) return range
-  if (!Array.isArray(overlays)) return fail('Richiesta non valida.')
+  if (!Array.isArray(overlays)) return fail(tr('Richiesta non valida.'))
 
   const specs: OverlaySpec[] = []
   const seen = new Set<string>()
   for (const overlay of overlays) {
-    if (typeof overlay !== 'object' || overlay === null) return fail('Overlay non valido.')
+    if (typeof overlay !== 'object' || overlay === null) return fail(tr('Overlay non valido.'))
     const { directory, minVersion: oMin, maxVersion: oMax } = overlay as Record<string, unknown>
-    if (typeof directory !== 'string') return fail('Overlay non valido.')
+    if (typeof directory !== 'string') return fail(tr('Overlay non valido.'))
     const invalid = validateOverlayDirectory(directory)
     if (invalid) return fail(invalid)
-    if (seen.has(directory)) return fail(`La cartella overlay "${directory}" è ripetuta.`)
+    if (seen.has(directory)) return fail(tr('La cartella overlay "{0}" è ripetuta.', directory))
     seen.add(directory)
-    const overlayRange = resolveRange(oMin, oMax, `dell'overlay "${directory}"`)
+    const overlayRange = resolveRange(oMin, oMax, tr('dell\'overlay "{0}"', directory))
     if (!overlayRange.ok) return overlayRange
     specs.push({
       directory,
@@ -139,9 +140,9 @@ function resolveRange(
 ): ParseResult<{ min: GameRelease; max: GameRelease }> {
   const min = typeof minVersion === 'string' ? findRelease(minVersion) : undefined
   const max = typeof maxVersion === 'string' ? findRelease(maxVersion) : undefined
-  if (!min || !max) return fail(`Versioni ${what} non valide.`)
+  if (!min || !max) return fail(tr('Versioni {0} non valide.', what))
   if (comparePackVersions(min.resourceFormat, max.resourceFormat) > 0) {
-    return fail(`La versione minima ${what} è più recente della massima.`)
+    return fail(tr('La versione minima {0} è più recente della massima.', what))
   }
   return { ok: true, value: { min, max } }
 }

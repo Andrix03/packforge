@@ -1,3 +1,4 @@
+import { tr } from './i18n'
 // GUI sprites (`textures/gui/sprites/…`, 1.20.2+): the `gui.scaling` section of their .png.mcmeta
 // and how the game lays a sprite out at a given size. Checked on the 26.3 client
 // (GuiSpriteScaling codecs and GuiGraphicsExtractor.blitNineSlicedSprite, read with javap). Pure.
@@ -24,33 +25,44 @@ export function parseGuiScaling(mcmeta: unknown): ScalingResult {
   const gui = isRecord(mcmeta) ? mcmeta['gui'] : undefined
   const scaling = isRecord(gui) ? gui['scaling'] : undefined
   if (scaling === undefined) return { ok: true, scaling: { type: 'stretch' } }
-  if (!isRecord(scaling)) return fail('"scaling" deve essere un oggetto.')
+  if (!isRecord(scaling)) return fail(tr('"scaling" deve essere un oggetto.'))
   const type = scaling['type']
   if (type === 'stretch') return { ok: true, scaling: { type } }
   if (type !== 'tile' && type !== 'nine_slice') {
-    return fail('"type" deve essere "stretch", "tile" o "nine_slice".')
+    return fail(tr('"type" deve essere "stretch", "tile" o "nine_slice".'))
   }
   const { width, height } = scaling
   if (!isPositiveInt(width) || !isPositiveInt(height)) {
-    return fail('"width" e "height" devono essere interi positivi.')
+    return fail(tr('"width" e "height" devono essere interi positivi.'))
   }
   if (type === 'tile') return { ok: true, scaling: { type, width, height } }
 
   const border = readBorder(scaling['border'])
   if (!border) {
-    return fail('"border" deve essere un intero o {left, top, right, bottom}.')
+    return fail(tr('"border" deve essere un intero o {left, top, right, bottom}.'))
   }
   const stretchInner = scaling['stretch_inner'] ?? false
-  if (typeof stretchInner !== 'boolean') return fail('"stretch_inner" deve essere true o false.')
+  if (typeof stretchInner !== 'boolean')
+    return fail(tr('"stretch_inner" deve essere true o false.'))
   // The game refuses a nine-slice without a centre (the sprite then fails to load).
   if (border.left + border.right >= width) {
     return fail(
-      `Bordi sinistro + destro (${border.left} + ${border.right}) arrivano alla larghezza ${width}: nessuna parte centrale.`
+      tr(
+        'Bordi sinistro + destro ({0} + {1}) arrivano alla larghezza {2}: nessuna parte centrale.',
+        border.left,
+        border.right,
+        width
+      )
     )
   }
   if (border.top + border.bottom >= height) {
     return fail(
-      `Bordi alto + basso (${border.top} + ${border.bottom}) arrivano all’altezza ${height}: nessuna parte centrale.`
+      tr(
+        'Bordi alto + basso ({0} + {1}) arrivano all’altezza {2}: nessuna parte centrale.',
+        border.top,
+        border.bottom,
+        height
+      )
     )
   }
   return { ok: true, scaling: { type, width, height, border, stretchInner } }

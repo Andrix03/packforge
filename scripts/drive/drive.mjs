@@ -75,7 +75,9 @@ const child = spawn(
       // No request to GitHub from the tests (a scenario may give its own feed, e.g. a data: URL).
       PACKFORGE_UPDATE_FEED: scenarioOptions.updateFeed ?? 'off',
       // The first-run tutorial floats over the UI: only the scenarios about it turn it on.
-      PACKFORGE_TUTORIAL: scenarioOptions.tutorial ? 'on' : 'off'
+      PACKFORGE_TUTORIAL: scenarioOptions.tutorial ? 'on' : 'off',
+      // Scenarios read the Italian texts; `options.language` ('en') checks the English interface.
+      PACKFORGE_LANGUAGE: scenarioOptions.language ?? 'it'
     },
     stdio: 'ignore',
     // --keep-open: the app must outlive this script.
@@ -292,10 +294,12 @@ function createApp(send) {
     },
     /** Opens the fixture pack through the start screen (the dialog hook returns it). */
     async openPack({ waitForVanilla = false } = {}) {
+      // The start screen's button, in the scenario's language.
+      const open = scenarioOptions.language === 'en' ? 'Open folder' : 'Apri cartella'
       await app.waitFor(
-        `[...document.querySelectorAll('button')].some((b) => b.textContent.includes('Apri cartella'))`
+        `[...document.querySelectorAll('button')].some((b) => b.textContent.includes(${JSON.stringify(open)}))`
       )
-      await app.click('Apri cartella')
+      await app.click(open)
       await app.waitFor(`document.querySelectorAll('.texture-tile').length > 0`)
       if (waitForVanilla) {
         await app.waitFor(
@@ -312,11 +316,16 @@ function createApp(send) {
         return Boolean(tile)
       })()`)
       if (!found) throw new Error(`no tile for ${fileName}`)
-      // Under the full suite's load an editor can take more than 10 s to open.
-      await app.waitFor(
-        `document.querySelector('.editor-canvas') && document.querySelector('.zoom-label')?.textContent.includes('%')`,
-        20000
-      )
+      // Under the full suite's load an editor can take more than 10 s to open. After a JS dialog
+      // answered through CDP, Chromium may stop drawing frames, so the canvas' ResizeObserver
+      // never fires (zoom stays "—"): a screenshot forces a frame.
+      const ready = `!!document.querySelector('.editor-canvas') && !!document.querySelector('.zoom-label')?.textContent.includes('%')`
+      const start = Date.now()
+      while (!(await ev(ready))) {
+        if (Date.now() - start > 20000) throw new Error(`editor for ${fileName} did not open`)
+        await sleep(1000)
+        if (Date.now() - start > 2500) await send('Page.captureScreenshot', { format: 'png' })
+      }
       await sleep(300)
     },
     editor: {

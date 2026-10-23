@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { compareTextures, diffImage, onGrid, type Image } from '../../shared/textureCompare'
 import { useEscape } from '../useEscape'
 import { RangeInput } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 type View = 'side' | 'wipe'
 
@@ -39,25 +40,34 @@ export function CompareDialog({
   const sameShape = mine.width * vanilla.height === mine.height * vanilla.width
   const size =
     mine.width === vanilla.width && mine.height === vanilla.height
-      ? `stessa dimensione (${mine.width}×${mine.height})`
-      : `${mine.width}×${mine.height} contro ${vanilla.width}×${vanilla.height}${comparison.scale && comparison.scale !== 1 ? ` (×${comparison.scale >= 1 ? comparison.scale : `1/${1 / comparison.scale}`})` : ''}`
+      ? tr('stessa dimensione ({0}×{1})', mine.width, mine.height)
+      : tr(
+          '{0}×{1} contro {2}×{3}{4}',
+          mine.width,
+          mine.height,
+          vanilla.width,
+          vanilla.height,
+          comparison.scale && comparison.scale !== 1
+            ? ` (×${comparison.scale >= 1 ? comparison.scale : `1/${1 / comparison.scale}`})`
+            : ''
+        )
   const light =
     Math.abs(comparison.lightnessShift) < 1
-      ? 'luminosità simile'
+      ? tr('luminosità simile')
       : comparison.lightnessShift > 0
-        ? `più chiara (+${comparison.lightnessShift.toFixed(0)})`
-        : `più scura (${comparison.lightnessShift.toFixed(0)})`
+        ? tr('più chiara (+{0})', comparison.lightnessShift.toFixed(0))
+        : tr('più scura ({0})', comparison.lightnessShift.toFixed(0))
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <div
         className="card modal batch compare"
         role="dialog"
-        aria-label="Confronto con vanilla"
+        aria-label={tr('Confronto con vanilla')}
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>{name}: la mia contro vanilla</h2>
-        <div className="tabs small-tabs" role="radiogroup" aria-label="Vista">
+        <h2>{tr('{0}: la mia contro vanilla', name)}</h2>
+        <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Vista')}>
           <button
             type="button"
             role="radio"
@@ -65,7 +75,7 @@ export function CompareDialog({
             className={view === 'side' ? 'tab active' : 'tab'}
             onClick={() => setView('side')}
           >
-            Affiancate
+            {tr('Affiancate')}
           </button>
           <button
             type="button"
@@ -74,26 +84,26 @@ export function CompareDialog({
             className={view === 'wipe' ? 'tab active' : 'tab'}
             onClick={() => setView('wipe')}
           >
-            Tendina
+            {tr('Tendina')}
           </button>
         </div>
         {view === 'side' ? (
           <div className="compare-row">
-            <Figure label="La mia" width={width} height={height} pixels={mineGrid} />
-            <Figure label="Vanilla" width={width} height={height} pixels={vanillaGrid} />
+            <Figure label={tr('La mia')} width={width} height={height} pixels={mineGrid} />
+            <Figure label={tr('Vanilla')} width={width} height={height} pixels={vanillaGrid} />
             <Figure
-              label="Differenze"
+              label={tr('Differenze')}
               width={width}
               height={height}
               pixels={diff}
-              hint="Grigio = uguale, dal rosso al giallo = sempre più diverso"
+              hint={tr('Grigio = uguale, dal rosso al giallo = sempre più diverso')}
             />
           </div>
         ) : (
           <>
             <div className="compare-row">
               <Figure
-                label="Tendina: la mia a sinistra, vanilla a destra"
+                label={tr('Tendina: la mia a sinistra, vanilla a destra')}
                 width={width}
                 height={height}
                 pixels={wipe}
@@ -102,14 +112,14 @@ export function CompareDialog({
             </div>
             <label className="color-slider">
               <span className="small muted">
-                Tendina <span className="slider-value">{split}%</span>
+                {tr('Tendina')} <span className="slider-value">{split}%</span>
               </span>
               <RangeInput
                 type="range"
                 min={0}
                 max={100}
                 value={split}
-                aria-label="Tendina"
+                aria-label={tr('Tendina')}
                 onChange={(event) => setSplit(Number(event.target.value))}
               />
             </label>
@@ -117,36 +127,45 @@ export function CompareDialog({
         )}
         <ul className="compare-stats small" data-testid="compare-stats">
           <li>
-            Pixel cambiati: <strong>{comparison.changed}</strong> su {comparison.total} (
-            {share(comparison.changed)}){comparison.changed === 0 && ' — identica a vanilla'}
+            {tr('Pixel cambiati:')} <strong>{comparison.changed}</strong>{' '}
+            {tr('su {0} ({1})', comparison.total, share(comparison.changed))}
+            {comparison.changed === 0 && ' — identica a vanilla'}
           </li>
           {comparison.alphaChanged > 0 && (
-            <li>Trasparenza diversa in {comparison.alphaChanged} pixel</li>
+            <li>{tr('Trasparenza diversa in {0} pixel', comparison.alphaChanged)}</li>
           )}
           <li>
-            Colori: {comparison.colorsMine} (vanilla {comparison.colorsVanilla}), di cui{' '}
-            {comparison.newColors} nuovi
+            {tr(
+              'Colori: {0} (vanilla {1}), di cui {2} nuovi',
+              comparison.colorsMine,
+              comparison.colorsVanilla,
+              comparison.newColors
+            )}
           </li>
           <li>
-            Colore medio:{' '}
-            {comparison.meanShift < 2
-              ? 'quasi uguale'
-              : `spostato di ${comparison.meanShift.toFixed(0)}`}
-            , {light}
+            {tr(
+              'Colore medio: {0}, {1}',
+              comparison.meanShift < 2
+                ? tr('quasi uguale')
+                : tr('spostato di {0}', comparison.meanShift.toFixed(0)),
+              light
+            )}
           </li>
-          <li>Dimensione: {size}</li>
+          <li>{tr('Dimensione: {0}', size)}</li>
           {!sameShape && (
             <li className="muted">
-              Proporzioni diverse (numero di frame diverso?): il confronto è approssimativo.
+              {tr('Proporzioni diverse (numero di frame diverso?): il confronto è approssimativo.')}
             </li>
           )}
         </ul>
         <p className="small muted">
-          Vanilla è solo un riferimento: qui viene mostrata e misurata, mai copiata nel pack.
+          {tr(
+            'Vanilla è solo un riferimento: qui viene mostrata e misurata, mai copiata nel pack.'
+          )}
         </p>
         <div className="row">
           <button type="button" className="primary" onClick={onClose}>
-            Chiudi
+            {tr('Chiudi')}
           </button>
         </div>
       </div>

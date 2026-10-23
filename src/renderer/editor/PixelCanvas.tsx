@@ -30,6 +30,7 @@ import {
   type Frame,
   type Viewport
 } from './viewport'
+import { tr } from '../../shared/i18n'
 
 /** How long a canvas notice stays visible. */
 const NOTICE_MS = 3500
@@ -335,7 +336,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     }
     if (tool === 'move') {
       if (!doc.active.visible) {
-        showNotice('Il livello attivo è nascosto: rendilo visibile per spostarne i pixel.')
+        showNotice(tr('Il livello attivo è nascosto: rendilo visibile per spostarne i pixel.'))
         return
       }
       event.currentTarget.setPointerCapture(event.pointerId)
@@ -354,7 +355,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
     const clipIndex = selection ? (index: number) => selection.mask[index] === 1 : null
     const layer = doc.active
     if (!layer.visible) {
-      showNotice('Il livello attivo è nascosto: rendilo visibile per disegnarci sopra.')
+      showNotice(tr('Il livello attivo è nascosto: rendilo visibile per disegnarci sopra.'))
       return
     }
     if (tool === 'fill' || tool === 'noise') {
@@ -559,12 +560,12 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
       <div
         className="view-bar raised"
         role="toolbar"
-        aria-label="Vista"
-        title="Rotellina: zoom. Tasto centrale o Spazio + trascina: sposta"
+        aria-label={tr('Vista')}
+        title={tr('Rotellina: zoom. Tasto centrale o Spazio + trascina: sposta')}
       >
         <label
           className={showGrid ? 'ore-on ico toggle-label' : 'ore ico toggle-label'}
-          title="Griglia dei pixel"
+          title={tr('Griglia dei pixel')}
         >
           <input
             type="checkbox"
@@ -573,12 +574,14 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
             onChange={(event) => setShowGrid(event.target.checked)}
           />
           <PixelIcon icon={CMD_ICONS.grid} />
-          <span className="sr-only">Griglia</span>
+          <span className="sr-only">{tr('Griglia')}</span>
         </label>
         {props.onTiling && (
           <label
             className={tools?.tiling ? 'ore-on ico toggle-label' : 'ore ico toggle-label'}
-            title="Bordi continui: mostra la texture ripetuta e disegna oltre i bordi (quello che esce da un lato rientra dall'altro)"
+            title={tr(
+              "Bordi continui: mostra la texture ripetuta e disegna oltre i bordi (quello che esce da un lato rientra dall'altro)"
+            )}
           >
             <input
               type="checkbox"
@@ -587,7 +590,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
               onChange={(event) => props.onTiling?.(event.target.checked)}
             />
             <PixelIcon icon={CMD_ICONS.seamless} />
-            <span className="sr-only">Bordi continui</span>
+            <span className="sr-only">{tr('Bordi continui')}</span>
           </label>
         )}
         <span className="vsep" />
@@ -595,8 +598,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
           type="button"
           className="ore ico"
           onClick={() => zoomCentered(-1)}
-          title="Riduci (-)"
-          aria-label="Riduci"
+          title={tr('Riduci (-)')}
+          aria-label={tr('Riduci')}
         >
           <PixelIcon icon={CMD_ICONS.zoomOut} />
         </button>
@@ -605,8 +608,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
           type="button"
           className="ore ico"
           onClick={() => zoomCentered(1)}
-          title="Ingrandisci (+)"
-          aria-label="Ingrandisci"
+          title={tr('Ingrandisci (+)')}
+          aria-label={tr('Ingrandisci')}
         >
           <PixelIcon icon={CMD_ICONS.zoomIn} />
         </button>
@@ -614,8 +617,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
           type="button"
           className="ore ico"
           onClick={() => setStoredViewport(null)}
-          title="Adatta alla finestra (0)"
-          aria-label="Adatta"
+          title={tr('Adatta alla finestra (0)')}
+          aria-label={tr('Adatta')}
         >
           <PixelIcon icon={CMD_ICONS.fit} />
         </button>
@@ -623,8 +626,8 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
           type="button"
           className="ore ico"
           onClick={props.onShowShortcuts}
-          title="Tutte le scorciatoie da tastiera (?)"
-          aria-label="Scorciatoie"
+          title={tr('Tutte le scorciatoie da tastiera (?)')}
+          aria-label={tr('Scorciatoie')}
         >
           ?
         </button>
@@ -673,7 +676,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
             </span>
           </>
         ) : (
-          <span>Passa sopra la texture per vedere coordinate e colore.</span>
+          <span>{tr('Passa sopra la texture per vedere coordinate e colore.')}</span>
         )}
       </footer>
     </div>

@@ -3,6 +3,7 @@
 
 import type { MetalMode } from '../../shared/labpbr'
 import type { LightingPresetId } from './lightingPresets'
+import { tr } from '../../shared/i18n'
 
 export type ToneMappingId = 'neutral' | 'aces' | 'agx' | 'reinhard' | 'none'
 /** Sun shadows: none, soft-edged, or snapped to the texture's pixels like the shader packs. */
@@ -63,50 +64,66 @@ export interface DebugView {
 }
 
 export const DEBUG_VIEWS: readonly DebugView[] = [
-  { label: 'Finale', hint: 'Tutti gli effetti insieme.', raw: false },
-  { label: 'Albedo', hint: 'Solo il colore (con la tinta del bioma), senza luce.', raw: true },
-  { label: 'Normali (_n RG)', hint: 'La normale ricostruita: azzurro = piatta.', raw: true },
-  { label: 'AO (_n B)', hint: 'Occlusione ambientale: nero = in ombra.', raw: true },
+  { label: tr('Finale'), hint: tr('Tutti gli effetti insieme.'), raw: false },
   {
-    label: 'Altezza (_n A)',
-    hint: 'Bianco = in superficie, nero = 25% di profondità (POM).',
-    raw: true
-  },
-  { label: 'Levigatezza (_s R)', hint: 'Bianco = liscio e lucido, nero = ruvido.', raw: true },
-  {
-    label: 'F0 / metalli (_s G)',
-    hint: 'Grigio = riflettanza; i metalli (230–255) col loro colore.',
+    label: tr('Albedo'),
+    hint: tr('Solo il colore (con la tinta del bioma), senza luce.'),
     raw: true
   },
   {
-    label: 'Porosità (_s B 0–64)',
-    hint: 'Conta solo con la pioggia negli shader che la gestiscono.',
+    label: tr('Normali (_n RG)'),
+    hint: tr('La normale ricostruita: azzurro = piatta.'),
+    raw: true
+  },
+  { label: tr('AO (_n B)'), hint: tr('Occlusione ambientale: nero = in ombra.'), raw: true },
+  {
+    label: tr('Altezza (_n A)'),
+    hint: tr('Bianco = in superficie, nero = 25% di profondità (POM).'),
     raw: true
   },
   {
-    label: 'Subsurface (_s B 65–255)',
-    hint: 'Luce che passa attraverso (foglie, erba).',
+    label: tr('Levigatezza (_s R)'),
+    hint: tr('Bianco = liscio e lucido, nero = ruvido.'),
     raw: true
   },
-  { label: 'Emissione (_s A)', hint: 'Le parti che si illuminano da sole.', raw: true },
-  { label: 'Solo luce', hint: 'Materiale grigio: si vedono solo rilievo e riflessi.', raw: false }
+  {
+    label: tr('F0 / metalli (_s G)'),
+    hint: tr('Grigio = riflettanza; i metalli (230–255) col loro colore.'),
+    raw: true
+  },
+  {
+    label: tr('Porosità (_s B 0–64)'),
+    hint: tr('Conta solo con la pioggia negli shader che la gestiscono.'),
+    raw: true
+  },
+  {
+    label: tr('Subsurface (_s B 65–255)'),
+    hint: tr('Luce che passa attraverso (foglie, erba).'),
+    raw: true
+  },
+  { label: tr('Emissione (_s A)'), hint: tr('Le parti che si illuminano da sole.'), raw: true },
+  {
+    label: tr('Solo luce'),
+    hint: tr('Materiale grigio: si vedono solo rilievo e riflessi.'),
+    raw: false
+  }
 ]
 
 export const TONE_MAPPINGS: ReadonlyArray<{ id: ToneMappingId; label: string }> = [
-  { id: 'neutral', label: 'Neutro (colori fedeli)' },
-  { id: 'aces', label: 'ACES (cinematografico)' },
-  { id: 'agx', label: 'AgX' },
-  { id: 'reinhard', label: 'Reinhard' },
-  { id: 'none', label: 'Nessuno' }
+  { id: 'neutral', label: tr('Neutro (colori fedeli)') },
+  { id: 'aces', label: tr('ACES (cinematografico)') },
+  { id: 'agx', label: tr('AgX') },
+  { id: 'reinhard', label: tr('Reinhard') },
+  { id: 'none', label: tr('Nessuno') }
 ]
 
 export const SHADOW_MODES: ReadonlyArray<{ id: ShadowMode; label: string }> = [
-  { id: 'pixel', label: 'A pixel' },
-  { id: 'soft', label: 'Morbide' },
-  { id: 'off', label: 'Spente' }
+  { id: 'pixel', label: tr('A pixel') },
+  { id: 'soft', label: tr('Morbide') },
+  { id: 'off', label: tr('Spente') }
 ]
 
 export const REFLECTION_MODES: ReadonlyArray<{ id: ReflectionMode; label: string }> = [
-  { id: 'scene', label: 'Scena e cielo' },
-  { id: 'sky', label: 'Solo cielo' }
+  { id: 'scene', label: tr('Scena e cielo') },
+  { id: 'sky', label: tr('Solo cielo') }
 ]

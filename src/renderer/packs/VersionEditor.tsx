@@ -17,6 +17,7 @@ import {
   type OverlaySpec
 } from '../../shared/versionRange'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 interface OverlayDraft {
   /** Stable React key; directory names can be edited. */
@@ -84,7 +85,7 @@ export function VersionEditor({ pack, onCancel, onSaved }: VersionEditorProps): 
   return (
     <div className="version-editor">
       <div className="row wrap">
-        <span>Versioni supportate da</span>
+        <span>{tr('Versioni supportate da')}</span>
         <VersionSelect value={minVersion} onChange={setMinVersion} />
         <span>a</span>
         <VersionSelect value={maxVersion} onChange={setMaxVersion} />
@@ -92,7 +93,7 @@ export function VersionEditor({ pack, onCancel, onSaved }: VersionEditorProps): 
 
       <div className="overlay-list">
         <div className="row spread">
-          <h3>Overlay</h3>
+          <h3>{tr('Overlay')}</h3>
           <button
             type="button"
             onClick={() =>
@@ -102,20 +103,21 @@ export function VersionEditor({ pack, onCancel, onSaved }: VersionEditorProps): 
               ])
             }
           >
-            Aggiungi overlay
+            {tr('Aggiungi overlay')}
           </button>
         </div>
         <p className="muted small">
-          Un overlay è una cartella con file che sostituiscono quelli del pack solo nelle versioni
-          indicate (dalla 1.20.2 in poi). L'ordine conta: il primo viene applicato per primo.
+          {tr(
+            "Un overlay è una cartella con file che sostituiscono quelli del pack solo nelle versioni indicate (dalla 1.20.2 in poi). L'ordine conta: il primo viene applicato per primo."
+          )}
         </p>
         {overlays.map((overlay) => (
           <div key={overlay.id} className="row wrap overlay-row">
             <input
               value={overlay.directory}
               onChange={(event) => updateOverlay(overlay.id, { directory: event.target.value })}
-              placeholder="nome_cartella"
-              aria-label="Cartella overlay"
+              placeholder={tr('nome_cartella')}
+              aria-label={tr('Cartella overlay')}
               aria-invalid={validateOverlayDirectory(overlay.directory) !== null}
             />
             <VersionSelect
@@ -131,8 +133,8 @@ export function VersionEditor({ pack, onCancel, onSaved }: VersionEditorProps): 
               type="button"
               className="icon-button"
               onClick={() => setOverlays((list) => list.filter((o) => o.id !== overlay.id))}
-              aria-label={`Rimuovi overlay ${overlay.directory}`}
-              title="Rimuovi dall'elenco (la cartella sul disco non viene cancellata)"
+              aria-label={tr('Rimuovi overlay {0}', overlay.directory)}
+              title={tr("Rimuovi dall'elenco (la cartella sul disco non viene cancellata)")}
             >
               ×
             </button>
@@ -140,23 +142,22 @@ export function VersionEditor({ pack, onCancel, onSaved }: VersionEditorProps): 
         ))}
         {removed.length > 0 && (
           <p className="muted small">
-            Rimossi dall'elenco: {removed.map((o) => o.directory).join(', ')}. Le cartelle restano
-            sul disco.
+            {tr("Rimossi dall'elenco:")} {removed.map((o) => o.directory).join(', ')}
+            {tr('. Le cartelle restano sul disco.')}
           </p>
         )}
       </div>
 
       <details>
-        <summary>Anteprima dei campi in pack.mcmeta</summary>
+        <summary>{tr('Anteprima dei campi in pack.mcmeta')}</summary>
         <pre>{preview}</pre>
       </details>
 
       {modernOnlyOverlaysInLegacyPack(minVersion, overlays) && (
         <p className="warning-text small">
-          Il pack supporta versioni precedenti alla 1.21.9, ma nessun overlay le copre: come da
-          regole di 25w31a, gli overlay non avranno il campo "formats". Prima della 1.21.9 quel
-          campo era obbligatorio, quindi verifica in gioco che il pack si carichi anche nelle
-          versioni vecchie.
+          {tr(
+            'Il pack supporta versioni precedenti alla 1.21.9, ma nessun overlay le copre: come da regole di 25w31a, gli overlay non avranno il campo "formats". Prima della 1.21.9 quel campo era obbligatorio, quindi verifica in gioco che il pack si carichi anche nelle versioni vecchie.'
+          )}
         </p>
       )}
       {problems.map((problem) => (
@@ -172,10 +173,10 @@ export function VersionEditor({ pack, onCancel, onSaved }: VersionEditorProps): 
           onClick={() => void save()}
           disabled={saving || problems.length > 0}
         >
-          {saving ? 'Salvataggio…' : 'Salva in pack.mcmeta'}
+          {saving ? tr('Salvataggio…') : tr('Salva in pack.mcmeta')}
         </button>
         <button type="button" onClick={onCancel} disabled={saving}>
-          Annulla
+          {tr('Annulla')}
         </button>
       </div>
     </div>
@@ -202,17 +203,19 @@ function VersionSelect({
 
 function validate(min: string, max: string, overlays: OverlayDraft[]): string[] {
   const problems: string[] = []
-  if (isReversed(min, max)) problems.push('La versione minima è più recente della massima.')
+  if (isReversed(min, max)) problems.push(tr('La versione minima è più recente della massima.'))
   const seen = new Set<string>()
   for (const overlay of overlays) {
     const invalid = validateOverlayDirectory(overlay.directory)
     if (invalid) problems.push(invalid)
     else if (seen.has(overlay.directory)) {
-      problems.push(`La cartella overlay "${overlay.directory}" è ripetuta.`)
+      problems.push(tr('La cartella overlay "{0}" è ripetuta.', overlay.directory))
     }
     seen.add(overlay.directory)
     if (isReversed(overlay.minVersion, overlay.maxVersion)) {
-      problems.push(`Overlay "${overlay.directory || '?'}": la versione minima è dopo la massima.`)
+      problems.push(
+        tr('Overlay "{0}": la versione minima è dopo la massima.', overlay.directory || '?')
+      )
     }
   }
   return [...new Set(problems)]

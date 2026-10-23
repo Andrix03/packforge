@@ -3,20 +3,21 @@ import { coverageReport, type Missing } from '../../shared/coverage'
 import type { TextureEntry } from '../../shared/textures'
 import { useEscape } from '../useEscape'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 type Filter = 'all' | Missing
 
 const FILTERS: ReadonlyArray<{ id: Filter; label: string }> = [
-  { id: 'all', label: 'Tutte' },
-  { id: 'both', label: 'Senza mappe' },
-  { id: 'normal', label: 'Manca _n' },
-  { id: 'specular', label: 'Manca _s' }
+  { id: 'all', label: tr('Tutte') },
+  { id: 'both', label: tr('Senza mappe') },
+  { id: 'normal', label: tr('Manca _n') },
+  { id: 'specular', label: tr('Manca _s') }
 ]
 
 const MISSING_LABEL: Record<Missing, string> = {
-  both: 'mancano _n e _s',
-  normal: 'manca _n',
-  specular: 'manca _s'
+  both: tr('mancano _n e _s'),
+  normal: tr('manca _n'),
+  specular: tr('manca _s')
 }
 
 /** Rows drawn at most (the filter narrows big packs). */
@@ -50,32 +51,38 @@ export function CoverageDialog({
       <div
         className="card modal batch"
         role="dialog"
-        aria-label="Copertura delle mappe"
+        aria-label={tr('Copertura delle mappe')}
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>Copertura delle mappe _n / _s</h2>
+        <h2>{tr('Copertura delle mappe _n / _s')}</h2>
         <p className="small" data-testid="coverage-summary">
-          Mappe complete: {report.complete} di {report.total} texture (
-          {percent(report.complete, report.total)})
+          {tr(
+            'Mappe complete: {0} di {1} texture ({2})',
+            report.complete,
+            report.total,
+            percent(report.complete, report.total)
+          )}
         </p>
         <div className="coverage-bar" aria-hidden="true">
           <span style={{ width: percent(report.complete, report.total).replace('—', '0%') }} />
         </div>
         {report.gameMaps > 0 && (
           <p className="small muted">
-            Più {report.gameMaps === 1 ? '1 mappa' : `${report.gameMaps} mappe`} per texture del
-            gioco (non contate qui).
+            {tr(
+              'Più {0} per texture del gioco (non contate qui).',
+              report.gameMaps === 1 ? tr('1 mappa') : tr('{0} mappe', report.gameMaps)
+            )}
           </p>
         )}
         <table className="coverage-table small">
           <thead>
             <tr>
-              <th>Cartella</th>
-              <th>Texture</th>
+              <th>{tr('Cartella')}</th>
+              <th>{tr('Texture')}</th>
               <th>_n e _s</th>
-              <th>solo _n</th>
-              <th>solo _s</th>
-              <th>nessuna</th>
+              <th>{tr('solo _n')}</th>
+              <th>{tr('solo _s')}</th>
+              <th>{tr('nessuna')}</th>
             </tr>
           </thead>
           <tbody>
@@ -84,12 +91,14 @@ export function CoverageDialog({
                 key={folder.folder}
                 className={folder.skipped ? 'muted' : undefined}
                 title={
-                  folder.skipped ? 'Qui le mappe non servono: non è contata nel totale' : undefined
+                  folder.skipped
+                    ? tr('Qui le mappe non servono: non è contata nel totale')
+                    : undefined
                 }
               >
                 <td>
                   {folder.folder}
-                  {folder.skipped && ' (non servono)'}
+                  {folder.skipped && tr(' (non servono)')}
                 </td>
                 <td>{folder.total}</td>
                 <td>
@@ -103,7 +112,7 @@ export function CoverageDialog({
           </tbody>
         </table>
 
-        <div className="tabs small-tabs" role="radiogroup" aria-label="Mostra">
+        <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Mostra')}>
           {FILTERS.map((option) => (
             <button
               key={option.id}
@@ -124,10 +133,10 @@ export function CoverageDialog({
         {shown.length === 0 ? (
           <p className="small">
             <Glyph name="check" />
-            Niente da completare qui.
+            {tr('Niente da completare qui.')}
           </p>
         ) : (
-          <ul className="batch-list" aria-label="Texture incomplete">
+          <ul className="batch-list" aria-label={tr('Texture incomplete')}>
             {shown.slice(0, MAX_ROWS).map(({ texture, missing }) => (
               <li key={texture.albedo} className="coverage-row">
                 <span className="small">
@@ -138,16 +147,14 @@ export function CoverageDialog({
                   </span>
                 </span>
                 <button type="button" className="small-button" onClick={() => onOpen(texture)}>
-                  Apri
+                  {tr('Apri')}
                 </button>
               </li>
             ))}
           </ul>
         )}
         {shown.length > MAX_ROWS && (
-          <p className="small muted">
-            Mostrate {MAX_ROWS} di {shown.length}.
-          </p>
+          <p className="small muted">{tr('Mostrate {0} di {1}.', MAX_ROWS, shown.length)}</p>
         )}
         <div className="row">
           {canCreate && (
@@ -155,7 +162,7 @@ export function CoverageDialog({
               type="button"
               className="primary"
               disabled={shown.length === 0}
-              title="Apre “Applica in blocco” con queste texture già selezionate"
+              title={tr('Apre “Applica in blocco” con queste texture già selezionate')}
               onClick={() =>
                 onBatch(
                   shown.map((m) => m.texture),
@@ -166,11 +173,11 @@ export function CoverageDialog({
                 )
               }
             >
-              Crea le mappe mancanti ({shown.length})…
+              {tr('Crea le mappe mancanti ({0})…', shown.length)}
             </button>
           )}
           <button type="button" onClick={onClose}>
-            Chiudi
+            {tr('Chiudi')}
           </button>
         </div>
       </div>

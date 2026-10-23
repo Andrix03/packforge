@@ -20,6 +20,7 @@ import { errorMessage, fetchText, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 type ColorMode = 'game' | 'dye'
 
@@ -144,7 +145,10 @@ export function VariantsDialog({
     if (
       overwriting > 0 &&
       !window.confirm(
-        `Sovrascrivere ${overwriting === 1 ? '1 texture esistente' : `${overwriting} texture esistenti`}? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).`
+        tr(
+          'Sovrascrivere {0}? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).',
+          overwriting === 1 ? tr('1 texture esistente') : tr('{0} texture esistenti', overwriting)
+        )
       )
     ) {
       return
@@ -158,7 +162,7 @@ export function VariantsDialog({
       const files = [variant.path, ...mapKinds.map((kind) => mapPath(variant.path, kind))]
       return source.mcmeta ? files.flatMap((file) => [file, `${file}.mcmeta`]) : files
     })
-    if (!(await backupBefore(`Varianti di colore di ${source.name}`, touched))) return
+    if (!(await backupBefore(tr('Varianti di colore di {0}', source.name), touched))) return
     setPhase({ status: 'running', done: 0, total: toWrite.length })
     const errors: string[] = []
     let written = 0
@@ -217,18 +221,18 @@ export function VariantsDialog({
   if (phase.status !== 'setup') {
     return (
       <div className="modal-backdrop" role="presentation">
-        <div className="card modal batch" role="dialog" aria-label="Varianti di colore">
-          <h2>Varianti di colore</h2>
+        <div className="card modal batch" role="dialog" aria-label={tr('Varianti di colore')}>
+          <h2>{tr('Varianti di colore')}</h2>
           {phase.status === 'running' ? (
-            <p className="small">
-              Creo… {phase.done}/{phase.total}
-            </p>
+            <p className="small">{tr('Creo… {0}/{1}', phase.done, phase.total)}</p>
           ) : (
             <>
               <p className="small" data-testid="variants-result">
                 <Glyph name="check" />
-                {phase.written === 1 ? '1 texture creata' : `${phase.written} texture create`}
-                {phase.errors.length > 0 && `, ${phase.errors.length} errori`}
+                {phase.written === 1
+                  ? tr('1 texture creata')
+                  : tr('{0} texture create', phase.written)}
+                {phase.errors.length > 0 && tr(', {0} errori', phase.errors.length)}
               </p>
               {phase.errors.map((error) => (
                 <p key={error} className="field-error small">
@@ -237,7 +241,7 @@ export function VariantsDialog({
               ))}
               <div className="row">
                 <button type="button" className="primary" onClick={onClose}>
-                  Chiudi
+                  {tr('Chiudi')}
                 </button>
               </div>
             </>
@@ -252,19 +256,22 @@ export function VariantsDialog({
       <div
         className="card modal batch"
         role="dialog"
-        aria-label="Varianti di colore"
+        aria-label={tr('Varianti di colore')}
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>Varianti di colore di {source.name}</h2>
+        <h2>{tr('Varianti di colore di {0}', source.name)}</h2>
         <p className="muted small">
-          Ricolora la texture con i 16 colori dei coloranti: ombre e dettagli restano, cambia il
-          colore medio.
+          {tr(
+            'Ricolora la texture con i 16 colori dei coloranti: ombre e dettagli restano, cambia il colore medio.'
+          )}
         </p>
         {image && 'error' in image && <p className="field-error small">{image.error}</p>}
         <div className="row">
           <label
             className="inline-check small"
-            title="Il colore medio della stessa texture nel gioco (lana, cemento, terracotta hanno toni diversi)"
+            title={tr(
+              'Il colore medio della stessa texture nel gioco (lana, cemento, terracotta hanno toni diversi)'
+            )}
           >
             <input
               type="radio"
@@ -273,42 +280,43 @@ export function VariantsDialog({
               disabled={!vanilla}
               onChange={() => setMode('game')}
             />
-            Colori come nel gioco{!vanilla && ' (carica il jar vanilla)'}
+            {tr('Colori come nel gioco')}
+            {!vanilla && tr(' (carica il jar vanilla)')}
           </label>
-          <label className="inline-check small" title="I colori ufficiali dei coloranti">
+          <label className="inline-check small" title={tr('I colori ufficiali dei coloranti')}>
             <input
               type="radio"
               name="variant-colors"
               checked={mode === 'dye' || !vanilla}
               onChange={() => setMode('dye')}
             />
-            Colori dei coloranti
+            {tr('Colori dei coloranti')}
           </label>
         </div>
         <Range
-          label="Contrasto"
+          label={tr('Contrasto')}
           value={Math.round(options.contrast * 100)}
           unit="%"
           min={0}
           max={150}
-          title="Quanto restano le luci e le ombre della texture originale"
+          title={tr('Quanto restano le luci e le ombre della texture originale')}
           onChange={(value) => setOptions({ ...options, contrast: value / 100 })}
         />
         <Range
-          label="Sfumature di colore"
+          label={tr('Sfumature di colore')}
           value={Math.round(options.colorDetail * 100)}
           unit="%"
           min={0}
           max={100}
-          title="Quanto restano le variazioni di tinta dell’originale; 0 = un solo colore"
+          title={tr('Quanto restano le variazioni di tinta dell’originale; 0 = un solo colore')}
           onChange={(value) => setOptions({ ...options, colorDetail: value / 100 })}
         />
-        <div className="variant-grid" aria-label="Varianti">
+        <div className="variant-grid" aria-label={tr('Varianti')}>
           {variants.map((variant) => (
             <label
               key={variant.dye.id}
               className={variant.original ? 'variant original' : 'variant'}
-              title={`${variant.path}${variant.fromGame ? ', colore del gioco' : ', colore del colorante'} #${variant.hex}`}
+              title={`${variant.path}${variant.fromGame ? tr(', colore del gioco') : tr(', colore del colorante')} #${variant.hex}`}
             >
               {sample && (
                 <Thumb width={sample.width} height={sample.height} pixels={variant.pixels} />
@@ -330,9 +338,9 @@ export function VariantsDialog({
                 {variant.name}
               </span>
               {variant.original ? (
-                <span className="badge">originale</span>
+                <span className="badge">{tr('originale')}</span>
               ) : (
-                variant.exists && <span className="badge unsaved">esiste già</span>
+                variant.exists && <span className="badge unsaved">{tr('esiste già')}</span>
               )}
             </label>
           ))}
@@ -344,7 +352,7 @@ export function VariantsDialog({
               checked={copyMaps}
               onChange={(event) => setCopyMaps(event.target.checked)}
             />
-            Copia anche _n e _s (stesso rilievo e materiale)
+            {tr('Copia anche _n e _s (stesso rilievo e materiale)')}
           </label>
         )}
         <label className="inline-check small">
@@ -353,7 +361,7 @@ export function VariantsDialog({
             checked={overwrite}
             onChange={(event) => setOverwrite(event.target.checked)}
           />
-          Sovrascrivi le texture che esistono già
+          {tr('Sovrascrivi le texture che esistono già')}
         </label>
         <div className="row">
           <button
@@ -362,10 +370,10 @@ export function VariantsDialog({
             disabled={toWrite.length === 0 || !loaded}
             onClick={() => create()}
           >
-            Crea {toWrite.length === 1 ? '1 texture' : `${toWrite.length} texture`}
+            {tr('Crea {0}', toWrite.length === 1 ? '1 texture' : `${toWrite.length} texture`)}
           </button>
           <button type="button" onClick={onClose}>
-            Annulla
+            {tr('Annulla')}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MAX_LAYERS, type EditorDocument } from './document'
 import type { Command } from './history'
 import { Glyph, RangeInput } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 /**
  * Layers, top layer first (like every paint program). All changes are undo steps except choosing
@@ -31,7 +32,7 @@ export function LayersPanel({
   return (
     <section className="card layers-panel">
       <div className="row">
-        <strong className="small">Livelli</strong>
+        <strong className="small">{tr('Livelli')}</strong>
         <span className="muted small">
           {doc.layers.length}/{MAX_LAYERS}
         </span>
@@ -42,7 +43,7 @@ export function LayersPanel({
             <button
               type="button"
               className="layer-eye"
-              title={layer.visible ? 'Nascondi' : 'Mostra'}
+              title={layer.visible ? tr('Nascondi') : tr('Mostra')}
               aria-pressed={layer.visible}
               onClick={() => run(() => doc.setVisible(layer.id, !layer.visible))}
             >
@@ -72,7 +73,7 @@ export function LayersPanel({
                   onSelect(layer.id)
                 }}
                 onDoubleClick={() => setRenaming(layer.id)}
-                title="Clic: livello attivo. Doppio clic: rinomina"
+                title={tr('Clic: livello attivo. Doppio clic: rinomina')}
               >
                 {layer.name}
                 {layer.opacity < 1 && (
@@ -83,9 +84,9 @@ export function LayersPanel({
           </li>
         ))}
       </ul>
-      <label className="color-slider" title="Opacità del livello attivo">
+      <label className="color-slider" title={tr('Opacità del livello attivo')}>
         <span className="small muted">
-          Opacità <span className="slider-value">{Math.round(active.opacity * 100)}%</span>
+          {tr('Opacità')} <span className="slider-value">{Math.round(active.opacity * 100)}%</span>
         </span>
         <RangeInput
           type="range"
@@ -99,22 +100,26 @@ export function LayersPanel({
         />
       </label>
       <div className="layer-actions">
-        <button type="button" onClick={() => run(() => doc.addLayer())} title="Nuovo livello vuoto">
-          + Nuovo
+        <button
+          type="button"
+          onClick={() => run(() => doc.addLayer())}
+          title={tr('Nuovo livello vuoto')}
+        >
+          {tr('+ Nuovo')}
         </button>
         <button
           type="button"
           onClick={() => run(() => doc.duplicateLayer(active.id))}
-          title="Duplica il livello attivo"
+          title={tr('Duplica il livello attivo')}
         >
-          Duplica
+          {tr('Duplica')}
         </button>
         <button
           type="button"
           onClick={() => run(() => doc.moveLayer(active.id, 1))}
           disabled={activeIndex === doc.layers.length - 1}
-          title="Sposta su"
-          aria-label="Sposta su"
+          title={tr('Sposta su')}
+          aria-label={tr('Sposta su')}
         >
           <Glyph name="up" alone />
         </button>
@@ -122,8 +127,8 @@ export function LayersPanel({
           type="button"
           onClick={() => run(() => doc.moveLayer(active.id, -1))}
           disabled={activeIndex === 0}
-          title="Sposta giù"
-          aria-label="Sposta giù"
+          title={tr('Sposta giù')}
+          aria-label={tr('Sposta giù')}
         >
           <Glyph name="down" alone />
         </button>
@@ -131,20 +136,22 @@ export function LayersPanel({
           type="button"
           onClick={() => run(() => doc.mergeDown(active.id))}
           disabled={activeIndex === 0}
-          title="Unisci con il livello sotto"
+          title={tr('Unisci con il livello sotto')}
         >
-          Unisci giù
+          {tr('Unisci giù')}
         </button>
         <button
           type="button"
           onClick={() => run(() => doc.removeLayer(active.id))}
           disabled={doc.layers.length === 1}
-          title="Elimina il livello attivo"
+          title={tr('Elimina il livello attivo')}
         >
-          Elimina
+          {tr('Elimina')}
         </button>
       </div>
-      <p className="muted small">I livelli si uniscono quando salvi: il PNG ne ha uno solo.</p>
+      <p className="muted small">
+        {tr('I livelli si uniscono quando salvi: il PNG ne ha uno solo.')}
+      </p>
     </section>
   )
 }

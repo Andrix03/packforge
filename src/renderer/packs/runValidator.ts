@@ -15,6 +15,7 @@ import {
   type MapPair
 } from '../../shared/packValidator'
 import { fetchBytes, loadPng, type FileSource } from './packFetch'
+import { tr } from '../../shared/i18n'
 
 export type ValidatorSource = FileSource
 
@@ -48,7 +49,7 @@ async function checkPair(
     map = await loadPng(pack, pair.path)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
-    return [{ severity: 'error', path: pair.path, message: `PNG non leggibile: ${detail}` }]
+    return [{ severity: 'error', path: pair.path, message: tr('PNG non leggibile: {0}', detail) }]
   }
   let albedo: Image | null = null
   let albedoMcmeta: unknown = null
@@ -88,7 +89,7 @@ async function checkGameMcmeta(
   try {
     mcmeta = JSON.parse(new TextDecoder().decode(await fetchBytes(pack, path))) as unknown
   } catch {
-    return [{ severity: 'error', path, message: 'Il file .mcmeta non è un JSON valido.' }]
+    return [{ severity: 'error', path, message: tr('Il file .mcmeta non è un JSON valido.') }]
   }
   try {
     return checkTextureMcmeta(path, await loadPng(vanilla, png), mcmeta)

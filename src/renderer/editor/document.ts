@@ -7,6 +7,7 @@ import type { Command } from './history'
 import type { PixelBuffer } from './pixels'
 import { applyFrameOp, frameBounds, type FrameOp } from './frames'
 import { stampFloating, type Bounds, type Floating, type Selection } from './selection'
+import { tr } from '../../shared/i18n'
 
 /** Pixels lifted out of a layer (moving/pasting), shown above it until dropped. */
 export interface FloatingState {
@@ -47,7 +48,7 @@ export class EditorDocument {
     data?: Uint8Array | Uint8ClampedArray
   ) {
     this.view = { x0: 0, y0: 0, x1: width - 1, y1: height - 1 }
-    const first = this.createLayer('Livello 1')
+    const first = this.createLayer(tr('Livello 1'))
     if (data) first.pixels.data.set(data)
     this.layers = [first]
     this.activeId = first.id
@@ -97,14 +98,14 @@ export class EditorDocument {
   /** New empty layer above the active one, made active. Null when the layer limit is reached. */
   addLayer(): Command | null {
     if (this.layers.length >= MAX_LAYERS) return null
-    const layer = this.createLayer(`Livello ${this.nextId}`)
+    const layer = this.createLayer(tr('Livello {0}', this.nextId))
     return this.insert(layer, this.indexOf(this.active.id) + 1)
   }
 
   duplicateLayer(id: number): Command | null {
     const source = this.layers[this.indexOf(id)]
     if (!source || this.layers.length >= MAX_LAYERS) return null
-    const copy = this.createLayer(`${source.name} copia`)
+    const copy = this.createLayer(tr('{0} copia', source.name))
     copy.pixels.data.set(source.pixels.data)
     copy.visible = source.visible
     copy.opacity = source.opacity

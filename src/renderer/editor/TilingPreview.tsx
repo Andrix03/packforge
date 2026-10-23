@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { tr } from '../../shared/i18n'
 
 /** The texture repeated 3×3, to spot seams and repeating patterns while painting. */
 export function TilingPreview({
@@ -63,14 +64,14 @@ export function TilingPreview({
   return (
     <section className="card tiling-preview">
       <div className="row">
-        <strong className="small">Ripetizione 3×3</strong>
-        <label className="inline-check small" title="Mostra dove si ripete la texture">
+        <strong className="small">{tr('Ripetizione 3×3')}</strong>
+        <label className="inline-check small" title={tr('Mostra dove si ripete la texture')}>
           <input
             type="checkbox"
             checked={showSeams}
             onChange={(event) => setShowSeams(event.target.checked)}
           />
-          Bordi
+          {tr('Bordi')}
         </label>
       </div>
       <canvas ref={canvasRef} className="tiling-canvas checker" />

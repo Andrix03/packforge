@@ -1,8 +1,11 @@
+// First: sets the interface language before any module builds its texts.
+import './language'
 import { join } from 'node:path'
 import { app, BrowserWindow, protocol, shell } from 'electron'
 import { registerIpcHandlers } from './ipc'
 import { handlePackRequest, PACK_SCHEME } from './packProtocol'
 import { getSource } from './session'
+import { tr } from '../shared/i18n'
 
 // Must run before `ready`. `standard` gives pack:// URLs a host and normal path parsing.
 protocol.registerSchemesAsPrivileged([
@@ -19,7 +22,7 @@ function createWindow(): void {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    title: 'PackForge',
+    title: tr('PackForge'),
     backgroundColor: '#1b1d22',
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.cjs'),

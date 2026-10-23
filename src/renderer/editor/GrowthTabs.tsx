@@ -2,6 +2,7 @@ import { resolveAssetUrl, type AssetSources, type GrowthStage } from '../preview
 import { stageTextures } from './stages'
 import { Glyph } from '../ui/components'
 import { CMD_ICONS } from '../ui/icons'
+import { tr } from '../../shared/i18n'
 
 /**
  * Tabs for the growth stages of a crop (seed → grown): each stage has its own texture. Stages the
@@ -35,10 +36,10 @@ export function GrowthTabs({
     return part ? `${stage}-${part === 'top' ? 'su' : part}` : `${stage}`
   }
   return (
-    <div className="face-tabs growth-tabs" role="tablist" aria-label="Stadi di crescita">
+    <div className="face-tabs growth-tabs" role="tablist" aria-label={tr('Stadi di crescita')}>
       <span className="muted small">
         <Glyph icon={CMD_ICONS.beginner} />
-        Stadi di crescita:
+        {tr('Stadi di crescita:')}
       </span>
       {textures.map((path, index) => {
         const inPack = sources.pack.files.has(path)
@@ -58,8 +59,8 @@ export function GrowthTabs({
             className={path === current ? 'tab active' : inPack ? 'tab' : 'tab missing'}
             title={
               inPack
-                ? `${path} — stadio ${labelOf(path)} di ${bases.length}`
-                : `${path} — non è ancora nel pack: clicca per crearla`
+                ? tr('{0} — stadio {1} di {2}', path, labelOf(path), bases.length)
+                : tr('{0} — non è ancora nel pack: clicca per crearla', path)
             }
             disabled={readOnly && !inPack}
             onClick={() => (inPack ? onOpen(path) : onCreate(path, previous))}

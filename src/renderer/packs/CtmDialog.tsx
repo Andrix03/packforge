@@ -31,6 +31,7 @@ import { backupBefore } from './backup'
 import { errorMessage, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
+import { tr } from '../../shared/i18n'
 
 /** Wall used by the preview: 1 = block, 0 = gap (shows outer, inner corners and lines). */
 const WALL = [
@@ -113,7 +114,10 @@ export function CtmDialog({
     if (
       exists &&
       !window.confirm(
-        `La cartella ${folder} esiste già: sovrascrivere i suoi tile? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).`
+        tr(
+          'La cartella {0} esiste già: sovrascrivere i suoi tile? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).',
+          folder
+        )
       )
     ) {
       return
@@ -130,7 +134,7 @@ export function CtmDialog({
       }),
       `${folder}/${folder.slice(folder.lastIndexOf('/') + 1)}.properties`
     ]
-    if (!(await backupBefore(`Texture connesse di ${source.name}`, touched))) return
+    if (!(await backupBefore(tr('Texture connesse di {0}', source.name), touched))) return
     const errors: string[] = []
     let written = 0
     const save = async (path: string, img: Image, data: Uint8ClampedArray): Promise<void> => {
@@ -145,7 +149,7 @@ export function CtmDialog({
       else errors.push(`${path.split('/').pop()}: ${saved.error}`)
     }
     for (const [index, tile] of tiles.entries()) {
-      setPhase({ status: 'working', text: `Scrivo i tile… ${index + 1}/${tiles.length}` })
+      setPhase({ status: 'working', text: tr('Scrivo i tile… {0}/{1}', index + 1, tiles.length) })
       await save(`${folder}/${index}.png`, loaded, tile)
     }
     if (withMaps) {
@@ -168,7 +172,12 @@ export function CtmDialog({
           for (const [index, tile] of mapTiles.entries()) {
             setPhase({
               status: 'working',
-              text: `Scrivo le mappe ${kind === 'normal' ? '_n' : '_s'}… ${index + 1}/${mapTiles.length}`
+              text: tr(
+                'Scrivo le mappe {0}… {1}/{2}',
+                kind === 'normal' ? '_n' : '_s',
+                index + 1,
+                mapTiles.length
+              )
             })
             await save(mapPath(`${folder}/${index}.png`, kind), map, tile)
           }
@@ -181,7 +190,10 @@ export function CtmDialog({
     const properties = await window.api.invoke(
       'ctm:saveProperties',
       `${folder}/${folder.slice(folder.lastIndexOf('/') + 1)}.properties`,
-      serializeProperties(entries, `Texture connesse di ${source.albedo}, create da PackForge`)
+      serializeProperties(
+        entries,
+        tr('Texture connesse di {0}, create da PackForge', source.albedo)
+      )
     )
     if (!properties.ok) errors.push(properties.error)
     setPhase({ status: 'done', written, errors, folder })
@@ -206,7 +218,7 @@ export function CtmDialog({
         create()
       }}
     >
-      Crea i {tileCount} tile
+      {tr('Crea i {0} tile', tileCount)}
     </button>
   )
 
@@ -215,12 +227,12 @@ export function CtmDialog({
       <div
         className="card modal batch wizard"
         role="dialog"
-        aria-label="Texture connesse"
+        aria-label={tr('Texture connesse')}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="wizard-head">
-          <h2>Texture connesse di {source.name}</h2>
-          <ol className="wizard-steps" aria-label="Passi">
+          <h2>{tr('Texture connesse di {0}', source.name)}</h2>
+          <ol className="wizard-steps" aria-label={tr('Passi')}>
             {CTM_STEPS.map((label, index) => (
               <li key={label}>
                 <button
@@ -248,8 +260,9 @@ export function CtmDialog({
         {/* 1 · Texture */}
         <section className="wizard-step" hidden={step !== 0}>
           <p className="muted small">
-            Blocchi uguali vicini si uniscono e il bordo resta solo sui lati liberi (vetro, mattoni,
-            pannelli). La cornice è il bordo della texture: dove due blocchi si toccano sparisce.
+            {tr(
+              'Blocchi uguali vicini si uniscono e il bordo resta solo sui lati liberi (vetro, mattoni, pannelli). La cornice è il bordo della texture: dove due blocchi si toccano sparisce.'
+            )}
           </p>
           {loaded && (
             <div className="ctm-source">
@@ -260,22 +273,24 @@ export function CtmDialog({
                 data={Uint8ClampedArray.from(loaded.data)}
               />
               <div className="ctm-source-facts">
-                <strong>{source.name}.png</strong>
+                <strong>{tr('{0}.png', source.name)}</strong>
                 <span className="muted small">
                   {loaded.width}×{loaded.height}
-                  {problem ? '' : ', va bene per il metodo completo'}
+                  {problem ? '' : tr(', va bene per il metodo completo')}
                 </span>
                 <label
                   className="small select-field"
-                  title="Facoltativa: la texture senza cornice, usata dove i blocchi si uniscono"
+                  title={tr(
+                    'Facoltativa: la texture senza cornice, usata dove i blocchi si uniscono'
+                  )}
                 >
-                  Interno{' '}
+                  {tr('Interno')}{' '}
                   <select
-                    aria-label="Interno"
+                    aria-label={tr('Interno')}
                     value={centerPath}
                     onChange={(event) => setCenterPath(event.target.value)}
                   >
-                    <option value="">l’interno della texture stessa</option>
+                    <option value="">{tr('l’interno della texture stessa')}</option>
                     {centers.map((t) => (
                       <option key={t.albedo} value={t.albedo}>
                         {t.name}
@@ -290,7 +305,7 @@ export function CtmDialog({
 
         {/* 2 · Metodo */}
         <section className="wizard-step" hidden={step !== 1}>
-          <div className="ctm-methods" role="radiogroup" aria-label="Metodo">
+          <div className="ctm-methods" role="radiogroup" aria-label={tr('Metodo')}>
             {CTM_METHODS.map((method) => (
               <button
                 key={method.id}
@@ -300,24 +315,28 @@ export function CtmDialog({
                 className={method.id === chosen ? 'ctm-method active' : 'ctm-method'}
                 onClick={() => setMethod(method.id)}
                 title={
-                  method.ready ? undefined : 'In arrivo: per ora PackForge crea il metodo completo'
+                  method.ready
+                    ? undefined
+                    : tr('In arrivo: per ora PackForge crea il metodo completo')
                 }
               >
                 <Picture picture={method.picture} size={40} />
                 <strong>{method.label}</strong>
                 <span className="muted small">{method.note}</span>
-                <span className="small">{method.ready ? method.tiles : 'in arrivo'}</span>
+                <span className="small">{method.ready ? method.tiles : tr('in arrivo')}</span>
               </button>
             ))}
           </div>
           {loaded && !problem && (
             <Range
-              label="Spessore del bordo"
+              label={tr('Spessore del bordo')}
               value={border}
               unit=" px"
               min={1}
               max={maxBorder(loaded.width)}
-              title="Quanti pixel dal bordo formano la cornice che sparisce dove i blocchi si toccano"
+              title={tr(
+                'Quanti pixel dal bordo formano la cornice che sparisce dove i blocchi si toccano'
+              )}
               onChange={setBorder}
             />
           )}
@@ -328,11 +347,11 @@ export function CtmDialog({
                 checked={withMaps}
                 onChange={(event) => setWithMaps(event.target.checked)}
               />
-              Crea anche i tile di _n e _s (rilievo e materiale seguono le connessioni)
+              {tr('Crea anche i tile di _n e _s (rilievo e materiale seguono le connessioni)')}
             </label>
           )}
           <p className="small muted">
-            Funziona con Continuity (Fabric, anche con Iris) e con OptiFine.
+            {tr('Funziona con Continuity (Fabric, anche con Iris) e con OptiFine.')}
           </p>
         </section>
 
@@ -343,43 +362,46 @@ export function CtmDialog({
               <>
                 <div className="before-after-bar">
                   <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
-                    Prima
+                    {tr('Prima')}
                   </span>
                   <Switch
                     checked={showAfter}
                     onChange={setShowAfter}
-                    label="Mostra il risultato"
+                    label={tr('Mostra il risultato')}
                     disabled={both}
                   />
                   <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
-                    Dopo
+                    {tr('Dopo')}
                   </span>
-                  <label className="inline-check small" title="Prima e dopo uno accanto all’altro">
+                  <label
+                    className="inline-check small"
+                    title={tr('Prima e dopo uno accanto all’altro')}
+                  >
                     <input
                       type="checkbox"
                       checked={both}
                       onChange={(event) => setBoth(event.target.checked)}
                     />
-                    Affiancati
+                    {tr('Affiancati')}
                   </label>
                 </div>
                 <div className={both ? 'before-after-views both' : 'before-after-views'}>
                   <figure className="before-after-view" hidden={!both && showAfter}>
-                    <figcaption className="ph">Prima</figcaption>
+                    <figcaption className="ph">{tr('Prima')}</figcaption>
                     <Canvas className="ctm-wall-before" {...plainWall(loaded)} />
                     <figcaption className="small muted">
-                      Ogni blocco ha la sua cornice: il muro sembra una griglia.
+                      {tr('Ogni blocco ha la sua cornice: il muro sembra una griglia.')}
                     </figcaption>
                   </figure>
                   <figure className="before-after-view" hidden={!both && !showAfter}>
-                    <figcaption className="ph after">Dopo</figcaption>
+                    <figcaption className="ph after">{tr('Dopo')}</figcaption>
                     <Canvas className="ctm-wall" {...wallPreview(loaded, tiles, method)} />
                     <figcaption className="small muted">
                       {method === 'horizontal'
-                        ? 'Si uniscono solo i blocchi affiancati: righe continue.'
+                        ? tr('Si uniscono solo i blocchi affiancati: righe continue.')
                         : method === 'vertical'
-                          ? 'Si uniscono solo i blocchi impilati: colonne continue.'
-                          : 'Le cornici interne spariscono: una sola superficie.'}
+                          ? tr('Si uniscono solo i blocchi impilati: colonne continue.')
+                          : tr('Le cornici interne spariscono: una sola superficie.')}
                     </figcaption>
                   </figure>
                 </div>
@@ -387,53 +409,70 @@ export function CtmDialog({
                   <Canvas className="ctm-sheet" {...sheetPreview(loaded, tiles)} />
                   <figcaption className="small muted">
                     {method === 'ctm'
-                      ? 'I 47 tile (come il template di OptiFine)'
-                      : 'I 4 tile: inizio, mezzo, fine, da solo'}
+                      ? tr('I 47 tile (come il template di OptiFine)')
+                      : tr('I 4 tile: inizio, mezzo, fine, da solo')}
                   </figcaption>
                 </figure>
               </>
             )}
           </div>
           <aside className="wizard-facts">
-            <h3 className="ph">Cosa succede</h3>
+            <h3 className="ph">{tr('Cosa succede')}</h3>
             <div className="wizard-counts">
               <span>
                 <strong className={exists ? 'count-over' : 'count-new'}>{fileCount}</strong>
                 {exists ? 'riscritti' : 'nuovi'}
               </span>
               <span>
-                <strong>1</strong> invariato
+                <strong>1</strong> {tr('invariato')}
               </span>
             </div>
             <p className="small">
-              {source.name}.png non viene toccata: i tile sono file nuovi accanto. Prima di scrivere
-              viene fatto un backup.
+              {tr(
+                '{0}.png non viene toccata: i tile sono file nuovi accanto. Prima di scrivere viene fatto un backup.',
+                source.name
+              )}
             </p>
             <p className="small warning-text">
-              Serve Continuity o OptiFine. Senza, il gioco mostra la texture normale: niente si
-              rompe.
+              {tr(
+                'Serve Continuity o OptiFine. Senza, il gioco mostra la texture normale: niente si rompe.'
+              )}
             </p>
-            <h3 className="ph">File che verranno scritti</h3>
+            <h3 className="ph">{tr('File che verranno scritti')}</h3>
             <ul className="wizard-files">
               <li className={exists ? 'file-overwrite' : 'file-create'}>
-                {exists ? '~' : '+'} {folder.replace(/^assets\/minecraft\//, '')}/0.png …{' '}
-                {tileCount - 1}.png
+                {tr(
+                  '{0} {1}/0.png … {2}.png',
+                  exists ? '~' : '+',
+                  folder.replace(/^assets\/minecraft\//, ''),
+                  tileCount - 1
+                )}
               </li>
               {withMaps &&
                 mapKinds.map((kind) => (
                   <li key={kind} className={exists ? 'file-overwrite' : 'file-create'}>
-                    {exists ? '~' : '+'} i {tileCount} tile {kind === 'normal' ? '_n' : '_s'}
+                    {tr(
+                      '{0} i {1} tile {2}',
+                      exists ? '~' : '+',
+                      tileCount,
+                      kind === 'normal' ? '_n' : '_s'
+                    )}
                   </li>
                 ))}
               <li className={exists ? 'file-overwrite' : 'file-create'}>
-                {exists ? '~' : '+'} {folder.slice(folder.lastIndexOf('/') + 1)}.properties
+                {tr(
+                  '{0} {1}.properties',
+                  exists ? '~' : '+',
+                  folder.slice(folder.lastIndexOf('/') + 1)
+                )}
               </li>
               <li className="file-skip">
                 = {source.albedo.slice(source.albedo.lastIndexOf('/') + 1)}
               </li>
             </ul>
             <p className="small muted">
-              Cartella: {folder}/{exists && ', esiste già'}
+              {tr('Cartella: {0}/', folder)}
+              {exists && tr(', esiste già')}
             </p>
           </aside>
         </section>
@@ -445,8 +484,8 @@ export function CtmDialog({
             <>
               <p className="small" data-testid="ctm-result">
                 <Glyph name="check" />
-                {phase.written} tile scritti in {phase.folder}
-                {phase.errors.length > 0 && `, ${phase.errors.length} errori`}
+                {tr('{0} tile scritti in {1}', phase.written, phase.folder)}
+                {phase.errors.length > 0 && tr(', {0} errori', phase.errors.length)}
               </p>
               {phase.errors.map((error) => (
                 <p key={error} className="field-error small">
@@ -454,8 +493,9 @@ export function CtmDialog({
                 </p>
               ))}
               <p className="small muted">
-                In gioco servono Continuity (Fabric, anche con Iris) oppure OptiFine: metti due
-                blocchi vicini e la cornice in mezzo sparisce. Il backup è in Pack › Backup.
+                {tr(
+                  'In gioco servono Continuity (Fabric, anche con Iris) oppure OptiFine: metti due blocchi vicini e la cornice in mezzo sparisce. Il backup è in Pack › Backup.'
+                )}
               </p>
             </>
           )}
@@ -464,16 +504,16 @@ export function CtmDialog({
         <footer className="row wizard-foot">
           {phase.status === 'done' ? (
             <button type="button" className="primary" onClick={onClose}>
-              Chiudi
+              {tr('Chiudi')}
             </button>
           ) : (
             <>
               <button type="button" onClick={onClose} disabled={busy}>
-                Annulla
+                {tr('Annulla')}
               </button>
               {step > 0 && step < 3 && (
                 <button type="button" onClick={() => setStep(step - 1)}>
-                  ‹ Indietro
+                  {tr('‹ Indietro')}
                 </button>
               )}
               {step < 2 && (
@@ -483,7 +523,7 @@ export function CtmDialog({
                   disabled={!ready}
                   onClick={() => setStep(step + 1)}
                 >
-                  Avanti: {CTM_STEPS[step + 1]?.toLowerCase()} ›
+                  {tr('Avanti: {0} ›', CTM_STEPS[step + 1]?.toLowerCase())}
                 </button>
               )}
               {create47}
@@ -495,29 +535,29 @@ export function CtmDialog({
   )
 }
 
-const CTM_STEPS = ['Texture', 'Metodo', 'Anteprima', 'Applica'] as const
+const CTM_STEPS = [tr('Texture'), tr('Metodo'), tr('Anteprima'), tr('Applica')] as const
 
 const CTM_METHODS = [
   {
     id: 'ctm',
-    label: 'Completo',
-    note: 'Si collega in tutte le direzioni: vetri, finestre, blocchi lisci.',
+    label: tr('Completo'),
+    note: tr('Si collega in tutte le direzioni: vetri, finestre, blocchi lisci.'),
     tiles: '47 tessere',
     picture: CTM_PICTURES.ctm,
     ready: true
   },
   {
     id: 'horizontal',
-    label: 'Orizzontale',
-    note: 'Solo a destra e sinistra: scaffali, librerie, ringhiere.',
+    label: tr('Orizzontale'),
+    note: tr('Solo a destra e sinistra: scaffali, librerie, ringhiere.'),
     tiles: '4 tessere',
     picture: CTM_PICTURES.h,
     ready: true
   },
   {
     id: 'vertical',
-    label: 'Verticale',
-    note: 'Solo sopra e sotto: colonne, pilastri, tronchi.',
+    label: tr('Verticale'),
+    note: tr('Solo sopra e sotto: colonne, pilastri, tronchi.'),
     tiles: '4 tessere',
     picture: CTM_PICTURES.v,
     ready: true

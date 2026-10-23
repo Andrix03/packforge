@@ -3,6 +3,7 @@
 // (AARRGGBB lines, `;` comments). Colors are PackForge's `#rrggbbaa` strings. Pure.
 
 import { MAX_PALETTE_COLORS, type SavedPalette } from './settings'
+import { tr } from './i18n'
 
 export type PaletteFormat = 'gpl' | 'hex' | 'txt'
 
@@ -56,7 +57,7 @@ export function importPalette(text: string, fileName: string): PaletteImport {
       else skipped++
     }
   }
-  if (colors.length === 0) return { ok: false, error: 'Nel file non ci sono colori leggibili.' }
+  if (colors.length === 0) return { ok: false, error: tr('Nel file non ci sono colori leggibili.') }
   return { ok: true, palette: { name, colors }, skipped }
 }
 

@@ -6,6 +6,7 @@
 // textures allows, so one leftover 16× texture caps the mipmaps of a 64× pack.
 
 import { MAX_IMAGE_PIXELS, MAX_IMAGE_SIDE } from './pngCodec'
+import { tr } from './i18n'
 
 export interface Image {
   width: number
@@ -115,7 +116,12 @@ export function scaleMcmeta(text: string, factor: Factor): string | null {
       const scaled = (value / factor.down) * factor.up
       if (!Number.isInteger(scaled)) {
         throw new Error(
-          `i frame dell'animazione (${key} ${value}) non si possono dividere per ${factor.down}`
+          tr(
+            "i frame dell'animazione ({0} {1}) non si possono dividere per {2}",
+            key,
+            value,
+            factor.down
+          )
         )
       }
       animation[key] = scaled

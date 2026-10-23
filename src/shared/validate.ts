@@ -1,4 +1,5 @@
 import { findRelease } from './packFormat'
+import { tr } from './i18n'
 
 export const PACK_NAME_MAX_LENGTH = 64
 export const PACK_DESCRIPTION_MAX_LENGTH = 256
@@ -11,23 +12,23 @@ const WINDOWS_RESERVED_NAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i
 /** Validates a pack name used as a folder name. Returns an Italian error, or null if valid. */
 export function validatePackName(name: string): string | null {
   const trimmed = name.trim()
-  if (trimmed.length === 0) return 'Il nome è obbligatorio.'
+  if (trimmed.length === 0) return tr('Il nome è obbligatorio.')
   if (trimmed.length > PACK_NAME_MAX_LENGTH) {
-    return `Il nome può avere al massimo ${PACK_NAME_MAX_LENGTH} caratteri.`
+    return tr('Il nome può avere al massimo {0} caratteri.', PACK_NAME_MAX_LENGTH)
   }
   if (INVALID_NAME_CHARS.test(trimmed)) {
-    return 'Il nome non può contenere i caratteri < > : " / \\ | ? *'
+    return tr('Il nome non può contenere i caratteri < > : " / \\ | ? *')
   }
-  if (trimmed.endsWith('.')) return 'Il nome non può terminare con un punto.'
+  if (trimmed.endsWith('.')) return tr('Il nome non può terminare con un punto.')
   if (trimmed === '.' || trimmed === '..' || WINDOWS_RESERVED_NAMES.test(trimmed)) {
-    return 'Questo nome è riservato da Windows.'
+    return tr('Questo nome è riservato da Windows.')
   }
   return null
 }
 
 export function validatePackDescription(description: string): string | null {
   if (description.length > PACK_DESCRIPTION_MAX_LENGTH) {
-    return `La descrizione può avere al massimo ${PACK_DESCRIPTION_MAX_LENGTH} caratteri.`
+    return tr('La descrizione può avere al massimo {0} caratteri.', PACK_DESCRIPTION_MAX_LENGTH)
   }
   return null
 }
@@ -43,7 +44,7 @@ export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string
 
 /** Parses untrusted IPC input for `pack:create`. Name is returned trimmed. */
 export function parseCreatePackRequest(input: unknown): ParseResult<CreatePackRequest> {
-  if (typeof input !== 'object' || input === null) return fail('Richiesta non valida.')
+  if (typeof input !== 'object' || input === null) return fail(tr('Richiesta non valida.'))
   const { parentDir, name, description, gameVersion } = input as Record<string, unknown>
   if (
     typeof parentDir !== 'string' ||
@@ -51,12 +52,13 @@ export function parseCreatePackRequest(input: unknown): ParseResult<CreatePackRe
     typeof description !== 'string' ||
     typeof gameVersion !== 'string'
   ) {
-    return fail('Richiesta non valida.')
+    return fail(tr('Richiesta non valida.'))
   }
-  if (parentDir.trim().length === 0) return fail('Scegli una cartella di destinazione.')
+  if (parentDir.trim().length === 0) return fail(tr('Scegli una cartella di destinazione.'))
   const error = validatePackName(name) ?? validatePackDescription(description)
   if (error) return fail(error)
-  if (!findRelease(gameVersion)) return fail(`Versione di Minecraft non supportata: ${gameVersion}`)
+  if (!findRelease(gameVersion))
+    return fail(tr('Versione di Minecraft non supportata: {0}', gameVersion))
   return { ok: true, value: { parentDir, name: name.trim(), description, gameVersion } }
 }
 

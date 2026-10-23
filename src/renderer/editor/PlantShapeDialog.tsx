@@ -18,6 +18,7 @@ import { resolveAssetUrl, type AssetSources, type GrowthStage } from '../preview
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 /** A model of the plant to reshape, and the one texture it draws. */
 interface Target {
@@ -122,7 +123,7 @@ export function PlantShapeDialog({
     const tops = shape === 'tall' ? chosen.map((t) => texturePath(topTextureId(t.texture))) : []
     const newTops = tops.filter((top) => !sources.pack.files.has(top))
     const touched = [...chosen.map((t) => modelPath(t.model)), ...newTops]
-    if (!(await backupBefore(`Forma della pianta (${shape}) di ${block}`, touched))) return
+    if (!(await backupBefore(tr('Forma della pianta ({0}) di {1}', shape, block), touched))) return
     setPhase({ status: 'working' })
     const written: string[] = []
     const errors: string[] = []
@@ -167,19 +168,22 @@ export function PlantShapeDialog({
       <div
         className="card modal form"
         role="dialog"
-        aria-label="Forma della pianta"
+        aria-label={tr('Forma della pianta')}
         onClick={(event) => event.stopPropagation()}
       >
         <h2>
           <Glyph name="leaf" />
-          Forma della pianta: {block}
+          {tr('Forma della pianta: {0}', block)}
         </h2>
         {phase.status === 'done' ? (
           <>
             <p data-testid="shape-result">
-              {phase.written.length} file scritti
-              {phase.errors.length > 0 ? `, ${phase.errors.length} errori` : ''}.
-              {shape === 'tall' && ' Disegna la parte alta nelle texture «_top».'}
+              {tr(
+                '{0} file scritti{1}.',
+                phase.written.length,
+                phase.errors.length > 0 ? tr(', {0} errori', phase.errors.length) : ''
+              )}
+              {shape === 'tall' && tr(' Disegna la parte alta nelle texture «_top».')}
             </p>
             {phase.errors.map((error) => (
               <p key={error} className="field-error small">
@@ -188,17 +192,18 @@ export function PlantShapeDialog({
             ))}
             <div className="row">
               <button type="button" className="primary" onClick={() => onDone(phase.written)}>
-                Fatto
+                {tr('Fatto')}
               </button>
             </div>
           </>
         ) : (
           <>
             <p className="muted small">
-              Il modello 3D degli stadi: scritto nel pack come modello vanilla, funziona senza mod.
-              Le varianti casuali seguono la forma del loro stadio.
+              {tr(
+                'Il modello 3D degli stadi: scritto nel pack come modello vanilla, funziona senza mod. Le varianti casuali seguono la forma del loro stadio.'
+              )}
             </p>
-            <div className="tabs small-tabs wrap" role="radiogroup" aria-label="Forma">
+            <div className="tabs small-tabs wrap" role="radiogroup" aria-label={tr('Forma')}>
               {PLANT_SHAPES.map((option) => (
                 <button
                   key={option.id}
@@ -220,18 +225,21 @@ export function PlantShapeDialog({
                 checked={allStages}
                 onChange={(event) => setAllStages(event.target.checked)}
               />
-              Tutti gli stadi (altrimenti solo quello di questa texture)
+              {tr('Tutti gli stadi (altrimenti solo quello di questa texture)')}
             </label>
             {targets === null ? (
-              <p className="muted">Leggo i modelli…</p>
+              <p className="muted">{tr('Leggo i modelli…')}</p>
             ) : (
               <p className="muted small" data-testid="shape-plan">
                 {chosen.length === 0
-                  ? 'Nessun modello da cambiare per questa texture.'
-                  : `Modelli: ${chosen.map((t) => t.model.replace(/^minecraft:/, '')).join(', ')}`}
+                  ? tr('Nessun modello da cambiare per questa texture.')
+                  : tr(
+                      'Modelli: {0}',
+                      chosen.map((t) => t.model.replace(/^minecraft:/, '')).join(', ')
+                    )}
               </p>
             )}
-            {phase.status === 'working' && <p className="muted">Scrivo i modelli…</p>}
+            {phase.status === 'working' && <p className="muted">{tr('Scrivo i modelli…')}</p>}
             <div className="row">
               <button
                 type="button"
@@ -239,10 +247,10 @@ export function PlantShapeDialog({
                 disabled={chosen.length === 0 || phase.status === 'working'}
                 onClick={() => apply()}
               >
-                Applica la forma
+                {tr('Applica la forma')}
               </button>
               <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
-                Annulla
+                {tr('Annulla')}
               </button>
             </div>
           </>

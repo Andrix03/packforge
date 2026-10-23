@@ -4,6 +4,7 @@ import { NAV_ICONS } from '../ui/icons'
 import type { SettingsUpdateResult } from '../../shared/ipc'
 import { editorDisplayName, type SettingsView } from '../../shared/settings'
 import { TUTORIAL_RESET_EVENT } from '../TutorialCard'
+import { LANGUAGES, tr } from '../../shared/i18n'
 
 interface SettingsPanelProps {
   /** `changed` is true when something was saved, so callers can refresh. */
@@ -65,7 +66,7 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
   if (!view && loadError) {
     return (
       <section className="card">
-        <p className="field-error">Impossibile leggere le impostazioni: {loadError}</p>
+        <p className="field-error">{tr('Impossibile leggere le impostazioni: {0}', loadError)}</p>
         <button
           type="button"
           onClick={() => {
@@ -73,12 +74,12 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
             setAttempt((a) => a + 1)
           }}
         >
-          Riprova
+          {tr('Riprova')}
         </button>
       </section>
     )
   }
-  if (!view) return <section className="card muted">Caricamento impostazioni…</section>
+  if (!view) return <section className="card muted">{tr('Caricamento impostazioni…')}</section>
 
   const { settings, minecraft } = view
   const editor = settings.externalEditor
@@ -87,25 +88,25 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
   return (
     <section className="card form settings">
       <div className="row spread">
-        <h2>Impostazioni</h2>
+        <h2>{tr('Impostazioni')}</h2>
         <button type="button" onClick={() => onClose(changed)}>
-          Fatto
+          {tr('Fatto')}
         </button>
       </div>
       {error && <p className="field-error">{error}</p>}
 
       <div className="field">
-        <h3>Cartella .minecraft</h3>
+        <h3>{tr('Cartella .minecraft')}</h3>
         <div className="row">
           <code className="path" title={view.effectiveMinecraftDir}>
             {view.effectiveMinecraftDir}
           </code>
-          {settings.minecraftDir === null && <span className="badge">predefinita</span>}
+          {settings.minecraftDir === null && <span className="badge">{tr('predefinita')}</span>}
         </div>
         <MinecraftStatus status={minecraft} />
         <div className="row">
           <button type="button" onClick={() => void pickMinecraftDir()} disabled={busy}>
-            Cambia…
+            {tr('Cambia…')}
           </button>
           {settings.minecraftDir !== null && (
             <button
@@ -113,18 +114,19 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
               onClick={() => void apply(window.api.invoke('settings:setMinecraftDir', null))}
               disabled={busy}
             >
-              Ripristina predefinita
+              {tr('Ripristina predefinita')}
             </button>
           )}
         </div>
         <p className="muted small">
-          Usata per le texture vanilla di riferimento e, più avanti, per copiare il pack in
-          resourcepacks.
+          {tr(
+            'Usata per le texture vanilla di riferimento e, più avanti, per copiare il pack in resourcepacks.'
+          )}
         </p>
       </div>
 
       <div className="field">
-        <h3>Editor esterno</h3>
+        <h3>{tr('Editor esterno')}</h3>
         {editor ? (
           <div className="row">
             <strong>{editorDisplayName(editor)}</strong>
@@ -133,14 +135,14 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
             </code>
           </div>
         ) : (
-          <p className="muted">Nessun editor impostato.</p>
+          <p className="muted">{tr('Nessun editor impostato.')}</p>
         )}
         {editor && !view.externalEditorExists && (
-          <p className="field-error">Il programma non esiste più in questo percorso.</p>
+          <p className="field-error">{tr('Il programma non esiste più in questo percorso.')}</p>
         )}
         <div className="row">
           <button type="button" onClick={() => void pickEditor()} disabled={busy}>
-            {editor ? 'Cambia…' : 'Scegli…'}
+            {editor ? tr('Cambia…') : tr('Scegli…')}
           </button>
           {editor && (
             <button
@@ -148,13 +150,13 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
               onClick={() => void apply(window.api.invoke('settings:setExternalEditor', null))}
               disabled={busy}
             >
-              Rimuovi
+              {tr('Rimuovi')}
             </button>
           )}
         </div>
         {suggestions.length > 0 && (
           <div className="suggestions">
-            <span className="muted small">Trovati su questo PC:</span>
+            <span className="muted small">{tr('Trovati su questo PC:')}</span>
             {suggestions.map((candidate) => (
               <button
                 key={candidate.path}
@@ -165,28 +167,29 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
                   void apply(window.api.invoke('settings:setExternalEditor', candidate.path))
                 }
               >
-                Usa {candidate.name}
+                {tr('Usa {0}', candidate.name)}
               </button>
             ))}
           </div>
         )}
         <p className="muted small">
-          Usato dal pulsante «Apri fuori» dell’editor (Aseprite, Photoshop, …): quando lì salvi,
-          PackForge ricarica la texture da solo. Senza un programma scelto si apre quello
-          predefinito di Windows.
+          {tr(
+            'Usato dal pulsante «Apri fuori» dell’editor (Aseprite, Photoshop, …): quando lì salvi, PackForge ricarica la texture da solo. Senza un programma scelto si apre quello predefinito di Windows.'
+          )}
         </p>
       </div>
 
       <div className="field">
-        <h3>Tutorial</h3>
+        <h3>{tr('Tutorial')}</h3>
         <p className="muted small">
-          «Il tuo primo blocco»: sei passi guidati, in modalità Principiante (stato:{' '}
-          {view.settings.tutorial.status === 'done'
-            ? 'completato'
-            : view.settings.tutorial.status === 'off'
-              ? 'nascosto'
-              : `${view.settings.tutorial.done.length}/6`}
-          ).
+          {tr(
+            '«Il tuo primo blocco»: sei passi guidati, in modalità Principiante (stato: {0}).',
+            view.settings.tutorial.status === 'done'
+              ? tr('completato')
+              : view.settings.tutorial.status === 'off'
+                ? tr('nascosto')
+                : `${view.settings.tutorial.done.length}/6`
+          )}
         </p>
         <button
           type="button"
@@ -197,12 +200,46 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
             ).then(() => window.dispatchEvent(new Event(TUTORIAL_RESET_EVENT)))
           }
         >
-          Rifai il tutorial
+          {tr('Rifai il tutorial')}
         </button>
       </div>
 
       <div className="field">
-        <h3>Aggiornamenti</h3>
+        <h3>{tr('Lingua')}</h3>
+        <div className="row" role="radiogroup" aria-label={tr('Lingua')}>
+          {LANGUAGES.map((option) => {
+            const chosen = (view.settings.language ?? view.language) === option.id
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={chosen}
+                data-language={option.id}
+                className={chosen ? 'ore-on' : 'ore'}
+                onClick={() => void apply(window.api.invoke('settings:setLanguage', option.id))}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+        {(view.settings.language ?? view.language) !== view.language && (
+          <p className="small">
+            {tr('La nuova lingua si usa dal prossimo avvio.')}{' '}
+            <button
+              type="button"
+              className="small-button"
+              onClick={() => void window.api.invoke('app:restart')}
+            >
+              {tr('Riavvia ora')}
+            </button>
+          </p>
+        )}
+      </div>
+
+      <div className="field">
+        <h3>{tr('Aggiornamenti')}</h3>
         <label className="inline-check">
           <input
             type="checkbox"
@@ -211,11 +248,12 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
               void apply(window.api.invoke('settings:setCheckUpdates', event.target.checked))
             }
           />
-          All’avvio controlla se c’è una nuova versione di PackForge
+          {tr('All’avvio controlla se c’è una nuova versione di PackForge')}
         </label>
         <p className="muted small">
-          Chiede a GitHub qual è l’ultima versione pubblicata; se è più nuova compare un avviso con
-          il link per scaricarla. Non installa niente da solo.
+          {tr(
+            'Chiede a GitHub qual è l’ultima versione pubblicata; se è più nuova compare un avviso con il link per scaricarla. Non installa niente da solo.'
+          )}
         </p>
       </div>
       {/* The notice the Minecraft usage guidelines ask for, as a pixel box (canvas: Impostazioni). */}
@@ -223,9 +261,11 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
         <div className="official-notice-box">
           <PixelIcon icon={NAV_ICONS.logo} size={32} />
           <span>
-            <span className="lbl official-name">PackForge {version ?? ''}</span>
-            <span className="official-warn">Non è un prodotto ufficiale di Minecraft.</span>
-            <span className="muted">Non approvato né associato a Mojang o Microsoft.</span>
+            <span className="lbl official-name">
+              {tr('PackForge')} {version ?? ''}
+            </span>
+            <span className="official-warn">{tr('Non è un prodotto ufficiale di Minecraft.')}</span>
+            <span className="muted">{tr('Non approvato né associato a Mojang o Microsoft.')}</span>
           </span>
         </div>
         <span className="official-underline" aria-hidden="true" />
@@ -237,7 +277,9 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
 function MinecraftStatus({ status }: { status: SettingsView['minecraft'] }): React.JSX.Element {
   if (!status.exists) {
     return (
-      <p className="field-error">La cartella non esiste: avvia Minecraft una volta dal launcher.</p>
+      <p className="field-error">
+        {tr('La cartella non esiste: avvia Minecraft una volta dal launcher.')}
+      </p>
     )
   }
   return (
@@ -245,14 +287,18 @@ function MinecraftStatus({ status }: { status: SettingsView['minecraft'] }): Rea
       <li className={status.versionCount > 0 ? 'ok' : 'warn'}>
         <Glyph name={status.versionCount > 0 ? 'check' : 'warning'} />
         {status.versionCount > 0
-          ? `${status.versionCount} ${status.versionCount === 1 ? 'versione installata' : 'versioni installate'} con jar del client`
-          : 'Nessuna versione con jar del client: avvia una versione dal launcher.'}
+          ? tr(
+              '{0} {1} con jar del client',
+              status.versionCount,
+              status.versionCount === 1 ? tr('versione installata') : tr('versioni installate')
+            )
+          : tr('Nessuna versione con jar del client: avvia una versione dal launcher.')}
       </li>
       <li className={status.hasResourcepacks ? 'ok' : 'warn'}>
         <Glyph name={status.hasResourcepacks ? 'check' : 'warning'} />
         {status.hasResourcepacks
-          ? 'Cartella resourcepacks presente'
-          : 'Cartella resourcepacks assente (Minecraft la crea al primo avvio)'}
+          ? tr('Cartella resourcepacks presente')
+          : tr('Cartella resourcepacks assente (Minecraft la crea al primo avvio)')}
       </li>
     </ul>
   )

@@ -9,6 +9,7 @@ import {
 } from '../../shared/crop'
 import type { PackSummary } from '../../shared/ipc'
 import { RangeInput } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 const VIEWPORT = 256
 const OUTPUT_SIZES = [64, 128, 256, 512] as const
@@ -47,7 +48,7 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
       setCrop(initialCrop(element.naturalWidth, element.naturalHeight))
     }
     element.onerror = () =>
-      setError("Impossibile leggere l'immagine: il file potrebbe essere danneggiato.")
+      setError(tr("Impossibile leggere l'immagine: il file potrebbe essere danneggiato."))
     element.src = result.dataUrl
   }
 
@@ -96,7 +97,7 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
     <div className="icon-editor">
       <div className="row">
         <button type="button" onClick={() => void pick()} disabled={busy}>
-          {image ? 'Cambia immagine…' : 'Scegli immagine…'}
+          {image ? tr('Cambia immagine…') : tr('Scegli immagine…')}
         </button>
         {image && (
           <span className="muted small">
@@ -112,7 +113,7 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
             width={VIEWPORT}
             height={VIEWPORT}
             className="icon-viewport"
-            aria-label="Area di ritaglio: trascina per spostare, rotella per lo zoom"
+            aria-label={tr('Area di ritaglio: trascina per spostare, rotella per lo zoom')}
             onPointerDown={(event) => {
               event.currentTarget.setPointerCapture(event.pointerId)
               dragRef.current = { x: event.clientX, y: event.clientY }
@@ -140,7 +141,7 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
 
           <div className="icon-controls">
             <label>
-              Zoom
+              {tr('Zoom')}
               <RangeInput
                 type="range"
                 min={1}
@@ -151,7 +152,7 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
               />
             </label>
             <label>
-              Dimensione
+              {tr('Dimensione')}
               <select
                 value={outputSize}
                 onChange={(event) => setOutputSize(Number(event.target.value))}
@@ -169,23 +170,23 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
                 checked={pixelArt}
                 onChange={(event) => setPixelArt(event.target.checked)}
               />
-              Pixel art (pixel nitidi, senza sfumature)
+              {tr('Pixel art (pixel nitidi, senza sfumature)')}
             </label>
 
             {output && (
               <div className="icon-previews">
-                <span className="muted small">Anteprima</span>
+                <span className="muted small">{tr('Anteprima')}</span>
                 <div className="row">
                   <img
                     src={output}
-                    alt="Anteprima 64 px"
+                    alt={tr('Anteprima 64 px')}
                     width={64}
                     height={64}
                     className="pixelated checker"
                   />
                   <img
                     src={output}
-                    alt="Anteprima 32 px"
+                    alt={tr('Anteprima 32 px')}
                     width={32}
                     height={32}
                     className="pixelated checker"
@@ -205,10 +206,10 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
           onClick={() => void save()}
           disabled={!output || busy}
         >
-          {busy ? 'Salvataggio…' : 'Salva come pack.png'}
+          {busy ? tr('Salvataggio…') : tr('Salva come pack.png')}
         </button>
         <button type="button" onClick={onCancel} disabled={busy}>
-          Annulla
+          {tr('Annulla')}
         </button>
       </div>
     </div>

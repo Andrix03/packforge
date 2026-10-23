@@ -5,6 +5,7 @@
 
 import { comparePackVersions, type PackVersion } from './packFormat'
 import { firstRelease, type FormatRange, type ModelIssue } from './modelRules'
+import { tr } from './i18n'
 
 /** Layer types and the first resource pack format that draws them. */
 export const EQUIPMENT_LAYERS: Readonly<Record<string, PackVersion>> = {
@@ -57,21 +58,21 @@ export function parseEquipment(
   const layers: EquipmentLayer[] = []
   const root = isRecord(json) ? json : null
   if (!root || !isRecord(root['layers'])) {
-    add('error', 'Manca "layers".')
+    add('error', tr('Manca "layers".'))
     return { layers, issues }
   }
   for (const [type, list] of Object.entries(root['layers'])) {
     const since = EQUIPMENT_LAYERS[type]
     if (!since) {
-      add('error', `Tipo di strato "${type}" sconosciuto.`)
+      add('error', tr('Tipo di strato "{0}" sconosciuto.', type))
       continue
     }
     if (comparePackVersions(range.min, since) < 0) {
-      add('warning', `"${type}" si vede dalla ${firstRelease(since)}: prima è ignorato.`)
+      add('warning', tr('"{0}" si vede dalla {1}: prima è ignorato.', type, firstRelease(since)))
     }
     for (const layer of Array.isArray(list) ? list : []) {
       if (!isRecord(layer) || typeof layer['texture'] !== 'string') {
-        add('error', `Uno strato "${type}" non ha "texture".`)
+        add('error', tr('Uno strato "{0}" non ha "texture".', type))
         continue
       }
       const dyeable = isRecord(layer['dyeable'])
@@ -93,7 +94,10 @@ export function parseEquipment(
   ) {
     add(
       'warning',
-      `"trim_palette_replacements" si chiama "trim_overrides" dalla ${firstRelease(TRIM_OVERRIDES_SINCE)}.`
+      tr(
+        '"trim_palette_replacements" si chiama "trim_overrides" dalla {0}.',
+        firstRelease(TRIM_OVERRIDES_SINCE)
+      )
     )
   }
   if (
@@ -102,7 +106,7 @@ export function parseEquipment(
   ) {
     add(
       'warning',
-      `"trim_overrides" esiste dalla ${firstRelease(TRIM_OVERRIDES_SINCE)}: prima è ignorato.`
+      tr('"trim_overrides" esiste dalla {0}: prima è ignorato.', firstRelease(TRIM_OVERRIDES_SINCE))
     )
   }
   return { layers, issues }
@@ -187,11 +191,11 @@ export const HUMANOID_PARTS: ReadonlyArray<{
   label: string
   faces: Record<string, UvRect>
 }> = [
-  { id: 'head', label: 'Testa', faces: boxFaces(0, 0, 8, 8, 8) },
-  { id: 'hat', label: 'Elmo (strato esterno)', faces: boxFaces(32, 0, 8, 8, 8) },
-  { id: 'body', label: 'Corpo', faces: boxFaces(16, 16, 8, 12, 4) },
-  { id: 'arm', label: 'Braccia', faces: boxFaces(40, 16, 4, 12, 4) },
-  { id: 'leg', label: 'Gambe', faces: boxFaces(0, 16, 4, 12, 4) }
+  { id: 'head', label: tr('Testa'), faces: boxFaces(0, 0, 8, 8, 8) },
+  { id: 'hat', label: tr('Elmo (strato esterno)'), faces: boxFaces(32, 0, 8, 8, 8) },
+  { id: 'body', label: tr('Corpo'), faces: boxFaces(16, 16, 8, 12, 4) },
+  { id: 'arm', label: tr('Braccia'), faces: boxFaces(40, 16, 4, 12, 4) },
+  { id: 'leg', label: tr('Gambe'), faces: boxFaces(0, 16, 4, 12, 4) }
 ]
 
 function rgbKey(data: ArrayLike<number>, at: number): number {

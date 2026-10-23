@@ -3,6 +3,7 @@
 // reflect, and the hemisphere ambient light) and an optional torch held by the viewer.
 
 import { lightingAt, type Lighting, type Vec3 } from './dayNight'
+import { tr } from '../../shared/i18n'
 
 export type LightingPresetId = 'time' | 'noon' | 'sunset' | 'cave' | 'nether'
 
@@ -24,21 +25,25 @@ export interface LightingPreset {
 export const LIGHTING_PRESETS: readonly LightingPreset[] = [
   {
     id: 'time',
-    label: 'Segui l’ora',
-    hint: 'Segue lo slider dell’ora e il ciclo giorno/notte.'
+    label: tr('Segui l’ora'),
+    hint: tr('Segue lo slider dell’ora e il ciclo giorno/notte.')
   },
-  { id: 'noon', label: 'Mezzogiorno', hint: 'Sole alto e cielo azzurro: luce piena.' },
+  { id: 'noon', label: tr('Mezzogiorno'), hint: tr('Sole alto e cielo azzurro: luce piena.') },
   {
     id: 'sunset',
-    label: 'Tramonto',
-    hint: 'Sole basso e arancione: risalta il rilievo delle normali.'
+    label: tr('Tramonto'),
+    hint: tr('Sole basso e arancione: risalta il rilievo delle normali.')
   },
   {
     id: 'cave',
-    label: 'Grotta',
-    hint: 'Buio, con una torcia in mano: ideale per l’emissione.'
+    label: tr('Grotta'),
+    hint: tr('Buio, con una torcia in mano: ideale per l’emissione.')
   },
-  { id: 'nether', label: 'Nether', hint: 'Luce rossa diffusa e bagliore di lava dal basso.' }
+  {
+    id: 'nether',
+    label: tr('Nether'),
+    hint: tr('Luce rossa diffusa e bagliore di lava dal basso.')
+  }
 ]
 
 const DARK: Vec3 = [0, 0, 0]

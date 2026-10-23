@@ -7,6 +7,7 @@ import { DescriptionEditor, McText } from './DescriptionEditor'
 import { IconEditor } from './IconEditor'
 import { VersionEditor } from './VersionEditor'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 interface PackOverviewProps {
   pack: PackSummary
@@ -31,21 +32,22 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
       <div className="overview-header">
         <div className="icon-column">
           {pack.iconDataUrl ? (
-            <img className="pack-icon" src={pack.iconDataUrl} alt="Icona del pack" />
+            <img className="pack-icon" src={pack.iconDataUrl} alt={tr('Icona del pack')} />
           ) : (
-            <div className="pack-icon placeholder" aria-label="Nessuna icona">
+            <div className="pack-icon placeholder" aria-label={tr('Nessuna icona')}>
               ?
             </div>
           )}
           {pack.kind === 'folder' && !editingIcon && (
             <button type="button" className="link-button" onClick={() => setEditingIcon(true)}>
-              {pack.iconDataUrl ? 'Cambia' : 'Aggiungi'}
+              {pack.iconDataUrl ? tr('Cambia') : tr('Aggiungi')}
             </button>
           )}
         </div>
         <div className="overview-title">
           <h2>
-            {pack.name} <span className="badge">{pack.kind === 'zip' ? 'zip' : 'cartella'}</span>
+            {pack.name}{' '}
+            <span className="badge">{pack.kind === 'zip' ? 'zip' : tr('cartella')}</span>
           </h2>
           {editing ? (
             <DescriptionForm
@@ -63,12 +65,12 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
                 {description ? (
                   <McText text={description} />
                 ) : (
-                  <em className="muted">Nessuna descrizione</em>
+                  <em className="muted">{tr('Nessuna descrizione')}</em>
                 )}
               </p>
               {pack.kind === 'folder' && (
                 <button type="button" className="link-button" onClick={() => setEditing(true)}>
-                  Modifica
+                  {tr('Modifica')}
                 </button>
               )}
             </div>
@@ -78,7 +80,7 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
           </code>
         </div>
         <button type="button" onClick={onClose}>
-          Chiudi
+          {tr('Chiudi')}
         </button>
       </div>
 
@@ -100,12 +102,12 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
           </div>
         ))}
         <div>
-          <dt>Compatibile con</dt>
-          <dd>{spans.length > 0 ? spans.join(', ') : 'nessuna versione gestita'}</dd>
+          <dt>{tr('Compatibile con')}</dt>
+          <dd>{spans.length > 0 ? spans.join(', ') : tr('nessuna versione gestita')}</dd>
         </div>
         {overlays.length > 0 && (
           <div>
-            <dt>Overlay</dt>
+            <dt>{tr('Overlay')}</dt>
             <dd>
               {overlays.map((overlay) => {
                 const active = summarizeReleaseSpans(
@@ -114,7 +116,7 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
                 return (
                   <div key={overlay.directory}>
                     {overlay.directory} <Glyph name="arrowRight" />{' '}
-                    {active.length > 0 ? active.join(', ') : 'mai attivo'}
+                    {active.length > 0 ? active.join(', ') : tr('mai attivo')}
                   </div>
                 )
               })}
@@ -139,19 +141,19 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
             className="link-button align-start"
             onClick={() => setEditingVersions(true)}
           >
-            Modifica versioni e overlay
+            {tr('Modifica versioni e overlay')}
           </button>
         )
       )}
 
       {issues.length === 0 ? (
-        <p className="success">pack.mcmeta è valido.</p>
+        <p className="success">{tr('pack.mcmeta è valido.')}</p>
       ) : (
         <div>
           <h3>
             {errorCount > 0
-              ? `${errorCount} ${errorCount === 1 ? 'errore' : 'errori'} in pack.mcmeta`
-              : 'Avvisi su pack.mcmeta'}
+              ? tr('{0} {1} in pack.mcmeta', errorCount, errorCount === 1 ? 'errore' : 'errori')
+              : tr('Avvisi su pack.mcmeta')}
           </h3>
           <ul className="issues">
             {issues.map((issue, i) => (
@@ -159,7 +161,7 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
                 <Glyph name={issue.severity === 'error' ? 'cross' : 'warning'} />
                 <span>
                   <span className="issue-tag">
-                    {issue.severity === 'error' ? 'Errore' : 'Avviso'}
+                    {issue.severity === 'error' ? tr('Errore') : tr('Avviso')}
                   </span>
                   {issue.message}
                 </span>
@@ -210,7 +212,7 @@ function DescriptionForm({
     >
       {wasComponent && (
         <p className="warning-text small">
-          La descrizione attuale è in formato JSON: salvando diventerà testo con codici §.
+          {tr('La descrizione attuale è in formato JSON: salvando diventerà testo con codici §.')}
         </p>
       )}
       <DescriptionEditor value={value} onChange={setValue} invalid={invalid !== null} autoFocus />
@@ -222,10 +224,10 @@ function DescriptionForm({
           onClick={() => void save()}
           disabled={saving || invalid !== null || value === initial}
         >
-          {saving ? 'Salvataggio…' : 'Salva in pack.mcmeta'}
+          {saving ? tr('Salvataggio…') : tr('Salva in pack.mcmeta')}
         </button>
         <button type="button" onClick={onCancel} disabled={saving}>
-          Annulla
+          {tr('Annulla')}
         </button>
       </div>
     </div>

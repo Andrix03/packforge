@@ -22,6 +22,7 @@ import {
   type CtmMethod,
   type Properties
 } from './ctm'
+import { tr } from './i18n'
 
 export type Vec3 = [number, number, number]
 
@@ -176,7 +177,11 @@ export function findCtmSet(
   if (method !== 'ctm' && method !== 'horizontal' && method !== 'vertical') {
     return {
       set: null,
-      reason: `${name(found.path)}.properties usa il metodo «${method}»: l’anteprima mostra solo ctm, horizontal e vertical.`
+      reason: tr(
+        '{0}.properties usa il metodo «{1}»: l’anteprima mostra solo ctm, horizontal e vertical.',
+        name(found.path),
+        method
+      )
     }
   }
   const expected = method === 'ctm' ? 47 : 4
@@ -184,7 +189,13 @@ export function findCtmSet(
   if (declared < expected) {
     return {
       set: null,
-      reason: `${name(found.path)}.properties elenca ${declared} tile, il metodo «${method}» ne usa ${expected}.`
+      reason: tr(
+        '{0}.properties elenca {1} tile, il metodo «{2}» ne usa {3}.',
+        name(found.path),
+        declared,
+        method,
+        expected
+      )
     }
   }
   const dir = found.path.slice(0, found.path.lastIndexOf('/'))

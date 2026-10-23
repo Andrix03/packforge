@@ -4,6 +4,7 @@
 
 import { unzlibSync, zlibSync } from 'fflate'
 import { isPng, PNG_SIGNATURE } from './png'
+import { tr } from './i18n'
 
 export interface RgbaImage {
   width: number
@@ -46,14 +47,17 @@ export function decodePng(bytes: Uint8Array): DecodeResult {
   try {
     return { ok: true, image: decode(bytes) }
   } catch (error) {
-    return { ok: false, error: error instanceof PngError ? error.message : 'PNG non leggibile.' }
+    return {
+      ok: false,
+      error: error instanceof PngError ? error.message : tr('PNG non leggibile.')
+    }
   }
 }
 
 class PngError extends Error {}
 
 function decode(bytes: Uint8Array): DecodedPng {
-  if (!isPng(bytes)) throw new PngError('Il file non è un PNG.')
+  if (!isPng(bytes)) throw new PngError(tr('Il file non è un PNG.'))
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let offset = 8
   let header: {
@@ -74,7 +78,7 @@ function decode(bytes: Uint8Array): DecodedPng {
     if (body.length !== length) throw new PngError('PNG troncato.')
     offset += 12 + length
     if (type === 'IHDR') {
-      if (length < 13) throw new PngError('PNG senza intestazione.')
+      if (length < 13) throw new PngError(tr('PNG senza intestazione.'))
       const ihdr = new DataView(body.buffer, body.byteOffset, body.byteLength)
       header = {
         width: ihdr.getUint32(0),
@@ -88,14 +92,14 @@ function decode(bytes: Uint8Array): DecodedPng {
     else if (type === 'IDAT') idat.push(body)
     else if (type === 'IEND') break
   }
-  if (!header) throw new PngError('PNG senza intestazione.')
+  if (!header) throw new PngError(tr('PNG senza intestazione.'))
   const { width, height, depth, colorType, interlace } = header
-  if (!VALID_DEPTHS[colorType]?.includes(depth)) throw new PngError('Formato PNG non valido.')
+  if (!VALID_DEPTHS[colorType]?.includes(depth)) throw new PngError(tr('Formato PNG non valido.'))
   if (width === 0 || height === 0 || width > MAX_IMAGE_SIDE || height > MAX_IMAGE_SIDE) {
-    throw new PngError('Dimensioni del PNG non supportate.')
+    throw new PngError(tr('Dimensioni del PNG non supportate.'))
   }
-  if (width * height > MAX_IMAGE_PIXELS) throw new PngError('Il PNG è troppo grande.')
-  if (colorType === 3 && !palette) throw new PngError('PNG a palette senza palette.')
+  if (width * height > MAX_IMAGE_PIXELS) throw new PngError(tr('Il PNG è troppo grande.'))
+  if (colorType === 3 && !palette) throw new PngError(tr('PNG a palette senza palette.'))
 
   const channels = CHANNELS[colorType]!
   const bitsPerPixel = channels * depth
@@ -188,7 +192,8 @@ function pixelReader(
     case 3:
       return (line, col, out, t) => {
         const index = sample(line, col)
-        if (index * 3 + 2 >= palette!.length) throw new PngError('Indice di palette non valido.')
+        if (index * 3 + 2 >= palette!.length)
+          throw new PngError(tr('Indice di palette non valido.'))
         out.set(
           [
             palette![index * 3]!,
@@ -235,7 +240,7 @@ function unfilter(filter: number, line: Uint8Array, previous: Uint8Array, bpp: n
         add = paeth(left, up, upLeft)
         break
       default:
-        throw new PngError('Filtro PNG non valido.')
+        throw new PngError(tr('Filtro PNG non valido.'))
     }
     line[i] = (line[i]! + add) & 0xff
   }

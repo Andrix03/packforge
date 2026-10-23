@@ -19,6 +19,7 @@ import {
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
 import { Glyph, RangeInput } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 interface Plan {
   block: string
@@ -57,12 +58,15 @@ async function loadJson(sources: AssetSources, path: string): Promise<unknown> {
 async function planFor(sources: AssetSources, path: string): Promise<Plan | string> {
   const id = textureId(path)
   const block = guessBlockForTexture(path.replace(/\.png$/, ''), listBlocks(sources))
-  if (!id || !block) return 'Non trovo il blocco che usa questa texture.'
+  if (!id || !block) return tr('Non trovo il blocco che usa questa texture.')
   const statePath = blockstatePath(block)
   const state = await loadJson(sources, statePath)
   const variants = blockstateVariants(state)
   if (variants.length === 0) {
-    return `Il blockstate di ${block} non ha varianti semplici (le varianti casuali servono "variants").`
+    return tr(
+      'Il blockstate di {0} non ha varianti semplici (le varianti casuali servono "variants").',
+      block
+    )
   }
   const load = (p: string): Promise<unknown> => loadJson(sources, p)
   let baseModel: string | null = null
@@ -77,10 +81,13 @@ async function planFor(sources: AssetSources, path: string): Promise<Plan | stri
     baseModel ??= model
     if (model === baseModel) keys.push(variant.key)
   }
-  if (!baseModel) return `Nessuna variante di ${block} usa questa texture.`
+  if (!baseModel) return tr('Nessuna variante di {0} usa questa texture.', block)
   const baseJson = await load(modelPath(baseModel))
   if (!variantModel(baseModel, baseJson, id, `${id}_v2`)) {
-    return `Il modello ${baseModel} prende la texture da un modello genitore: crea prima un modello tuo.`
+    return tr(
+      'Il modello {0} prende la texture da un modello genitore: crea prima un modello tuo.',
+      baseModel
+    )
   }
   return { block, state, statePath, baseModel, baseJson, keys }
 }
@@ -147,7 +154,7 @@ export function RandomVariantsDialog({
       }),
       ...models.map(modelPath)
     ]
-    if (!(await backupBefore(`Varianti casuali di ${name}`, touched))) return
+    if (!(await backupBefore(tr('Varianti casuali di {0}', name), touched))) return
     const errors: string[] = []
     const created: string[] = []
     const written: string[] = []
@@ -158,7 +165,7 @@ export function RandomVariantsDialog({
     try {
       const albedo = await loadPng(pack, path)
       for (const [i, n] of names.entries()) {
-        setPhase({ status: 'working', text: `Creo ${n}… ${i + 1}/${names.length}` })
+        setPhase({ status: 'working', text: tr('Creo {0}… {1}/{2}', n, i + 1, names.length) })
         const copy = `${folder}/${n}.png`
         const saved = await window.api.invoke(
           'texture:save',
@@ -223,19 +230,21 @@ export function RandomVariantsDialog({
       <div
         className="card modal form"
         role="dialog"
-        aria-label="Varianti casuali"
+        aria-label={tr('Varianti casuali')}
         onClick={(event) => event.stopPropagation()}
       >
         <h2>
           <Glyph name="dice" />
-          Varianti casuali di {name}
+          {tr('Varianti casuali di {0}', name)}
         </h2>
         {phase.status === 'done' ? (
           <>
             <p data-testid="variants-result">
-              {phase.created.length} varianti create
-              {phase.errors.length > 0 ? `, ${phase.errors.length} errori` : ''}. Ora ridisegnale:
-              il gioco ne sceglie una a caso per ogni blocco.
+              {tr(
+                '{0} varianti create{1}. Ora ridisegnale: il gioco ne sceglie una a caso per ogni blocco.',
+                phase.created.length,
+                phase.errors.length > 0 ? tr(', {0} errori', phase.errors.length) : ''
+              )}
             </p>
             {phase.errors.map((error) => (
               <p key={error} className="field-error small">
@@ -249,41 +258,45 @@ export function RandomVariantsDialog({
                   className="primary"
                   onClick={() => onCreated(phase.created[0]!, phase.written)}
                 >
-                  Apri {phase.created[0].slice(folder.length + 1, -'.png'.length)}
+                  {tr('Apri {0}', phase.created[0].slice(folder.length + 1, -'.png'.length))}
                 </button>
               )}
               <button type="button" onClick={onClose}>
-                Chiudi
+                {tr('Chiudi')}
               </button>
             </div>
           </>
         ) : (
           <>
             <p className="muted small">
-              Più versioni della stessa texture: il gioco ne pesca una per ogni blocco, così un
-              campo non sembra fatto con lo stampino (come Vanilla+ Crops sul raccolto maturo).
-              Funziona senza mod.
+              {tr(
+                'Più versioni della stessa texture: il gioco ne pesca una per ogni blocco, così un campo non sembra fatto con lo stampino (come Vanilla+ Crops sul raccolto maturo). Funziona senza mod.'
+              )}
             </p>
-            {plan === null && <p className="muted">Cerco il blocco…</p>}
+            {plan === null && <p className="muted">{tr('Cerco il blocco…')}</p>}
             {typeof plan === 'string' && <p className="field-error small">{plan}</p>}
             {typeof plan === 'object' && plan !== null && (
               <>
                 <p className="small" data-testid="variants-plan">
-                  {plan.block}: {plan.keys.length === 1 ? 'la variante' : 'le varianti'}{' '}
+                  {plan.block}: {plan.keys.length === 1 ? tr('la variante') : tr('le varianti')}{' '}
                   {plan.keys.map((k) => k || '(unica)').join(', ')}{' '}
-                  {plan.keys.length === 1 ? 'userà' : 'useranno'} a caso {name} e {names.join(', ')}
-                  .
+                  {tr(
+                    '{0} a caso {1} e {2}.',
+                    plan.keys.length === 1 ? tr('userà') : 'useranno',
+                    name,
+                    names.join(', ')
+                  )}
                 </p>
                 <label className="preview-control">
                   <span>
-                    Versioni in più <strong>{count}</strong>
+                    {tr('Versioni in più')} <strong>{count}</strong>
                   </span>
                   <RangeInput
                     type="range"
                     min={1}
                     max={4}
                     value={count}
-                    aria-label="Versioni in più"
+                    aria-label={tr('Versioni in più')}
                     onChange={(event) => setCount(Number(event.target.value))}
                   />
                 </label>
@@ -293,12 +306,15 @@ export function RandomVariantsDialog({
                     checked={rotate}
                     onChange={(event) => setRotate(event.target.checked)}
                   />
-                  Ruota a caso (4 orientamenti per versione)
+                  {tr('Ruota a caso (4 orientamenti per versione)')}
                 </label>
                 <p className="muted small">
-                  Le copie partono uguali a {name} (con le sue mappe _n/_s): poi le ridisegni.
-                  Scrive anche {names.length} modelli e {plan.statePath.split('/').pop()} nel pack;
-                  prima fa un backup.
+                  {tr(
+                    'Le copie partono uguali a {0} (con le sue mappe _n/_s): poi le ridisegni. Scrive anche {1} modelli e {2} nel pack; prima fa un backup.',
+                    name,
+                    names.length,
+                    plan.statePath.split('/').pop()
+                  )}
                 </p>
               </>
             )}
@@ -310,13 +326,13 @@ export function RandomVariantsDialog({
                 disabled={
                   typeof plan !== 'object' || plan === null || !inPack || phase.status === 'working'
                 }
-                title={inPack ? '' : 'Salva prima la texture nel pack'}
+                title={inPack ? '' : tr('Salva prima la texture nel pack')}
                 onClick={() => create()}
               >
-                Crea {names.length} varianti
+                {tr('Crea {0} varianti', names.length)}
               </button>
               <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
-                Annulla
+                {tr('Annulla')}
               </button>
             </div>
           </>

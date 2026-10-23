@@ -38,6 +38,7 @@ import { lightingAt, type Lighting } from './dayNight'
 import { DEBUG_VIEWS, type EffectSettings, type ToneMappingId } from './effects'
 import { MipBloomPass } from './bloomPass'
 import { environmentFor } from './lightingPresets'
+import { tr } from '../../shared/i18n'
 
 export type PreviewScene = 'block' | 'wall' | 'floor'
 export type Rgb = [number, number, number]
@@ -715,12 +716,12 @@ export class BlockPreview {
       else {
         texture = missingTexture()
         mipmapped = false
-        problem = 'Impossibile caricare la texture.'
+        problem = tr('Impossibile caricare la texture.')
       }
     } else {
       texture = missingTexture()
       mipmapped = false
-      problem = 'Texture mancante: né nel pack né nel gioco.'
+      problem = tr('Texture mancante: né nel pack né nel gioco.')
     }
     // Pixel art: no smoothing. Mipmaps (made like the game) are only used when enabled.
     texture.magFilter = THREE.NearestFilter
@@ -748,10 +749,10 @@ export class BlockPreview {
         if (parsed.ok) {
           animation = parsed.animation
         } else {
-          problem = `Animazione non valida: ${parsed.error}`
+          problem = tr('Animazione non valida: {0}', parsed.error)
         }
       } catch {
-        problem = '.png.mcmeta non è un JSON valido.'
+        problem = tr('.png.mcmeta non è un JSON valido.')
       }
     }
 
@@ -773,7 +774,14 @@ export class BlockPreview {
       const { width, height } = map.texture.image as { width: number; height: number }
       if (width * imageSize.height !== height * imageSize.width) {
         mapProblems.push(
-          `${suffix} ha proporzioni diverse dalla texture (${width}×${height} contro ${imageSize.width}×${imageSize.height}): ignorata.`
+          tr(
+            '{0} ha proporzioni diverse dalla texture ({1}×{2} contro {3}×{4}): ignorata.',
+            suffix,
+            width,
+            height,
+            imageSize.width,
+            imageSize.height
+          )
         )
         map.texture.dispose()
         return null
@@ -1553,10 +1561,10 @@ async function loadMap(url: string): Promise<MapResult> {
   let bytes: Uint8Array
   try {
     const response = await fetch(url)
-    if (!response.ok) return { ok: false, error: 'impossibile caricarla.' }
+    if (!response.ok) return { ok: false, error: tr('impossibile caricarla.') }
     bytes = new Uint8Array(await response.arrayBuffer())
   } catch {
-    return { ok: false, error: 'impossibile caricarla.' }
+    return { ok: false, error: tr('impossibile caricarla.') }
   }
   const decoded = decodePng(bytes)
   if (!decoded.ok) return { ok: false, error: decoded.error }

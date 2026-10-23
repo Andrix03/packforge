@@ -82,6 +82,7 @@ import {
 } from '../../shared/materialPresets'
 import { Glyph } from '../ui/components'
 import { NAV_ICONS } from '../ui/icons'
+import { locale, tr } from '../../shared/i18n'
 
 export interface EditorTarget {
   /** Pack-relative path of the albedo PNG. */
@@ -348,7 +349,7 @@ export function TextureEditor({
       url: target.url,
       mcmetaUrl: target.mcmetaUrl,
       name: target.name,
-      sourceLabel: 'In modifica'
+      sourceLabel: tr('In modifica')
     }),
     [target]
   )
@@ -593,7 +594,7 @@ export function TextureEditor({
         setLoaded({
           status: 'error',
           message:
-            'Impossibile leggere la texture: ' +
+            tr('Impossibile leggere la texture: ') +
             (error instanceof Error ? error.message : String(error))
         })
     )
@@ -628,7 +629,7 @@ export function TextureEditor({
         ).filter(([, bytes, old]) => !old || !sameBytes(bytes, old))
         if (
           !(await backupBefore(
-            `Salvataggio di ${target.name}`,
+            tr('Salvataggio di {0}', target.name),
             writes.map(([path]) => path)
           ))
         )
@@ -664,7 +665,7 @@ export function TextureEditor({
             ]
           : [])
       ]
-      if (!(await backupBefore(`Salvataggio di ${target.name}`, touched))) return false
+      if (!(await backupBefore(tr('Salvataggio di {0}', target.name), touched))) return false
       if (albedoChanged) {
         const result = await window.api.invoke(
           'texture:save',
@@ -924,7 +925,9 @@ export function TextureEditor({
   /** Opens another texture; `added`: pack files just written that the editor must see. */
   async function switchTo(path: string, added: readonly string[] = []): Promise<void> {
     if (path === target.path) return
-    if (!(await saveFirst('Ci sono modifiche non salvate. Salvarle prima di cambiare texture?')))
+    if (
+      !(await saveFirst(tr('Ci sono modifiche non salvate. Salvarle prima di cambiare texture?')))
+    )
       return
     onSwitch(targetFor(target, path, added))
   }
@@ -987,7 +990,10 @@ export function TextureEditor({
   }
 
   function close(): void {
-    if (modified && !window.confirm('Ci sono modifiche non salvate: andranno perse. Chiudere?')) {
+    if (
+      modified &&
+      !window.confirm(tr('Ci sono modifiche non salvate: andranno perse. Chiudere?'))
+    ) {
       return
     }
     if (modified) void window.api.invoke('draft:discard', target.path)
@@ -1015,39 +1021,39 @@ export function TextureEditor({
   useCommands([
     {
       id: 'editor:save',
-      label: 'Salva la texture',
+      label: tr('Salva la texture'),
       menu: 'File',
       area: 'Disegna',
       keys: 'Ctrl S',
       enabled: canSave && modified && !saving,
-      why: canSave ? 'Nessuna modifica da salvare' : 'Pack in sola lettura',
+      why: canSave ? tr('Nessuna modifica da salvare') : tr('Pack in sola lettura'),
       run: () => void save()
     },
-    { id: 'editor:close', label: 'Chiudi l’editor', menu: 'File', area: 'Disegna', run: close },
+    { id: 'editor:close', label: tr('Chiudi l’editor'), menu: 'File', area: 'Disegna', run: close },
     {
       id: 'editor:undo',
-      label: 'Annulla',
+      label: tr('Annulla'),
       menu: 'Modifica',
       area: 'Disegna',
       keys: 'Ctrl Z',
       // While moving pasted pixels, undo cancels the move.
       enabled: history.canUndo || editDoc?.floating != null,
-      why: 'Niente da annullare',
+      why: tr('Niente da annullare'),
       run: undo
     },
     {
       id: 'editor:redo',
-      label: 'Ripeti',
+      label: tr('Ripeti'),
       menu: 'Modifica',
       area: 'Disegna',
       keys: 'Ctrl Y',
       enabled: history.canRedo,
-      why: 'Niente da ripetere',
+      why: tr('Niente da ripetere'),
       run: redo
     },
     {
       id: 'editor:test',
-      label: 'Prova la texture',
+      label: tr('Prova la texture'),
       menu: 'Visualizza',
       area: 'Prova',
       enabled: canTest,
@@ -1058,41 +1064,41 @@ export function TextureEditor({
       ? [
           {
             id: 'editor:effects',
-            label: 'Mappe PBR: rilievo _n e materiale _s',
+            label: tr('Mappe PBR: rilievo _n e materiale _s'),
             menu: 'Mappe PBR',
             area: 'Effetti',
             enabled: surface === 'color',
-            why: 'Stai già dipingendo una mappa',
+            why: tr('Stai già dipingendo una mappa'),
             run: () =>
               changeSurface(maps.normal?.existed || !maps.specular?.existed ? 'normal' : 'specular')
           },
           {
             id: 'editor:color',
-            label: 'Torna ai colori della texture',
+            label: tr('Torna ai colori della texture'),
             menu: 'Mappe PBR',
             area: 'Disegna',
             enabled: surface !== 'color',
-            why: 'Stai già dipingendo i colori',
+            why: tr('Stai già dipingendo i colori'),
             run: () => changeSurface('color')
           }
         ]
       : []),
     {
       id: 'editor:beginner',
-      label: 'Modalità Principiante',
+      label: tr('Modalità Principiante'),
       menu: 'Visualizza',
       area: 'Disegna',
       enabled: mode !== 'beginner',
-      why: 'Già attiva',
+      why: tr('Già attiva'),
       run: () => changeMode('beginner')
     },
     {
       id: 'editor:pro',
-      label: 'Modalità Pro',
+      label: tr('Modalità Pro'),
       menu: 'Visualizza',
       area: 'Disegna',
       enabled: mode !== 'pro',
-      why: 'Già attiva',
+      why: tr('Già attiva'),
       run: () => changeMode('pro')
     }
   ])
@@ -1126,24 +1132,28 @@ export function TextureEditor({
             </span>
           )}
           {modified && (
-            <span className="badge unsaved" title="Ci sono modifiche non salvate (Ctrl+S)">
+            <span className="badge unsaved" title={tr('Ci sono modifiche non salvate (Ctrl+S)')}>
               <Glyph name="dot" />
-              modificata
+              {tr('modificata')}
             </span>
           )}
-          {saving && <span className="badge">Salvataggio…</span>}
-          {!modified && savedOnce && <span className="success small">Salvata nel pack</span>}
+          {saving && <span className="badge">{tr('Salvataggio…')}</span>}
+          {!modified && savedOnce && (
+            <span className="success small">{tr('Salvata nel pack')}</span>
+          )}
           {loaded.status === 'ready' && loaded.reducedFrom16Bit && (
             <span
               className="badge"
-              title="Il file originale ha canali a 16 bit: salvando diventa a 8 bit, come le texture vanilla."
+              title={tr(
+                'Il file originale ha canali a 16 bit: salvando diventa a 8 bit, come le texture vanilla.'
+              )}
             >
-              16 bit <Glyph name="arrowRight" /> 8 bit
+              {tr('16 bit')} <Glyph name="arrowRight" /> {tr('8 bit')}
             </span>
           )}
           {target.readOnly && (
-            <span className="badge" title="I pack .zip si aprono in sola lettura.">
-              sola lettura
+            <span className="badge" title={tr('I pack .zip si aprono in sola lettura.')}>
+              {tr('sola lettura')}
             </span>
           )}
         </div>
@@ -1151,14 +1161,14 @@ export function TextureEditor({
           {pro && (
             <label
               className="inline-check small"
-              title="Mostra consigli e avvisi anche in modalità Pro"
+              title={tr('Mostra consigli e avvisi anche in modalità Pro')}
             >
               <input
                 type="checkbox"
                 checked={proTips}
                 onChange={(event) => setProTips(event.target.checked)}
               />
-              Consigli
+              {tr('Consigli')}
             </label>
           )}
           {saveError && <span className="field-error small">{saveError}</span>}
@@ -1166,62 +1176,73 @@ export function TextureEditor({
           {!target.readOnly && (
             <button
               type="button"
-              title={`Apre ${paintedPath.slice(paintedPath.lastIndexOf('/') + 1)} in ${externalEditor ? editorName(externalEditor) : 'il programma predefinito'} (Impostazioni, editor esterno). Quando lì salvi, qui si ricarica da sola.`}
+              title={tr(
+                'Apre {0} in {1} (Impostazioni, editor esterno). Quando lì salvi, qui si ricarica da sola.',
+                paintedPath.slice(paintedPath.lastIndexOf('/') + 1),
+                externalEditor ? editorName(externalEditor) : tr('il programma predefinito')
+              )}
               data-external-editor=""
               onClick={() => void openExternal()}
             >
               <Glyph icon={NAV_ICONS.pencil} />
-              {externalEditor ? editorName(externalEditor) : 'Apri fuori'}
+              {externalEditor ? editorName(externalEditor) : tr('Apri fuori')}
             </button>
           )}
           {externalChange && (
             <span className="external-change small" role="alert">
-              {externalChange.slice(externalChange.lastIndexOf('/') + 1)} è cambiato fuori da
-              PackForge.{' '}
+              {tr(
+                '{0} è cambiato fuori da PackForge.',
+                externalChange.slice(externalChange.lastIndexOf('/') + 1)
+              )}{' '}
               <button type="button" className="small-button" onClick={reloadFromDisk}>
-                Ricarica dal file
+                {tr('Ricarica dal file')}
               </button>{' '}
               <button
                 type="button"
                 className="small-button"
-                title="Salvando, la tua versione sostituirà quella sul disco"
+                title={tr('Salvando, la tua versione sostituirà quella sul disco')}
                 onClick={() => setExternalChange(null)}
               >
-                Tieni le mie modifiche
+                {tr('Tieni le mie modifiche')}
               </button>
             </span>
           )}
           {doc && source && (
             <button
               type="button"
-              title="Guarda la texture come apparirà nel gioco: scene, distanza, confronto con vanilla"
+              title={tr(
+                'Guarda la texture come apparirà nel gioco: scene, distanza, confronto con vanilla'
+              )}
               onClick={test}
             >
               <Glyph icon={NAV_ICONS.cube} />
-              Prova
+              {tr('Prova')}
             </button>
           )}
           <button type="button" onClick={close}>
-            Chiudi editor
+            {tr('Chiudi editor')}
           </button>
         </div>
       </header>
       {draftOffer && (
         <div className="draft-banner" role="status">
           <span>
-            Trovata una bozza non salvata di questa texture ({formatTime(draftOffer.savedAt)}).
+            {tr(
+              'Trovata una bozza non salvata di questa texture ({0}).',
+              formatTime(draftOffer.savedAt)
+            )}
           </span>
           <button type="button" className="primary" onClick={restoreDraft}>
-            Ripristina
+            {tr('Ripristina')}
           </button>
           <button type="button" onClick={discardDraft}>
-            Scarta
+            {tr('Scarta')}
           </button>
         </div>
       )}
       {blockTextures.length > 1 && (
-        <div className="face-tabs" role="tablist" aria-label="Texture del blocco">
-          <span className="muted small">Texture del blocco:</span>
+        <div className="face-tabs" role="tablist" aria-label={tr('Texture del blocco')}>
+          <span className="muted small">{tr('Texture del blocco:')}</span>
           {blockTextures.map((path) => {
             const inPack = target.sources.pack.files.has(path)
             const name = path.slice(path.lastIndexOf('/') + 1, -'.png'.length)
@@ -1232,7 +1253,7 @@ export function TextureEditor({
                 role="tab"
                 aria-selected={path === target.path}
                 className={path === target.path ? 'tab active' : inPack ? 'tab' : 'tab missing'}
-                title={inPack ? path : `${path} — non è ancora nel pack: clicca per crearla`}
+                title={inPack ? path : tr('{0} — non è ancora nel pack: clicca per crearla', path)}
                 disabled={target.readOnly && !inPack}
                 onClick={() => {
                   if (inPack) return void switchTo(path)
@@ -1255,7 +1276,7 @@ export function TextureEditor({
         onCreate={(path, previous) => {
           // The copy is read from the file: save first when it is this texture.
           if (previous === target.path && modified) {
-            void saveFirst('Salvare le modifiche prima di copiarle nel nuovo stadio?').then(
+            void saveFirst(tr('Salvare le modifiche prima di copiarle nel nuovo stadio?')).then(
               (ok) => {
                 if (!ok) return
                 setCreatingFrom(previous)
@@ -1272,16 +1293,20 @@ export function TextureEditor({
         <div className="face-tabs" data-testid="tall-mode">
           <span className="muted small">
             <Glyph name="leaf" />
-            Pianta alta:
+            {tr('Pianta alta:')}
           </span>
           {(
             [
               [
                 true,
-                'Pianta intera',
-                'Le due metà come una sola tela: sopra la parte alta, sotto quella bassa'
+                tr('Pianta intera'),
+                tr('Le due metà come una sola tela: sopra la parte alta, sotto quella bassa')
               ],
-              [false, 'Solo questa metà', 'Per le mappe _n/_s o un’animazione di una sola metà']
+              [
+                false,
+                tr('Solo questa metà'),
+                tr('Per le mappe _n/_s o un’animazione di una sola metà')
+              ]
             ] as const
           ).map(([whole, label, hint]) => (
             <button
@@ -1294,7 +1319,7 @@ export function TextureEditor({
               onClick={() => {
                 if (wholePlant === whole) return
                 // The editor reloads in the other view: only once the work is on disk.
-                void saveFirst('Salvare le modifiche prima di cambiare vista?').then(
+                void saveFirst(tr('Salvare le modifiche prima di cambiare vista?')).then(
                   (ok) => ok && setWholePlant(whole)
                 )
               }}
@@ -1304,8 +1329,11 @@ export function TextureEditor({
           ))}
           {tall && (
             <span className="muted small">
-              Sopra: {tall.upper.slice(tall.upper.lastIndexOf('/') + 1)}, sotto:{' '}
-              {tall.lower.slice(tall.lower.lastIndexOf('/') + 1)}
+              {tr(
+                'Sopra: {0}, sotto: {1}',
+                tall.upper.slice(tall.upper.lastIndexOf('/') + 1),
+                tall.lower.slice(tall.lower.lastIndexOf('/') + 1)
+              )}
             </span>
           )}
         </div>
@@ -1387,7 +1415,7 @@ export function TextureEditor({
           }}
         />
       )}
-      {loaded.status === 'loading' && <p className="muted">Caricamento della texture…</p>}
+      {loaded.status === 'loading' && <p className="muted">{tr('Caricamento della texture…')}</p>}
       {loaded.status === 'error' && <p className="field-error">{loaded.message}</p>}
       {doc && source && editDoc && editSource && (
         <div className={bigPreview ? 'editor-main big-preview' : 'editor-main'}>
@@ -1595,7 +1623,7 @@ export function TextureEditor({
             )}
             {!animation && animationNote && (
               <p className="muted small animation-note">
-                Animazione non modificabile qui: {animationNote}
+                {tr('Animazione non modificabile qui: {0}', animationNote)}
               </p>
             )}
             {!animation &&
@@ -1607,7 +1635,9 @@ export function TextureEditor({
                 <button
                   type="button"
                   className="small-button animate-button"
-                  title="Trasforma la texture in un'animazione: i frame stanno uno sotto l'altro nel PNG"
+                  title={tr(
+                    "Trasforma la texture in un'animazione: i frame stanno uno sotto l'altro nel PNG"
+                  )}
                   onClick={() => {
                     settle()
                     // A strip without mcmeta already holds square frames; else one frame.
@@ -1621,7 +1651,7 @@ export function TextureEditor({
                   }}
                 >
                   <Glyph name="film" />
-                  Anima questa texture
+                  {tr('Anima questa texture')}
                 </button>
               )}
           </div>
@@ -1631,10 +1661,10 @@ export function TextureEditor({
               className="small-button preview-size"
               aria-pressed={bigPreview}
               onClick={() => setBigPreview((big) => !big)}
-              title="Allarga la colonna di destra per vedere meglio il blocco"
+              title={tr('Allarga la colonna di destra per vedere meglio il blocco')}
             >
               <Glyph name="resize" />
-              {bigPreview ? '3D piccolo' : '3D grande'}
+              {bigPreview ? tr('3D piccolo') : tr('3D grande')}
             </button>
             <PreviewPanel
               target={previewTarget}
@@ -1671,7 +1701,13 @@ export function TextureEditor({
                 heightFromColor={
                   maps.normal.width === doc.width && maps.normal.height === doc.height
                     ? null
-                    : `L’altezza dai colori serve una mappa grande come la texture (${maps.normal.width}×${maps.normal.height} contro ${doc.width}×${doc.height}).`
+                    : tr(
+                        'L’altezza dai colori serve una mappa grande come la texture ({0}×{1} contro {2}×{3}).',
+                        maps.normal.width,
+                        maps.normal.height,
+                        doc.width,
+                        doc.height
+                      )
                 }
               />
             )}
@@ -1683,7 +1719,13 @@ export function TextureEditor({
                 disabled={
                   maps.specular.width === doc.width && maps.specular.height === doc.height
                     ? null
-                    : `I materiali dai colori servono una mappa grande come la texture (${maps.specular.width}×${maps.specular.height} contro ${doc.width}×${doc.height}).`
+                    : tr(
+                        'I materiali dai colori servono una mappa grande come la texture ({0}×{1} contro {2}×{3}).',
+                        maps.specular.width,
+                        maps.specular.height,
+                        doc.width,
+                        doc.height
+                      )
                 }
                 selectionActive={editDoc?.selection != null}
                 accentCount={
@@ -1723,7 +1765,7 @@ export function TextureEditor({
 
             <ReferencePanel
               url={referenceUrl}
-              label={vanilla ? '' : 'jar non caricato'}
+              label={vanilla ? '' : tr('jar non caricato')}
               traceOpacity={traceOpacity}
               onTraceOpacity={setTraceOpacity}
               onLoaded={setReference}
@@ -1733,45 +1775,49 @@ export function TextureEditor({
               <button
                 type="button"
                 className="small-button"
-                title="La tua texture accanto a quella vanilla, con i pixel cambiati evidenziati"
+                title={tr(
+                  'La tua texture accanto a quella vanilla, con i pixel cambiati evidenziati'
+                )}
                 onClick={() => {
                   const { width, height, data } = doc.composite
                   setComparing({ width, height, data: new Uint8ClampedArray(data) })
                 }}
               >
                 <Glyph name="swap" />
-                Confronta con vanilla
+                {tr('Confronta con vanilla')}
               </button>
             )}
             {target.path.includes('/textures/block/') && !target.readOnly && (
               <button
                 type="button"
                 className="small-button"
-                title="Più versioni di questa texture: il gioco ne sceglie una a caso per ogni blocco"
+                title={tr(
+                  'Più versioni di questa texture: il gioco ne sceglie una a caso per ogni blocco'
+                )}
                 onClick={() =>
-                  void saveFirst('Salvare le modifiche prima di creare le varianti?').then(
+                  void saveFirst(tr('Salvare le modifiche prima di creare le varianti?')).then(
                     (ok) => ok && setRandomVariants(true)
                   )
                 }
               >
                 <Glyph name="dice" />
-                Varianti casuali
+                {tr('Varianti casuali')}
               </button>
             )}
             {crop && !target.readOnly && (
               <button
                 type="button"
                 className="small-button"
-                title="Il modello 3D della pianta: vanilla, croce, cespuglio o alta"
+                title={tr('Il modello 3D della pianta: vanilla, croce, cespuglio o alta')}
                 onClick={() =>
                   // The editor reloads with the models / halves it writes: save first.
-                  void saveFirst('Salvare le modifiche prima di cambiare la forma?').then(
+                  void saveFirst(tr('Salvare le modifiche prima di cambiare la forma?')).then(
                     (ok) => ok && setPlantShape(true)
                   )
                 }
               >
                 <Glyph name="leaf" />
-                Forma della pianta
+                {tr('Forma della pianta')}
               </button>
             )}
             <TilingPreview
@@ -1825,7 +1871,7 @@ async function loadDocument(
   if (tall) {
     const upper = await read(tall.upper)
     const stacked = stackHalves(upper, image)
-    if (!stacked) throw new Error('le due metà della pianta hanno larghezze diverse.')
+    if (!stacked) throw new Error(tr('le due metà della pianta hanno larghezze diverse.'))
     const canvasOf = (w: number, h: number): HTMLCanvasElement => {
       const canvas = document.createElement('canvas')
       canvas.width = w
@@ -1947,7 +1993,7 @@ function sameBytes(a: Uint8Array, b: Uint8Array | null): boolean {
 
 /** Status-bar text of a hovered channel pixel. */
 function describeValue(channel: ChannelDef, color: Rgba): string {
-  if (channel.id === 'normal') return `Normale X ${color[0]}, Y ${color[1]}`
+  if (channel.id === 'normal') return tr('Normale X {0}, Y {1}', color[0], color[1])
   return `${channel.label}: ${color[3] === 0 ? channel.neutral : color[0]}`
 }
 
@@ -2003,6 +2049,6 @@ function selectionShortcut(event: KeyboardEvent): SelectionAction | null {
 function formatTime(iso: string): string {
   const date = new Date(iso)
   return Number.isNaN(date.getTime())
-    ? 'data sconosciuta'
-    : date.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })
+    ? tr('data sconosciuta')
+    : date.toLocaleString(locale(), { dateStyle: 'short', timeStyle: 'short' })
 }

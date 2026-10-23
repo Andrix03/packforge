@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { hsvToRgb, rgbToHsv, sameColor, type Hsv, type UsedColor } from './color'
 import { fromHex, toHex, TRANSPARENT, type Rgba } from './pixels'
 import { Glyph } from '../ui/components'
+import { tr } from '../../shared/i18n'
 
 type Slot = 'primary' | 'secondary'
 
@@ -34,31 +35,31 @@ export function ColorPanel(props: ColorPanelProps): React.JSX.Element {
     <div className="color-panel">
       <div className="color-slots">
         <SlotButton
-          label="Primario"
-          hint="clic sinistro"
+          label={tr('Primario')}
+          hint={tr('clic sinistro')}
           color={props.primary}
           active={slot === 'primary'}
           onSelect={() => setSlot('primary')}
         />
         <SlotButton
-          label="Secondario"
-          hint="clic destro"
+          label={tr('Secondario')}
+          hint={tr('clic destro')}
           color={props.secondary}
           active={slot === 'secondary'}
           onSelect={() => setSlot('secondary')}
         />
         <div className="row">
-          <button type="button" onClick={props.onSwap} title="Scambia i colori (X)">
+          <button type="button" onClick={props.onSwap} title={tr('Scambia i colori (X)')}>
             <Glyph name="swap" />
             <kbd>X</kbd>
           </button>
           <button
             type="button"
             onClick={() => props.onChange(slot, TRANSPARENT)}
-            title="Rende trasparente il colore selezionato: dipingendo, cancella"
+            title={tr('Rende trasparente il colore selezionato: dipingendo, cancella')}
             disabled={color[3] === 0}
           >
-            Trasparente
+            {tr('Trasparente')}
           </button>
         </div>
       </div>
@@ -72,14 +73,14 @@ export function ColorPanel(props: ColorPanelProps): React.JSX.Element {
 
       {props.recent.length > 0 && (
         <section>
-          <h3 className="panel-title">Recenti</h3>
+          <h3 className="panel-title">{tr('Recenti')}</h3>
           <SwatchGrid colors={props.recent} onPick={pick} />
         </section>
       )}
 
       <section>
         <h3 className="panel-title">
-          Colori della texture <span className="muted">({props.palette.length})</span>
+          {tr('Colori della texture')} <span className="muted">({props.palette.length})</span>
         </h3>
         <SwatchGrid
           colors={props.palette.map((entry) => entry.color)}
@@ -110,7 +111,7 @@ function SlotButton({
       className={active ? 'slot-button active' : 'slot-button'}
       aria-pressed={active}
       onClick={onSelect}
-      title={`Modifica il colore ${label.toLowerCase()}`}
+      title={tr('Modifica il colore {0}', label.toLowerCase())}
     >
       <Swatch color={color} />
       <span className="color-swatch-text">
@@ -161,21 +162,21 @@ function ColorEditor({
   return (
     <div className="color-editor">
       <Slider
-        label="Tinta"
+        label={tr('Tinta')}
         value={Math.round(hsv.h)}
         max={360}
         background="linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)"
         onChange={(h) => updateHsv({ ...hsv, h })}
       />
       <Slider
-        label="Saturazione"
+        label={tr('Saturazione')}
         value={Math.round(hsv.s * 100)}
         max={100}
         background={`linear-gradient(to right, ${css(hsvToRgb({ ...hsv, s: 0 }))}, ${css(hsvToRgb({ ...hsv, s: 1 }))})`}
         onChange={(s) => updateHsv({ ...hsv, s: s / 100 })}
       />
       <Slider
-        label="Luminosità"
+        label={tr('Luminosità')}
         value={Math.round(hsv.v * 100)}
         max={100}
         background={`linear-gradient(to right, #000, ${css(hsvToRgb({ ...hsv, v: 1 }))})`}
@@ -183,7 +184,7 @@ function ColorEditor({
       />
       {pro && (
         <Slider
-          label="Opacità"
+          label={tr('Opacità')}
           value={alpha}
           max={255}
           background={`linear-gradient(to right, transparent, ${css(opaque)}), repeating-conic-gradient(#888 0% 25%, #666 0% 50%) 0 0 / 8px 8px`}
@@ -191,8 +192,8 @@ function ColorEditor({
         />
       )}
       <div className={pro ? 'color-fields' : 'color-fields hex-only'}>
-        <label title="Esadecimale: #rrggbb oppure #rrggbbaa">
-          Hex
+        <label title={tr('Esadecimale: #rrggbb oppure #rrggbbaa')}>
+          {tr('Hex')}
           <input
             value={hexDraft ?? toHexWithAlpha(color)}
             spellCheck={false}
@@ -275,7 +276,11 @@ function SwatchGrid({
           key={`${color.join(',')}`}
           type="button"
           className="swatch-cell"
-          title={`${describe(color)}${counts ? `, ${counts[i]} pixel` : ''} — sinistro: primario, destro: secondario`}
+          title={tr(
+            '{0}{1} — sinistro: primario, destro: secondario',
+            describe(color),
+            counts ? tr(', {0} pixel', counts[i]) : ''
+          )}
           onClick={(event) => onPick(event, color)}
           onContextMenu={(event) => onPick(event, color)}
         >
@@ -303,8 +308,8 @@ function toHexWithAlpha(color: Rgba): string {
 }
 
 function describe(color: Rgba): string {
-  if (color[3] === 0) return 'trasparente'
-  return color[3] === 255 ? toHex(color) : `${toHex(color)}, opacità ${color[3]}`
+  if (color[3] === 0) return tr('trasparente')
+  return color[3] === 255 ? toHex(color) : tr('{0}, opacità {1}', toHex(color), color[3])
 }
 
 function clampByte(value: number): number {

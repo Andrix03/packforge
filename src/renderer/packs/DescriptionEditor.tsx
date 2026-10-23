@@ -7,6 +7,7 @@ import {
   RESET_CODE,
   SECTION_SIGN
 } from '../../shared/formatting'
+import { tr } from '../../shared/i18n'
 
 interface DescriptionEditorProps {
   value: string
@@ -39,7 +40,7 @@ export function DescriptionEditor({
 
   return (
     <div className="description-editor">
-      <div className="format-toolbar" role="toolbar" aria-label="Codici di formattazione">
+      <div className="format-toolbar" role="toolbar" aria-label={tr('Codici di formattazione')}>
         {COLOR_CODES.map((color) => (
           <button
             key={color.code}
@@ -69,11 +70,11 @@ export function DescriptionEditor({
         <button
           type="button"
           className="format-button"
-          title={`Reset (${SECTION_SIGN}${RESET_CODE})`}
+          title={tr('Reset ({0}{1})', SECTION_SIGN, RESET_CODE)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => insert(RESET_CODE)}
         >
-          Reset
+          {tr('Reset')}
         </button>
       </div>
       <textarea
@@ -81,17 +82,18 @@ export function DescriptionEditor({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={2}
-        placeholder="Texture LabPBR 16x"
+        placeholder={tr('Texture LabPBR 16x')}
         aria-invalid={invalid}
         autoFocus={autoFocus}
         spellCheck={false}
       />
-      <div className="mc-preview" aria-label="Anteprima">
-        <McText text={value} placeholder="Anteprima della descrizione" />
+      <div className="mc-preview" aria-label={tr('Anteprima')}>
+        <McText text={value} placeholder={tr('Anteprima della descrizione')} />
       </div>
       <span className="muted small">
-        Anteprima approssimata: font e colore di base possono differire leggermente dal gioco. Un
-        colore annulla grassetto/corsivo applicati prima: metti prima il colore, poi il formato.
+        {tr(
+          'Anteprima approssimata: font e colore di base possono differire leggermente dal gioco. Un colore annulla grassetto/corsivo applicati prima: metti prima il colore, poi il formato.'
+        )}
       </span>
     </div>
   )

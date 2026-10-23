@@ -626,6 +626,12 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
           ref={canvasRef}
           // Editable area (x, y, width, height) for UI tests.
           data-view={`${area.x0},${area.y0},${viewWidth},${viewHeight}`}
+          // Where the area's (0, 0) is drawn and the zoom, in CSS pixels (UI tests aim with it).
+          data-origin={
+            viewport
+              ? `${viewport.x / ratio},${viewport.y / ratio},${viewport.zoom / ratio}`
+              : undefined
+          }
           className={
             panning
               ? 'editor-canvas panning'

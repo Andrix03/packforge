@@ -26,15 +26,20 @@ export default async function selection(app) {
     (await app.ev(`document.querySelector('.tool.active').textContent`)).includes('Sposta'),
     'paste switches to the move tool'
   )
+  // The pasted pixels float only once the paste is in the selection (a drag before moves nothing).
+  await app.waitFor(`!!document.querySelector('.selection-actions button[title^="Togli"]:not(:disabled)')`)
   await app.editor.draw([
     [3, 3],
     [10, 3]
   ])
   await app.key('Enter')
-  app.check(
-    (await app.editor.color(9, 2)) === stone(2, 2),
-    'pasted pixels land 7 pixels to the right'
-  )
+  // Putting the paste down re-renders the canvas: give it a moment before reading the colour.
+  let landed = false
+  for (let i = 0; i < 20 && !landed; i++) {
+    landed = (await app.editor.color(9, 2)) === stone(2, 2)
+    if (!landed) await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  app.check(landed, 'pasted pixels land 7 pixels to the right')
   app.check((await app.editor.color(2, 2)) === stone(2, 2), 'copy leaves the original in place')
   await app.key('z', ['ctrl'])
   app.check((await app.editor.color(9, 2)) === stone(9, 2), 'one Ctrl+Z removes the whole paste')

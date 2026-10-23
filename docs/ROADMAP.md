@@ -237,7 +237,7 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 - [x] Style approved (Disegna on the canvas)
 - [x] Canvas: Pack, Prova, Effetti, Pubblica redrawn in the Disegna style; start screen, settings, dialogs, Beginner layout added — 2026-10-23
 - [x] Canvas v2 approved by Andrea (2026-10-23): Pixel Operator 16 px for readable text (CC0) + Tiny5 for short caps labels; solid 2 px command icons; options bar that scrolls; compact layout ≤ 1280 px; pixel pictures on every preset button; small "i" marker with hover note on switches; Prima/Dopo switch + "Affiancati"; 4-step wizards for Applica in blocco and Texture connesse; new app icon + README animation. Sources: `.claude/design-v2` (canvas JqcK1dpddgx73RbWjsgPf4); design work is closed, code follows it
-- [ ] Design system in code: tokens, Tiny5 + Pixel Operator bundled, pixel icons + pixel pictures, ore buttons, I/O switch, segmented slider, select, panels, info marker
+- [x] Design system in code (2026-10-23, `src/renderer/ui/`): tokens, Tiny5 + Pixel Operator bundled, pixel icons + pixel pictures, ore buttons, I/O switch, segmented slider, select, panels, info marker
 - [ ] Shell: menu bar, Ctrl+K, workspace hotbar, status bar
 - [ ] Disegna: tool rail, options bar, document tabs, floating view bar, two-column dock, timeline
 - [ ] Pack, Prova, Effetti, Pubblica in the same style (every current feature kept)

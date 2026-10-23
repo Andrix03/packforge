@@ -1,14 +1,15 @@
 :root {
   color-scheme: dark;
-  --bg: #1b1d22;
-  --surface: #25282f;
-  --border: #353943;
-  --text: #e6e8ec;
-  --muted: #9aa0ab;
-  --accent: #6fbf73;
-  --error: #ef6b6b;
-  --warning: #e5b454;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  /* 12b: the old names map onto the new design tokens (ui/theme.css) while screens move over. */
+  --bg: var(--ui-bg);
+  --surface: var(--ui-panel);
+  --border: #141414;
+  --text: var(--ui-text);
+  --muted: var(--ui-muted);
+  --accent: var(--ui-green);
+  --error: #e8784a;
+  --warning: var(--ui-amber);
+  font-family: var(--ui-font);
 }
 
 * {

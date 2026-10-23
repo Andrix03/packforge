@@ -326,6 +326,11 @@ function createApp(send) {
         return ev(`(() => {
           const canvasEl = document.querySelector('.editor-canvas')
           const canvas = canvasEl.getBoundingClientRect()
+          // The real origin when the canvas publishes it (a texture taller than the view is not centred).
+          if (canvasEl.dataset.origin) {
+            const [ox, oy, z] = canvasEl.dataset.origin.split(',').map(Number)
+            return { x: canvas.x + ox + (${x} + 0.5) * z, y: canvas.y + oy + (${y} + 0.5) * z }
+          }
           const zoom = parseInt(document.querySelector('.zoom-label').textContent) / 100
           const [, , w, h] = canvasEl.dataset.view.split(',').map(Number)
           return {

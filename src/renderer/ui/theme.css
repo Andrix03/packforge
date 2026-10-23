@@ -1,0 +1,394 @@
+/* PackForge 12b design system: the style approved on the design canvas (.claude/design-v2).
+   Pixel Operator (CC0) for text people read, sharp at 16 px; Pixel Operator Mono for code and
+   paths; Tiny5 (OFL) only for short uppercase labels, sharp at 10 and 15 px. Licences in ./fonts. */
+
+@font-face {
+  font-family: 'PixelOperator';
+  font-weight: 400;
+  src: url('./fonts/PixelOperator.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PixelOperator';
+  font-weight: 600 900;
+  src: url('./fonts/PixelOperator-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PixelOperatorMono';
+  src: url('./fonts/PixelOperatorMono.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tiny5';
+  src: url('./fonts/tiny5-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Tiny5';
+  src: url('./fonts/tiny5-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --ui-bg: #1d1d1d;
+  --ui-panel: #2c2c2c;
+  --ui-raised: #3a3a3a;
+  --ui-sunken: #202020;
+  --ui-edge-dark: #141414;
+  --ui-edge-light: #5a5a5a;
+  --ui-text: #ebe7e0;
+  --ui-muted: #b3ada2;
+  --ui-faint: #8a857d;
+  --ui-green: #5f9e35;
+  --ui-green-light: #8fd45a;
+  --ui-green-dark: #2e5418;
+  --ui-green-text: #a8dd7c;
+  --ui-amber: #e8b44a;
+  --ui-red: #e8784a;
+  --ui-blue: #6fa8dc;
+  --ui-light: #d4d4d4;
+  --ui-font: 'PixelOperator', monospace;
+  --ui-mono: 'PixelOperatorMono', monospace;
+  --ui-label: 'Tiny5', monospace;
+}
+
+.ui-root {
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  font-family: var(--ui-font);
+  font-size: 16px;
+  letter-spacing: 0;
+  -webkit-font-smoothing: none;
+}
+.ui-root button,
+.ui-root input,
+.ui-root select,
+.ui-root textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Surfaces: 1 px bevels. */
+.raised {
+  background: var(--ui-raised);
+  border-top: 1px solid var(--ui-edge-light);
+  border-left: 1px solid var(--ui-edge-light);
+  border-right: 1px solid var(--ui-edge-dark);
+  border-bottom: 1px solid var(--ui-edge-dark);
+}
+.sunken {
+  background: var(--ui-sunken);
+  border-top: 1px solid var(--ui-edge-dark);
+  border-left: 1px solid var(--ui-edge-dark);
+  border-right: 1px solid #4a4a4a;
+  border-bottom: 1px solid #4a4a4a;
+}
+.vsep {
+  width: 2px;
+  align-self: stretch;
+  margin: 9px 0;
+  background: var(--ui-edge-dark);
+  border-right: 1px solid #444;
+}
+
+/* Text. */
+.ph,
+.lbl,
+.mk {
+  font-family: var(--ui-label);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ph {
+  color: #d9d3c7;
+  letter-spacing: 0.6px;
+}
+.ph.big {
+  font-size: 15px;
+  color: var(--ui-green-text);
+}
+.lbl {
+  color: var(--ui-text);
+}
+.mk {
+  margin-left: auto;
+  color: #ada79c;
+}
+.muted {
+  color: var(--ui-muted);
+}
+.mono-path {
+  font-family: var(--ui-mono);
+}
+
+/* Fields. */
+.field {
+  background: #1b1b1b;
+  border-top: 1px solid #0e0e0e;
+  border-left: 1px solid #0e0e0e;
+  border-right: 1px solid #4a4a4a;
+  border-bottom: 1px solid #4a4a4a;
+  color: var(--ui-text);
+  padding: 3px 7px;
+  font-family: var(--ui-font);
+  font-size: 16px;
+}
+
+/* Ore buttons: light bevel, green when active. */
+.ore,
+.ore-on,
+.ore-select {
+  font-family: var(--ui-label);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1;
+  font-weight: 400;
+  box-sizing: border-box;
+  white-space: nowrap;
+  border: 2px solid var(--ui-edge-dark);
+  cursor: pointer;
+}
+.ore,
+.ore-on {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  vertical-align: middle;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+}
+.ore {
+  background: var(--ui-light);
+  color: #1d1d1d;
+  box-shadow:
+    inset 0 2px 0 #f4f4f4,
+    inset 0 -3px 0 #8f8f8f;
+}
+.ore:hover:not(:disabled) {
+  background: #e6e6e6;
+}
+.ore-on {
+  background: var(--ui-green);
+  color: #0f1e08;
+  box-shadow:
+    inset 0 2px 0 var(--ui-green-light),
+    inset 0 -3px 0 var(--ui-green-dark);
+}
+.ore:disabled,
+.ore-on:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ore.ico,
+.ore-on.ico {
+  padding: 0 5px;
+}
+/* Chip: picture + readable label (presets, sizes, filters). */
+.ore.chip,
+.ore-on.chip {
+  height: 34px;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 0 10px 0 6px;
+  font-family: var(--ui-font);
+  font-size: 16px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ore-select {
+  appearance: none;
+  background-color: var(--ui-light);
+  color: #1d1d1d;
+  box-shadow:
+    inset 0 2px 0 #f4f4f4,
+    inset 0 -3px 0 #8f8f8f;
+  height: 28px;
+  padding: 0 26px 0 8px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #1d1d1d 50%),
+    linear-gradient(135deg, #1d1d1d 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) 11px,
+    calc(100% - 10px) 11px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  min-width: 0;
+}
+.ore-select.big {
+  height: 36px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  background-position:
+    calc(100% - 15px) 15px,
+    calc(100% - 10px) 15px;
+}
+.picture {
+  flex: none;
+  outline: 2px solid var(--ui-edge-dark);
+}
+
+/* I/O switch. */
+.sw {
+  display: flex;
+  padding: 0;
+  border: 2px solid var(--ui-edge-dark);
+  background: var(--ui-edge-dark);
+  cursor: pointer;
+}
+.sw .knob,
+.sw .sw-i,
+.sw .sw-o {
+  width: 20px;
+  height: 18px;
+}
+.sw .knob {
+  background: var(--ui-light);
+  box-shadow:
+    inset 0 2px 0 #f4f4f4,
+    inset 0 -3px 0 #8f8f8f;
+}
+.sw .sw-i,
+.sw .sw-o {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sw .sw-i {
+  background: var(--ui-green);
+  box-shadow:
+    inset 0 2px 0 var(--ui-green-light),
+    inset 0 -2px 0 var(--ui-green-dark);
+}
+.sw .sw-i::after {
+  content: '';
+  width: 2px;
+  height: 10px;
+  background: #f4f4f4;
+}
+.sw .sw-o {
+  background: #6e6e6e;
+  box-shadow:
+    inset 0 2px 0 #8a8a8a,
+    inset 0 -2px 0 #454545;
+}
+.sw .sw-o::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--ui-light);
+  box-sizing: border-box;
+}
+.sw:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Segmented slider. */
+.seg {
+  position: relative;
+  height: 22px;
+  display: flex;
+  align-items: center;
+}
+.seg-track {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--ui-edge-dark);
+}
+.seg-cell {
+  flex: 1;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  background: #8c8c8c;
+  border-top: 1px solid #b5b5b5;
+  border-bottom: 1px solid #5a5a5a;
+}
+.seg-cell.on {
+  background: var(--ui-green);
+  border-top-color: var(--ui-green-light);
+  border-bottom-color: var(--ui-green-dark);
+}
+.seg-thumb {
+  position: absolute;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  background: var(--ui-light);
+  border: 2px solid var(--ui-edge-dark);
+  box-shadow:
+    inset 0 -3px 0 #8f8f8f,
+    inset 0 2px 0 #f4f4f4;
+  pointer-events: none;
+}
+
+/* Small info marker above a label, the note shows on hover or focus. */
+.tipwrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.tip {
+  position: absolute;
+  right: -13px;
+  top: -9px;
+  width: 10px;
+  height: 10px;
+  outline: 1px solid var(--ui-edge-dark);
+  cursor: help;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 5' shape-rendering='crispEdges'><rect width='5' height='5' fill='%233a6ea8'/><rect x='2' width='1' height='1' fill='white'/><rect x='2' y='2' width='1' height='3' fill='white'/></svg>")
+    center / 100% 100% no-repeat;
+}
+.tipbox {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 60;
+  width: max-content;
+  max-width: 220px;
+  padding: 4px 8px;
+  background: var(--ui-edge-dark);
+  border: 2px solid var(--ui-edge-light);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  color: var(--ui-text);
+  font-family: var(--ui-font);
+  font-size: 16px;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.25;
+  white-space: normal;
+  pointer-events: none;
+}
+.tipwrap:has(.tip:hover) .tipbox,
+.tipwrap:has(.tip:focus-visible) .tipbox {
+  display: block;
+}
+
+/* Panel with a collapsible header. */
+.panel-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+.panel-body {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

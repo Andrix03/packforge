@@ -183,8 +183,8 @@ Crops) add custom 3D models, random variants at harvest and taller ripe plants.
 
 ## Phase 12 — Polish and public release
 
-Infrastructure done in 2026-10; the release itself waits for Phases 12a–19 (decided
-2026-10-19 after the audit + research in `docs/RESEARCH-2026-10-19.md`).
+Infrastructure done in 2026-10. Order decided with Andrea on 2026-10-23: 12a fix pass (done) →
+12b new interface → 12c release 1.0 → interfaces of Phases 13–19 → Phase 20 paint engine.
 
 - [ ] UI/UX pass, keyboard shortcuts — superseded by Phase 12b (new interface)
 - [x] First-run guided tutorial (draw your first block) for Beginner mode — six steps that tick by themselves; compact bar in the editor / Prova; "Rifai il tutorial" in the settings
@@ -223,18 +223,32 @@ Audit + research: `docs/RESEARCH-2026-10-19.md`. Mockup of the new interface: de
 ## Phase 12b — New interface
 
 One window like Photoshop/GIMP/Aseprite: menu bar + command search (Ctrl+K), workspaces
-Pack / Disegna / Prova / Effetti / Pubblica (+ Modella later), icon tool rail, tool options bar,
-document tabs, dockable/collapsible panels with a saved layout, status bar. Beginner = a layout
-preset of the same editor. No Minecraft/Ore UI look (Mojang only released `@react-facet`, and an
-official-looking app is against the usage guidelines).
+Pack / Disegna / Prova / Effetti / Pubblica as a "hotbar", icon tool rail, tool options bar,
+document tabs, collapsible panels in a two-column dock, status bar. Beginner = a layout preset of
+the same editor.
 
-- [ ] Canvas approved (incl. low-fidelity screens for Modella, Item, GUI, Armature, Diagnosi)
-- [ ] Libraries chosen (dock panels, icons) — versions and licenses checked first
-- [ ] Shell: design tokens, menu, Ctrl+K, workspaces, status bar; strings into a dictionary (Italian + English)
-- [ ] Disegna: tool rail, options bar, panels, timeline, document tabs
-- [ ] Pack: explorer dock, categories, progress
-- [ ] Prova, Effetti, Pubblica moved in
+Style (decided 2026-10-23): the Disegna screen of the design canvas "PackForge — nuova
+interfaccia" is the reference, and every other screen is aligned to it in code (no more canvas
+work). An Ore-UI-_inspired_ look drawn by us: neutral greys, raised/sunken 1 px bevels, light
+bevelled "ore" buttons and green active state, I/O switches, segmented sliders, Tiny5 pixel font
+(OFL, bundled), our own 16×16 pixel icons. Never Mojang's font, textures, logo or an official look
+(Minecraft usage guidelines).
+
+- [x] Style approved (Disegna on the canvas)
+- [ ] Design system in code: tokens, Tiny5 bundled, pixel icons, ore buttons, I/O switch, segmented slider, select, panels
+- [ ] Shell: menu bar, Ctrl+K, workspace hotbar, status bar
+- [ ] Disegna: tool rail, options bar, document tabs, floating view bar, two-column dock, timeline
+- [ ] Pack, Prova, Effetti, Pubblica in the same style (every current feature kept)
+- [ ] Start screen, settings and every dialog restyled
 - [ ] Beginner layout + tutorial updated; drive scenarios updated
+- [ ] Strings into a dictionary (Italian; English when Andrea decides)
+
+## Phase 12c — Release 1.0
+
+- [ ] Small fixes from the self-test (Esc on the description editor, pack.png counted as a texture, Prova cave for ores)
+- [ ] Version 1.0.0, changelog, user guide, download page; installer tested on a clean PC (also without Minecraft)
+- [ ] "Not affiliated with Mojang/Microsoft" notice in the app
+- [ ] Andrea decides: code signing, English, PackForge licence and price, distribution channel, beta testers
 
 ## Phase 13 — Modelli 3D
 
@@ -282,6 +296,17 @@ Vanilla model JSON, no mods.
 
 - [ ] Palette import/export (.gpl, .hex, Lospec), adjustment filters (hue/sat, levels) per layer and in batch — palette files logic done (`shared/paletteFiles.ts`: .gpl, .hex, Paint.NET .txt)
 - [ ] PNG optimizer on export; sounds and lang files (low demand)
+
+## Phase 20 — Paint engine
+
+Painting inside PackForge beyond GIMP/Photoshop/Krita for Minecraft textures (research:
+`docs/RESEARCH-2026-10-23-paint-engine.md`): WebGPU canvas (16-bit, up to 4096), MyPaint-style brush
+engine with pen pressure and pixel-perfect mode, pro layers (blend modes, masks, adjustment layers),
+filters (curves, procedural noises, content-aware fill, tileable synthesis), material node graph
+producing every LabPBR map, photo → material and CC0 import (ambientCG, Poly Haven).
+
+- [x] Research and GPU/pen measurements on Andrea's PC
+- [ ] Spike: 2048² WebGPU canvas + pressure brush, latency measured
 
 ## Ideas for later
 

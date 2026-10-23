@@ -27,7 +27,9 @@ export default async function selection(app) {
     'paste switches to the move tool'
   )
   // The pasted pixels float only once the paste is in the selection (a drag before moves nothing).
-  await app.waitFor(`!!document.querySelector('.selection-actions button[title^="Togli"]:not(:disabled)')`)
+  await app.waitFor(
+    `!!document.querySelector('.selection-actions button[title^="Togli"]:not(:disabled)')`
+  )
   await app.editor.draw([
     [3, 3],
     [10, 3]

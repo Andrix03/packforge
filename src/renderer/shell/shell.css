@@ -1,0 +1,266 @@
+/* Window frame of the 12b interface (canvas: Main.dc.html, title + menu bar, hotbar, status). */
+.shell {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ui-bg);
+}
+
+/* Menu bar. */
+.shell-menubar {
+  order: 0;
+  height: 30px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px 0 10px;
+  background: #232323;
+  border-bottom: 1px solid var(--ui-edge-dark);
+}
+.shell-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 10px;
+  color: var(--ui-green);
+  font-family: var(--ui-label);
+  font-size: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.shell-logo span {
+  color: var(--ui-text);
+}
+.shell-menus {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+.shell-menu {
+  position: relative;
+  display: flex;
+}
+.shell-menu-button {
+  padding: 0 9px;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text);
+  font-family: var(--ui-label);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.shell-menu-button:hover,
+.shell-menu-button.open {
+  background: var(--ui-raised);
+}
+.shell-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 80;
+  min-width: 240px;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45);
+}
+.shell-item {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 5px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.shell-item:hover:not(:disabled) {
+  background: var(--ui-green);
+  color: #0f1e08;
+}
+.shell-item:hover:not(:disabled) .mk {
+  color: #0f1e08;
+}
+.shell-item:disabled {
+  color: var(--ui-faint);
+  cursor: default;
+}
+.shell-search {
+  margin-left: auto;
+  width: 260px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  color: var(--ui-muted);
+  cursor: pointer;
+}
+
+/* Hotbar: pack on the left, workspaces in the middle, actions on the right. */
+.shell-hotbar {
+  order: 1;
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: #262626;
+  border-bottom: 1px solid var(--ui-edge-dark);
+}
+.shell-pack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.shell-pack strong,
+.shell-pack span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shell-tabs {
+  display: flex;
+  padding: 2px;
+  background: var(--ui-edge-dark);
+}
+.shell-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-right: 2px solid var(--ui-edge-dark);
+  background: #2f2f2f;
+  color: #cfc9bf;
+  font-family: var(--ui-label);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.shell-tab:last-child {
+  border-right: 0;
+}
+.shell-tab:hover:not(:disabled) {
+  background: #3a3a3a;
+}
+.shell-tab.active {
+  background: #2f4a26;
+  color: #c9f0a6;
+  outline: 2px solid #f3ead6;
+  outline-offset: -2px;
+  position: relative;
+  z-index: 1;
+}
+.shell-tab:disabled {
+  color: #6a665f;
+  cursor: default;
+}
+.shell-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.shell-body {
+  order: 2;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+
+/* Status bar. */
+.shell-status {
+  order: 3;
+  flex: none;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 10px;
+  background: #1a1a1a;
+  border-top: 1px solid var(--ui-edge-dark);
+  color: var(--ui-muted);
+  white-space: nowrap;
+}
+.shell-status-left,
+.shell-status-right {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ctrl+K command search. */
+.shell-search-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 90px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.shell-search-box {
+  width: min(560px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+}
+.shell-search-box .field {
+  width: 100%;
+  height: 32px;
+}
+.shell-results {
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  overflow: auto;
+}
+.shell-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text);
+  text-align: left;
+  cursor: pointer;
+}
+.shell-result.active:not(:disabled) {
+  background: var(--ui-green);
+  color: #0f1e08;
+}
+.shell-result.active:not(:disabled) .muted,
+.shell-result.active:not(:disabled) .mk {
+  color: #0f1e08;
+}
+.shell-result:disabled {
+  color: var(--ui-faint);
+  cursor: default;
+}
+.shell-result > span:first-child {
+  flex: 1;
+}
+
+/* Square corners: the old stylesheet rounds every button. */
+.shell-menubar button,
+.shell-hotbar button,
+.shell-search-box button,
+.shell-search-box input {
+  border-radius: 0;
+}

@@ -133,7 +133,8 @@ export default async function edges(app) {
   await app.waitFor(`document.querySelector('[data-testid=accent-count]')`)
   const switchMs = Date.now() - t0
   const t1 = Date.now()
-  for (let i = 0; i < 10; i++) await app.editor.color(10 + i * 20, 40)
+  // Middle row: stays on screen however short the window (a 512 px texture does not fit at 100 %).
+  for (let i = 0; i < 10; i++) await app.editor.color(10 + i * 20, 256)
   const hoverMs = (Date.now() - t1) / 10
   app.check(switchMs < 1500, `big texture: Minerale opens in ${switchMs} ms`)
   app.check(hoverMs < 250, `big texture: hover updates in ${Math.round(hoverMs)} ms`)

@@ -3,6 +3,7 @@ import { assetUrl, type DraftMaps, type TextureDraft } from '../../shared/ipc'
 import { decodePng } from '../../shared/pngCodec'
 import type { EditorMode } from '../../shared/settings'
 import { NewTextureDialog } from '../packs/NewTextureDialog'
+import { useCommands } from '../shell/commandContext'
 import {
   guessBlockForTexture,
   listBlocks,
@@ -988,6 +989,80 @@ export function TextureEditor({
     onClose()
   }
 
+  const canTest = doc !== null && source !== null
+  /** Opens the test screen on the texture as it is now (unsaved work included). */
+  function test(): void {
+    if (!doc || !source) return
+    settle()
+    onTest({
+      canvas: tallCanvases?.lower ?? source,
+      ...(tallCanvases && tallUrls
+        ? { extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }] }
+        : {}),
+      // An animation the editor cannot handle keeps playing from the file.
+      animation: tallCanvases ? null : animationNote ? undefined : animation,
+      pixels: doc.composite,
+      maps: liveMaps,
+      modified
+    })
+  }
+
+  useCommands([
+    {
+      id: 'editor:save',
+      label: 'Salva la texture',
+      menu: 'File',
+      area: 'Disegna',
+      keys: 'Ctrl S',
+      enabled: canSave && modified && !saving,
+      why: canSave ? 'Nessuna modifica da salvare' : 'Pack in sola lettura',
+      run: () => void save()
+    },
+    { id: 'editor:close', label: 'Chiudi l’editor', menu: 'File', area: 'Disegna', run: close },
+    {
+      id: 'editor:undo',
+      label: 'Annulla',
+      menu: 'Modifica',
+      area: 'Disegna',
+      keys: 'Ctrl Z',
+      run: undo
+    },
+    {
+      id: 'editor:redo',
+      label: 'Ripeti',
+      menu: 'Modifica',
+      area: 'Disegna',
+      keys: 'Ctrl Y',
+      run: redo
+    },
+    {
+      id: 'editor:test',
+      label: 'Prova la texture',
+      menu: 'Visualizza',
+      area: 'Prova',
+      enabled: canTest,
+      run: test
+    },
+    {
+      id: 'editor:beginner',
+      label: 'Modalità Principiante',
+      menu: 'Visualizza',
+      area: 'Disegna',
+      enabled: mode !== 'beginner',
+      why: 'Già attiva',
+      run: () => changeMode('beginner')
+    },
+    {
+      id: 'editor:pro',
+      label: 'Modalità Pro',
+      menu: 'Visualizza',
+      area: 'Disegna',
+      enabled: mode !== 'pro',
+      why: 'Già attiva',
+      run: () => changeMode('pro')
+    }
+  ])
+
   const paintedPath =
     surface === 'normal' ? normalPath : surface === 'specular' ? specularPath : target.path
   /** Opens the file in the external editor; unsaved work is saved first (it would not see it). */
@@ -1113,20 +1188,7 @@ export function TextureEditor({
             <button
               type="button"
               title="Guarda la texture come apparirà nel gioco: scene, distanza, confronto con vanilla"
-              onClick={() => {
-                settle()
-                onTest({
-                  canvas: tallCanvases?.lower ?? source,
-                  ...(tallCanvases && tallUrls
-                    ? { extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }] }
-                    : {}),
-                  // An animation the editor cannot handle keeps playing from the file.
-                  animation: tallCanvases ? null : animationNote ? undefined : animation,
-                  pixels: doc.composite,
-                  maps: liveMaps,
-                  modified
-                })
-              }}
+              onClick={test}
             >
               🧪 Prova
             </button>

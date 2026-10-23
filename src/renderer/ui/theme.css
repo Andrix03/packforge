@@ -63,12 +63,20 @@
   letter-spacing: 0;
   -webkit-font-smoothing: none;
 }
-.ui-root button,
-.ui-root input,
-.ui-root select,
-.ui-root textarea {
+/* Zero specificity: component classes below always win. */
+:where(.ui-root) :where(button, input, select, textarea) {
   font: inherit;
   color: inherit;
+}
+/* Square pixel corners for every 12b control (the old stylesheet rounds buttons). */
+.ore,
+.ore-on,
+.ore-select,
+.sw,
+.seg-cell,
+.field,
+.panel-head {
+  border-radius: 0;
 }
 
 /* Surfaces: 1 px bevels. */

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { Rgba } from './pixels'
 import type { RampOptions } from './ramp'
-import { RangeInput } from '../ui/components'
+import { Glyph, RangeInput } from '../ui/components'
+import { NAV_ICONS } from '../ui/icons'
 
 interface RampPanelProps {
   ramp: readonly Rgba[]
@@ -51,7 +52,7 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
             style={{ background: `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})` }}
             title={
               editing
-                ? 'Sinistro: sostituisci con il colore primario · destro: togli'
+                ? 'Sinistro: sostituisci con il colore primario. Destro: togli'
                 : 'Sinistro: primario, destro: secondario'
             }
             onClick={(event) => pick(event, color, index)}
@@ -76,7 +77,14 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
             onClick={() => setEditing((e) => !e)}
             title="Modifica le tonalità una per una"
           >
-            {editing ? 'Fine' : '✎ Modifica'}
+            {editing ? (
+              'Fine'
+            ) : (
+              <>
+                <Glyph icon={NAV_ICONS.pencil} />
+                Modifica
+              </>
+            )}
           </button>
           {editing && (
             <button
@@ -95,7 +103,8 @@ export function RampPanel(props: RampPanelProps): React.JSX.Element {
               onClick={props.onResetAuto}
               title="Torna alla rampa automatica con hue shifting"
             >
-              ↺ Automatica
+              <Glyph name="reset" />
+              Automatica
             </button>
           )}
         </div>

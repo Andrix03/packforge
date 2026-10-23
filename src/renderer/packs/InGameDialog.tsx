@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { SyncStatus } from '../../shared/ipc'
 import { announceStep } from '../tutorialEvents'
-import { DialogFrame } from '../ui/components'
+import { DialogFrame, Glyph } from '../ui/components'
 import { useEscape } from '../useEscape'
 
 /** Debug hotkeys useful while testing a pack (minecraft.wiki "Debug hotkey", 26.x). */
@@ -72,8 +72,8 @@ export function InGameDialog({
         <>
           <p className="small" data-testid="sync-target">
             {status.target}
-            {status.state === 'missing' && ' · non ancora copiato'}
-            {status.state === 'ours' && ' · copia di PackForge'}
+            {status.state === 'missing' && ', non ancora copiato'}
+            {status.state === 'ours' && ', copia di PackForge'}
           </p>
           {status.state === 'foreign' && (
             <p className="field-error small">
@@ -124,8 +124,8 @@ export function InGameDialog({
       <h3 className="panel-title">2. In gioco</h3>
       <ol className="small ingame-steps">
         <li>
-          Opzioni → Pacchetti di risorse: sposta «{packName}» nella colonna di destra (più in alto =
-          vince sugli altri).
+          Opzioni <Glyph name="arrowRight" /> Pacchetti di risorse: sposta «{packName}» nella
+          colonna di destra (più in alto = vince sugli altri).
         </li>
         <li>Dopo ogni modifica salvata premi F3 + T.</li>
         <li>

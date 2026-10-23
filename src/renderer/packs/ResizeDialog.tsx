@@ -13,6 +13,7 @@ import { backupBefore } from './backup'
 import { errorMessage, fetchBytes, fetchText, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
+import { Glyph } from '../ui/components'
 
 /** Rows drawn at most (the filter narrows big packs). */
 const MAX_ROWS = 400
@@ -132,7 +133,7 @@ export function ResizeDialog({
     setPhase({ status: 'working', text: 'Preparo…' })
     const { files, lossy, errors } = await prepare()
     const question =
-      `Riscrivere ${files.length === 1 ? '1 file' : `${files.length} file`} a ${target}×? Prima viene fatto un backup (🕘 Backup per tornare indietro).` +
+      `Riscrivere ${files.length === 1 ? '1 file' : `${files.length} file`} a ${target}×? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).` +
       (lossy.length > 0
         ? `\n\nRimpicciolendo perdono dettagli: ${lossy.slice(0, 12).join(', ')}${lossy.length > 12 ? '…' : ''}`
         : '')
@@ -185,8 +186,9 @@ export function ResizeDialog({
           ) : (
             <>
               <p className="small" data-testid="resize-result">
-                ✓ {phase.written === 1 ? '1 file riscritto' : `${phase.written} file riscritti`}
-                {phase.errors.length > 0 && ` · ✗ ${phase.errors.length} errori`}
+                <Glyph name="check" />
+                {phase.written === 1 ? '1 file riscritto' : `${phase.written} file riscritti`}
+                {phase.errors.length > 0 && `, ${phase.errors.length} errori`}
               </p>
               {phase.errors.map((error) => (
                 <p key={error} className="field-error small">
@@ -217,13 +219,13 @@ export function ResizeDialog({
         <p className="muted small">
           Porta le texture a una sola risoluzione, insieme a _n e _s: il gioco calcola le mipmap
           dell’atlante sulla texture più piccola, quindi un pack con risoluzioni miste perde qualità
-          da lontano. Solo rapporti interi (×2, ×4, ½…), così i pixel restano netti.
+          da lontano. Solo rapporti interi (×2, ×4, metà…), così i pixel restano netti.
         </p>
         {!sizes ? (
           <p className="small">Leggo le dimensioni…</p>
         ) : (
           <p className="small" data-testid="resize-histogram">
-            Nel pack: {histogram.map((h) => `${h.resolution}× ${h.count}`).join(' · ')}
+            Nel pack: {histogram.map((h) => `${h.resolution}× ${h.count}`).join(', ')}
           </p>
         )}
         <div className="row">
@@ -290,8 +292,8 @@ export function ResizeDialog({
                   {texture.name}
                   <span className="muted">
                     {size ? `${size.width}×${size.height}` : '…'}
-                    {size && !factor && ' · non si può portare a questa risoluzione'}
-                    {factor && factor.up === 1 && factor.down === 1 && ' · già così'}
+                    {size && !factor && ', non si può portare a questa risoluzione'}
+                    {factor && factor.up === 1 && factor.down === 1 && ', già così'}
                   </span>
                 </label>
               </li>
@@ -308,7 +310,7 @@ export function ResizeDialog({
         </label>
         <p className="small" data-testid="resize-summary">
           Da ridimensionare: {work.length}
-          {incompatible.length > 0 && ` · incompatibili: ${incompatible.length}`}
+          {incompatible.length > 0 && `, incompatibili: ${incompatible.length}`}
         </p>
         <div className="row">
           <button

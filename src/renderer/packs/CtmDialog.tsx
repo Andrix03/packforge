@@ -25,7 +25,7 @@ import { mapPath, type MapKind } from '../../shared/labpbr'
 import type { DecodedPng } from '../../shared/pngCodec'
 import type { TextureEntry } from '../../shared/textures'
 import { Range } from '../editor/GeneratorPanel'
-import { Picture, Switch } from '../ui/components'
+import { Glyph, Picture, Switch } from '../ui/components'
 import { CTM_PICTURES } from '../ui/pictures'
 import { backupBefore } from './backup'
 import { errorMessage, loadPng, type FileSource } from './packFetch'
@@ -113,7 +113,7 @@ export function CtmDialog({
     if (
       exists &&
       !window.confirm(
-        `La cartella ${folder} esiste già: sovrascrivere i suoi tile? Prima viene fatto un backup (🕘 Backup per tornare indietro).`
+        `La cartella ${folder} esiste già: sovrascrivere i suoi tile? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).`
       )
     ) {
       return
@@ -234,8 +234,8 @@ export function CtmDialog({
                   }
                   onClick={() => setStep(index)}
                 >
-                  {index < step ? '✓ ' : ''}
-                  {index + 1} · {label}
+                  {index < step && <Glyph name="check" />}
+                  {index + 1}. {label}
                 </button>
               </li>
             ))}
@@ -263,7 +263,7 @@ export function CtmDialog({
                 <strong>{source.name}.png</strong>
                 <span className="muted small">
                   {loaded.width}×{loaded.height}
-                  {problem ? '' : ' · va bene per il metodo completo'}
+                  {problem ? '' : ', va bene per il metodo completo'}
                 </span>
                 <label
                   className="small select-field"
@@ -433,7 +433,7 @@ export function CtmDialog({
               </li>
             </ul>
             <p className="small muted">
-              Cartella: {folder}/{exists && ' · esiste già'}
+              Cartella: {folder}/{exists && ', esiste già'}
             </p>
           </aside>
         </section>
@@ -444,8 +444,9 @@ export function CtmDialog({
           {phase.status === 'done' && (
             <>
               <p className="small" data-testid="ctm-result">
-                ✓ {phase.written} tile scritti in {phase.folder}
-                {phase.errors.length > 0 && ` · ✗ ${phase.errors.length} errori`}
+                <Glyph name="check" />
+                {phase.written} tile scritti in {phase.folder}
+                {phase.errors.length > 0 && `, ${phase.errors.length} errori`}
               </p>
               {phase.errors.map((error) => (
                 <p key={error} className="field-error small">

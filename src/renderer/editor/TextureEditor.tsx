@@ -80,6 +80,8 @@ import {
   DEFAULT_MATERIAL,
   type MaterialOptions
 } from '../../shared/materialPresets'
+import { Glyph } from '../ui/components'
+import { NAV_ICONS } from '../ui/icons'
 
 export interface EditorTarget {
   /** Pack-relative path of the albedo PNG. */
@@ -1125,7 +1127,8 @@ export function TextureEditor({
           )}
           {modified && (
             <span className="badge unsaved" title="Ci sono modifiche non salvate (Ctrl+S)">
-              ● modificata
+              <Glyph name="dot" />
+              modificata
             </span>
           )}
           {saving && <span className="badge">Salvataggio…</span>}
@@ -1135,7 +1138,7 @@ export function TextureEditor({
               className="badge"
               title="Il file originale ha canali a 16 bit: salvando diventa a 8 bit, come le texture vanilla."
             >
-              16 bit → 8 bit
+              16 bit <Glyph name="arrowRight" /> 8 bit
             </span>
           )}
           {target.readOnly && (
@@ -1163,10 +1166,12 @@ export function TextureEditor({
           {!target.readOnly && (
             <button
               type="button"
-              title={`Apre ${paintedPath.slice(paintedPath.lastIndexOf('/') + 1)} in ${externalEditor ? editorName(externalEditor) : 'il programma predefinito'} (Impostazioni → editor esterno). Quando lì salvi, qui si ricarica da sola.`}
+              title={`Apre ${paintedPath.slice(paintedPath.lastIndexOf('/') + 1)} in ${externalEditor ? editorName(externalEditor) : 'il programma predefinito'} (Impostazioni, editor esterno). Quando lì salvi, qui si ricarica da sola.`}
+              data-external-editor=""
               onClick={() => void openExternal()}
             >
-              ✎ {externalEditor ? editorName(externalEditor) : 'Apri fuori'}
+              <Glyph icon={NAV_ICONS.pencil} />
+              {externalEditor ? editorName(externalEditor) : 'Apri fuori'}
             </button>
           )}
           {externalChange && (
@@ -1192,7 +1197,8 @@ export function TextureEditor({
               title="Guarda la texture come apparirà nel gioco: scene, distanza, confronto con vanilla"
               onClick={test}
             >
-              🧪 Prova
+              <Glyph icon={NAV_ICONS.cube} />
+              Prova
             </button>
           )}
           <button type="button" onClick={close}>
@@ -1264,7 +1270,10 @@ export function TextureEditor({
       />
       {halves && (
         <div className="face-tabs" data-testid="tall-mode">
-          <span className="muted small">🌿 Pianta alta:</span>
+          <span className="muted small">
+            <Glyph name="leaf" />
+            Pianta alta:
+          </span>
           {(
             [
               [
@@ -1295,7 +1304,7 @@ export function TextureEditor({
           ))}
           {tall && (
             <span className="muted small">
-              Sopra: {tall.upper.slice(tall.upper.lastIndexOf('/') + 1)} · sotto:{' '}
+              Sopra: {tall.upper.slice(tall.upper.lastIndexOf('/') + 1)}, sotto:{' '}
               {tall.lower.slice(tall.lower.lastIndexOf('/') + 1)}
             </span>
           )}
@@ -1611,7 +1620,8 @@ export function TextureEditor({
                     setModified(true)
                   }}
                 >
-                  🎞 Anima questa texture
+                  <Glyph name="film" />
+                  Anima questa texture
                 </button>
               )}
           </div>
@@ -1623,7 +1633,8 @@ export function TextureEditor({
               onClick={() => setBigPreview((big) => !big)}
               title="Allarga la colonna di destra per vedere meglio il blocco"
             >
-              {bigPreview ? '⤡ 3D piccolo' : '⤢ 3D grande'}
+              <Glyph name="resize" />
+              {bigPreview ? '3D piccolo' : '3D grande'}
             </button>
             <PreviewPanel
               target={previewTarget}
@@ -1728,7 +1739,8 @@ export function TextureEditor({
                   setComparing({ width, height, data: new Uint8ClampedArray(data) })
                 }}
               >
-                ⇆ Confronta con vanilla
+                <Glyph name="swap" />
+                Confronta con vanilla
               </button>
             )}
             {target.path.includes('/textures/block/') && !target.readOnly && (
@@ -1742,7 +1754,8 @@ export function TextureEditor({
                   )
                 }
               >
-                🎲 Varianti casuali
+                <Glyph name="dice" />
+                Varianti casuali
               </button>
             )}
             {crop && !target.readOnly && (
@@ -1757,7 +1770,8 @@ export function TextureEditor({
                   )
                 }
               >
-                🌿 Forma della pianta
+                <Glyph name="leaf" />
+                Forma della pianta
               </button>
             )}
             <TilingPreview
@@ -1933,7 +1947,7 @@ function sameBytes(a: Uint8Array, b: Uint8Array | null): boolean {
 
 /** Status-bar text of a hovered channel pixel. */
 function describeValue(channel: ChannelDef, color: Rgba): string {
-  if (channel.id === 'normal') return `Normale X ${color[0]} · Y ${color[1]}`
+  if (channel.id === 'normal') return `Normale X ${color[0]}, Y ${color[1]}`
   return `${channel.label}: ${color[3] === 0 ? channel.neutral : color[0]}`
 }
 

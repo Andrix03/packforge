@@ -93,7 +93,7 @@ export function CompareDialog({
           <>
             <div className="compare-row">
               <Figure
-                label="← la mia · vanilla →"
+                label="Tendina: la mia a sinistra, vanilla a destra"
                 width={width}
                 height={height}
                 pixels={wipe}

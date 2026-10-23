@@ -24,7 +24,7 @@ describe('checkModel', () => {
   })
 
   it('rejects what the game itself rejects (bounds, no faces, bad face rotation)', () => {
-    expect(messages(model(cube({ to: [16, 33, 16] })), ONLY_26_3)[0]).toContain('−16…32')
+    expect(messages(model(cube({ to: [16, 33, 16] })), ONLY_26_3)[0]).toContain('da -16 a 32')
     expect(messages(model(cube({ faces: {} })), ONLY_26_3)[0]).toContain('da 1 a 6 facce')
     const turned = cube({ faces: { up: { texture: '#all', rotation: 45 } } })
     expect(messages(model(turned), ONLY_26_3)[0]).toContain('0, 90, 180 o 270')

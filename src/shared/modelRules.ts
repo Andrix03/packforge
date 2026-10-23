@@ -104,7 +104,7 @@ export function checkModel(json: unknown, range: FormatRange): ModelIssue[] {
       const value = element[key]
       if (!isVec3(value)) add('error', index, `"${key}" deve essere [x, y, z].`)
       else if (value.some((v) => v < -16 || v > 32)) {
-        add('error', index, `"${key}" esce dai limiti −16…32: il gioco scarta il modello.`)
+        add('error', index, `"${key}" esce dai limiti da -16 a 32: il gioco scarta il modello.`)
       }
     }
     checkRotation(element['rotation'], index, tooOld, since, add)

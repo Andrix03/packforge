@@ -108,10 +108,10 @@ export default async function fuzz(app) {
     erase: async () => app.key('Delete'),
     deselect: async () => app.key('d', ['ctrl']),
     layer: async () => {
-      const label = pick(['+ Nuovo', 'Duplica', '▲', '▼', 'Unisci giù', 'Elimina'])
+      const label = pick(['+ Nuovo', 'Duplica', 'Sposta su', 'Sposta giù', 'Unisci giù', 'Elimina'])
       await app
         .ev(
-          `[...document.querySelectorAll('.layer-actions button')].find((b) => b.textContent.includes(${JSON.stringify(label)}) && !b.disabled)?.click()`
+          `[...document.querySelectorAll('.layer-actions button')].find((b) => (b.textContent + (b.getAttribute('aria-label') ?? '')).includes(${JSON.stringify(label)}) && !b.disabled)?.click()`
         )
         .catch(() => {})
     },
@@ -130,9 +130,9 @@ export default async function fuzz(app) {
     ...(ANIMATED
       ? {
           frameOp: async () => {
-            const label = pick(['Duplica', '+ Vuoto', '◀', '▶', 'Elimina'])
+            const label = pick(['Duplica', '+ Vuoto', 'frame prima', 'frame dopo', 'Elimina'])
             await app.ev(
-              `[...document.querySelectorAll('.frame-actions button')].find((b) => b.textContent.includes(${JSON.stringify(label)}) && !b.disabled)?.click()`
+              `[...document.querySelectorAll('.frame-actions button')].find((b) => (b.textContent + (b.getAttribute('aria-label') ?? '')).includes(${JSON.stringify(label)}) && !b.disabled)?.click()`
             )
           },
           frameSelect: async () => {

@@ -560,7 +560,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
         className="view-bar raised"
         role="toolbar"
         aria-label="Vista"
-        title="Rotellina: zoom · tasto centrale o Spazio + trascina: sposta"
+        title="Rotellina: zoom. Tasto centrale o Spazio + trascina: sposta"
       >
         <label
           className={showGrid ? 'ore-on ico toggle-label' : 'ore ico toggle-label'}
@@ -595,7 +595,7 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
           type="button"
           className="ore ico"
           onClick={() => zoomCentered(-1)}
-          title="Riduci (−)"
+          title="Riduci (-)"
           aria-label="Riduci"
         >
           <PixelIcon icon={CMD_ICONS.zoomOut} />

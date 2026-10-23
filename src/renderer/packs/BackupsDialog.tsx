@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { BackupInfo } from '../../shared/ipc'
 import { useEscape } from '../useEscape'
+import { Glyph } from '../ui/components'
 
 /** The pack's backups (taken before batch, variants, resize, CTM and saves), with restore. */
 export function BackupsDialog({ onClose }: { onClose: () => void }): React.JSX.Element {
@@ -81,12 +82,14 @@ export function BackupsDialog({ onClose }: { onClose: () => void }): React.JSX.E
           <ul className="validator-issues" aria-label="Backup">
             {backups.map((backup) => (
               <li key={backup.id} className="validator-issue info backup-row">
-                <span className="validator-icon">🕘</span>
+                <span className="validator-icon">
+                  <Glyph name="clock" alone />
+                </span>
                 <div>
                   <strong>{backup.label}</strong>
                   <p className="small muted">
-                    {new Date(backup.at).toLocaleString('it-IT')} · {backup.saved} file salvati
-                    {backup.created > 0 && ` · ${backup.created} file nuovi (tolti se ripristini)`}
+                    {new Date(backup.at).toLocaleString('it-IT')}, {backup.saved} file salvati
+                    {backup.created > 0 && `, ${backup.created} file nuovi (tolti se ripristini)`}
                   </p>
                 </div>
                 <div className="row">

@@ -63,7 +63,7 @@ export default async function resize(app) {
   await app.click('Seleziona quelle non a 32×', '.modal.batch button')
   await app.sleep(100)
   app.check(
-    (await summary(app)) === 'Da ridimensionare: 9 · incompatibili: 1',
+    (await summary(app)) === 'Da ridimensionare: 9, incompatibili: 1',
     `selection: ${await summary(app)}`
   )
   const oddNote = await app.ev(

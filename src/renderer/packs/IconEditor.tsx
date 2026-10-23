@@ -100,7 +100,7 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
         </button>
         {image && (
           <span className="muted small">
-            {image.name} · {image.element.naturalWidth}×{image.element.naturalHeight}
+            {image.name}, {image.element.naturalWidth}×{image.element.naturalHeight}
           </span>
         )}
       </div>

@@ -17,6 +17,7 @@ import { errorMessage, loadPng } from '../packs/packFetch'
 import { resolveAssetUrl, type AssetSources, type GrowthStage } from '../preview/modelSource'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
+import { Glyph } from '../ui/components'
 
 /** A model of the plant to reshape, and the one texture it draws. */
 interface Target {
@@ -169,7 +170,10 @@ export function PlantShapeDialog({
         aria-label="Forma della pianta"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>🌿 Forma della pianta: {block}</h2>
+        <h2>
+          <Glyph name="leaf" />
+          Forma della pianta: {block}
+        </h2>
         {phase.status === 'done' ? (
           <>
             <p data-testid="shape-result">

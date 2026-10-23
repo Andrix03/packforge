@@ -10,7 +10,7 @@ export default async function wizard(app) {
   await app.openPack()
   await app.click('Applica in blocco')
   await app.waitFor(`document.querySelector('.modal.batch.wizard')`)
-  app.check((await current(app)).includes('1 · Texture'), 'opens on step 1 (Texture)')
+  app.check((await current(app)).includes('1. Texture'), 'opens on step 1 (Texture)')
   await app.click('Nessuna', '.modal.batch button')
   await app.ev(`(() => {
     const row = [...document.querySelectorAll('.batch-list label')].find((l) => l.textContent.startsWith('glassblock'))
@@ -19,7 +19,7 @@ export default async function wizard(app) {
   await app.shot('wizard-1-texture')
 
   await app.click('Avanti', '.wizard-foot button')
-  app.check((await current(app)).includes('2 · Cosa fare'), 'Avanti: step 2 (Cosa fare)')
+  app.check((await current(app)).includes('2. Cosa fare'), 'Avanti: step 2 (Cosa fare)')
   // Material (_s) and relief (_n) both.
   await app.ev(`(() => {
     const box = [...document.querySelectorAll('.wizard-step label.inline-check')]
@@ -29,7 +29,7 @@ export default async function wizard(app) {
   await app.shot('wizard-2-what')
 
   await app.click('Avanti', '.wizard-foot button')
-  app.check((await current(app)).includes('3 · Anteprima'), 'Avanti: step 3 (Anteprima)')
+  app.check((await current(app)).includes('3. Anteprima'), 'Avanti: step 3 (Anteprima)')
   await app.waitFor(`document.querySelector('.before-after-view .preview-canvas')`, 15000)
   app.check((await views(app)) === 1, 'one view at a time: Dopo')
   const after = await app.ev(`document.querySelector('.before-after-view figcaption').textContent`)
@@ -58,7 +58,7 @@ export default async function wizard(app) {
     `[...document.querySelectorAll('.wizard-foot button')].find((b) => b.textContent.startsWith('Applica a')).click()`
   )
   await app.waitFor(`document.querySelector('[data-testid=batch-result]')`, 20000)
-  app.check((await current(app)).includes('4 · Applica'), 'applying moves to step 4')
+  app.check((await current(app)).includes('4. Applica'), 'applying moves to step 4')
   await app.shot('wizard-4-done')
   await app.click('Chiudi', '.wizard-foot button')
   await app.waitFor(`!document.querySelector('.modal.batch')`)
@@ -71,10 +71,10 @@ export default async function wizard(app) {
   await app.sleep(300)
   await app.click('Texture connesse')
   await app.waitFor(`document.querySelector('[aria-label="Texture connesse"] .wizard-steps')`)
-  app.check((await current(app)).includes('1 · Texture'), 'CTM: opens on step 1 (Texture)')
+  app.check((await current(app)).includes('1. Texture'), 'CTM: opens on step 1 (Texture)')
   await app.shot('ctm-1-texture')
   await app.click('Avanti', '.wizard-foot button')
-  app.check((await current(app)).includes('2 · Metodo'), 'CTM: step 2 (Metodo)')
+  app.check((await current(app)).includes('2. Metodo'), 'CTM: step 2 (Metodo)')
   const methods = await app.ev(
     `[...document.querySelectorAll('.ctm-method')].map((b) => (b.disabled ? '-' : '+') + b.querySelector('strong').textContent).join(' ')`
   )
@@ -89,7 +89,7 @@ export default async function wizard(app) {
   )
   await app.shot('ctm-2-method')
   await app.click('Avanti', '.wizard-foot button')
-  app.check((await current(app)).includes('3 · Anteprima'), 'CTM: step 3 (Anteprima)')
+  app.check((await current(app)).includes('3. Anteprima'), 'CTM: step 3 (Anteprima)')
   const shown = () =>
     app.ev(
       `[...document.querySelectorAll('[aria-label="Texture connesse"] .before-after-view')].filter((f) => !f.hidden).map((f) => f.querySelector('canvas').className).join(' ')`

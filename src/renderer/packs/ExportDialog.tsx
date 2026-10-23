@@ -11,7 +11,7 @@ import {
   type ProjectInfo
 } from '../../shared/exportPlan'
 import { RESOLUTIONS } from '../../shared/resize'
-import { DialogFrame } from '../ui/components'
+import { DialogFrame, Glyph } from '../ui/components'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
 
@@ -141,12 +141,14 @@ export function ExportDialog({
                   key={variantLabel(variant)}
                   className={`validator-issue ${result.ok ? 'info' : 'error'}`}
                 >
-                  <span className="validator-icon">{result.ok ? '✓' : '✗'}</span>
+                  <span className="validator-icon">
+                    <Glyph name={result.ok ? 'check' : 'cross'} alone />
+                  </span>
                   <div>
                     <strong>{variantLabel(variant)}</strong>
                     <p className="small">
                       {result.ok
-                        ? `${result.path} · ${result.files} file · ${(result.bytes / 1024).toFixed(0)} KB${result.kept.length > 0 ? ` · ${result.kept.length} texture lasciate alla loro risoluzione` : ''}`
+                        ? `${result.path}, ${result.files} file, ${(result.bytes / 1024).toFixed(0)} KB${result.kept.length > 0 ? `, ${result.kept.length} texture lasciate alla loro risoluzione` : ''}`
                         : result.error}
                     </p>
                   </div>
@@ -230,7 +232,8 @@ export function ExportDialog({
         <div data-testid="export-check">
           {check.errors.map((e) => (
             <p key={e} className="field-error small">
-              ✗ {e}
+              <Glyph name="cross" />
+              {e}
             </p>
           ))}
           {check.vanillaCopies.length > 0 && (
@@ -244,7 +247,8 @@ export function ExportDialog({
           )}
           {check.warnings.map((w) => (
             <p key={w} className="small">
-              ⚠ {w}
+              <Glyph name="warning" />
+              {w}
             </p>
           ))}
           {check.stray.length > 0 && (
@@ -258,7 +262,10 @@ export function ExportDialog({
             </p>
           )}
           {check.errors.length === 0 && check.warnings.length === 0 && (
-            <p className="small">✓ Tutto a posto: {check.files} file.</p>
+            <p className="small">
+              <Glyph name="check" />
+              Tutto a posto: {check.files} file.
+            </p>
           )}
           <button type="button" className="small-button" onClick={() => setCheckRun((r) => r + 1)}>
             Ricontrolla

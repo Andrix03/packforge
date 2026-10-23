@@ -15,9 +15,9 @@ async function testView(app) {
 
 const status = (app) =>
   app.ev(
-    `document.querySelector('.test-side').textContent.match(/\\d+ blocc\\w+ · \\d+ tip\\w/)?.[0] ?? ''`
+    `document.querySelector('.test-side').textContent.match(/\\d+ blocc\\w+, \\d+ tip\\w/)?.[0] ?? ''`
   )
-const types = (text) => Number(/· (\d+) tip/.exec(text)?.[1] ?? NaN)
+const types = (text) => Number(/, (\d+) tip/.exec(text)?.[1] ?? NaN)
 
 async function ctmBox(app) {
   return app.ev(`(() => {

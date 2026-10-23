@@ -82,10 +82,7 @@ export default async function coverage(app) {
   const batchSummary = await app.ev(
     `document.querySelector('[data-testid=batch-summary]').textContent`
   )
-  app.check(
-    batchSummary === 'Crea 3 · sovrascrive 0 · salta 0',
-    `batch preselected: ${batchSummary}`
-  )
+  app.check(batchSummary === 'Crea 3, sovrascrive 0, salta 0', `batch preselected: ${batchSummary}`)
   const ticks = await app.ev(
     `[...document.querySelectorAll('.modal.batch .wizard-step > label.inline-check input[type=checkbox]')].map((i) => i.checked)`
   )
@@ -112,7 +109,7 @@ export default async function coverage(app) {
   await open(app)
   await batchFromCoverage(app)
   const all = await app.ev(`document.querySelector('[data-testid=batch-summary]').textContent`)
-  app.check(all === 'Crea 12 · sovrascrive 0 · salta 0', `all missing maps planned: ${all}`)
+  app.check(all === 'Crea 12, sovrascrive 0, salta 0', `all missing maps planned: ${all}`)
   await applyBatch(app)
   await open(app)
   app.check(

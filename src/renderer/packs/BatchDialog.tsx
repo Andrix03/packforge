@@ -17,6 +17,7 @@ import { runBatch, type BatchResult, type BatchSettings } from './runBatch'
 import type { ValidatorSource } from './runValidator'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
+import { Glyph } from '../ui/components'
 
 /** Rows drawn at most in the texture list (the filter narrows big packs). */
 const MAX_ROWS = 400
@@ -119,7 +120,7 @@ export function BatchDialog({
     if (
       counts.overwrite > 0 &&
       !window.confirm(
-        `Sovrascrivere ${counts.overwrite === 1 ? '1 mappa esistente' : `${counts.overwrite} mappe esistenti`}? Prima viene fatto un backup (🕘 Backup per tornare indietro).`
+        `Sovrascrivere ${counts.overwrite === 1 ? '1 mappa esistente' : `${counts.overwrite} mappe esistenti`}? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).`
       )
     ) {
       return
@@ -154,7 +155,7 @@ export function BatchDialog({
   const running = phase.status === 'running'
   const summary = (
     <p className="small" data-testid="batch-summary">
-      Crea {counts.create} · sovrascrive {counts.overwrite} · salta {counts.skip}
+      Crea {counts.create}, sovrascrive {counts.overwrite}, salta {counts.skip}
     </p>
   )
 
@@ -182,8 +183,8 @@ export function BatchDialog({
                   }
                   onClick={() => setStep(index)}
                 >
-                  {index < step ? '✓ ' : ''}
-                  {index + 1} · {label}
+                  {index < step && <Glyph name="check" />}
+                  {index + 1}. {label}
                 </button>
               </li>
             ))}
@@ -408,17 +409,19 @@ export function BatchDialog({
           {phase.status === 'done' && (
             <>
               <p className="small" data-testid="batch-result">
-                ✓{' '}
+                <Glyph name="check" />
                 {phase.result.written === 1
                   ? '1 mappa scritta'
                   : `${phase.result.written} mappe scritte`}
-                {phase.result.errors.length > 0 && ` · ✗ ${phase.result.errors.length} errori`}
+                {phase.result.errors.length > 0 && `, ${phase.result.errors.length} errori`}
               </p>
               {phase.result.errors.length > 0 && (
                 <ul className="validator-issues">
                   {phase.result.errors.map((error) => (
                     <li key={error.path} className="validator-issue error">
-                      <span className="validator-icon">✗</span>
+                      <span className="validator-icon">
+                        <Glyph name="cross" alone />
+                      </span>
                       <div>
                         <strong>{error.path.split('/').pop()}</strong>
                         <p className="small">{error.message}</p>

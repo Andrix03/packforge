@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MAX_LAYERS, type EditorDocument } from './document'
 import type { Command } from './history'
-import { RangeInput } from '../ui/components'
+import { Glyph, RangeInput } from '../ui/components'
 
 /**
  * Layers, top layer first (like every paint program). All changes are undo steps except choosing
@@ -46,7 +46,7 @@ export function LayersPanel({
               aria-pressed={layer.visible}
               onClick={() => run(() => doc.setVisible(layer.id, !layer.visible))}
             >
-              {layer.visible ? '●' : '○'}
+              <Glyph name={layer.visible ? 'dot' : 'ring'} alone />
             </button>
             {renaming === layer.id ? (
               <input
@@ -72,7 +72,7 @@ export function LayersPanel({
                   onSelect(layer.id)
                 }}
                 onDoubleClick={() => setRenaming(layer.id)}
-                title="Clic: livello attivo · doppio clic: rinomina"
+                title="Clic: livello attivo. Doppio clic: rinomina"
               >
                 {layer.name}
                 {layer.opacity < 1 && (
@@ -116,7 +116,7 @@ export function LayersPanel({
           title="Sposta su"
           aria-label="Sposta su"
         >
-          ▲
+          <Glyph name="up" alone />
         </button>
         <button
           type="button"
@@ -125,7 +125,7 @@ export function LayersPanel({
           title="Sposta giù"
           aria-label="Sposta giù"
         >
-          ▼
+          <Glyph name="down" alone />
         </button>
         <button
           type="button"

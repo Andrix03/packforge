@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { PixelIcon } from '../ui/components'
+import { Glyph, PixelIcon } from '../ui/components'
 import { NAV_ICONS } from '../ui/icons'
 import type { SettingsUpdateResult } from '../../shared/ipc'
 import { editorDisplayName, type SettingsView } from '../../shared/settings'
@@ -171,9 +171,9 @@ export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.J
           </div>
         )}
         <p className="muted small">
-          Usato dal pulsante «✎» dell’editor (Aseprite, Photoshop, …): quando lì salvi, PackForge
-          ricarica la texture da solo. Senza un programma scelto si apre quello predefinito di
-          Windows.
+          Usato dal pulsante «Apri fuori» dell’editor (Aseprite, Photoshop, …): quando lì salvi,
+          PackForge ricarica la texture da solo. Senza un programma scelto si apre quello
+          predefinito di Windows.
         </p>
       </div>
 
@@ -243,11 +243,13 @@ function MinecraftStatus({ status }: { status: SettingsView['minecraft'] }): Rea
   return (
     <ul className="status-list">
       <li className={status.versionCount > 0 ? 'ok' : 'warn'}>
+        <Glyph name={status.versionCount > 0 ? 'check' : 'warning'} />
         {status.versionCount > 0
           ? `${status.versionCount} ${status.versionCount === 1 ? 'versione installata' : 'versioni installate'} con jar del client`
           : 'Nessuna versione con jar del client: avvia una versione dal launcher.'}
       </li>
       <li className={status.hasResourcepacks ? 'ok' : 'warn'}>
+        <Glyph name={status.hasResourcepacks ? 'check' : 'warning'} />
         {status.hasResourcepacks
           ? 'Cartella resourcepacks presente'
           : 'Cartella resourcepacks assente (Minecraft la crea al primo avvio)'}

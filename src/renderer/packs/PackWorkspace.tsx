@@ -22,6 +22,8 @@ import { BackupsDialog } from './BackupsDialog'
 import { ExportDialog } from './ExportDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
+import { Glyph } from '../ui/components'
+import { CMD_ICONS, NAV_ICONS } from '../ui/icons'
 
 const DEFAULT_FOLDER = 'assets/minecraft/textures/block'
 const MAX_SEARCH_RESULTS = 500
@@ -484,7 +486,8 @@ function Workspace({
                 title="Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)"
                 onClick={() => setInGame(true)}
               >
-                🎮 Copia nel gioco
+                <Glyph name="gamepad" />
+                Copia nel gioco
               </button>
               {canCreate && (
                 <button
@@ -493,7 +496,8 @@ function Workspace({
                   title="Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti"
                   onClick={() => setExporting(true)}
                 >
-                  📦 Esporta
+                  <Glyph icon={NAV_ICONS.chest} />
+                  Esporta
                 </button>
               )}
               {canCreate && (
@@ -503,7 +507,8 @@ function Workspace({
                   title="I backup presi prima di sovrascrivere file: ripristina una versione precedente"
                   onClick={() => setShowBackups(true)}
                 >
-                  🕘 Backup
+                  <Glyph name="clock" />
+                  Backup
                 </button>
               )}
             </div>
@@ -515,7 +520,8 @@ function Workspace({
                 title="Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani"
                 onClick={() => setValidating(true)}
               >
-                🔍 Controlla mappe
+                <Glyph icon={NAV_ICONS.search} />
+                Controlla mappe
               </button>
               <button
                 type="button"
@@ -523,7 +529,8 @@ function Workspace({
                 title="Quante texture del pack hanno già _n e _s, e quali mancano"
                 onClick={() => setCovering(true)}
               >
-                📊 Copertura
+                <Glyph name="chart" />
+                Copertura
               </button>
               {canCreate && (
                 <button
@@ -534,7 +541,8 @@ function Workspace({
                     setBatching({ selection: null, maps: { specular: true, normal: false } })
                   }
                 >
-                  ⚙ Applica in blocco
+                  <Glyph name="gear" />
+                  Applica in blocco
                 </button>
               )}
               {canCreate && (
@@ -544,7 +552,8 @@ function Workspace({
                   title="Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe"
                   onClick={() => setResizing(true)}
                 >
-                  ↔ Ridimensiona
+                  <Glyph name="resize" />
+                  Ridimensiona
                 </button>
               )}
             </div>
@@ -564,7 +573,8 @@ function Workspace({
                   }
                   onClick={() => setVarying(testable)}
                 >
-                  🎨 Varianti di colore
+                  <Glyph icon={CMD_ICONS.color} />
+                  Varianti di colore
                 </button>
                 <button
                   type="button"
@@ -577,7 +587,8 @@ function Workspace({
                   }
                   onClick={() => setConnecting(testable)}
                 >
-                  🧩 Texture connesse
+                  <Glyph name="connected" />
+                  Texture connesse
                 </button>
               </div>
             )}
@@ -723,7 +734,7 @@ function VanillaPicker({
         className="muted small"
         title="Le texture vanilla sono solo di riferimento: non vengono copiate né esportate."
       >
-        · solo riferimento
+        solo riferimento
       </span>
     </label>
   )
@@ -785,12 +796,12 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
 
   const summary = trimmedQuery
     ? `${matches.length} risultati${matches.length > MAX_SEARCH_RESULTS ? ` (mostrati ${MAX_SEARCH_RESULTS})` : ''}`
-    : `${selectedFolder || 'radice'} · ${matches.length} texture`
+    : `${selectedFolder || 'radice'}: ${matches.length} texture`
   const detail =
     covered !== null
-      ? ` · ${covered} di ${matches.length} già nel pack`
+      ? `, ${covered} di ${matches.length} già nel pack`
       : matches.length > 0
-        ? ` · ${withMaps} con mappe PBR`
+        ? `, ${withMaps} con mappe PBR`
         : ''
 
   return (

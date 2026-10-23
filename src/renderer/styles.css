@@ -250,16 +250,29 @@ h3 {
   gap: 6px;
 }
 
+/* A sunken slot like the game's inventory: square, dark edge top-left, light bottom-right; the
+   pixel warning sign in amber (red for errors) in front of the text. */
 .issues li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   padding: 8px 10px;
-  border-radius: 6px;
-  border-left: 3px solid var(--warning);
-  background: var(--bg);
+  border-radius: 0;
+  border-top: 2px solid var(--ui-edge-dark);
+  border-left: 2px solid var(--ui-edge-dark);
+  border-right: 2px solid #4a4a4a;
+  border-bottom: 2px solid #4a4a4a;
+  background: var(--ui-sunken);
   font-size: 0.9rem;
 }
 
-.issues li.error {
-  border-left-color: var(--error);
+.issues li > .glyph {
+  margin: 0;
+  color: var(--ui-amber);
+}
+
+.issues li.error > .glyph {
+  color: var(--ui-red);
 }
 
 .issue-tag {
@@ -559,20 +572,12 @@ h3 {
   font-size: 0.9rem;
 }
 
-.status-list li::before {
-  display: inline-block;
-  width: 18px;
-}
-
-.status-list li.ok::before {
-  content: '✓';
+.status-list li.ok .glyph {
   color: var(--accent);
 }
 
-.status-list li.warn::before {
-  content: '!';
+.status-list li.warn .glyph {
   color: var(--warning);
-  font-weight: 700;
 }
 
 .recent-list {
@@ -1205,21 +1210,27 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
-.color-slider input[type='range'] {
+/* Colour bars (hue, saturation, brightness…): square track, the same square bevelled knob as the
+   segmented sliders (seg-range keeps its own track). */
+.color-slider input[type='range']:not(.seg-range) {
   appearance: none;
   height: 12px;
   padding: 0;
-  border-radius: 6px;
+  border: 2px solid var(--ui-edge-dark);
+  border-radius: 0;
   cursor: pointer;
 }
 
-.color-slider input[type='range']::-webkit-slider-thumb {
+.color-slider input[type='range']:not(.seg-range)::-webkit-slider-thumb {
   appearance: none;
   width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid #222;
+  height: 18px;
+  border: 2px solid var(--ui-edge-dark);
+  border-radius: 0;
+  background: var(--ui-light);
+  box-shadow:
+    inset 0 -3px 0 #8f8f8f,
+    inset 0 2px 0 #f4f4f4;
 }
 
 .color-fields {
@@ -3265,6 +3276,8 @@ input.seg-range:focus-visible {
 .light-presets .chip {
   width: 100%;
   overflow: hidden;
+  gap: 5px;
+  padding: 0 6px 0 4px;
 }
 
 /* ---- 12b Pubblica (canvas: Pubblica.dc.html): export in the middle, in game beside it ---- */
@@ -3327,4 +3340,19 @@ input.seg-range:focus-visible {
   align-items: center;
   justify-content: flex-start;
   text-align: left;
+}
+.light-presets .chip > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Flex buttons already space their children (gap): a glyph adds no margin of its own. Header rows
+   align on the text baseline, which a glyph moves: their buttons sit centred instead. */
+button > .glyph,
+.tab > .glyph {
+  margin-inline-end: 0;
+}
+.editor-header > div > button {
+  align-self: center;
 }

@@ -33,10 +33,10 @@ export default async function external(app) {
   await app.openTexture('stone.png')
   await app.sleep(500)
   const label = await app.ev(
-    `[...document.querySelectorAll('.editor-header button')].find((b) => b.textContent.startsWith('✎'))?.textContent`
+    `document.querySelector('.editor-header [data-external-editor]')?.textContent`
   )
-  app.check(label === '✎ node', `button names the program (${label})`)
-  await app.click('✎', '.editor-header button')
+  app.check(label === 'node', `button names the program (${label})`)
+  await app.click('', '.editor-header [data-external-editor]')
   await app.sleep(800)
   app.check(
     !(await app.ev(`document.querySelector('.editor-header .field-error')`)),
@@ -113,7 +113,7 @@ export default async function external(app) {
   // 5. "✎" with unsaved work saves first (the other program must see it).
   await app.editor.setHex('ff00ff')
   await app.editor.click(4, 4)
-  await app.click('✎', '.editor-header button')
+  await app.click('', '.editor-header [data-external-editor]')
   await app
     .waitFor(`!document.querySelector('.editor-header').textContent.includes('modificata')`, 8000)
     .catch(() => null)

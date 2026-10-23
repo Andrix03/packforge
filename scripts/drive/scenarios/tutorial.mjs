@@ -78,7 +78,7 @@ export default async function tutorial(app) {
   const fake = join(dirname(app.paths.userData), 'fake-minecraft')
   await mkdir(fake, { recursive: true })
   await app.ev(`window.api.invoke('settings:setMinecraftDir', ${JSON.stringify(fake)})`)
-  await app.click('🎮 Copia nel gioco')
+  await app.click('Copia nel gioco')
   await app.waitFor(`document.querySelector('[data-testid=sync-target]')`)
   const where = await app.ev(`document.querySelector('[data-testid=sync-target]').textContent`)
   if (!where.startsWith(fake)) throw new Error(`refusing to copy outside the fake folder: ${where}`)

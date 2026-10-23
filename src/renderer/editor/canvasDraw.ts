@@ -196,7 +196,7 @@ export function cssColor([r, g, b, a]: Rgba): string {
 
 export function formatColor([r, g, b, a]: Rgba): string {
   const hex = [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')
-  return a === 255 ? `#${hex}` : a === 0 ? 'trasparente' : `#${hex} · alpha ${a}`
+  return a === 255 ? `#${hex}` : a === 0 ? 'trasparente' : `#${hex}, alpha ${a}`
 }
 
 /** Shortcuts are ignored while typing in a text field (checkboxes and color inputs don't count). */

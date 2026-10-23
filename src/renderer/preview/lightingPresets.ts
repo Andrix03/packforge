@@ -24,7 +24,7 @@ export interface LightingPreset {
 export const LIGHTING_PRESETS: readonly LightingPreset[] = [
   {
     id: 'time',
-    label: 'Ora del giorno',
+    label: 'Segui l’ora',
     hint: 'Segue lo slider dell’ora e il ciclo giorno/notte.'
   },
   { id: 'noon', label: 'Mezzogiorno', hint: 'Sole alto e cielo azzurro: luce piena.' },
@@ -35,7 +35,7 @@ export const LIGHTING_PRESETS: readonly LightingPreset[] = [
   },
   {
     id: 'cave',
-    label: 'Grotta (torcia)',
+    label: 'Grotta',
     hint: 'Buio, con una torcia in mano: ideale per l’emissione.'
   },
   { id: 'nether', label: 'Nether', hint: 'Luce rossa diffusa e bagliore di lava dal basso.' }

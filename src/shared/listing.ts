@@ -199,7 +199,7 @@ export function listingText(facts: PackFacts, zipName: string): string {
     '  (check the category list on the upload form)',
     '',
     'Descriptions: description-en.md (Modrinth requires English), description-it.md.',
-    'Screenshots: the screenshots folder next to this one (📷 in Prova).',
+    'Screenshots: the screenshots folder next to this one (Screenshot in Prova).',
     ''
   ].join('\n')
 }

@@ -192,7 +192,9 @@ export function analyzePackMcmeta(text: string): McmetaAnalysis {
     !issues.some((issue) => issue.severity === 'error') &&
     compatibleReleases(formats).length === 0
   ) {
-    warning('Nessuna versione di Minecraft gestita da PackForge (1.20 → 26.3) è compatibile.')
+    warning(
+      'Nessuna versione di Minecraft gestita da PackForge (dalla 1.20 alla 26.3) è compatibile.'
+    )
   }
   return { description, descriptionKind, formats, overlays, issues }
 }

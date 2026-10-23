@@ -1,15 +1,15 @@
 // Phase 12 keyboard: Esc closes every workspace dialog, and in the editor it closes the compare
 // dialog without also clearing the selection under it.
 const DIALOGS = [
-  ['🔍 Controlla mappe', '[aria-label="Controllo delle mappe"]'],
-  ['📊 Copertura', '[aria-label="Copertura delle mappe"]'],
-  ['⚙ Applica in blocco', '[aria-label="Applica in blocco"]'],
-  ['↔ Ridimensiona', '[aria-label="Ridimensiona"]'],
-  ['🎮 Copia nel gioco', '[aria-label="Prova in gioco"]'],
-  ['🕘 Backup', '[aria-label="Backup"]'],
-  ['📦 Esporta', '[aria-label="Esporta"]'],
-  ['🎨 Varianti di colore', '[aria-label="Varianti di colore"]'],
-  ['🧩 Texture connesse', '[aria-label="Texture connesse"]']
+  ['Controlla mappe', '[aria-label="Controllo delle mappe"]'],
+  ['Copertura', '[aria-label="Copertura delle mappe"]'],
+  ['Applica in blocco', '[aria-label="Applica in blocco"]'],
+  ['Ridimensiona', '[aria-label="Ridimensiona"]'],
+  ['Copia nel gioco', '[aria-label="Prova in gioco"]'],
+  ['Backup', '[aria-label="Backup"]'],
+  ['Esporta', '[aria-label="Esporta"]'],
+  ['Varianti di colore', '[aria-label="Varianti di colore"]'],
+  ['Texture connesse', '[aria-label="Texture connesse"]']
 ]
 
 const present = (app, selector) => app.ev(`!!document.querySelector(${JSON.stringify(selector)})`)

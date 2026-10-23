@@ -37,7 +37,7 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
     title: 'Vista',
     items: [
       { keys: 'Rotellina', label: 'Zoom sul punto del mouse' },
-      { keys: '+  −', label: 'Zoom avanti / indietro' },
+      { keys: '+  -', label: 'Zoom avanti / indietro' },
       { keys: '0', label: 'Adatta alla finestra' },
       { keys: 'Spazio + trascina', label: 'Sposta la vista (anche tasto centrale)' },
       { keys: 'T', label: 'Bordi continui (texture che si ripete)' },

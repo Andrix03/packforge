@@ -61,7 +61,7 @@ export default async function readonly(app) {
     15000
   )
   await app.sleep(800)
-  await app.click('📷 Screenshot')
+  await app.click('Screenshot')
   await app.waitFor(`document.querySelector('[data-testid=screenshot-result]')`, 10000)
   const shot = await app.ev(`document.querySelector('[data-testid=screenshot-result]').textContent`)
   app.check(

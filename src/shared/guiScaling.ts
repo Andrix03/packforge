@@ -45,12 +45,12 @@ export function parseGuiScaling(mcmeta: unknown): ScalingResult {
   // The game refuses a nine-slice without a centre (the sprite then fails to load).
   if (border.left + border.right >= width) {
     return fail(
-      `Bordi sinistro + destro (${border.left} + ${border.right}) ≥ larghezza ${width}: nessuna parte centrale.`
+      `Bordi sinistro + destro (${border.left} + ${border.right}) arrivano alla larghezza ${width}: nessuna parte centrale.`
     )
   }
   if (border.top + border.bottom >= height) {
     return fail(
-      `Bordi alto + basso (${border.top} + ${border.bottom}) ≥ altezza ${height}: nessuna parte centrale.`
+      `Bordi alto + basso (${border.top} + ${border.bottom}) arrivano all’altezza ${height}: nessuna parte centrale.`
     )
   }
   return { ok: true, scaling: { type, width, height, border, stretchInner } }

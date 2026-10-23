@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { coverageReport, type Missing } from '../../shared/coverage'
 import type { TextureEntry } from '../../shared/textures'
 import { useEscape } from '../useEscape'
+import { Glyph } from '../ui/components'
 
 type Filter = 'all' | Missing
 
@@ -121,7 +122,10 @@ export function CoverageDialog({
           ))}
         </div>
         {shown.length === 0 ? (
-          <p className="small">✓ Niente da completare qui.</p>
+          <p className="small">
+            <Glyph name="check" />
+            Niente da completare qui.
+          </p>
         ) : (
           <ul className="batch-list" aria-label="Texture incomplete">
             {shown.slice(0, MAX_ROWS).map(({ texture, missing }) => (
@@ -129,7 +133,7 @@ export function CoverageDialog({
                 <span className="small">
                   {texture.name}{' '}
                   <span className="muted">
-                    {texture.folder.replace(/^assets\/minecraft\/textures\//, '')} ·{' '}
+                    {texture.folder.replace(/^assets\/minecraft\/textures\//, '')}:{' '}
                     {MISSING_LABEL[missing]}
                   </span>
                 </span>

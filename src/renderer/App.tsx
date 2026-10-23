@@ -294,9 +294,9 @@ function Window(): React.JSX.Element {
       }
       status={{
         left: pack
-          ? `${pack.kind === 'zip' ? 'zip, sola lettura' : 'cartella'} · ${pack.path}`
+          ? `${pack.kind === 'zip' ? 'zip, sola lettura' : 'cartella'}: ${pack.path}`
           : 'PackForge',
-        right: info ? `PackForge ${info.version} · non è un prodotto ufficiale di Minecraft` : ''
+        right: info ? `PackForge ${info.version}, non è un prodotto ufficiale di Minecraft` : ''
       }}
     >
       <TutorialCard compact={editorOpen || testOpen} />
@@ -385,7 +385,7 @@ function Window(): React.JSX.Element {
                   <div>
                     <h1>PackForge</h1>
                     <p className="muted">
-                      Officina per resource pack di Minecraft Java · anteprima LabPBR
+                      Officina per resource pack di Minecraft Java, con anteprima LabPBR
                     </p>
                   </div>
                 </header>

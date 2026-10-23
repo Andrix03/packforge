@@ -19,6 +19,7 @@ import { backupBefore } from './backup'
 import { errorMessage, fetchText, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
+import { Glyph } from '../ui/components'
 
 type ColorMode = 'game' | 'dye'
 
@@ -143,7 +144,7 @@ export function VariantsDialog({
     if (
       overwriting > 0 &&
       !window.confirm(
-        `Sovrascrivere ${overwriting === 1 ? '1 texture esistente' : `${overwriting} texture esistenti`}? Prima viene fatto un backup (🕘 Backup per tornare indietro).`
+        `Sovrascrivere ${overwriting === 1 ? '1 texture esistente' : `${overwriting} texture esistenti`}? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).`
       )
     ) {
       return
@@ -225,8 +226,9 @@ export function VariantsDialog({
           ) : (
             <>
               <p className="small" data-testid="variants-result">
-                ✓ {phase.written === 1 ? '1 texture creata' : `${phase.written} texture create`}
-                {phase.errors.length > 0 && ` · ✗ ${phase.errors.length} errori`}
+                <Glyph name="check" />
+                {phase.written === 1 ? '1 texture creata' : `${phase.written} texture create`}
+                {phase.errors.length > 0 && `, ${phase.errors.length} errori`}
               </p>
               {phase.errors.map((error) => (
                 <p key={error} className="field-error small">
@@ -306,7 +308,7 @@ export function VariantsDialog({
             <label
               key={variant.dye.id}
               className={variant.original ? 'variant original' : 'variant'}
-              title={`${variant.path}${variant.fromGame ? ' · colore del gioco' : ' · colore del colorante'} #${variant.hex}`}
+              title={`${variant.path}${variant.fromGame ? ', colore del gioco' : ', colore del colorante'} #${variant.hex}`}
             >
               {sample && (
                 <Thumb width={sample.width} height={sample.height} pixels={variant.pixels} />

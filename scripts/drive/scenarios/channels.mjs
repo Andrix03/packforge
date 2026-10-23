@@ -55,9 +55,7 @@ export default async function channels(app) {
   app.check((await value(app, 4, 3)) === 'Altezza: 20', 'the pencil paints the height value')
   app.check((await app.editor.header()).includes('modificata'), 'painting a channel is a change')
   app.check(
-    await app.ev(
-      `document.querySelector('.map-tabs [aria-selected=true]').textContent.includes('●')`
-    ),
+    await app.ev(`!!document.querySelector('.map-tabs [aria-selected=true] .glyph')`),
     'the _n tab shows unsaved changes'
   )
 
@@ -68,7 +66,7 @@ export default async function channels(app) {
   app.check((await value(app, 0, 3)) === 'Occlusione: 150', 'AO shows _n.b')
   await app.click('Normali', '.channel-tabs [role=tab]')
   await app.sleep(300)
-  app.check((await value(app, 0, 3)) === 'Normale X 50 · Y 128', 'normals show red/green')
+  app.check((await value(app, 0, 3)) === 'Normale X 50, Y 128', 'normals show red/green')
   await app.shot('02-normals-channel')
 
   // Undo/redo go through the same history.
@@ -148,12 +146,12 @@ export default async function channels(app) {
   app.check(dark < light && dark >= 1, `dark pixels go deeper (${dark} < ${light})`)
   await app.click('Normali', '.channel-tabs [role=tab]')
   await app.sleep(300)
-  app.check((await value(app, 1, 0)) !== 'Normale X 128 · Y 128', 'normals follow the height')
+  app.check((await value(app, 1, 0)) !== 'Normale X 128, Y 128', 'normals follow the height')
   await app.shot('04-generated-normals')
   await app.key('z', ['ctrl'])
   await app.sleep(150)
   app.check(
-    (await value(app, 1, 0)) === 'Normale X 128 · Y 128',
+    (await value(app, 1, 0)) === 'Normale X 128, Y 128',
     'one Ctrl+Z undoes the whole generation'
   )
   await app.key('y', ['ctrl'])

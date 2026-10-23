@@ -5,6 +5,7 @@ import type {
   ReactNode,
   SelectHTMLAttributes
 } from 'react'
+import { GLYPHS, type GlyphName } from './glyphs'
 import type { PixelIconData } from './icons'
 import { pictureCss, type PixelPicture } from './pictures'
 import { segThumbLeft } from './slider'
@@ -22,6 +23,28 @@ export function PixelIcon({ icon, size = 16 }: { icon: PixelIconData; size?: 16 
       {icon.b && <path d={icon.b} fill="currentColor" opacity={0.45} />}
       <path d={icon.a} fill="currentColor" />
     </svg>
+  )
+}
+
+/**
+ * Pixel glyph inline with text (in place of ✓, ▶, →, emoji…), in the text colour. Leaves a small
+ * gap before the text that follows; `alone` when nothing follows (icon-only buttons, line end).
+ */
+export function Glyph({
+  name,
+  icon,
+  alone
+}: {
+  name?: GlyphName
+  icon?: PixelIconData
+  alone?: boolean
+}) {
+  const data = icon ?? (name ? GLYPHS[name] : undefined)
+  if (!data) return null
+  return (
+    <span className={alone ? 'glyph alone' : 'glyph'}>
+      <PixelIcon icon={data} />
+    </span>
   )
 }
 
@@ -239,7 +262,8 @@ export function Panel({
     >
       <button type="button" className="raised panel-head" aria-expanded={open} onClick={onToggle}>
         <span className="ph">
-          {open ? '▾' : '▸'} {title}
+          <Glyph name={open ? 'caretDown' : 'caretRight'} />
+          {title}
         </span>
         <span style={{ flex: 1 }} />
         {hint !== undefined && <span className="muted">{hint}</span>}

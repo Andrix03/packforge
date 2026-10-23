@@ -1,6 +1,6 @@
 import type { MapKind } from '../../shared/labpbr'
 import { channelsOf, type ChannelDef, type ChannelId } from './channels'
-import { RangeInput } from '../ui/components'
+import { Glyph, RangeInput } from '../ui/components'
 
 export type Surface = 'color' | MapKind
 
@@ -70,7 +70,7 @@ export function MapTabs({
               onClick={() => onSurface(map.kind)}
             >
               {map.existed ? label : `+ ${label}`}
-              {map.dirty && ' ●'}
+              {map.dirty && <Glyph name="dot" alone />}
             </button>
           )
         })}
@@ -165,7 +165,8 @@ export function ValuePanel({
               onClick={() => onValues({ primary: values.secondary, secondary: values.primary })}
               title="Scambia i valori (X)"
             >
-              ⇄ <kbd>X</kbd>
+              <Glyph name="swap" />
+              <kbd>X</kbd>
             </button>
           </div>
           <label className="color-slider">

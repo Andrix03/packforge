@@ -7,6 +7,8 @@ import {
   type TutorialStep
 } from '../shared/tutorial'
 import { STEP_EVENT } from './tutorialEvents'
+import { Glyph } from './ui/components'
+import { CMD_ICONS } from './ui/icons'
 
 /** Restarts the tutorial from the settings ("Rifai il tutorial"). */
 export const TUTORIAL_RESET_EVENT = 'packforge:tutorial-reset'
@@ -79,7 +81,8 @@ export function TutorialCard({
     return (
       <div className="tutorial-bar small" role="status" data-testid="tutorial-bar">
         <span>
-          🎓 {done}/{TUTORIAL_STEPS.length} · <strong>{step.title}</strong>: {step.hint}
+          <Glyph name="book" />
+          {done}/{TUTORIAL_STEPS.length}: <strong>{step.title}</strong>: {step.hint}
         </span>
         <button type="button" className="small-button" onClick={turnOff}>
           Nascondi
@@ -96,7 +99,8 @@ export function TutorialCard({
         data-testid="tutorial-pill"
         onClick={() => setOpen(true)}
       >
-        🎓 Tutorial {done}/{TUTORIAL_STEPS.length}
+        <Glyph name="book" />
+        Tutorial {done}/{TUTORIAL_STEPS.length}
       </button>
     )
   }
@@ -111,7 +115,8 @@ export function TutorialCard({
       </div>
       {state.status === 'done' ? (
         <p className="small">
-          🎉 Fatto! Hai creato, salvato, provato e portato nel gioco il tuo primo blocco.
+          <Glyph icon={CMD_ICONS.pro} />
+          Fatto! Hai creato, salvato, provato e portato nel gioco il tuo primo blocco.
         </p>
       ) : (
         <ol className="tutorial-steps small">
@@ -122,7 +127,7 @@ export function TutorialCard({
                 state.done.includes(step.id) ? 'done' : step.id === current ? 'current' : undefined
               }
             >
-              {state.done.includes(step.id) ? '✓ ' : ''}
+              {state.done.includes(step.id) && <Glyph name="check" />}
               {step.title}
               {step.id === current && <p className="muted">{step.hint}</p>}
             </li>

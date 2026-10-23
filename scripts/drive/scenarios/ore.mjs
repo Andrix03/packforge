@@ -144,7 +144,7 @@ export default async function ore(app) {
   )
   await app.sleep(1500)
   app.check(
-    await app.ev(`document.querySelector('.test-side').textContent.includes('✓ _s')`),
+    await app.ev(`!!document.querySelector('.test-side [data-map=s][data-ok=true]')`),
     'Prova sees the _s map'
   )
   app.check(

@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import type { Issue, Severity } from '../../shared/packValidator'
 import { runValidator, type ValidatorResult, type ValidatorSource } from './runValidator'
 import { useEscape } from '../useEscape'
+import { Glyph } from '../ui/components'
+import { GLYPHS } from '../ui/glyphs'
+import { CMD_ICONS, type PixelIconData } from '../ui/icons'
 
-const SEVERITY: Record<Severity, { icon: string; label: string }> = {
-  error: { icon: '✗', label: 'errori' },
-  warning: { icon: '⚠', label: 'avvisi' },
-  info: { icon: 'ℹ', label: 'note' }
+const SEVERITY: Record<Severity, { icon: PixelIconData; label: string }> = {
+  error: { icon: GLYPHS.cross, label: 'errori' },
+  warning: { icon: GLYPHS.warning, label: 'avvisi' },
+  info: { icon: CMD_ICONS.info, label: 'note' }
 }
 
 type State =
@@ -120,7 +123,8 @@ function Results({
   if (issues.length === 0) {
     return (
       <p className="small" data-testid="validator-summary">
-        ✓ Nessun problema in {maps === 1 ? '1 mappa' : `${maps} mappe`}.
+        <Glyph name="check" />
+        Nessun problema in {maps === 1 ? '1 mappa' : `${maps} mappe`}.
       </p>
     )
   }
@@ -131,9 +135,13 @@ function Results({
     <>
       <p className="small" data-testid="validator-summary">
         {maps === 1 ? '1 mappa controllata' : `${maps} mappe controllate`}:{' '}
-        {counts
-          .map(([severity, n]) => `${SEVERITY[severity].icon} ${n} ${SEVERITY[severity].label}`)
-          .join(' · ')}
+        {counts.map(([severity, n], i) => (
+          <span key={severity}>
+            {i > 0 && ', '}
+            <Glyph icon={SEVERITY[severity].icon} />
+            {n} {SEVERITY[severity].label}
+          </span>
+        ))}
       </p>
       <ul className="validator-issues">
         {issues.map((issue, index) => (
@@ -157,7 +165,7 @@ function IssueRow({
   return (
     <li className={`validator-issue ${issue.severity}`}>
       <span className="validator-icon" aria-label={SEVERITY[issue.severity].label}>
-        {SEVERITY[issue.severity].icon}
+        <Glyph icon={SEVERITY[issue.severity].icon} alone />
       </span>
       <div>
         <strong>{issue.path.slice(slash + 1)}</strong>{' '}

@@ -13,7 +13,7 @@ const exists = (path) =>
   )
 
 async function openBackups(app) {
-  await app.click('🕘 Backup')
+  await app.click('Backup')
   await app.waitFor(`document.querySelector('[aria-label=Backup] ul, [data-testid=backup-empty]')`)
   await app.sleep(200)
 }

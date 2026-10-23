@@ -426,7 +426,7 @@ export default async function fullpack(app) {
   await app.click('Grotta', '.test-side [role=radio]')
   await app.sleep(3000)
   await app.shot('16-test-cave')
-  await app.click('📷 Screenshot')
+  await app.click('Screenshot')
   await app.waitFor(`document.querySelector('[data-testid=screenshot-result]')?.textContent`, 15000)
   console.log(
     'SCREENSHOT',
@@ -436,7 +436,7 @@ export default async function fullpack(app) {
   await app.waitFor(`!document.querySelector('.test-screen')`)
 
   // ---- 5c. Export: full + without PBR, with the Modrinth listing; then checks on the zips.
-  await app.click('📦 Esporta')
+  await app.click('Esporta')
   await app.waitFor(`document.querySelector('[data-testid=export-check]')`, 30000)
   await app.sleep(500)
   console.log(
@@ -474,7 +474,7 @@ export default async function fullpack(app) {
   const fake = join(home, 'fake-minecraft')
   await mkdir(fake, { recursive: true })
   await app.ev(`window.api.invoke('settings:setMinecraftDir', ${JSON.stringify(fake)})`)
-  await app.click('🎮 Copia nel gioco')
+  await app.click('Copia nel gioco')
   await app.waitFor(
     `document.querySelector('[data-testid=sync-target], [data-testid=sync-reason]')`
   )

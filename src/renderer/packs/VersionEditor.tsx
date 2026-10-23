@@ -16,6 +16,7 @@ import {
   validateOverlayDirectory,
   type OverlaySpec
 } from '../../shared/versionRange'
+import { Glyph } from '../ui/components'
 
 interface OverlayDraft {
   /** Stable React key; directory names can be edited. */
@@ -121,7 +122,7 @@ export function VersionEditor({ pack, onCancel, onSaved }: VersionEditorProps): 
               value={overlay.minVersion}
               onChange={(value) => updateOverlay(overlay.id, { minVersion: value })}
             />
-            <span>→</span>
+            <Glyph name="arrowRight" alone />
             <VersionSelect
               value={overlay.maxVersion}
               onChange={(value) => updateOverlay(overlay.id, { maxVersion: value })}

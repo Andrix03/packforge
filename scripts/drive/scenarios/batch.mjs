@@ -93,7 +93,7 @@ export default async function batch(app) {
   )
   await app.sleep(150)
   app.check(
-    (await summary(app)) === 'Crea 2 · sovrascrive 0 · salta 0',
+    (await summary(app)) === 'Crea 2, sovrascrive 0, salta 0',
     `plan: ${await summary(app)}`
   )
   await app.shot('01-setup')
@@ -111,7 +111,7 @@ export default async function batch(app) {
   await app.click('Pietra', '.modal.batch .material-presets button')
   await app.sleep(100)
   app.check(
-    (await summary(app)) === 'Crea 1 · sovrascrive 0 · salta 3',
+    (await summary(app)) === 'Crea 1, sovrascrive 0, salta 3',
     `existing maps skipped: ${await summary(app)}`
   )
   const stoneBefore = (await stat(file('stone_s.png'))).mtimeMs
@@ -134,7 +134,7 @@ export default async function batch(app) {
   )
   await app.sleep(100)
   app.check(
-    (await summary(app)) === 'Crea 0 · sovrascrive 1 · salta 0',
+    (await summary(app)) === 'Crea 0, sovrascrive 1, salta 0',
     `overwrite planned: ${await summary(app)}`
   )
   await app.ev(

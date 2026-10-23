@@ -33,8 +33,10 @@ import {
   type Sprite,
   type TintOf
 } from './testWorld'
-import { Picture, RangeInput } from '../ui/components'
+import { Glyph, Picture, RangeInput } from '../ui/components'
 import { ITEM_PICTURES, SCENE_PICTURES, type PixelPicture } from '../ui/pictures'
+import { NAV_ICONS } from '../ui/icons'
+import { GLYPHS } from '../ui/glyphs'
 
 /** Pixel picture of each test scene (design canvas). */
 const SCENE_PICTURE: Partial<Record<string, PixelPicture>> = {
@@ -233,7 +235,7 @@ export function TestScreen({
         problems.push('Vanilla non ha questo blocco: a destra ci sono solo gli altri blocchi.')
       }
       setStatus({
-        text: `${placements.length} ${placements.length === 1 ? 'blocco' : 'blocchi'} · ${world.length} ${world.length === 1 ? 'tipo' : 'tipi'}`,
+        text: `${placements.length} ${placements.length === 1 ? 'blocco' : 'blocchi'}, ${world.length} ${world.length === 1 ? 'tipo' : 'tipi'}`,
         problems: [...new Set(problems)]
       })
     }
@@ -336,10 +338,12 @@ export function TestScreen({
               void window.api.invoke('export:saveScreenshot', target.name, png).then(setShot)
             }}
           >
-            📷 Screenshot
+            <Glyph name="camera" />
+            Screenshot
           </button>
           <button type="button" className="primary" onClick={onBack}>
-            ✏ Torna a disegnare
+            <Glyph icon={NAV_ICONS.pencil} />
+            Torna a disegnare
           </button>
           {onClose && (
             <button type="button" onClick={onClose}>
@@ -541,7 +545,8 @@ export function TestScreen({
               Confronta con vanilla (affiancato)
             </label>
             <button type="button" aria-pressed={fly} onClick={() => setFly((on) => !on)}>
-              {fly ? '⟲ Torna a ruotare' : '🕊 Volo libero'}
+              <Glyph icon={fly ? GLYPHS.reset : NAV_ICONS.move} />
+              {fly ? 'Torna a ruotare' : 'Volo libero'}
             </button>
           </section>
 
@@ -566,7 +571,8 @@ export function TestScreen({
               />
             </label>
             <button type="button" disabled={!followsHour} onClick={() => setCycling((on) => !on)}>
-              {cycling ? '⏸ Ferma ciclo' : '▶ Ciclo giorno/notte'}
+              <Glyph name={cycling ? 'pause' : 'play'} />
+              {cycling ? 'Ferma ciclo' : 'Ciclo giorno/notte'}
             </button>
             {!followsHour && (
               <span className="muted small">
@@ -599,8 +605,14 @@ export function TestScreen({
               Mostra effetti
             </label>
             <span className="muted small" aria-label="Mappe LabPBR">
-              Mappe di questa texture: {hasNormal ? '✓' : '✗'} _n (normali){' '}
-              {hasSpecular ? '✓' : '✗'} _s (materiale)
+              Mappe di questa texture: <Glyph name={hasNormal ? 'check' : 'cross'} />
+              <span data-map="n" data-ok={hasNormal}>
+                _n (normali)
+              </span>{' '}
+              <Glyph name={hasSpecular ? 'check' : 'cross'} />
+              <span data-map="s" data-ok={hasSpecular}>
+                _s (materiale)
+              </span>
             </span>
             {effectsOn && (
               <EffectsControls

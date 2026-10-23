@@ -1,4 +1,5 @@
 import type { TreeFolder } from '../../shared/fileTree'
+import { Glyph } from '../ui/components'
 
 interface FileTreeProps {
   root: TreeFolder
@@ -38,7 +39,9 @@ function FolderItem(
           }}
           title={folder.path}
         >
-          <span className="caret">{isOpen ? '▾' : '▸'}</span>
+          <span className="caret">
+            <Glyph name={isOpen ? 'caretDown' : 'caretRight'} alone />
+          </span>
           <span className="name">{folder.name}</span>
           <span className="count">{folder.totalFiles}</span>
         </button>

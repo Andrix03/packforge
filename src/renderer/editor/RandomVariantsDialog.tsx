@@ -18,7 +18,7 @@ import {
 } from '../preview/modelSource'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
-import { RangeInput } from '../ui/components'
+import { Glyph, RangeInput } from '../ui/components'
 
 interface Plan {
   block: string
@@ -226,7 +226,10 @@ export function RandomVariantsDialog({
         aria-label="Varianti casuali"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>🎲 Varianti casuali di {name}</h2>
+        <h2>
+          <Glyph name="dice" />
+          Varianti casuali di {name}
+        </h2>
         {phase.status === 'done' ? (
           <>
             <p data-testid="variants-result">

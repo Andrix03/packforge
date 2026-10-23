@@ -14,7 +14,7 @@ const exists = (path) =>
   )
 
 async function openExport(app) {
-  await app.click('📦 Esporta')
+  await app.click('Esporta')
   await app.waitFor(`document.querySelector('[data-testid=export-check]')`, 20000)
   await app.sleep(300)
 }

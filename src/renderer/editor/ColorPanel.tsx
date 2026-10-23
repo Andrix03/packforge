@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { hsvToRgb, rgbToHsv, sameColor, type Hsv, type UsedColor } from './color'
 import { fromHex, toHex, TRANSPARENT, type Rgba } from './pixels'
+import { Glyph } from '../ui/components'
 
 type Slot = 'primary' | 'secondary'
 
@@ -48,7 +49,8 @@ export function ColorPanel(props: ColorPanelProps): React.JSX.Element {
         />
         <div className="row">
           <button type="button" onClick={props.onSwap} title="Scambia i colori (X)">
-            ⇄ <kbd>X</kbd>
+            <Glyph name="swap" />
+            <kbd>X</kbd>
           </button>
           <button
             type="button"
@@ -273,7 +275,7 @@ function SwatchGrid({
           key={`${color.join(',')}`}
           type="button"
           className="swatch-cell"
-          title={`${describe(color)}${counts ? ` · ${counts[i]} pixel` : ''} — sinistro: primario, destro: secondario`}
+          title={`${describe(color)}${counts ? `, ${counts[i]} pixel` : ''} — sinistro: primario, destro: secondario`}
           onClick={(event) => onPick(event, color)}
           onContextMenu={(event) => onPick(event, color)}
         >
@@ -302,7 +304,7 @@ function toHexWithAlpha(color: Rgba): string {
 
 function describe(color: Rgba): string {
   if (color[3] === 0) return 'trasparente'
-  return color[3] === 255 ? toHex(color) : `${toHex(color)} · opacità ${color[3]}`
+  return color[3] === 255 ? toHex(color) : `${toHex(color)}, opacità ${color[3]}`
 }
 
 function clampByte(value: number): number {

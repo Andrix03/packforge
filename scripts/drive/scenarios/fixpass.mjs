@@ -13,7 +13,7 @@ export default async function fixpass(app) {
   await app.sleep(200)
   app.check((await app.editor.color(3, 3)) === '#ff2020', 'a red pixel is painted')
 
-  await app.click('🧪 Prova')
+  await app.click('Prova')
   await app.waitFor(`document.querySelector('.test-screen')`)
   await app.key('z', ['ctrl'])
   await app.key('z', ['ctrl'])
@@ -188,7 +188,7 @@ async function draftWithMaps(app) {
 async function doubleClick(app) {
   await app.click('Chiudi editor', '.editor-header button')
   await app.waitFor(`document.querySelector('.texture-tile')`, 10000)
-  await app.click('📦 Esporta')
+  await app.click('Esporta')
   await app.waitFor(`document.querySelector('[data-testid=export-check]')`, 20000)
   await app.sleep(300)
   const before = app.dialogs.length

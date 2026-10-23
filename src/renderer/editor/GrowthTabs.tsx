@@ -1,5 +1,7 @@
 import { resolveAssetUrl, type AssetSources, type GrowthStage } from '../preview/modelSource'
 import { stageTextures } from './stages'
+import { Glyph } from '../ui/components'
+import { CMD_ICONS } from '../ui/icons'
 
 /**
  * Tabs for the growth stages of a crop (seed → grown): each stage has its own texture. Stages the
@@ -30,11 +32,14 @@ export function GrowthTabs({
   const labelOf = (path: string): string => {
     const stage = bases.indexOf(stageOf(path)) + 1
     const part = /_(v\d+|top)\.png$/.exec(path)?.[1]
-    return part ? `${stage}·${part === 'top' ? 'su' : part}` : `${stage}`
+    return part ? `${stage}-${part === 'top' ? 'su' : part}` : `${stage}`
   }
   return (
     <div className="face-tabs growth-tabs" role="tablist" aria-label="Stadi di crescita">
-      <span className="muted small">🌱 Stadi di crescita:</span>
+      <span className="muted small">
+        <Glyph icon={CMD_ICONS.beginner} />
+        Stadi di crescita:
+      </span>
       {textures.map((path, index) => {
         const inPack = sources.pack.files.has(path)
         const name = path.slice(path.lastIndexOf('/') + 1, -'.png'.length)

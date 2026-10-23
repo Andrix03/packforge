@@ -141,7 +141,7 @@ export function MaterialFields({
       )}
       {preset.id === 'crop' && cropCounts && (
         <p className="small muted" data-testid="crop-parts">
-          {CROP_PARTS.map((part, i) => `${part.label}: ${cropCounts[i] ?? 0}`).join(' · ')}
+          {CROP_PARTS.map((part, i) => `${part.label}: ${cropCounts[i] ?? 0}`).join(', ')}
         </p>
       )}
       {preset.id === 'emissive' && (

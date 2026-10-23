@@ -25,7 +25,7 @@ const resultText = (app) =>
 
 async function shoot(app) {
   const before = await resultText(app)
-  await app.click('📷 Screenshot')
+  await app.click('Screenshot')
   const end = Date.now() + 10000
   for (;;) {
     const now = await resultText(app)

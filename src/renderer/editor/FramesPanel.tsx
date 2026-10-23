@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { TICKS_PER_SECOND } from '../../shared/animation'
 import type { EditorDocument } from './document'
 import { MAX_FRAMES, MAX_FRAMETIME, type AnimationSettings, type FrameOp } from './frames'
+import { Glyph } from '../ui/components'
 
 const THUMB = 48
 const MS_PER_TICK = 1000 / TICKS_PER_SECOND
@@ -113,7 +114,7 @@ export function FramesPanel({
       <div className="row frames-header">
         <strong className="small">Animazione</strong>
         <span className="muted small">
-          {count} frame · {seconds} s per giro
+          {count} frame, {seconds} s per giro
         </span>
         <label className="inline-check small" title="Durata di ogni frame (20 tick = 1 secondo)">
           Tick per frame
@@ -148,7 +149,17 @@ export function FramesPanel({
           Onion skin
         </label>
         <button type="button" className="small-button" onClick={() => setPlaying((p) => !p)}>
-          {playing ? '■ Ferma' : '▶ Anteprima'}
+          {playing ? (
+            <>
+              <Glyph name="stop" />
+              Ferma
+            </>
+          ) : (
+            <>
+              <Glyph name="play" />
+              Anteprima
+            </>
+          )}
         </button>
       </div>
       <div className="frames-row">
@@ -203,7 +214,7 @@ export function FramesPanel({
             title="Sposta prima"
             aria-label="Sposta il frame prima"
           >
-            ◀
+            <Glyph name="prev" alone />
           </button>
           <button
             type="button"
@@ -212,7 +223,7 @@ export function FramesPanel({
             title="Sposta dopo"
             aria-label="Sposta il frame dopo"
           >
-            ▶
+            <Glyph name="play" alone />
           </button>
           <button
             type="button"

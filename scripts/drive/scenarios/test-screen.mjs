@@ -39,7 +39,7 @@ export default async function testScreen(app) {
   await app.key('b')
   await app.editor.setHex('ff2020')
   await app.editor.click(3, 3)
-  await app.click('🧪 Prova')
+  await app.click('Prova')
   await app.waitFor(`document.querySelector('.test-screen')`)
   app.check(
     await app.ev(`document.querySelector('.editor').offsetParent === null`),

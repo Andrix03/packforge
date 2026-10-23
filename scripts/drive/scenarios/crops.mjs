@@ -120,7 +120,7 @@ export default async function crops(app) {
   )
   const labels = (await tabs(app)).map((t) => t.split(' ')[0])
   app.check(
-    labels.slice(0, 4).join(' ') === '1 2 2·v2 2·v3',
+    labels.slice(0, 4).join(' ') === '1 2 2-v2 2-v3',
     `the variants appear as stage 2 among the tabs (${labels.join(' ')})`
   )
   const choiceText = () =>
@@ -130,7 +130,7 @@ export default async function crops(app) {
     (await choiceText()).includes('Variante 2 di 3'),
     `the preview draws the open variant (${await choiceText()})`
   )
-  await app.click('▶', '[aria-label="Varianti casuali"] button')
+  await app.ev(`document.querySelector('[aria-label="Variante successiva"]').click()`)
   await app.waitFor(
     `document.querySelector('[data-testid=random-choice]')?.textContent.includes('3 di 3')`,
     8000
@@ -239,7 +239,7 @@ export default async function crops(app) {
     15000
   )
   const status = await app.ev(`document.querySelector('.test-side')?.textContent ?? ''`)
-  app.check(/170 blocchi · \d+ tipi/.test(status), 'farm scene built')
+  app.check(/170 blocchi, \d+ tipi/.test(status), 'farm scene built')
   const warnings = await app.ev(
     `[...document.querySelectorAll('.test-side .warning-text')].map((w) => w.textContent)`
   )

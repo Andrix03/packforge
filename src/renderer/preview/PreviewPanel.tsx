@@ -19,7 +19,9 @@ import {
   type AssetSources,
   type GrowthStage
 } from './modelSource'
-import { RangeInput } from '../ui/components'
+import { Glyph, RangeInput } from '../ui/components'
+import { CMD_ICONS, NAV_ICONS } from '../ui/icons'
+import { GLYPHS } from '../ui/glyphs'
 
 export interface PreviewTarget {
   /** Changes when the texture or its source changes. */
@@ -248,7 +250,7 @@ export function PreviewPanel({
           mesh.variant?.key ?? ''
         ]
           .filter(Boolean)
-          .join(' · '),
+          .join(', '),
         problems: [
           ...mesh.warnings,
           ...reports.filter((r) => r.problem).map((r) => `${r.key.split('|')[0]}: ${r.problem}`)
@@ -310,7 +312,7 @@ export function PreviewPanel({
               <strong title={target.name}>{target.name}</strong>
               <span className="muted small">
                 {target.sourceLabel}
-                {status && ` · ${status.text}`}
+                {status && `, ${status.text}`}
               </span>
             </>
           ) : (
@@ -333,7 +335,8 @@ export function PreviewPanel({
           onClick={onTest}
           title="Scene, distanza, confronto con vanilla e blocchi vicini"
         >
-          🧪 Prova in gioco
+          <Glyph icon={NAV_ICONS.cube} />
+          Prova in gioco
         </button>
       )}
 
@@ -406,10 +409,11 @@ export function PreviewPanel({
             aria-label="Variante precedente"
             onClick={() => setChoice((choices.shown + choices.count - 1) % choices.count)}
           >
-            ◀
+            <Glyph name="prev" alone />
           </button>
           <span className="small" data-testid="random-choice">
-            🎲 Variante {choices.shown + 1} di {choices.count}
+            <Glyph name="dice" />
+            Variante {choices.shown + 1} di {choices.count}
           </span>
           <button
             type="button"
@@ -417,7 +421,7 @@ export function PreviewPanel({
             aria-label="Variante successiva"
             onClick={() => setChoice((choices.shown + 1) % choices.count)}
           >
-            ▶
+            <Glyph name="play" alone />
           </button>
           <span className="muted small">nel gioco: una a caso per blocco</span>
         </div>
@@ -431,7 +435,8 @@ export function PreviewPanel({
             onClick={() => setGrowing((on) => !on)}
             title="Mostra gli stadi uno dopo l’altro, come cresce nel gioco"
           >
-            {growing ? '⏸ Ferma' : '🌱 Crescita'}
+            <Glyph icon={growing ? GLYPHS.pause : CMD_ICONS.beginner} />
+            {growing ? 'Ferma' : 'Crescita'}
           </button>
           <RangeInput
             type="range"
@@ -502,7 +507,8 @@ export function PreviewPanel({
       </label>
       <div className="row wrap">
         <button type="button" onClick={() => setCycling((on) => !on)}>
-          {cycling ? '⏸ Ferma ciclo' : '▶ Ciclo giorno/notte'}
+          <Glyph name={cycling ? 'pause' : 'play'} />
+          {cycling ? 'Ferma ciclo' : 'Ciclo giorno/notte'}
         </button>
         <label className="checkbox-inline">
           <input
@@ -522,7 +528,7 @@ function describeTexture(report: PartReport): Status {
   const size = report.size ? `${report.size.width}×${report.size.height}` : ''
   const animation = report.animation
   const text = animation
-    ? `${size} · animata: ${animation.frames.length} frame, ${(animation.totalTicks / 20).toFixed(1)} s${animation.interpolate ? ', sfumata' : ''}`
+    ? `${size}, animata: ${animation.frames.length} frame, ${(animation.totalTicks / 20).toFixed(1)} s${animation.interpolate ? ', sfumata' : ''}`
     : size
   return { text, problems: report.problem ? [report.problem] : [] }
 }

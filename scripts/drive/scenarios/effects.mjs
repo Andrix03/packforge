@@ -31,7 +31,8 @@ async function centerColor(app) {
   })()`)
 }
 
-const mapsText = `document.querySelector('[aria-label="Mappe LabPBR"]')?.textContent ?? ''`
+// The map marks are glyphs: rebuilt as "✓ _n ✗ _s" from their data attributes.
+const mapsText = `[...document.querySelectorAll('[aria-label="Mappe LabPBR"] [data-map]')].map((e) => (e.dataset.ok === 'true' ? '✓ _' : '✗ _') + e.dataset.map).join(' ')`
 const warnings = `[...document.querySelectorAll('.test-side .warning-text')].map((e) => e.textContent).join(' | ')`
 
 /** Opens the test screen from the pack grid on a block texture. */

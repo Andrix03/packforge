@@ -35,7 +35,7 @@ export const TUTORIAL_STEPS: ReadonlyArray<{ id: TutorialStep; title: string; hi
   {
     id: 'game',
     title: 'Portala nel gioco',
-    hint: 'Nel pack, «🎮 Copia nel gioco» → «Copia nel gioco». In Minecraft attiva il pack e premi F3 + T.'
+    hint: 'Nel pack premi «Copia nel gioco», poi di nuovo «Copia nel gioco». In Minecraft attiva il pack e premi F3 + T.'
   }
 ]
 

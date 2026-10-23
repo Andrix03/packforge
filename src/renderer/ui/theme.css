@@ -400,3 +400,14 @@
   flex-direction: column;
   gap: 8px;
 }
+
+/* Pixel glyph inline with text (ui/glyphs.ts): sits on the text line, a small gap before the text. */
+.glyph {
+  display: inline-flex;
+  flex: none;
+  vertical-align: -3px;
+  margin-inline-end: 0.3em;
+}
+.glyph.alone {
+  margin-inline-end: 0;
+}

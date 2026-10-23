@@ -169,7 +169,7 @@ export default async function dirt(app) {
   )
   await app.sleep(1500)
   app.check(
-    await app.ev(`document.querySelector('.test-side').textContent.includes('✓ _n')`),
+    await app.ev(`!!document.querySelector('.test-side [data-map=n][data-ok=true]')`),
     'Prova sees the _n map'
   )
   await app.ev(

@@ -6,6 +6,7 @@ import { validatePackDescription } from '../../shared/validate'
 import { DescriptionEditor, McText } from './DescriptionEditor'
 import { IconEditor } from './IconEditor'
 import { VersionEditor } from './VersionEditor'
+import { Glyph } from '../ui/components'
 
 interface PackOverviewProps {
   pack: PackSummary
@@ -112,7 +113,8 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
                 )
                 return (
                   <div key={overlay.directory}>
-                    {overlay.directory} → {active.length > 0 ? active.join(', ') : 'mai attivo'}
+                    {overlay.directory} <Glyph name="arrowRight" />{' '}
+                    {active.length > 0 ? active.join(', ') : 'mai attivo'}
                   </div>
                 )
               })}
@@ -154,10 +156,13 @@ export function PackOverview({ pack, onClose, onUpdated }: PackOverviewProps): R
           <ul className="issues">
             {issues.map((issue, i) => (
               <li key={i} className={issue.severity}>
-                <span className="issue-tag">
-                  {issue.severity === 'error' ? 'Errore' : 'Avviso'}
+                <Glyph name={issue.severity === 'error' ? 'cross' : 'warning'} />
+                <span>
+                  <span className="issue-tag">
+                    {issue.severity === 'error' ? 'Errore' : 'Avviso'}
+                  </span>
+                  {issue.message}
                 </span>
-                {issue.message}
               </li>
             ))}
           </ul>
@@ -231,8 +236,8 @@ function formatFacts(formats: PackFormats): Array<[string, string]> {
   const facts: Array<[string, string]> = []
   if (formats.range) {
     facts.push([
-      'min_format → max_format',
-      `${formatPackVersion(formats.range.min)} → ${formatPackVersion(formats.range.max)}`
+      'min_format, max_format',
+      `${formatPackVersion(formats.range.min)} - ${formatPackVersion(formats.range.max)}`
     ])
   }
   if (formats.packFormat !== null) facts.push(['pack_format', String(formats.packFormat)])

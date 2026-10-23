@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { PixelIcon } from '../ui/components'
+import { Glyph, PixelIcon } from '../ui/components'
 import { CMD_ICONS, NAV_ICONS, TOOL_ICONS, type PixelIconData } from '../ui/icons'
 import type { UsedColor } from './color'
 import { ColorPanel } from './ColorPanel'
@@ -266,16 +266,16 @@ export function ToolOptions(props: EditorToolsProps): React.JSX.Element {
             <ToggleLabel
               checked={props.mirror.x}
               onChange={(x) => props.onMirror({ ...props.mirror, x })}
-              title="Specchia sinistra ↔ destra"
+              title="Specchia sinistra e destra"
             >
-              ↔
+              <Glyph name="flipH" alone />
             </ToggleLabel>
             <ToggleLabel
               checked={props.mirror.y}
               onChange={(y) => props.onMirror({ ...props.mirror, y })}
-              title="Specchia sopra ↕ sotto"
+              title="Specchia sopra e sotto"
             >
-              ↕
+              <Glyph name="flipV" alone />
             </ToggleLabel>
           </div>
         )}
@@ -289,9 +289,27 @@ export function ToolOptions(props: EditorToolsProps): React.JSX.Element {
                 ['copy', 'Copia', 'Copia (Ctrl+C)', props.selection.active],
                 ['cut', 'Taglia', 'Taglia (Ctrl+X)', props.selection.active],
                 ['paste', 'Incolla', 'Incolla (Ctrl+V)', props.selection.canPaste],
-                ['flipH', '↔', 'Rifletti orizzontalmente (Maiusc+H)', true],
-                ['flipV', '↕', 'Rifletti verticalmente (Maiusc+V)', true],
-                ['rotate', '⟳ 90°', 'Ruota di 90° (Maiusc+R)', true],
+                [
+                  'flipH',
+                  <Glyph key="h" name="flipH" alone />,
+                  'Rifletti orizzontalmente (Maiusc+H)',
+                  true
+                ],
+                [
+                  'flipV',
+                  <Glyph key="v" name="flipV" alone />,
+                  'Rifletti verticalmente (Maiusc+V)',
+                  true
+                ],
+                [
+                  'rotate',
+                  <>
+                    <Glyph name="reset" />
+                    90°
+                  </>,
+                  'Ruota di 90° (Maiusc+R)',
+                  true
+                ],
                 [
                   'delete',
                   'Elimina',

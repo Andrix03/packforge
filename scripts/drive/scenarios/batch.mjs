@@ -64,9 +64,11 @@ export default async function batch(app) {
 
   // 1. The dialog opens with the current folder selected; "Nessuna" empties it.
   await open(app)
-  const title = await app.ev(`document.querySelector('.modal.batch h3').textContent`)
+  const title = await app.ev(
+    `document.querySelector('.modal.batch .wizard-head .muted').textContent`
+  )
   app.check(
-    /\(\d+ scelte\)/.test(title) && !title.includes('(0 '),
+    /^\d+ di \d+ texture/.test(title) && !title.startsWith('0 '),
     `current folder preselected (${title})`
   )
   await app.click('Nessuna', '.modal.batch button')

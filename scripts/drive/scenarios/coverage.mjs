@@ -87,7 +87,7 @@ export default async function coverage(app) {
     `batch preselected: ${batchSummary}`
   )
   const ticks = await app.ev(
-    `[...document.querySelectorAll('.modal.batch > label.inline-check input[type=checkbox]')].map((i) => i.checked)`
+    `[...document.querySelectorAll('.modal.batch .wizard-step > label.inline-check input[type=checkbox]')].map((i) => i.checked)`
   )
   app.check(ticks[0] === false && ticks[1] === true, `only "Rilievo" ticked (${ticks})`)
   await applyBatch(app)

@@ -595,6 +595,7 @@ function Workspace({
       {batching && (
         <BatchDialog
           pack={validatorPack}
+          sources={previewSources}
           textures={mapLessTextures}
           initialFolder={selectedFolder}
           initialSelection={batching.selection}

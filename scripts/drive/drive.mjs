@@ -312,8 +312,10 @@ function createApp(send) {
         return Boolean(tile)
       })()`)
       if (!found) throw new Error(`no tile for ${fileName}`)
+      // Under the full suite's load an editor can take more than 10 s to open.
       await app.waitFor(
-        `document.querySelector('.editor-canvas') && document.querySelector('.zoom-label')?.textContent.includes('%')`
+        `document.querySelector('.editor-canvas') && document.querySelector('.zoom-label')?.textContent.includes('%')`,
+        20000
       )
       await sleep(300)
     },

@@ -244,7 +244,7 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 - [ ] Dedicated Effetti and Pubblica screens as on the canvas (channels list + 2D/3D + light/material/POM/relief docks; checks list + export + in game + Modrinth listing)
 - [x] Start screen, settings and every dialog restyled; Applica in blocco and Texture connesse as 4-step wizards with Prima/Dopo (2026-10-23; dialogs take the new look through the bridge styles)
 - [ ] CTM methods Orizzontale and Verticale (4 tiles each; shown as "in arrivo" in the wizard)
-- [ ] New app icon (`.claude/design-v2/icon/forge-icon.mjs` → `scripts/make-icon.mjs`), header logo, `docs/packforge.gif` for the README
+- [x] New app icon (`npm run icon` → build/icon.png) and `docs/packforge.gif` for the README (2026-10-23)
 - [ ] Beginner layout + tutorial updated; drive scenarios updated
 - [ ] Strings into a dictionary (Italian; English when Andrea decides)
 

@@ -34,7 +34,9 @@ export default async function pom(app) {
   )
   await app.click('Prova in gioco')
   await app.waitFor(`/\\d+ blocc/.test(document.querySelector('.test-side').textContent)`, 15000)
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'sunset')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'sunset'}"]').click()`
+  )
   await app.setValue('input[aria-label=Distanza]', 2.5)
   await app.sleep(1200)
   app.check(

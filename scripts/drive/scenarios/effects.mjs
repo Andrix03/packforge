@@ -68,7 +68,9 @@ export default async function effects(app) {
     'effects start on when the texture has maps'
   )
   app.check(!(await app.ev(warnings)), `no warnings (${await app.ev(warnings)})`)
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'sunset')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'sunset'}"]').click()`
+  )
   await app.sleep(800)
   const pbr = await view(app)
   await app.shot('01-stone-sunset')
@@ -110,7 +112,9 @@ export default async function effects(app) {
   // ---- Presets, exposure, tone mapping.
   const shots = new Set()
   for (const preset of ['noon', 'sunset', 'cave', 'nether']) {
-    await app.setValue('select[aria-label="Luce degli effetti"]', preset)
+    await app.ev(
+      `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${preset}"]').click()`
+    )
     await app.sleep(700)
     shots.add(await view(app))
     await app.shot(`04-preset-${preset}`)
@@ -120,7 +124,9 @@ export default async function effects(app) {
     await app.ev(`document.querySelector('input[aria-label="Ora del giorno"]').disabled`),
     'the hour slider is off while a fixed preset is used'
   )
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'noon')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'noon'}"]').click()`
+  )
   await app.sleep(600)
   const normal = await centerColor(app)
   await app.setValue('input[aria-label=Esposizione]', 1.5)
@@ -149,7 +155,9 @@ export default async function effects(app) {
     goldMaps.includes('✗ _n') && goldMaps.includes('✓ _s'),
     `gold has only _s (${goldMaps})`
   )
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'noon')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'noon'}"]').click()`
+  )
   await app.sleep(800)
   await app.shot('06-gold-noon')
   await setView(app, 'F0')
@@ -161,7 +169,9 @@ export default async function effects(app) {
 
   // ---- Glowstone in the cave: emission and bloom.
   await openTest(app, 'glowstone.png')
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'cave')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'cave'}"]').click()`
+  )
   await app.sleep(800)
   const glow = await view(app)
   await app.shot('08-glowstone-cave-bloom')

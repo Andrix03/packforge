@@ -154,11 +154,15 @@ export default async function ore(app) {
     'after saving, Prova does not claim unsaved changes'
   )
   await app.setValue('input[aria-label=Distanza]', 2.2)
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'noon')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'noon'}"]').click()`
+  )
   await app.sleep(1800)
   const noon = await testView(app)
   await app.shot('02-prova-noon')
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'sunset')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'sunset'}"]').click()`
+  )
   // Under load the new light can take a few frames: wait for the picture to change.
   let changed = false
   for (let i = 0; i < 12 && !changed; i++) {

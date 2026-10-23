@@ -94,7 +94,9 @@ export default async function resize(app) {
   app.check((await sizeOf(file('magma.png'))) === '32×96', 'animated strip: 32×96')
   app.check((await sizeOf(file('big.png'))) === '512×512', 'unticked big untouched')
 
-  // Exact LabPBR values after enlarging (no blending of emission or metal codes).
+  // Exact LabPBR values after enlarging (no blending of emission or metal codes). The 13 rewritten
+  // files reload the grid first (file watcher): a double-click before that lands on an old tile.
+  await app.sleep(2500)
   await app.openTexture('glowstone.png')
   await app.click('Materiale _s', '.map-tabs [role=tab]')
   await app.sleep(300)

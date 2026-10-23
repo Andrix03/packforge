@@ -54,7 +54,9 @@ export default async function rainScenario(app) {
   await openTest(app, 'sand.png')
   await app.click('Pavimento 5×5', '.test-side [role=radio]')
   await app.sleep(1500)
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'noon')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'noon'}"]').click()`
+  )
   await app.sleep(800)
   const dry = await brightness(app)
   await app.shot('01-sand-dry')
@@ -73,7 +75,9 @@ export default async function rainScenario(app) {
   await openTest(app, 'stone.png')
   await app.click('Pavimento 5×5', '.test-side [role=radio]')
   await app.sleep(1500)
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'noon')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'noon'}"]').click()`
+  )
   await app.sleep(800)
   const stoneDry = await view(app)
   await app.shot('03-stone-dry')

@@ -42,7 +42,9 @@ export default async function reflectionsScenario(app) {
     (await app.ev(`document.querySelector('select[aria-label=Riflessi]').value`)) === 'scene',
     'reflections start on the real scene'
   )
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'noon')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'noon'}"]').click()`
+  )
   await app.sleep(800)
   await app.shot('01-gold-block-noon')
 

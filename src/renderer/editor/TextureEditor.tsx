@@ -47,7 +47,8 @@ import { maxBrushSize, toolByShortcut, visibleTools } from './tools'
 import { mapKindOf, mapPath, type MapKind } from '../../shared/labpbr'
 import type { MapGrid } from '../../shared/pbrGenerator'
 import { DEFAULT_HEIGHT, DEFAULT_NORMALS, DEFAULT_OCCLUSION } from '../../shared/pbrGenerator'
-import { DEFAULT_EFFECTS } from '../preview/effects'
+import { DEFAULT_EFFECTS, type EffectSettings } from '../preview/effects'
+import { EffectsControls } from '../preview/EffectsControls'
 import type { LiveMaps } from '../preview/BlockPreview'
 import {
   CHANNELS,
@@ -229,6 +230,8 @@ export function TextureEditor({
   const savedAlbedo = useRef<Uint8Array | null>(null)
   /** What is being painted: the colors, or a channel of `_n` / `_s`. */
   const [chosenSurface, setSurface] = useState<Surface>('color')
+  /** LabPBR effects of the 3D preview while painting the maps (the Effetti workspace). */
+  const [effects, setEffects] = useState<EffectSettings>(DEFAULT_EFFECTS)
   const [channelOf, setChannelOf] = useState<Record<MapKind, ChannelId>>({
     normal: 'height',
     specular: 'smoothness'
@@ -1402,18 +1405,26 @@ export function TextureEditor({
             {...(channel && values
               ? {
                   valuePanel: (
-                    <ValuePanel
-                      channel={channel}
-                      values={values}
-                      onValues={(next) =>
-                        setChannelValues((all) => ({ ...all, [channel.id]: next }))
-                      }
-                      rampStep={rampStep}
-                      onRampStep={setRampStep}
-                      overlay={colorOverlay}
-                      onOverlay={setColorOverlay}
-                      readOnly={target.readOnly}
-                    />
+                    <>
+                      <ValuePanel
+                        channel={channel}
+                        values={values}
+                        onValues={(next) =>
+                          setChannelValues((all) => ({ ...all, [channel.id]: next }))
+                        }
+                        rampStep={rampStep}
+                        onRampStep={setRampStep}
+                        overlay={colorOverlay}
+                        onOverlay={setColorOverlay}
+                        readOnly={target.readOnly}
+                      />
+                      {/* Effetti: how the maps look under a LabPBR shader (canvas: the right docks). */}
+                      <EffectsControls
+                        effects={effects}
+                        onChange={(change) => setEffects((old) => ({ ...old, ...change }))}
+                        hasNormal={maps?.normal?.existed === true || maps?.normal?.dirty === true}
+                      />
+                    </>
                   )
                 }
               : {})}
@@ -1639,7 +1650,7 @@ export function TextureEditor({
               initialShape="block"
               onBlockTextures={setBlockTextures}
               onGrowthStages={setGrowthStages}
-              effects={surface === 'color' ? null : DEFAULT_EFFECTS}
+              effects={surface === 'color' ? null : effects}
             />
             {surface === 'normal' && maps?.normal && !target.readOnly && (
               <GeneratorPanel

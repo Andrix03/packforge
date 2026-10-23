@@ -27,7 +27,9 @@ export default async function metals(app) {
   )
   await app.click('Prova in gioco')
   await app.waitFor(`/\\d+ blocc/.test(document.querySelector('.test-side').textContent)`, 15000)
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'noon')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'noon'}"]').click()`
+  )
   await app.sleep(1000)
   app.check(
     (await app.ev(`document.querySelector('select[aria-label=Metalli]').value`)) === 'spec',

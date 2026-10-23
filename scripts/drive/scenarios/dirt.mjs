@@ -172,7 +172,9 @@ export default async function dirt(app) {
     await app.ev(`document.querySelector('.test-side').textContent.includes('✓ _n')`),
     'Prova sees the _n map'
   )
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'sunset')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'sunset'}"]').click()`
+  )
   await app.setValue('input[aria-label=Distanza]', 2.2)
   await app.sleep(1800)
   const withPom = await testView(app)
@@ -183,7 +185,9 @@ export default async function dirt(app) {
   await app.shot('08-prova-sunset-no-pom')
   app.check(withPom !== noPom, 'POM changes the dirt')
   await app.setValue('input[aria-label="Rilievo POM"]', 1)
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'noon')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'noon'}"]').click()`
+  )
   await app.sleep(1500)
   await app.shot('09-prova-noon')
   await app.setValue('input[aria-label=Pioggia]', 1)

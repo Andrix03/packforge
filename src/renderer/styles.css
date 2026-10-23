@@ -3236,3 +3236,33 @@ input.seg-range:focus-visible {
   border-radius: 0;
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45);
 }
+
+/* ---- 12b Effetti: effect groups like the canvas docks (light presets with pictures) ---- */
+.effects-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.effects-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--ui-edge-dark);
+}
+.effects-group h3 {
+  margin: 0 -10px;
+  padding: 6px 10px;
+  background: var(--ui-raised);
+  border-top: 1px solid var(--ui-edge-light);
+  border-bottom: 1px solid var(--ui-edge-dark);
+}
+.light-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.light-presets .chip {
+  width: 100%;
+  overflow: hidden;
+}

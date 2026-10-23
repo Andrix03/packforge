@@ -43,7 +43,9 @@ export default async function shadowsScenario(app) {
   )
 
   await scene(app, 'Sentiero')
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'sunset')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'sunset'}"]').click()`
+  )
   await app.sleep(700)
   const pixel = await view(app)
   await app.shot('01-path-sunset-pixel-shadows')
@@ -56,10 +58,14 @@ export default async function shadowsScenario(app) {
 
   await shadows(app, 'pixel')
   await scene(app, 'Angolo di casa')
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'noon')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'noon'}"]').click()`
+  )
   await app.sleep(700)
   await app.shot('04-house-noon')
-  await app.setValue('select[aria-label="Luce degli effetti"]', 'time')
+  await app.ev(
+    `document.querySelector('[aria-label="Luce degli effetti"] [data-lighting="${'time'}"]').click()`
+  )
   await app.setValue('input[aria-label="Ora del giorno"]', 8)
   await app.sleep(700)
   await app.shot('05-house-morning')

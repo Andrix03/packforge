@@ -1,22 +1,11 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { BIOMES, DEFAULT_BIOME } from '../../shared/biomeTint'
-import { METAL_MODES, type MetalMode } from '../../shared/labpbr'
 import type { EditorTarget } from '../editor/TextureEditor'
 import { BlockPreview, type LiveAnimation, type LiveMaps } from '../preview/BlockPreview'
 import { loadColormaps, tintFor, type ColormapPixels } from '../preview/colormaps'
 import { formatHour, normalizeHour } from '../preview/dayNight'
-import {
-  DEBUG_VIEWS,
-  REFLECTION_MODES,
-  SHADOW_MODES,
-  DEFAULT_EFFECTS,
-  TONE_MAPPINGS,
-  type EffectSettings,
-  type ReflectionMode,
-  type ShadowMode,
-  type ToneMappingId
-} from '../preview/effects'
-import { LIGHTING_PRESETS, type LightingPresetId } from '../preview/lightingPresets'
+import { DEFAULT_EFFECTS, type EffectSettings } from '../preview/effects'
+import { EffectsControls } from '../preview/EffectsControls'
 import {
   guessBlockForTexture,
   labPbrUrls,
@@ -157,7 +146,6 @@ export function TestScreen({
   const [effects, setEffects] = useState<EffectSettings>(DEFAULT_EFFECTS)
   const updateEffects = (change: Partial<EffectSettings>): void =>
     setEffects((old) => ({ ...old, ...change }))
-  const preset = LIGHTING_PRESETS.find((p) => p.id === effects.lighting) ?? LIGHTING_PRESETS[0]!
   const followsHour = !effectsOn || effects.lighting === 'time'
 
   useEffect(() => {
@@ -611,266 +599,23 @@ export function TestScreen({
               {hasSpecular ? '✓' : '✗'} _s (materiale)
             </span>
             {effectsOn && (
-              <>
-                <label className="inline-select">
-                  <span className="muted small">Luce</span>
-                  <select
-                    value={effects.lighting}
-                    aria-label="Luce degli effetti"
-                    onChange={(event) =>
-                      updateEffects({ lighting: event.target.value as LightingPresetId })
-                    }
-                  >
-                    {LIGHTING_PRESETS.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <span className="muted small">{preset.hint}</span>
-                <label
-                  className="preview-control"
-                  title="100% = 25% di blocco, come la spec LabPBR"
-                >
-                  <span>
-                    Rilievo (POM){' '}
-                    <strong>
-                      {effects.pom > 0 ? `${Math.round(effects.pom * 100)}%` : 'spento'}
-                    </strong>
-                  </span>
-                  <RangeInput
-                    type="range"
-                    min={0}
-                    max={2}
-                    step={0.05}
-                    value={effects.pom}
-                    aria-label="Rilievo POM"
-                    onChange={(event) => updateEffects({ pom: Number(event.target.value) })}
-                  />
-                </label>
-                {effects.pom > 0 && (
-                  <>
-                    <label
-                      className="preview-control"
-                      title="Più passi = rilievo più preciso, più lento"
-                    >
-                      <span>
-                        Passi POM <strong>{effects.pomSamples}</strong>
-                      </span>
-                      <RangeInput
-                        type="range"
-                        min={8}
-                        max={128}
-                        step={8}
-                        value={effects.pomSamples}
-                        aria-label="Passi POM"
-                        onChange={(event) =>
-                          updateEffects({ pomSamples: Number(event.target.value) })
-                        }
-                      />
-                    </label>
+              <EffectsControls
+                effects={effects}
+                onChange={updateEffects}
+                hasNormal={hasNormal}
+                pomExtra={
+                  !isItem && (
                     <label className="checkbox-inline">
                       <input
                         type="checkbox"
-                        checked={effects.pomShadows}
-                        onChange={(event) => updateEffects({ pomShadows: event.target.checked })}
+                        checked={comparingPom}
+                        onChange={(event) => setPomCompare(event.target.checked)}
                       />
-                      Ombre del rilievo
+                      Confronta con e senza POM (affiancato)
                     </label>
-                    <label
-                      className="checkbox-inline"
-                      title="I lati dei gradini tra i pixel hanno la loro normale: rilievo a cubetti"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={effects.pomSlopes}
-                        onChange={(event) => updateEffects({ pomSlopes: event.target.checked })}
-                      />
-                      Lati dei pixel (a cubetti)
-                    </label>
-                    {!isItem && (
-                      <label className="checkbox-inline">
-                        <input
-                          type="checkbox"
-                          checked={comparingPom}
-                          onChange={(event) => setPomCompare(event.target.checked)}
-                        />
-                        Confronta con e senza POM (affiancato)
-                      </label>
-                    )}
-                    {!hasNormal && (
-                      <span className="muted small">
-                        Questa texture non ha _n: il rilievo usa l’altezza in _n.a.
-                      </span>
-                    )}
-                  </>
-                )}
-                <label className="preview-control">
-                  <span>
-                    Pioggia{' '}
-                    <strong>
-                      {effects.rain > 0 ? `${Math.round(effects.rain * 100)}% bagnato` : 'no'}
-                    </strong>
-                  </span>
-                  <RangeInput
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={effects.rain}
-                    aria-label="Pioggia"
-                    onChange={(event) => updateEffects({ rain: Number(event.target.value) })}
-                  />
-                </label>
-                {effects.rain > 0 && (
-                  <span className="muted small">
-                    La porosità (_s B 0–64) decide quanto si scuriscono; sulle facce in alto sotto
-                    il cielo si formano pozze.
-                  </span>
-                )}
-                <label
-                  className="inline-select"
-                  title="Ogni shader pack legge i metalli a modo suo"
-                >
-                  <span className="muted small">Metalli</span>
-                  <select
-                    value={effects.metals}
-                    aria-label="Metalli"
-                    onChange={(event) => updateEffects({ metals: event.target.value as MetalMode })}
-                  >
-                    {METAL_MODES.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <span className="muted small">
-                  {METAL_MODES.find((m) => m.id === effects.metals)?.hint}
-                </span>
-                <label
-                  className="inline-select"
-                  title="Cosa riflettono le superfici lisce e i metalli («Solo cielo» è più leggero)"
-                >
-                  <span className="muted small">Riflessi</span>
-                  <select
-                    value={effects.reflections}
-                    aria-label="Riflessi"
-                    onChange={(event) =>
-                      updateEffects({ reflections: event.target.value as ReflectionMode })
-                    }
-                  >
-                    {REFLECTION_MODES.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label
-                  className="inline-select"
-                  title="Ombre del sole (di notte della luna); «A pixel» come gli shader pack"
-                >
-                  <span className="muted small">Ombre</span>
-                  <select
-                    value={effects.shadows}
-                    aria-label="Ombre"
-                    onChange={(event) =>
-                      updateEffects({ shadows: event.target.value as ShadowMode })
-                    }
-                  >
-                    {SHADOW_MODES.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="inline-select">
-                  <span className="muted small">Vista</span>
-                  <select
-                    value={effects.view}
-                    aria-label="Vista canale"
-                    onChange={(event) => updateEffects({ view: Number(event.target.value) })}
-                  >
-                    {DEBUG_VIEWS.map((v, index) => (
-                      <option key={v.label} value={index}>
-                        {v.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <span className="muted small">{DEBUG_VIEWS[effects.view]?.hint}</span>
-                <label className="preview-control">
-                  <span>
-                    Esposizione{' '}
-                    <strong>
-                      {effects.exposure > 0 ? '+' : ''}
-                      {effects.exposure.toFixed(1)} EV
-                    </strong>
-                  </span>
-                  <RangeInput
-                    type="range"
-                    min={-3}
-                    max={3}
-                    step={0.1}
-                    value={effects.exposure}
-                    aria-label="Esposizione"
-                    onChange={(event) => updateEffects({ exposure: Number(event.target.value) })}
-                  />
-                </label>
-                <label className="inline-select">
-                  <span className="muted small">Tone mapping</span>
-                  <select
-                    value={effects.toneMapping}
-                    aria-label="Tone mapping"
-                    onChange={(event) =>
-                      updateEffects({ toneMapping: event.target.value as ToneMappingId })
-                    }
-                  >
-                    {TONE_MAPPINGS.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="preview-control">
-                  <span>
-                    Bloom <strong>{effects.bloom > 0 ? effects.bloom.toFixed(2) : 'spento'}</strong>
-                  </span>
-                  <RangeInput
-                    type="range"
-                    min={0}
-                    max={2}
-                    step={0.05}
-                    value={effects.bloom}
-                    aria-label="Bloom"
-                    onChange={(event) => updateEffects({ bloom: Number(event.target.value) })}
-                  />
-                </label>
-                <label className="preview-control">
-                  <span>
-                    Forza emissione <strong>×{effects.emission.toFixed(1)}</strong>
-                  </span>
-                  <RangeInput
-                    type="range"
-                    min={0}
-                    max={40}
-                    step={1}
-                    value={effects.emission}
-                    aria-label="Forza emissione"
-                    onChange={(event) => updateEffects({ emission: Number(event.target.value) })}
-                  />
-                </label>
-                <button type="button" onClick={() => setEffects(DEFAULT_EFFECTS)}>
-                  Ripristina effetti
-                </button>
-                <span className="muted small">
-                  Anteprima approssimata: ogni shader pack interpreta LabPBR a modo suo.
-                </span>
-              </>
+                  )
+                }
+              />
             )}
           </section>
         </aside>

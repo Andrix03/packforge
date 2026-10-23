@@ -2,49 +2,57 @@
 
 ## 0.1.0 alpha — 2026-10-23
 
-La prima versione pubblica di PackForge, in alpha: un'officina per creare resource pack di Minecraft Java,
-dalla prima texture al pack pubblicato, con l'anteprima degli shader LabPBR.
+The first public build of PackForge. **It is a prototype**: an experiment in what a resource pack
+studio could look like, not a tool for real packs yet. Things are missing and things break; work on
+a copy of your pack.
 
 ### Pack
-- Apri un pack (cartella, o zip in sola lettura) o creane uno nuovo: nome, descrizione con i colori
-  e gli stili del gioco, versione di Minecraft (il `pack_format` giusto è scelto da solo), icona.
-- Esplora le texture del pack e quelle vanilla della tua versione (dal jar del gioco, solo come
-  riferimento: non finiscono mai nel pack).
-- Strumenti del pack: copertura (cosa manca), controllo delle mappe, ridimensiona a pixel netti,
-  varianti di colore, backup con ripristino.
 
-### Disegna
-- Editor pixel con matita, gomma, secchiello, ombra, rumore, contagocce, linee, rettangoli, ellissi,
-  selezione, bacchetta e sposta; pixel-perfect, simmetria, bordi continui per le texture ripetute.
-- Colori con rampe di tonalità, palette salvate e i colori della texture; livelli; animazioni a
-  frame con onion skin; consigli per chi inizia.
-- Modalità Principiante (meno strumenti, tutorial in sei passi) e Pro, sullo stesso editor.
+- Open a pack (a folder, or a zip read-only) or create one: name, description with the game's
+  colours and styles, Minecraft version (the right `pack_format` is picked for you), icon.
+- Browse the pack's textures next to the vanilla ones of your game version (read from your own
+  game jar, reference only: they never end up in the pack).
+- Pack tools: map coverage, map check, resize with sharp pixels, colour variants, backups.
 
-### Effetti (LabPBR)
-- Dipingi le mappe `_n` (rilievo, occlusione, altezza) e `_s` (levigatezza, metalli, porosità,
-  emissione) canale per canale, o generale dai colori.
-- Materiali pronti (pietra, legno, metallo, vetro, minerale, foglie, emissivo…).
-- Anteprima 3D come con uno shader: luce del giorno, tramonto, grotta, Nether; POM, pioggia, riflessi,
-  ombre a pixel, bloom.
+### Paint
 
-### Prova
-- Guarda la texture in scena: muro, pavimento, distesa, campo coltivato, casa, grotta (un minerale
-  sta nella sua roccia), sentiero; distanza e mipmap come nel gioco, vento sulle piante, confronto
-  con vanilla, volo libero, oggetti in mano e nell'inventario.
+- Pixel editor with pencil, eraser, bucket, shade, noise, colour picker, lines, rectangles,
+  ellipses, selection, magic wand and move; pixel-perfect, symmetry, seamless edges.
+- Colour ramps with hue shifting, saved palettes and the texture's colours; layers; frame
+  animations with onion skin; tips for beginners.
+- Beginner mode (fewer tools, a six-step tutorial) and Pro mode, on the same editor.
 
-### In blocco e texture connesse
-- Applica in blocco: materiale e rilievo su tante texture insieme, con Prima/Dopo in 3D e l'elenco
-  dei file che verranno scritti, prima di scrivere.
-- Texture connesse (Continuity / OptiFine): metodo completo a 47 tessere, orizzontale o verticale a
-  4, con il muro Prima/Dopo.
+### Effects (LabPBR)
 
-### Pubblica
-- Esporta lo zip con versione, licenza, crediti e changelog; variante senza PBR o a un'altra
-  risoluzione; scheda per Modrinth / CurseForge.
-- Copia nel gioco con aggiornamento automatico e i tasti per ricaricare (F3 + T).
+- Paint the `_n` maps (height, occlusion, normals) and `_s` maps (smoothness, metals, porosity,
+  emission) channel by channel, or generate them from the colours.
+- Material presets (stone, wood, metal, glass, ore, leaves, crops, glowing…).
+- A 3D preview lit like a shader: day, sunset, cave, Nether; POM, rain, reflections, pixelated
+  shadows, bloom.
 
-### Interfaccia
-- Nuova interfaccia: barra dei menu, ricerca dei comandi (Ctrl+K), spazi di lavoro Pack · Disegna ·
-  Prova · Effetti · Pubblica, icone e font pixel (Pixel Operator, Tiny5).
+### Test
 
-PackForge non è un prodotto ufficiale di Minecraft. Non approvato né associato a Mojang o Microsoft.
+- See the texture in a scene: wall, floor, field, farmland, house corner, cave (an ore sits in its
+  own rock), path; distance and mipmaps as in the game, wind on plants, comparison with vanilla,
+  free flight, items in hand and in the inventory.
+
+### Batch and connected textures
+
+- Batch apply: material and relief on many textures at once, with a 3D before/after and the list
+  of files that will be written, before writing.
+- Connected textures (Continuity / OptiFine): full 47-tile method, or horizontal and vertical with
+  4 tiles, with a before/after wall.
+
+### Publish
+
+- Export the zip with version, licence, credits and changelog; a no-PBR or other-resolution
+  variant; a ready page for Modrinth / CurseForge.
+- Copy the pack into the game, kept up to date automatically, with the keys to reload (F3 + T).
+
+### Interface
+
+- Menu bar, command search (Ctrl+K), workspaces Pack, Paint, Test, Effects and Publish, pixel
+  icons and pixel fonts (Pixel Operator, Tiny5).
+- English and Italian: the language follows the system and can be changed in Settings.
+
+NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.

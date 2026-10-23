@@ -14,7 +14,7 @@ export const TUTORIAL_STEPS: ReadonlyArray<{ id: TutorialStep; title: string; hi
   {
     id: 'pack',
     title: 'Crea o apri un pack',
-    hint: 'In basso c’è «Nuovo pack»: dagli un nome e scegli la versione di Minecraft.'
+    hint: 'A destra c’è «Nuovo pack»: dagli un nome e scegli la versione di Minecraft.'
   },
   {
     id: 'texture',

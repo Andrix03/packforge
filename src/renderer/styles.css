@@ -3225,3 +3225,14 @@ input.seg-range:focus-visible {
 .wizard-files li {
   overflow-wrap: anywhere;
 }
+/* Tutorial card, bar and pill sit above the shell's status bar. */
+.tutorial-card,
+.tutorial-bar,
+.tutorial-pill {
+  bottom: 34px;
+}
+.tutorial-card,
+.tutorial-bar {
+  border-radius: 0;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45);
+}

@@ -1048,6 +1048,30 @@ export function TextureEditor({
       enabled: canTest,
       run: test
     },
+    // Effetti = painting the LabPBR maps of this texture (the shell's Effetti tab).
+    ...(maps && !isMapFile && !tallCanvases
+      ? [
+          {
+            id: 'editor:effects',
+            label: 'Mappe PBR: rilievo _n e materiale _s',
+            menu: 'Mappe PBR',
+            area: 'Effetti',
+            enabled: surface === 'color',
+            why: 'Stai già dipingendo una mappa',
+            run: () =>
+              changeSurface(maps.normal?.existed || !maps.specular?.existed ? 'normal' : 'specular')
+          },
+          {
+            id: 'editor:color',
+            label: 'Torna ai colori della texture',
+            menu: 'Mappe PBR',
+            area: 'Disegna',
+            enabled: surface !== 'color',
+            why: 'Stai già dipingendo i colori',
+            run: () => changeSurface('color')
+          }
+        ]
+      : []),
     {
       id: 'editor:beginner',
       label: 'Modalità Principiante',

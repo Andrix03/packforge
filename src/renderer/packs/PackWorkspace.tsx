@@ -1,3 +1,4 @@
+import { useCommands } from '../shell/commandContext'
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, findFolder, parentPath } from '../../shared/fileTree'
 import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../shared/ipc'
@@ -53,9 +54,12 @@ export function PackWorkspace({
   pack,
   onEditTexture,
   onTestTexture,
-  overview
+  overview,
+  visible
 }: {
   pack: PackSummary
+  /** False while the editor or the test screen covers it: its commands are withdrawn. */
+  visible?: boolean
   /** The pack card, shown at the top of the dock. */
   overview?: React.ReactNode
   onEditTexture: (target: EditorTarget) => void
@@ -175,6 +179,7 @@ export function PackWorkspace({
       onEditTexture={(texture, previewSources) => onEditTexture(targetOf(texture, previewSources))}
       onTestTexture={(texture, previewSources) => onTestTexture(targetOf(texture, previewSources))}
       overview={overview}
+      visible={visible ?? true}
     />
   )
 }
@@ -189,9 +194,11 @@ function Workspace({
   packName,
   onEditTexture,
   onTestTexture,
-  overview
+  overview,
+  visible
 }: {
   overview: React.ReactNode
+  visible: boolean
   packFiles: SourceFiles
   fileVersions: Readonly<Record<string, number>>
   vanilla: Loadable<VanillaState>
@@ -298,6 +305,72 @@ function Workspace({
       : vanillaReady
         ? { keys: vanillaKeys, label: 'V', title: 'Sostituisce la texture vanilla' }
         : undefined
+
+  const zipNote = 'I pack .zip si aprono in sola lettura'
+  // Published only while the screen is visible (hidden under the editor its dialogs would not show).
+  useCommands(
+    visible
+      ? [
+          {
+            id: 'pack:export',
+            label: 'Esporta il pack (zip)…',
+            menu: 'Pack',
+            area: 'Pubblica',
+            enabled: canCreate,
+            why: zipNote,
+            run: () => setExporting(true)
+          },
+          {
+            id: 'pack:ingame',
+            label: 'Copia nel gioco…',
+            menu: 'Pack',
+            area: 'Pubblica',
+            run: () => setInGame(true)
+          },
+          {
+            id: 'pack:backups',
+            label: 'Backup…',
+            menu: 'Pack',
+            area: 'Pack',
+            enabled: canCreate,
+            why: zipNote,
+            run: () => setShowBackups(true)
+          },
+          {
+            id: 'pack:validate',
+            label: 'Controlla mappe',
+            menu: 'Mappe PBR',
+            area: 'Pack',
+            run: () => setValidating(true)
+          },
+          {
+            id: 'pack:coverage',
+            label: 'Copertura: cosa manca',
+            menu: 'Mappe PBR',
+            area: 'Pack',
+            run: () => setCovering(true)
+          },
+          {
+            id: 'pack:batch',
+            label: 'Applica in blocco…',
+            menu: 'Mappe PBR',
+            area: 'Pack',
+            enabled: canCreate,
+            why: zipNote,
+            run: () => setBatching({ selection: null, maps: { specular: true, normal: false } })
+          },
+          {
+            id: 'pack:resize',
+            label: 'Ridimensiona il pack…',
+            menu: 'Pack',
+            area: 'Pack',
+            enabled: canCreate,
+            why: zipNote,
+            run: () => setResizing(true)
+          }
+        ]
+      : []
+  )
 
   return (
     <section className="workspace-wrap pack-screen">

@@ -10,7 +10,12 @@ import { PackOverview } from './packs/PackOverview'
 import { PackWorkspace } from './packs/PackWorkspace'
 import { RecentPacksCard } from './packs/RecentPacksCard'
 import { SettingsPanel } from './settings/SettingsPanel'
-import { CommandContext, useCommands, useCommandStore } from './shell/commandContext'
+import {
+  CommandContext,
+  useCommandList,
+  useCommands,
+  useCommandStore
+} from './shell/commandContext'
 import { EditorHotbar } from './shell/EditorHotbar'
 import { Shell, type WorkspaceTab } from './shell/Shell'
 import { TestScreen, type TestLive } from './testscreen/TestScreen'
@@ -27,8 +32,6 @@ export function App(): React.JSX.Element {
     </CommandContext.Provider>
   )
 }
-
-const SOON = 'Arriva con la nuova interfaccia'
 
 function Window(): React.JSX.Element {
   const store = useCommandStore()
@@ -125,12 +128,18 @@ function Window(): React.JSX.Element {
 
   const editorOpen = pack !== null && editing !== null
   const testOpen = pack !== null && testing !== null
+  const commands = useCommandList()
+  const command = (id: string) => commands.find((c) => c.id === id)
+  /** The editor is on a _n / _s map: that is the Effetti workspace. */
+  const onMaps = command('editor:color')?.enabled === true
   const workspace: Workspace | null = !pack
     ? null
     : testOpen
       ? 'prova'
       : editorOpen
-        ? 'disegna'
+        ? onMaps
+          ? 'effetti'
+          : 'disegna'
         : 'pack'
 
   /** Leaves the test screen the way its own "back" button does. */
@@ -149,8 +158,14 @@ function Window(): React.JSX.Element {
       if (editorOpen) store.run('editor:close')
     } else if (next === 'disegna') {
       if (testOpen) leaveTest()
+      else if (onMaps) store.run('editor:color')
+    } else if (next === 'effetti') {
+      if (testOpen) leaveTest()
+      store.run('editor:effects')
     } else if (next === 'prova') {
       store.run('editor:test')
+    } else if (next === 'pubblica') {
+      store.run('pack:export')
     }
   }
 
@@ -162,8 +177,19 @@ function Window(): React.JSX.Element {
       why: 'Scegli una texture nel Pack e premi Disegna'
     },
     { id: 'prova', enabled: editorOpen, why: 'Apri una texture per provarla' },
-    { id: 'effetti', enabled: false, why: SOON },
-    { id: 'pubblica', enabled: false, why: SOON }
+    {
+      id: 'effetti',
+      enabled: editorOpen && command('editor:effects') !== undefined,
+      why: 'Apri una texture per dipingerne le mappe PBR'
+    },
+    {
+      id: 'pubblica',
+      enabled: command('pack:export')?.enabled === true,
+      why:
+        editorOpen || testOpen
+          ? 'Torna al Pack per esportare'
+          : 'I pack .zip si aprono in sola lettura'
+    }
   ]
 
   const WORKSPACES: [Workspace, string][] = [
@@ -315,6 +341,7 @@ function Window(): React.JSX.Element {
             <>
               <PackWorkspace
                 key={workspaceKey}
+                visible={!editorOpen && !testOpen && !showSettings}
                 overview={
                   <PackOverview
                     pack={pack}

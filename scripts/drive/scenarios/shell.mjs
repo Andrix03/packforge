@@ -38,6 +38,26 @@ export default async function shell(app) {
   app.check(await enabled(app, 'prova'), 'texture open: Prova is enabled')
   await app.shot('shell-editor')
 
+  // Effetti = the editor on the LabPBR maps; Disegna goes back to the colours.
+  app.check(!(await enabled(app, 'pubblica')), 'editor open: Pubblica waits for the Pack')
+  await app.click('Effetti', '.shell-tab')
+  await app.waitFor(`document.querySelector('.shell-tab.active')?.dataset.workspace === 'effetti'`)
+  const mapTab = await app.ev(
+    `document.querySelector('.map-tabs [role=tab][aria-selected=true]')?.textContent ?? ''`
+  )
+  app.check(/Rilievo/.test(mapTab), `Effetti paints the _n map (${mapTab})`)
+  await app.shot('shell-effetti')
+  await app.click('Disegna', '.shell-tab')
+  await app.waitFor(`document.querySelector('.shell-tab.active')?.dataset.workspace === 'disegna'`)
+  app.check(
+    /Colore/.test(
+      await app.ev(
+        `document.querySelector('.map-tabs [role=tab][aria-selected=true]')?.textContent ?? ''`
+      )
+    ),
+    'Disegna goes back to the colours'
+  )
+
   // Ctrl+K → "prova" → Enter opens the test screen.
   await app.key('k', ['ctrl'])
   await app.waitFor(`document.querySelector('.shell-search-box input')`)
@@ -56,6 +76,18 @@ export default async function shell(app) {
   await app.click('Pack', '.shell-tab')
   await app.waitFor(`!document.querySelector('.editor')`)
   app.check((await active(app)) === 'pack', 'Pack tab closes the editor')
+
+  // Pubblica opens the export from the Pack.
+  await app.click('Pubblica', '.shell-tab')
+  await app.waitFor(
+    `[...document.querySelectorAll('h2')].some((h) => /Esporta il pack/i.test(h.textContent))`
+  )
+  app.check(true, 'Pubblica opens the export')
+  await app.shot('shell-pubblica')
+  await app.key('Escape')
+  await app.waitFor(
+    `![...document.querySelectorAll('h2')].some((h) => /Esporta il pack/i.test(h.textContent))`
+  )
 
   // Settings from the command search.
   await app.key('k', ['ctrl'])

@@ -235,12 +235,14 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 (Minecraft usage guidelines).
 
 - [x] Style approved (Disegna on the canvas)
-- [x] Canvas: Pack, Prova, Effetti, Pubblica redrawn in the Disegna style; start screen, settings, dialogs, Beginner layout added — 2026-10-23, waiting for Andrea's review
-- [ ] Design system in code: tokens, Tiny5 bundled, pixel icons, ore buttons, I/O switch, segmented slider, select, panels
+- [x] Canvas: Pack, Prova, Effetti, Pubblica redrawn in the Disegna style; start screen, settings, dialogs, Beginner layout added — 2026-10-23
+- [x] Canvas v2 approved by Andrea (2026-10-23): Pixel Operator 16 px for readable text (CC0) + Tiny5 for short caps labels; solid 2 px command icons; options bar that scrolls; compact layout ≤ 1280 px; pixel pictures on every preset button; small "i" marker with hover note on switches; Prima/Dopo switch + "Affiancati"; 4-step wizards for Applica in blocco and Texture connesse; new app icon + README animation. Sources: `.claude/design-v2` (canvas JqcK1dpddgx73RbWjsgPf4); design work is closed, code follows it
+- [ ] Design system in code: tokens, Tiny5 + Pixel Operator bundled, pixel icons + pixel pictures, ore buttons, I/O switch, segmented slider, select, panels, info marker
 - [ ] Shell: menu bar, Ctrl+K, workspace hotbar, status bar
 - [ ] Disegna: tool rail, options bar, document tabs, floating view bar, two-column dock, timeline
 - [ ] Pack, Prova, Effetti, Pubblica in the same style (every current feature kept)
-- [ ] Start screen, settings and every dialog restyled
+- [ ] Start screen, settings and every dialog restyled; Applica in blocco and Texture connesse as 4-step wizards with Prima/Dopo
+- [ ] New app icon (`.claude/design-v2/icon/forge-icon.mjs` → `scripts/make-icon.mjs`), header logo, `docs/packforge.gif` for the README
 - [ ] Beginner layout + tutorial updated; drive scenarios updated
 - [ ] Strings into a dictionary (Italian; English when Andrea decides)
 
@@ -250,6 +252,14 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 - [ ] Version 1.0.0, changelog, user guide, download page; installer tested on a clean PC (also without Minecraft)
 - [ ] "Not affiliated with Mojang/Microsoft" notice in the app
 - [ ] Andrea decides: code signing, English, PackForge licence and price, distribution channel, beta testers
+
+## After 1.0 (decided 2026-10-23)
+
+From the 300 most downloaded packs on Modrinth: models 122, items 114, gui 66, equipment 52,
+environment 53, entities 78 (mostly Fresh Animations: EMF/ETF, left to Blockbench). Order:
+**1.1** GUI + title + loading screen (Phase 15) · **1.2** armor and trims + item definitions
+(Phases 16 and 14) · **1.3** 3D models (Phase 13). New windows get their design directly in code,
+in the 12b style.
 
 ## Phase 13 — Modelli 3D
 
@@ -275,6 +285,9 @@ Vanilla model JSON, no mods.
 - [x] Logic: GUI sprites, `.png.mcmeta` `gui.scaling` (stretch / tile / nine_slice), research which sprites exist per version — `shared/guiScaling.ts` (layout as the 26.3 code); sprite lists only from the client jar
 - [ ] Nine-slice editor (border handles) with a preview at GUI scale 1–4
 - [ ] Batch recolor (e.g. dark mode) across GUI sprites
+- [ ] Sprite browser by area (widgets/buttons, containers, hud, hearts…) with a mock screen preview at GUI scale 1–4
+- [ ] Title screen: panorama (6 faces, rotating preview), title logo, splashes.txt
+- [ ] Loading screen: the Mojang Studios logo texture (the background colour is fixed by the game)
 
 ## Phase 16 — Armature e trim
 

@@ -74,7 +74,7 @@
 .ore-select,
 .sw,
 .seg-cell,
-.field,
+.ui-field,
 .panel-head {
   border-radius: 0;
 }
@@ -135,7 +135,7 @@
 }
 
 /* Fields. */
-.field {
+.ui-field {
   background: #1b1b1b;
   border-top: 1px solid #0e0e0e;
   border-left: 1px solid #0e0e0e;

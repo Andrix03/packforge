@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { PixelIcon } from '../ui/components'
+import { NAV_ICONS } from '../ui/icons'
 import type { SettingsUpdateResult } from '../../shared/ipc'
 import { editorDisplayName, type SettingsView } from '../../shared/settings'
 import { TUTORIAL_RESET_EVENT } from '../TutorialCard'
@@ -6,9 +8,11 @@ import { TUTORIAL_RESET_EVENT } from '../TutorialCard'
 interface SettingsPanelProps {
   /** `changed` is true when something was saved, so callers can refresh. */
   onClose: (changed: boolean) => void
+  /** PackForge version shown in the notice box. */
+  version?: string | undefined
 }
 
-export function SettingsPanel({ onClose }: SettingsPanelProps): React.JSX.Element {
+export function SettingsPanel({ onClose, version }: SettingsPanelProps): React.JSX.Element {
   const [view, setView] = useState<SettingsView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -213,6 +217,18 @@ export function SettingsPanel({ onClose }: SettingsPanelProps): React.JSX.Elemen
           Chiede a GitHub qual è l’ultima versione pubblicata; se è più nuova compare un avviso con
           il link per scaricarla. Non installa niente da solo.
         </p>
+      </div>
+      {/* The notice the Minecraft usage guidelines ask for, as a pixel box (canvas: Impostazioni). */}
+      <div className="official-notice" data-testid="official-notice">
+        <div className="official-notice-box">
+          <PixelIcon icon={NAV_ICONS.logo} size={32} />
+          <span>
+            <span className="lbl official-name">PackForge {version ?? ''}</span>
+            <span className="official-warn">Non è un prodotto ufficiale di Minecraft.</span>
+            <span className="muted">Non approvato né associato a Mojang o Microsoft.</span>
+          </span>
+        </div>
+        <span className="official-underline" aria-hidden="true" />
       </div>
     </section>
   )

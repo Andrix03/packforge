@@ -101,5 +101,17 @@ export default async function shell(app) {
     `[...document.querySelectorAll('h2')].some((h) => h.textContent.includes('Impostazioni'))`
   )
   app.check(true, 'Ctrl+K opens the settings')
+  const notice = await app.ev(
+    `document.querySelector('[data-testid=official-notice]')?.textContent ?? ''`
+  )
+  app.check(
+    notice.includes('Non è un prodotto ufficiale di Minecraft') &&
+      notice.includes('Mojang o Microsoft'),
+    'settings show the not-official notice'
+  )
+  await app.ev(
+    `document.querySelector('[data-testid=official-notice]').scrollIntoView({ block: 'center' })`
+  )
+  await app.sleep(200)
   await app.shot('shell-settings')
 }

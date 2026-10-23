@@ -252,7 +252,8 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 
 - [x] Small fixes from the self-test (Esc on the description editor, pack.png counted as a texture, Prova cave for ores) — 2026-10-23
 - [ ] Version 1.0.0, changelog, user guide, download page; installer tested on a clean PC (also without Minecraft)
-- [x] "Not affiliated with Mojang/Microsoft" notice in the app (status bar; Impostazioni box still to restyle)
+- [x] "Not affiliated with Mojang/Microsoft" notice in the app (status bar + pixel box in Impostazioni with the version)
+- [x] CHANGELOG.md draft for 1.0 (user-facing, Italian; version/date for Andrea)
 - [ ] Andrea decides: code signing, English, PackForge licence and price, distribution channel, beta testers
 
 ## After 1.0 (decided 2026-10-23)

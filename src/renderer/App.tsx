@@ -352,7 +352,7 @@ function Window(): React.JSX.Element {
           </div>
         )}
 
-        {showSettings && <SettingsPanel onClose={closeSettings} />}
+        {showSettings && <SettingsPanel onClose={closeSettings} version={info?.version} />}
 
         {/* Hidden, not unmounted, while settings are open: keeps tree/grid state. */}
         <div className="stack" hidden={showSettings}>

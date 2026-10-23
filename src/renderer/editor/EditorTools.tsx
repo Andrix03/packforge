@@ -214,7 +214,7 @@ export function ToolOptions(props: EditorToolsProps): React.JSX.Element {
             <label className="brush-size">
               <span className="sr-only">Pennello</span>
               <input
-                className="field"
+                className="ui-field"
                 type="number"
                 min={1}
                 max={max}

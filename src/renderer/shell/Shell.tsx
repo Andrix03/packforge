@@ -221,7 +221,7 @@ function CommandSearch({ onClose }: { onClose: () => void }) {
     >
       <div className="shell-search-box raised" role="dialog" aria-label="Cerca un comando">
         <input
-          className="field"
+          className="ui-field"
           autoFocus
           value={query}
           placeholder="Scrivi cosa vuoi fare…"

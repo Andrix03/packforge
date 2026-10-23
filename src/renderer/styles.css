@@ -3266,3 +3266,26 @@ input.seg-range:focus-visible {
   width: 100%;
   overflow: hidden;
 }
+
+/* ---- 12b Pubblica (canvas: Pubblica.dc.html): export in the middle, in game beside it ---- */
+.publish-screen {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 12px;
+  padding: 12px;
+  overflow: hidden;
+}
+.embedded-dialog {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (max-width: 1100px) {
+  .publish-screen {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+  }
+}

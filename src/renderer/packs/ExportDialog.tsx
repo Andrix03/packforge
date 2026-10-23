@@ -11,6 +11,7 @@ import {
   type ProjectInfo
 } from '../../shared/exportPlan'
 import { RESOLUTIONS } from '../../shared/resize'
+import { DialogFrame } from '../ui/components'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
 
@@ -26,7 +27,14 @@ type Phase =
 const today = (): string => new Date().toISOString().slice(0, 10)
 
 /** Versioned zips of the pack (variants), with license, credits, changelog and a checklist. */
-export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.Element {
+export function ExportDialog({
+  onClose,
+  embedded = false
+}: {
+  onClose: () => void
+  /** Shown inside the Pubblica screen instead of as a dialog. */
+  embedded?: boolean
+}): React.JSX.Element {
   const [info, setInfo] = useState<ProjectInfo | null>(null)
   const [check, setCheck] = useState<ExportCheck | null>(null)
   const [checkRun, setCheckRun] = useState(0)
@@ -36,7 +44,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
   const [resolution, setResolution] = useState<number | null>(null)
   const [withListing, setWithListing] = useState(true)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
-  useEscape(onClose, phase.status !== 'working')
+  useEscape(onClose, !embedded && phase.status !== 'working')
 
   useEffect(() => {
     let current = true
@@ -111,263 +119,242 @@ export function ExportDialog({ onClose }: { onClose: () => void }): React.JSX.El
 
   if (phase.status !== 'setup') {
     return (
-      <div className="modal-backdrop" role="presentation">
-        <div className="card modal batch" role="dialog" aria-label="Esporta">
-          <h2>Esporta</h2>
-          {phase.status === 'working' ? (
-            <p className="small">{phase.text}</p>
-          ) : (
-            <>
-              {phase.listing && (
-                <p
-                  className={phase.listing.ok ? 'small' : 'field-error small'}
-                  data-testid="export-listing"
+      <DialogFrame embedded={embedded} label="Esporta">
+        <h2>Esporta</h2>
+        {phase.status === 'working' ? (
+          <p className="small">{phase.text}</p>
+        ) : (
+          <>
+            {phase.listing && (
+              <p
+                className={phase.listing.ok ? 'small' : 'field-error small'}
+                data-testid="export-listing"
+              >
+                {phase.listing.ok
+                  ? `Scheda per Modrinth / CurseForge: ${phase.listing.dir}${phase.listing.kept.length > 0 ? ` (${phase.listing.kept.length} file già presenti lasciati com’erano)` : ''}`
+                  : phase.listing.error}
+              </p>
+            )}
+            <ul className="validator-issues" data-testid="export-results">
+              {phase.results.map(({ variant, result }) => (
+                <li
+                  key={variantLabel(variant)}
+                  className={`validator-issue ${result.ok ? 'info' : 'error'}`}
                 >
-                  {phase.listing.ok
-                    ? `Scheda per Modrinth / CurseForge: ${phase.listing.dir}${phase.listing.kept.length > 0 ? ` (${phase.listing.kept.length} file già presenti lasciati com’erano)` : ''}`
-                    : phase.listing.error}
-                </p>
-              )}
-              <ul className="validator-issues" data-testid="export-results">
-                {phase.results.map(({ variant, result }) => (
-                  <li
-                    key={variantLabel(variant)}
-                    className={`validator-issue ${result.ok ? 'info' : 'error'}`}
-                  >
-                    <span className="validator-icon">{result.ok ? '✓' : '✗'}</span>
-                    <div>
-                      <strong>{variantLabel(variant)}</strong>
-                      <p className="small">
-                        {result.ok
-                          ? `${result.path} · ${result.files} file · ${(result.bytes / 1024).toFixed(0)} KB${result.kept.length > 0 ? ` · ${result.kept.length} texture lasciate alla loro risoluzione` : ''}`
-                          : result.error}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <div className="row">
-                {dir && (
-                  <button
-                    type="button"
-                    onClick={() => void window.api.invoke('export:openFolder', dir)}
-                  >
-                    Apri la cartella
-                  </button>
-                )}
-                <button type="button" className="primary" onClick={onClose}>
-                  Chiudi
+                  <span className="validator-icon">{result.ok ? '✓' : '✗'}</span>
+                  <div>
+                    <strong>{variantLabel(variant)}</strong>
+                    <p className="small">
+                      {result.ok
+                        ? `${result.path} · ${result.files} file · ${(result.bytes / 1024).toFixed(0)} KB${result.kept.length > 0 ? ` · ${result.kept.length} texture lasciate alla loro risoluzione` : ''}`
+                        : result.error}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="row">
+              {dir && (
+                <button
+                  type="button"
+                  onClick={() => void window.api.invoke('export:openFolder', dir)}
+                >
+                  Apri la cartella
                 </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+              )}
+              <button type="button" className="primary" onClick={onClose}>
+                Chiudi
+              </button>
+            </div>
+          </>
+        )}
+      </DialogFrame>
     )
   }
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal batch"
-        role="dialog"
-        aria-label="Esporta"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>Esporta il pack</h2>
+    <DialogFrame embedded={embedded} label="Esporta" onBackdrop={onClose}>
+      <h2>Esporta il pack</h2>
 
-        <h3 className="panel-title">1. Progetto</h3>
-        <div className="export-grid">
-          <label className="small">
-            Versione
-            <input
-              aria-label="Versione"
-              value={project.version}
-              onChange={(event) => set({ version: event.target.value.trim() })}
-            />
-          </label>
-          <label className="small">
-            Autore
-            <input
-              aria-label="Autore"
-              value={project.author}
-              onChange={(event) => set({ author: event.target.value })}
-            />
-          </label>
-          <label className="small">
-            Licenza
-            <select
-              aria-label="Licenza"
-              value={project.license}
-              onChange={(event) => set({ license: event.target.value })}
-            >
-              {LICENSES.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {!versionOk && (
-          <p className="field-error small">Versione non valida (es. 1.0.0, 2.1-beta).</p>
-        )}
+      <h3 className="panel-title">1. Progetto</h3>
+      <div className="export-grid">
         <label className="small">
-          Novità di questa versione (finiscono in CHANGELOG.md)
-          <textarea
-            aria-label="Novità"
-            rows={3}
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
+          Versione
+          <input
+            aria-label="Versione"
+            value={project.version}
+            onChange={(event) => set({ version: event.target.value.trim() })}
           />
         </label>
-        <CreditsEditor credits={project.credits} onChange={(credits) => set({ credits })} />
-
-        <h3 className="panel-title">2. Controllo</h3>
-        {!check ? (
-          <p className="small">Controllo…</p>
-        ) : (
-          <div data-testid="export-check">
-            {check.errors.map((e) => (
-              <p key={e} className="field-error small">
-                ✗ {e}
-              </p>
-            ))}
-            {check.vanillaCopies.length > 0 && (
-              <p className="small muted">
-                {check.vanillaCopies
-                  .slice(0, 10)
-                  .map((p) => p.split('/').pop())
-                  .join(', ')}
-                {check.vanillaCopies.length > 10 ? '…' : ''}
-              </p>
-            )}
-            {check.warnings.map((w) => (
-              <p key={w} className="small">
-                ⚠ {w}
-              </p>
-            ))}
-            {check.stray.length > 0 && (
-              <p className="small muted">
-                Fuori dallo zip:{' '}
-                {check.stray
-                  .slice(0, 8)
-                  .map((s) => `${s.path.split('/').pop()} (${s.reason})`)
-                  .join(', ')}
-                {check.stray.length > 8 ? '…' : ''}
-              </p>
-            )}
-            {check.errors.length === 0 && check.warnings.length === 0 && (
-              <p className="small">✓ Tutto a posto: {check.files} file.</p>
-            )}
-            <button
-              type="button"
-              className="small-button"
-              onClick={() => setCheckRun((r) => r + 1)}
-            >
-              Ricontrolla
-            </button>
-          </div>
-        )}
-
-        <h3 className="panel-title">3. Varianti</h3>
-        <label className="inline-check small">
+        <label className="small">
+          Autore
           <input
-            type="checkbox"
-            checked={full}
-            onChange={(event) => setFull(event.target.checked)}
+            aria-label="Autore"
+            value={project.author}
+            onChange={(event) => set({ author: event.target.value })}
           />
-          Completo
         </label>
-        <label className="inline-check small" title="Senza _n e _s: per chi non usa shader">
-          <input
-            type="checkbox"
-            checked={base}
-            onChange={(event) => setBase(event.target.checked)}
-          />
-          Senza PBR (file «-base»)
-        </label>
-        <label
-          className="inline-check small"
-          title="Texture di blocchi, oggetti ed entità a un’altra risoluzione (pixel netti); le GUI restano com’erano"
-        >
-          <input
-            type="checkbox"
-            checked={resolution !== null}
-            onChange={(event) => setResolution(event.target.checked ? 16 : null)}
-          />
-          Anche a
+        <label className="small">
+          Licenza
           <select
-            aria-label="Risoluzione export"
-            value={resolution ?? 16}
-            disabled={resolution === null}
-            onChange={(event) => setResolution(Number(event.target.value))}
+            aria-label="Licenza"
+            value={project.license}
+            onChange={(event) => set({ license: event.target.value })}
           >
-            {RESOLUTIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}×
+            {LICENSES.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
               </option>
             ))}
           </select>
         </label>
-
-        <label
-          className="inline-check small"
-          title="description-en.md, description-it.md e listing.txt con riassunto, versioni del gioco e tag consigliati"
-        >
-          <input
-            type="checkbox"
-            checked={withListing}
-            onChange={(event) => setWithListing(event.target.checked)}
-          />
-          Prepara anche la scheda per Modrinth / CurseForge
-        </label>
-
-        <h3 className="panel-title">4. Destinazione</h3>
-        <p className="small" data-testid="export-dir">
-          {dir}
-        </p>
-        <div className="row">
-          <button
-            type="button"
-            className="small-button"
-            onClick={() =>
-              void window.api
-                .invoke('dialog:pickDirectory', 'exportDestination')
-                .then((d) => d && setDir(d))
-            }
-          >
-            Cambia…
-          </button>
-        </div>
-
-        <details className="small export-rules">
-          <summary>Pubblicare e guadagnare: cosa dicono le regole di Minecraft</summary>
-          <p>
-            Dall’EULA di Minecraft: i contenuti che crei sono tuoi «purché tu non li venda / non
-            cerchi di guadagnarci». Le donazioni sono ammesse se il donatore non riceve qualcosa che
-            solo lui può usare: un pack riservato a chi paga (es. un livello Patreon) rischia di
-            violarle. Gli export includono sempre in CREDITS.txt l’avvertenza «NOT AN OFFICIAL
-            MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT». Non è un
-            parere legale: in caso di dubbio leggi le linee guida su minecraft.net.
-          </p>
-        </details>
-
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={variants.length === 0 || !versionOk || !info}
-            onClick={() => exportAll()}
-          >
-            Esporta {variants.length === 1 ? '1 zip' : `${variants.length} zip`}
-          </button>
-          <button type="button" onClick={onClose}>
-            Annulla
-          </button>
-        </div>
       </div>
-    </div>
+      {!versionOk && (
+        <p className="field-error small">Versione non valida (es. 1.0.0, 2.1-beta).</p>
+      )}
+      <label className="small">
+        Novità di questa versione (finiscono in CHANGELOG.md)
+        <textarea
+          aria-label="Novità"
+          rows={3}
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+        />
+      </label>
+      <CreditsEditor credits={project.credits} onChange={(credits) => set({ credits })} />
+
+      <h3 className="panel-title">2. Controllo</h3>
+      {!check ? (
+        <p className="small">Controllo…</p>
+      ) : (
+        <div data-testid="export-check">
+          {check.errors.map((e) => (
+            <p key={e} className="field-error small">
+              ✗ {e}
+            </p>
+          ))}
+          {check.vanillaCopies.length > 0 && (
+            <p className="small muted">
+              {check.vanillaCopies
+                .slice(0, 10)
+                .map((p) => p.split('/').pop())
+                .join(', ')}
+              {check.vanillaCopies.length > 10 ? '…' : ''}
+            </p>
+          )}
+          {check.warnings.map((w) => (
+            <p key={w} className="small">
+              ⚠ {w}
+            </p>
+          ))}
+          {check.stray.length > 0 && (
+            <p className="small muted">
+              Fuori dallo zip:{' '}
+              {check.stray
+                .slice(0, 8)
+                .map((s) => `${s.path.split('/').pop()} (${s.reason})`)
+                .join(', ')}
+              {check.stray.length > 8 ? '…' : ''}
+            </p>
+          )}
+          {check.errors.length === 0 && check.warnings.length === 0 && (
+            <p className="small">✓ Tutto a posto: {check.files} file.</p>
+          )}
+          <button type="button" className="small-button" onClick={() => setCheckRun((r) => r + 1)}>
+            Ricontrolla
+          </button>
+        </div>
+      )}
+
+      <h3 className="panel-title">3. Varianti</h3>
+      <label className="inline-check small">
+        <input type="checkbox" checked={full} onChange={(event) => setFull(event.target.checked)} />
+        Completo
+      </label>
+      <label className="inline-check small" title="Senza _n e _s: per chi non usa shader">
+        <input type="checkbox" checked={base} onChange={(event) => setBase(event.target.checked)} />
+        Senza PBR (file «-base»)
+      </label>
+      <label
+        className="inline-check small"
+        title="Texture di blocchi, oggetti ed entità a un’altra risoluzione (pixel netti); le GUI restano com’erano"
+      >
+        <input
+          type="checkbox"
+          checked={resolution !== null}
+          onChange={(event) => setResolution(event.target.checked ? 16 : null)}
+        />
+        Anche a
+        <select
+          aria-label="Risoluzione export"
+          value={resolution ?? 16}
+          disabled={resolution === null}
+          onChange={(event) => setResolution(Number(event.target.value))}
+        >
+          {RESOLUTIONS.map((r) => (
+            <option key={r} value={r}>
+              {r}×
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label
+        className="inline-check small"
+        title="description-en.md, description-it.md e listing.txt con riassunto, versioni del gioco e tag consigliati"
+      >
+        <input
+          type="checkbox"
+          checked={withListing}
+          onChange={(event) => setWithListing(event.target.checked)}
+        />
+        Prepara anche la scheda per Modrinth / CurseForge
+      </label>
+
+      <h3 className="panel-title">4. Destinazione</h3>
+      <p className="small" data-testid="export-dir">
+        {dir}
+      </p>
+      <div className="row">
+        <button
+          type="button"
+          className="small-button"
+          onClick={() =>
+            void window.api
+              .invoke('dialog:pickDirectory', 'exportDestination')
+              .then((d) => d && setDir(d))
+          }
+        >
+          Cambia…
+        </button>
+      </div>
+
+      <details className="small export-rules">
+        <summary>Pubblicare e guadagnare: cosa dicono le regole di Minecraft</summary>
+        <p>
+          Dall’EULA di Minecraft: i contenuti che crei sono tuoi «purché tu non li venda / non
+          cerchi di guadagnarci». Le donazioni sono ammesse se il donatore non riceve qualcosa che
+          solo lui può usare: un pack riservato a chi paga (es. un livello Patreon) rischia di
+          violarle. Gli export includono sempre in CREDITS.txt l’avvertenza «NOT AN OFFICIAL
+          MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT». Non è un
+          parere legale: in caso di dubbio leggi le linee guida su minecraft.net.
+        </p>
+      </details>
+
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={variants.length === 0 || !versionOk || !info}
+          onClick={() => exportAll()}
+        >
+          Esporta {variants.length === 1 ? '1 zip' : `${variants.length} zip`}
+        </button>
+        <button type="button" onClick={onClose}>
+          Annulla
+        </button>
+      </div>
+    </DialogFrame>
   )
 }
 

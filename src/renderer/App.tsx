@@ -4,6 +4,8 @@ import { compatibleReleases } from '../shared/mcmeta'
 import { summarizeReleaseSpans } from '../shared/packFormat'
 import { TextureEditor, type EditorTarget } from './editor/TextureEditor'
 import { ErrorBoundary } from './ErrorBoundary'
+import { ExportDialog } from './packs/ExportDialog'
+import { InGameDialog } from './packs/InGameDialog'
 import { NewPackForm } from './packs/NewPackForm'
 import { OpenPackCard } from './packs/OpenPackCard'
 import { PackOverview } from './packs/PackOverview'
@@ -44,6 +46,8 @@ function Window(): React.JSX.Element {
   const [opening, setOpening] = useState(false)
   const [openError, setOpenError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  /** The Pubblica screen (export + in-game copy) over the pack screen. */
+  const [publishing, setPublishing] = useState(false)
   const [editing, setEditing] = useState<EditorTarget | null>(null)
   /** Test screen, over the editor (live = opened from it) or over the workspace. */
   const [testing, setTesting] = useState<{ target: EditorTarget; live: TestLive | null } | null>(
@@ -96,6 +100,7 @@ function Window(): React.JSX.Element {
       const result = await window.api.invoke('pack:open', path)
       if (result.ok) {
         setPack(result.pack)
+        setPublishing(false)
         setEditing(null)
         setTesting(null)
         setWorkspaceKey((key) => key + 1)
@@ -117,6 +122,7 @@ function Window(): React.JSX.Element {
 
   async function closePack(): Promise<void> {
     setPack(null)
+    setPublishing(false)
     setEditing(null)
     setTesting(null)
     await window.api.invoke('pack:close')
@@ -142,7 +148,9 @@ function Window(): React.JSX.Element {
         ? onMaps
           ? 'effetti'
           : 'disegna'
-        : 'pack'
+        : publishing
+          ? 'pubblica'
+          : 'pack'
 
   /** Leaves the test screen the way its own "back" button does. */
   function leaveTest(): void {
@@ -154,6 +162,7 @@ function Window(): React.JSX.Element {
   function goTo(next: Workspace): void {
     if (next === workspace) return
     setShowSettings(false)
+    setPublishing(next === 'pubblica')
     if (next === 'pack') {
       setTesting(null)
       // The editor asks before throwing unsaved work away.
@@ -166,8 +175,6 @@ function Window(): React.JSX.Element {
       store.run('editor:effects')
     } else if (next === 'prova') {
       store.run('editor:test')
-    } else if (next === 'pubblica') {
-      store.run('pack:export')
     }
   }
 
@@ -186,7 +193,7 @@ function Window(): React.JSX.Element {
     },
     {
       id: 'pubblica',
-      enabled: command('pack:export')?.enabled === true,
+      enabled: pack?.kind === 'folder' && !editorOpen && !testOpen,
       why:
         editorOpen || testOpen
           ? 'Torna al Pack per esportare'
@@ -318,7 +325,17 @@ function Window(): React.JSX.Element {
           </ErrorBoundary>
         </div>
       )}
-      <main className={pack && !showSettings ? 'app wide' : 'app'} hidden={editorOpen || testOpen}>
+      {publishing && pack && !editorOpen && !testOpen && (
+        // Pubblica (canvas): the export in the middle, the in-game copy beside it.
+        <div className="publish-screen">
+          <ExportDialog embedded onClose={() => setPublishing(false)} />
+          <InGameDialog embedded packName={pack.name} onClose={() => setPublishing(false)} />
+        </div>
+      )}
+      <main
+        className={pack && !showSettings ? 'app wide' : 'app'}
+        hidden={editorOpen || testOpen || (publishing && pack !== null)}
+      >
         {update && (
           <div className="update-banner" role="status" data-testid="update-banner">
             È disponibile PackForge {update.version} (tu hai {update.current}).
@@ -343,7 +360,7 @@ function Window(): React.JSX.Element {
             <>
               <PackWorkspace
                 key={workspaceKey}
-                visible={!editorOpen && !testOpen && !showSettings}
+                visible={!editorOpen && !testOpen && !showSettings && !publishing}
                 overview={
                   <PackOverview
                     pack={pack}

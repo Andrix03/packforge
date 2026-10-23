@@ -241,7 +241,7 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 - [x] Shell: menu bar, Ctrl+K, workspace hotbar, status bar (2026-10-23; screens publish commands through `useCommands`; Effetti and Pubblica tabs light up with their screens)
 - [x] Disegna: tool rail, options bar, document tabs, floating view bar, two-column dock, timeline (2026-10-23; one open document as a tab, multiple documents later)
 - [x] Pack, Prova, Effetti, Pubblica in the same style (every current feature kept) — 2026-10-23: Pack and Prova laid out like the canvas; Effetti = the editor on the _n/_s maps, Pubblica = the export
-- [ ] Dedicated Effetti and Pubblica screens as on the canvas (channels list + 2D/3D + light/material/POM/relief docks; checks list + export + in game + Modrinth listing)
+- [x] Dedicated Effetti and Pubblica screens (2026-10-23): Effetti = the editor on the maps with the LabPBR controls shared with Prova; Pubblica = export and in-game copy side by side
 - [x] Start screen, settings and every dialog restyled; Applica in blocco and Texture connesse as 4-step wizards with Prima/Dopo (2026-10-23; dialogs take the new look through the bridge styles)
 - [ ] CTM methods Orizzontale and Verticale (4 tiles each; shown as "in arrivo" in the wizard)
 - [x] New app icon (`npm run icon` → build/icon.png) and `docs/packforge.gif` for the README (2026-10-23)

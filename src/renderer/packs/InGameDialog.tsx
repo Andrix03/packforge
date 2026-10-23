@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { SyncStatus } from '../../shared/ipc'
 import { announceStep } from '../tutorialEvents'
+import { DialogFrame } from '../ui/components'
 import { useEscape } from '../useEscape'
 
 /** Debug hotkeys useful while testing a pack (minecraft.wiki "Debug hotkey", 26.x). */
@@ -25,14 +26,17 @@ const IRIS_KEYS: ReadonlyArray<[string, string]> = [
 /** Test the pack in the game: its copy in resourcepacks and the keys to remember. */
 export function InGameDialog({
   packName,
-  onClose
+  onClose,
+  embedded = false
 }: {
   packName: string
   onClose: () => void
+  /** Shown inside the Pubblica screen instead of as a dialog. */
+  embedded?: boolean
 }): React.JSX.Element {
   const [status, setStatus] = useState<SyncStatus | null>(null)
   const [busy, setBusy] = useState(false)
-  useEscape(onClose)
+  useEscape(onClose, !embedded)
 
   useEffect(() => {
     let current = true
@@ -54,104 +58,94 @@ export function InGameDialog({
 
   const last = status?.last
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal batch"
-        role="dialog"
-        aria-label="Prova in gioco"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>Prova {packName} in gioco</h2>
+    <DialogFrame embedded={embedded} label="Prova in gioco" onBackdrop={onClose}>
+      <h2>Prova {packName} in gioco</h2>
 
-        <h3 className="panel-title">1. Copia nella cartella resourcepacks</h3>
-        {!status ? (
-          <p className="small">…</p>
-        ) : !status.available ? (
-          <p className="small muted" data-testid="sync-reason">
-            {status.reason}
+      <h3 className="panel-title">1. Copia nella cartella resourcepacks</h3>
+      {!status ? (
+        <p className="small">…</p>
+      ) : !status.available ? (
+        <p className="small muted" data-testid="sync-reason">
+          {status.reason}
+        </p>
+      ) : (
+        <>
+          <p className="small" data-testid="sync-target">
+            {status.target}
+            {status.state === 'missing' && ' · non ancora copiato'}
+            {status.state === 'ours' && ' · copia di PackForge'}
           </p>
-        ) : (
-          <>
-            <p className="small" data-testid="sync-target">
-              {status.target}
-              {status.state === 'missing' && ' · non ancora copiato'}
-              {status.state === 'ours' && ' · copia di PackForge'}
+          {status.state === 'foreign' && (
+            <p className="field-error small">
+              Lì c’è già una cartella con questo nome che PackForge non ha creato: non la tocco.
+              Rinominala o spostala, poi riprova.
             </p>
-            {status.state === 'foreign' && (
-              <p className="field-error small">
-                Lì c’è già una cartella con questo nome che PackForge non ha creato: non la tocco.
-                Rinominala o spostala, poi riprova.
-              </p>
-            )}
-            <div className="row">
-              <button
-                type="button"
-                className="primary"
-                disabled={busy || status.state === 'foreign'}
-                onClick={() => void copyNow()}
-              >
-                {status.state === 'ours' ? 'Aggiorna la copia' : 'Copia nel gioco'}
-              </button>
-              <button type="button" onClick={() => void window.api.invoke('sync:openFolder')}>
-                Apri la cartella resourcepacks
-              </button>
-            </div>
-            <label
-              className="inline-check small"
-              title="Ogni volta che salvi (o un file del pack cambia), la copia si aggiorna da sola: in gioco basta F3 + T"
+          )}
+          <div className="row">
+            <button
+              type="button"
+              className="primary"
+              disabled={busy || status.state === 'foreign'}
+              onClick={() => void copyNow()}
             >
-              <input
-                type="checkbox"
-                checked={status.auto}
-                disabled={status.state !== 'ours'}
-                onChange={(event) =>
-                  void window.api.invoke('sync:setAuto', event.target.checked).then(setStatus)
-                }
-              />
-              Aggiorna la copia da sola dopo ogni modifica
-            </label>
-            {last && (
-              <p
-                className={last.error ? 'field-error small' : 'small muted'}
-                data-testid="sync-last"
-              >
-                {last.error ??
-                  `Ultima copia alle ${new Date(last.at).toLocaleTimeString('it-IT')}: ${last.copied} file copiati, ${last.removed} rimossi.`}
-              </p>
-            )}
-            <p className="small muted">
-              È una copia, non un collegamento: Minecraft ignora i collegamenti in resourcepacks se
-              non sono autorizzati in allowed_symlinks.txt.
+              {status.state === 'ours' ? 'Aggiorna la copia' : 'Copia nel gioco'}
+            </button>
+            <button type="button" onClick={() => void window.api.invoke('sync:openFolder')}>
+              Apri la cartella resourcepacks
+            </button>
+          </div>
+          <label
+            className="inline-check small"
+            title="Ogni volta che salvi (o un file del pack cambia), la copia si aggiorna da sola: in gioco basta F3 + T"
+          >
+            <input
+              type="checkbox"
+              checked={status.auto}
+              disabled={status.state !== 'ours'}
+              onChange={(event) =>
+                void window.api.invoke('sync:setAuto', event.target.checked).then(setStatus)
+              }
+            />
+            Aggiorna la copia da sola dopo ogni modifica
+          </label>
+          {last && (
+            <p className={last.error ? 'field-error small' : 'small muted'} data-testid="sync-last">
+              {last.error ??
+                `Ultima copia alle ${new Date(last.at).toLocaleTimeString('it-IT')}: ${last.copied} file copiati, ${last.removed} rimossi.`}
             </p>
-          </>
-        )}
+          )}
+          <p className="small muted">
+            È una copia, non un collegamento: Minecraft ignora i collegamenti in resourcepacks se
+            non sono autorizzati in allowed_symlinks.txt.
+          </p>
+        </>
+      )}
 
-        <h3 className="panel-title">2. In gioco</h3>
-        <ol className="small ingame-steps">
-          <li>
-            Opzioni → Pacchetti di risorse: sposta «{packName}» nella colonna di destra (più in alto
-            = vince sugli altri).
-          </li>
-          <li>Dopo ogni modifica salvata premi F3 + T.</li>
-          <li>
-            Per _n e _s serve uno shader pack LabPBR con Iris (Fabric); per le texture connesse
-            Continuity (o OptiFine).
-          </li>
-          <li>Se il pack appare in rosso, il pack_format non è quello della tua versione.</li>
-        </ol>
+      <h3 className="panel-title">2. In gioco</h3>
+      <ol className="small ingame-steps">
+        <li>
+          Opzioni → Pacchetti di risorse: sposta «{packName}» nella colonna di destra (più in alto =
+          vince sugli altri).
+        </li>
+        <li>Dopo ogni modifica salvata premi F3 + T.</li>
+        <li>
+          Per _n e _s serve uno shader pack LabPBR con Iris (Fabric); per le texture connesse
+          Continuity (o OptiFine).
+        </li>
+        <li>Se il pack appare in rosso, il pack_format non è quello della tua versione.</li>
+      </ol>
 
-        <h3 className="panel-title">Tasti utili</h3>
-        <KeyTable rows={HOTKEYS} />
-        <h3 className="panel-title">Shader (Iris)</h3>
-        <KeyTable rows={IRIS_KEYS} />
+      <h3 className="panel-title">Tasti utili</h3>
+      <KeyTable rows={HOTKEYS} />
+      <h3 className="panel-title">Shader (Iris)</h3>
+      <KeyTable rows={IRIS_KEYS} />
 
-        <div className="row">
-          <button type="button" onClick={onClose}>
-            Chiudi
-          </button>
-        </div>
+      <div className="row">
+        <button type="button" onClick={onClose}>
+          Chiudi
+        </button>
       </div>
-    </div>
+    </DialogFrame>
   )
 }
 

@@ -77,17 +77,23 @@ export default async function shell(app) {
   await app.waitFor(`!document.querySelector('.editor')`)
   app.check((await active(app)) === 'pack', 'Pack tab closes the editor')
 
-  // Pubblica opens the export from the Pack.
+  // Pubblica: a screen with the export and the in-game copy side by side.
   await app.click('Pubblica', '.shell-tab')
-  await app.waitFor(
-    `[...document.querySelectorAll('h2')].some((h) => /Esporta il pack/i.test(h.textContent))`
+  await app.waitFor(`document.querySelector('.publish-screen')`)
+  app.check((await active(app)) === 'pubblica', 'Pubblica is the active workspace')
+  const panels = await app.ev(
+    `[...document.querySelectorAll('.publish-screen > section')].map((s) => s.getAttribute('aria-label')).join('|')`
   )
-  app.check(true, 'Pubblica opens the export')
+  app.check(panels === 'Esporta|Prova in gioco', `export and in game side by side (${panels})`)
+  app.check(
+    await app.ev(`!document.querySelector('.modal-backdrop')`),
+    'not a dialog: no backdrop'
+  )
+  await app.sleep(500)
   await app.shot('shell-pubblica')
-  await app.key('Escape')
-  await app.waitFor(
-    `![...document.querySelectorAll('h2')].some((h) => /Esporta il pack/i.test(h.textContent))`
-  )
+  await app.click('Pack', '.shell-tab')
+  await app.waitFor(`!document.querySelector('.publish-screen')`)
+  app.check((await active(app)) === 'pack', 'Pack tab goes back from Pubblica')
 
   // Settings from the command search.
   await app.key('k', ['ctrl'])

@@ -267,3 +267,39 @@ export function RangeInput({ className, style, ...rest }: InputHTMLAttributes<HT
     />
   )
 }
+
+/**
+ * A dialog's frame: a modal (backdrop + card) or, `embedded`, a panel of a screen (Pubblica shows
+ * the export and the in-game copy side by side). Clicking the backdrop calls `onBackdrop`.
+ */
+export function DialogFrame({
+  embedded,
+  label,
+  onBackdrop,
+  children
+}: {
+  embedded: boolean
+  label: string
+  onBackdrop?: (() => void) | undefined
+  children: ReactNode
+}) {
+  if (embedded) {
+    return (
+      <section className="card embedded-dialog batch" aria-label={label}>
+        {children}
+      </section>
+    )
+  }
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onBackdrop}>
+      <div
+        className="card modal batch"
+        role="dialog"
+        aria-label={label}
+        onClick={(event) => event.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}

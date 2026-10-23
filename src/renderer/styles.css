@@ -2379,3 +2379,291 @@ kbd {
 .shell-fill[hidden] {
   display: none;
 }
+
+/* ---- 12b Disegna (canvas: Main.dc.html): tool rail | options bar + canvas | colors | panels ---- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.editor-main,
+.editor-main.big-preview {
+  gap: 0;
+  grid-template-columns: 52px minmax(0, 1fr) 300px 280px;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'rail options side colors'
+    'rail center side colors';
+  border: 1px solid var(--ui-edge-dark);
+}
+.editor-main.big-preview {
+  grid-template-columns: 52px minmax(0, 1fr) minmax(420px, 42%) 280px;
+}
+.editor-main > .tool-rail {
+  grid-area: rail;
+}
+.editor-main > .tool-options {
+  grid-area: options;
+}
+.editor-main > .color-dock {
+  grid-area: colors;
+}
+.editor-main > .editor-center {
+  grid-area: center;
+}
+.editor-main > .editor-side {
+  grid-area: side;
+}
+/* Narrow window: one dock column, the 3D preview and panels above the colors. */
+@media (max-width: 1100px) {
+  .editor-main,
+  .editor-main.big-preview {
+    grid-template-columns: 52px minmax(0, 1fr) 300px;
+    grid-template-rows: auto minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-areas:
+      'rail options side'
+      'rail center side'
+      'rail center colors';
+  }
+  .editor-main.big-preview {
+    grid-template-columns: 52px minmax(0, 1fr) minmax(420px, 42%);
+  }
+}
+
+.tool-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 3px;
+  background: #262626;
+  border-right: 1px solid var(--ui-edge-dark);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.tool-rail .tool {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 0;
+  color: #cfc9bf;
+}
+.tool-rail .tool:hover:not(:disabled) {
+  background: #333;
+}
+.tool-rail .tool.active {
+  background: #2f4a26;
+  border-color: var(--ui-edge-dark);
+  outline: 2px solid var(--ui-green);
+  outline-offset: -4px;
+  color: #c9f0a6;
+}
+
+.tool-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 10px;
+  background: #262626;
+  border-bottom: 1px solid var(--ui-edge-dark);
+}
+.tool-name {
+  flex: none;
+  min-width: 96px;
+}
+.tool-options-strip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tool-options-strip::-webkit-scrollbar {
+  display: none;
+}
+.option-group,
+.segmented {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.segmented {
+  gap: 0;
+}
+.toggle-label {
+  flex: none;
+}
+.brush-size {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.brush-size input {
+  width: 52px;
+  height: 26px;
+  text-align: center;
+}
+.tool-options .tool-tip {
+  flex: none;
+  white-space: nowrap;
+}
+
+.color-dock,
+.editor-main > .editor-side {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+  background: var(--ui-panel);
+  border-left: 1px solid var(--ui-edge-dark);
+}
+.color-dock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.editor-main > .editor-center {
+  padding: 8px;
+  background: var(--ui-bg);
+}
+
+/* ---- 12b bridge: generic controls of the screens not rebuilt yet take the new look ---- */
+.card {
+  background: var(--ui-panel);
+  border-radius: 0;
+  border-top: 1px solid var(--ui-edge-light);
+  border-left: 1px solid var(--ui-edge-light);
+  border-right: 1px solid var(--ui-edge-dark);
+  border-bottom: 1px solid var(--ui-edge-dark);
+}
+.card h2 {
+  font-family: var(--ui-label);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ui-green-text);
+}
+/* Plain, primary and small buttons and tabs: ore buttons. */
+button:not([class]),
+button.small-button,
+button.primary,
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 2px solid var(--ui-edge-dark);
+  border-radius: 0;
+  background: var(--ui-light);
+  color: #1d1d1d;
+  box-shadow:
+    inset 0 2px 0 #f4f4f4,
+    inset 0 -3px 0 #8f8f8f;
+  font-family: var(--ui-label);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+button:not([class]):hover:not(:disabled),
+button.small-button:hover:not(:disabled),
+.tab:hover:not(.active) {
+  background: #e6e6e6;
+}
+button.primary,
+.tab.active {
+  background: var(--ui-green);
+  border-color: var(--ui-edge-dark);
+  color: #0f1e08;
+  box-shadow:
+    inset 0 2px 0 var(--ui-green-light),
+    inset 0 -3px 0 var(--ui-green-dark);
+}
+.tabs {
+  gap: 0;
+  padding: 2px;
+  border: 0;
+  border-radius: 0;
+  background: var(--ui-edge-dark);
+}
+.tab .count {
+  color: inherit;
+  opacity: 0.7;
+  font-size: 10px;
+}
+/* Fields and dropdowns. */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+textarea {
+  border-radius: 0;
+  background: #1b1b1b;
+  border-top: 1px solid #0e0e0e;
+  border-left: 1px solid #0e0e0e;
+  border-right: 1px solid #4a4a4a;
+  border-bottom: 1px solid #4a4a4a;
+}
+select:not(.ore-select) {
+  appearance: none;
+  border: 2px solid var(--ui-edge-dark);
+  border-radius: 0;
+  background-color: var(--ui-light);
+  color: #1d1d1d;
+  box-shadow:
+    inset 0 2px 0 #f4f4f4,
+    inset 0 -3px 0 #8f8f8f;
+  padding: 0 26px 0 8px;
+  min-height: 28px;
+  font-family: var(--ui-label);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #1d1d1d 50%),
+    linear-gradient(135deg, #1d1d1d 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) 11px,
+    calc(100% - 10px) 11px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--ui-green);
+}
+.badge {
+  border-radius: 0;
+  border-color: #4a4a4a;
+  background: var(--ui-sunken);
+}
+/* Old per-screen tab sizes: back to the Tiny5 10 px of the ore buttons. */
+.small-tabs .tab,
+.face-tabs .tab,
+.channel-tabs .tab {
+  min-height: 24px;
+  padding: 0 9px;
+  font-size: 10px;
+}
+.face-tabs .tab.missing {
+  border: 2px dashed #6a6a6a;
+  background: #3a3a3a;
+  color: var(--ui-muted);
+  box-shadow: none;
+}

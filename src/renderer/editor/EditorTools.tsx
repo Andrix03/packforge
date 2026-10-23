@@ -1,7 +1,19 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { PixelIcon } from '../ui/components'
+import { CMD_ICONS, NAV_ICONS, TOOL_ICONS, type PixelIconData } from '../ui/icons'
 import type { UsedColor } from './color'
 import { ColorPanel } from './ColorPanel'
 import type { FillMode, Rgba } from './pixels'
 import type { NoiseStrength } from './ramp'
+import {
+  BRUSH_TOOLS,
+  maxBrushSize,
+  MIRROR_TOOLS,
+  SELECTION_TOOLS,
+  TOOLS,
+  visibleTools,
+  type ToolId
+} from './tools'
 
 export type SelectionAction =
   | 'all'
@@ -15,17 +27,8 @@ export type SelectionAction =
   | 'delete'
   | 'drop'
   | 'cancel'
-import {
-  BRUSH_TOOLS,
-  maxBrushSize,
-  MIRROR_TOOLS,
-  SELECTION_TOOLS,
-  TOOLS,
-  visibleTools,
-  type ToolId
-} from './tools'
 
-interface EditorToolsProps {
+export interface EditorToolsProps {
   tool: ToolId
   onTool: (tool: ToolId) => void
   pixelPerfect: boolean
@@ -59,12 +62,20 @@ interface EditorToolsProps {
   showTips: boolean
 }
 
-export function EditorTools(props: EditorToolsProps): React.JSX.Element {
-  const active = TOOLS.find((tool) => tool.id === props.tool)!
+const TOOL_PICTURE: Partial<Record<ToolId, PixelIconData>> = { ...NAV_ICONS, ...TOOL_ICONS }
+
+/** Vertical rail of tool icons (the tool name stays in the button for tooltips and tests). */
+export function ToolRail(props: EditorToolsProps): React.JSX.Element {
   return (
-    <aside className="editor-tools card">
-      <div className="tool-list" role="toolbar" aria-label="Strumenti">
-        {visibleTools(props.pro).map((tool) => (
+    <nav
+      className="tool-rail tool-list"
+      role="toolbar"
+      aria-label="Strumenti"
+      aria-orientation="vertical"
+    >
+      {visibleTools(props.pro).map((tool) => {
+        const icon = TOOL_PICTURE[tool.id]
+        return (
           <button
             key={tool.id}
             type="button"
@@ -74,158 +85,284 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
             onClick={() => props.onTool(tool.id)}
             disabled={props.disabled}
           >
-            {tool.label}
-            <kbd>{tool.shortcut}</kbd>
+            {icon && <PixelIcon icon={icon} size={32} />}
+            <span className="sr-only">
+              {tool.label}
+              <kbd>{tool.shortcut}</kbd>
+            </span>
           </button>
-        ))}
-      </div>
+        )
+      })}
+    </nav>
+  )
+}
 
-      {BRUSH_TOOLS.has(props.tool) && (
-        <label className="color-slider" title="Dimensione del pennello quadrato ( [ e ] )">
-          <span className="small muted">
-            Pennello <span className="slider-value">{props.brushSize} px</span>
-          </span>
-          <input
-            type="range"
-            min={1}
-            max={maxBrushSize(props.pro)}
-            value={props.brushSize}
-            onChange={(event) => props.onBrushSize(Number(event.target.value))}
-          />
-        </label>
-      )}
+/** A checkbox drawn as an ore toggle button (the input stays for keyboards and tests). */
+function ToggleLabel({
+  checked,
+  onChange,
+  title,
+  icon,
+  children
+}: {
+  checked: boolean
+  onChange: (value: boolean) => void
+  title: string
+  icon?: PixelIconData
+  children?: ReactNode
+}) {
+  return (
+    <label className={checked ? 'ore-on toggle-label' : 'ore toggle-label'} title={title}>
+      <input
+        type="checkbox"
+        className="sr-only"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      {icon && <PixelIcon icon={icon} />}
+      {children}
+    </label>
+  )
+}
 
-      {props.pro && props.tool === 'pencil' && props.brushSize === 1 && (
-        <label
-          className="inline-check small"
-          title="Toglie gli angoli a L mentre disegni, così le linee restano spesse un pixel."
+/** Two or three choices drawn as joined ore buttons (radios). */
+function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onChange
+}: {
+  label: string
+  value: T
+  options: readonly (readonly [T, string, string])[]
+  onChange: (value: T) => void
+}) {
+  return (
+    <div className="segmented" role="radiogroup" aria-label={label}>
+      {options.map(([id, text, title]) => (
+        <button
+          key={id}
+          type="button"
+          role="radio"
+          aria-checked={value === id}
+          className={value === id ? 'ore-on' : 'ore'}
+          title={title}
+          onClick={() => onChange(id)}
         >
-          <input
-            type="checkbox"
-            checked={props.pixelPerfect}
-            onChange={(event) => props.onPixelPerfect(event.target.checked)}
-          />
-          Pixel-perfect
-        </label>
-      )}
+          {text}
+        </button>
+      ))}
+    </div>
+  )
+}
 
-      {(props.tool === 'rect' || props.tool === 'ellipse') && (
-        <label
-          className="inline-check small"
-          title="Riempie la forma invece di disegnarne solo il bordo"
+/**
+ * Options of the active tool in one line above the canvas; when the window is too narrow the line
+ * scrolls sideways with arrows at its ends.
+ */
+export function ToolOptions(props: EditorToolsProps): React.JSX.Element {
+  const active = TOOLS.find((tool) => tool.id === props.tool)!
+  const strip = useRef<HTMLDivElement>(null)
+  const [overflow, setOverflow] = useState({ left: false, right: false })
+
+  useEffect(() => {
+    const element = strip.current
+    if (!element) return
+    const update = (): void => {
+      const left = element.scrollLeft > 1
+      const right = element.scrollLeft + element.clientWidth < element.scrollWidth - 1
+      setOverflow((now) => (now.left === left && now.right === right ? now : { left, right }))
+    }
+    const observer = new ResizeObserver(update)
+    observer.observe(element)
+    element.addEventListener('scroll', update)
+    return () => {
+      observer.disconnect()
+      element.removeEventListener('scroll', update)
+    }
+  }, [])
+
+  const scroll = (dx: number): void => strip.current?.scrollBy({ left: dx, behavior: 'smooth' })
+  const max = maxBrushSize(props.pro)
+
+  return (
+    <div className="tool-options" role="group" aria-label={`Opzioni: ${active.label}`}>
+      <span className="ph big tool-name">{active.label}</span>
+      {overflow.left && (
+        <button
+          type="button"
+          className="ore ico"
+          aria-label="Opzioni precedenti"
+          onClick={() => scroll(-240)}
         >
-          <input
-            type="checkbox"
-            checked={props.shapeFilled}
-            onChange={(event) => props.onShapeFilled(event.target.checked)}
-          />
-          Pieno
-        </label>
+          <PixelIcon icon={CMD_ICONS.less} />
+        </button>
       )}
-
-      {props.pro && MIRROR_TOOLS.has(props.tool) && (
-        <div className="mirror-toggles small" role="group" aria-label="Simmetria">
-          <span className="muted">Simmetria</span>
-          <label className="inline-check" title="Specchia sinistra ↔ destra">
-            <input
-              type="checkbox"
-              checked={props.mirror.x}
-              onChange={(event) => props.onMirror({ ...props.mirror, x: event.target.checked })}
-            />
-            ↔
-          </label>
-          <label className="inline-check" title="Specchia sopra ↕ sotto">
-            <input
-              type="checkbox"
-              checked={props.mirror.y}
-              onChange={(event) => props.onMirror({ ...props.mirror, y: event.target.checked })}
-            />
-            ↕
-          </label>
-        </div>
-      )}
-
-      {props.pro && (SELECTION_TOOLS.has(props.tool) || props.selection.active) && (
-        <div className="selection-actions" role="group" aria-label="Selezione">
-          {(
-            [
-              ['all', 'Tutto', 'Seleziona tutto (Ctrl+A)', true],
-              ['none', 'Deseleziona', 'Togli la selezione (Ctrl+D)', props.selection.active],
-              ['copy', 'Copia', 'Copia (Ctrl+C)', props.selection.active],
-              ['cut', 'Taglia', 'Taglia (Ctrl+X)', props.selection.active],
-              ['paste', 'Incolla', 'Incolla (Ctrl+V)', props.selection.canPaste],
-              ['flipH', '↔', 'Rifletti orizzontalmente (Maiusc+H)', true],
-              ['flipV', '↕', 'Rifletti verticalmente (Maiusc+V)', true],
-              ['rotate', '⟳ 90°', 'Ruota di 90° (Maiusc+R)', true],
-              ['delete', 'Elimina', 'Cancella i pixel selezionati (Canc)', props.selection.active],
-              ['drop', 'Appoggia', 'Appoggia il pezzo spostato (Invio)', props.selection.floating]
-            ] as const
-          ).map(([action, label, title, enabled]) => (
+      <div className="tool-options-strip" ref={strip}>
+        {BRUSH_TOOLS.has(props.tool) && (
+          <div className="option-group" title="Dimensione del pennello quadrato ( [ e ] )">
+            <PixelIcon icon={CMD_ICONS.brush} />
             <button
-              key={action}
               type="button"
-              title={title}
-              disabled={!enabled}
-              onClick={() => props.onSelectionAction(action)}
+              className="ore ico"
+              aria-label="Pennello più piccolo"
+              disabled={props.brushSize <= 1}
+              onClick={() => props.onBrushSize(Math.max(1, props.brushSize - 1))}
             >
-              {label}
+              <PixelIcon icon={CMD_ICONS.minus} />
             </button>
-          ))}
-        </div>
-      )}
+            <label className="brush-size">
+              <span className="sr-only">Pennello</span>
+              <input
+                className="field"
+                type="number"
+                min={1}
+                max={max}
+                value={props.brushSize}
+                onChange={(event) => {
+                  const next = Number(event.target.value)
+                  if (Number.isFinite(next))
+                    props.onBrushSize(Math.min(max, Math.max(1, Math.round(next))))
+                }}
+              />
+              <span className="muted">px</span>
+            </label>
+            <button
+              type="button"
+              className="ore ico"
+              aria-label="Pennello più grande"
+              disabled={props.brushSize >= max}
+              onClick={() => props.onBrushSize(Math.min(max, props.brushSize + 1))}
+            >
+              <PixelIcon icon={CMD_ICONS.plus} />
+            </button>
+          </div>
+        )}
 
-      {(props.tool === 'fill' || props.tool === 'noise' || props.tool === 'wand') && (
-        <div className="tabs small-tabs" role="radiogroup" aria-label="Modalità del secchiello">
-          {(
-            [
+        {props.pro && props.tool === 'pencil' && props.brushSize === 1 && (
+          <ToggleLabel
+            checked={props.pixelPerfect}
+            onChange={props.onPixelPerfect}
+            icon={CMD_ICONS.pixelPerfect}
+            title="Pixel-perfect: toglie gli angoli a L mentre disegni, così le linee restano spesse un pixel."
+          >
+            <span className="sr-only">Pixel-perfect</span>
+          </ToggleLabel>
+        )}
+
+        {(props.tool === 'rect' || props.tool === 'ellipse') && (
+          <ToggleLabel
+            checked={props.shapeFilled}
+            onChange={props.onShapeFilled}
+            title="Riempie la forma invece di disegnarne solo il bordo"
+          >
+            Pieno
+          </ToggleLabel>
+        )}
+
+        {props.pro && MIRROR_TOOLS.has(props.tool) && (
+          <div className="mirror-toggles option-group" role="group" aria-label="Simmetria">
+            <span className="lbl">Simmetria</span>
+            <ToggleLabel
+              checked={props.mirror.x}
+              onChange={(x) => props.onMirror({ ...props.mirror, x })}
+              title="Specchia sinistra ↔ destra"
+            >
+              ↔
+            </ToggleLabel>
+            <ToggleLabel
+              checked={props.mirror.y}
+              onChange={(y) => props.onMirror({ ...props.mirror, y })}
+              title="Specchia sopra ↕ sotto"
+            >
+              ↕
+            </ToggleLabel>
+          </div>
+        )}
+
+        {props.pro && (SELECTION_TOOLS.has(props.tool) || props.selection.active) && (
+          <div className="selection-actions option-group" role="group" aria-label="Selezione">
+            {(
+              [
+                ['all', 'Tutto', 'Seleziona tutto (Ctrl+A)', true],
+                ['none', 'Deseleziona', 'Togli la selezione (Ctrl+D)', props.selection.active],
+                ['copy', 'Copia', 'Copia (Ctrl+C)', props.selection.active],
+                ['cut', 'Taglia', 'Taglia (Ctrl+X)', props.selection.active],
+                ['paste', 'Incolla', 'Incolla (Ctrl+V)', props.selection.canPaste],
+                ['flipH', '↔', 'Rifletti orizzontalmente (Maiusc+H)', true],
+                ['flipV', '↕', 'Rifletti verticalmente (Maiusc+V)', true],
+                ['rotate', '⟳ 90°', 'Ruota di 90° (Maiusc+R)', true],
+                [
+                  'delete',
+                  'Elimina',
+                  'Cancella i pixel selezionati (Canc)',
+                  props.selection.active
+                ],
+                ['drop', 'Appoggia', 'Appoggia il pezzo spostato (Invio)', props.selection.floating]
+              ] as const
+            ).map(([action, label, title, enabled]) => (
+              <button
+                key={action}
+                type="button"
+                className="ore"
+                title={title}
+                disabled={!enabled}
+                onClick={() => props.onSelectionAction(action)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {(props.tool === 'fill' || props.tool === 'noise' || props.tool === 'wand') && (
+          <Segmented
+            label="Modalità del secchiello"
+            value={props.fillMode}
+            onChange={props.onFillMode}
+            options={[
               ['contiguous', 'Area', 'Solo i pixel uguali collegati a quello cliccato'],
               ['global', 'Globale', 'Tutti i pixel di quel colore nella texture']
-            ] as const
-          ).map(([mode, label, title]) => (
-            <button
-              key={mode}
-              type="button"
-              role="radio"
-              aria-checked={props.fillMode === mode}
-              className={props.fillMode === mode ? 'tab active' : 'tab'}
-              title={title}
-              onClick={() => props.onFillMode(mode)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+            ]}
+          />
+        )}
 
-      {props.tool === 'noise' && (
-        <div className="tabs small-tabs" role="radiogroup" aria-label="Intensità del rumore">
-          {(
-            [
+        {props.tool === 'noise' && (
+          <Segmented
+            label="Intensità del rumore"
+            value={props.noiseStrength}
+            onChange={props.onNoiseStrength}
+            options={[
               [
                 'soft',
                 'Leggero',
                 'Le 3 tonalità centrali della rampa: una grana fine (pietra, legno)'
               ],
               ['full', 'Forte', 'Tutte le 5 tonalità, anche le più scure e chiare (ghiaia, terra)']
-            ] as const
-          ).map(([strength, label, title]) => (
-            <button
-              key={strength}
-              type="button"
-              role="radio"
-              aria-checked={props.noiseStrength === strength}
-              className={props.noiseStrength === strength ? 'tab active' : 'tab'}
-              title={title}
-              onClick={() => props.onNoiseStrength(strength)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+            ]}
+          />
+        )}
+
+        {props.showTips && <span className="tool-tip muted">{active.tip}</span>}
+      </div>
+      {overflow.right && (
+        <button
+          type="button"
+          className="ore ico"
+          aria-label="Altre opzioni"
+          onClick={() => scroll(240)}
+        >
+          <PixelIcon icon={CMD_ICONS.more} />
+        </button>
       )}
+    </div>
+  )
+}
 
-      {props.showTips && <p className="tool-tip small muted">{active.tip}</p>}
-
+/** Colors and shading ramp (or the value picker while painting a map channel), for the dock. */
+export function ColorDock(props: EditorToolsProps): React.JSX.Element {
+  return (
+    <div className="color-dock">
       {props.valuePanel ?? (
         <>
           <ColorPanel
@@ -240,6 +377,17 @@ export function EditorTools(props: EditorToolsProps): React.JSX.Element {
           {props.rampPanel}
         </>
       )}
-    </aside>
+    </div>
+  )
+}
+
+/** The three parts side by side in the editor grid: rail, options bar, colors. */
+export function EditorTools(props: EditorToolsProps): React.JSX.Element {
+  return (
+    <>
+      <ToolRail {...props} />
+      <ToolOptions {...props} />
+      <ColorDock {...props} />
+    </>
   )
 }

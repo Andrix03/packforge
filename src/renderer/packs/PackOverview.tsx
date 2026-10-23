@@ -193,7 +193,16 @@ function DescriptionForm({
   }
 
   return (
-    <div className="description-form">
+    // Esc inside the form cancels the edit (only here: a dialog on top keeps its own Esc).
+    <div
+      className="description-form"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && !saving) {
+          event.stopPropagation()
+          onCancel()
+        }
+      }}
+    >
       {wasComponent && (
         <p className="warning-text small">
           La descrizione attuale è in formato JSON: salvando diventerà testo con codici §.

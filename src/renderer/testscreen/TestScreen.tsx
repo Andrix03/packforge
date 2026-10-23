@@ -201,7 +201,10 @@ export function TestScreen({
       const pixels = await colormaps
       const tintOf: TintOf = (name) => tintFor(name, biome, pixels)
       const placements = scene
-        .build(neighbours.filter((name) => blockSet.has(name)))
+        .build(
+          neighbours.filter((name) => blockSet.has(name)),
+          block ?? target.name
+        )
         .filter((p) => p.block === MINE || blockSet.has(p.block))
       const mine = isItem ? null : await loadMine(sources, block, target.path, tintOf)
       const theirs =
@@ -240,6 +243,7 @@ export function TestScreen({
     }
   }, [
     scene,
+    target.name,
     neighbours,
     blockSet,
     block,

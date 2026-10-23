@@ -30,7 +30,8 @@ export interface SceneDef {
   camera: Vec3
   /** Vertical field of view: 70 like the game for built scenes. */
   fov: number
-  build: (neighbours: readonly string[]) => Placement[]
+  /** `tested` = the block (or texture) name being tested, for scenes that adapt to it. */
+  build: (neighbours: readonly string[], tested?: string | null) => Placement[]
 }
 
 /** Blocks proposed next to the tested one in the mixed scene. */
@@ -103,7 +104,7 @@ export const BLOCK_SCENES: readonly SceneDef[] = [
   {
     kind: 'cave',
     label: 'Grotta',
-    hint: 'Il tuo blocco forma pareti, soffitto e pavimento di una galleria, rischiarata in fondo da una torcia.',
+    hint: 'Il tuo blocco forma pareti, soffitto e pavimento di una galleria, rischiarata in fondo da una torcia. Un minerale sta nella sua roccia, qua e là come in miniera.',
     focus: [0, 2, -3],
     camera: [0.6, 0.4, 11],
     fov: 70,
@@ -200,7 +201,23 @@ function houseScene(): Placement[] {
   return [...blocks.values()]
 }
 
-function caveScene(): Placement[] {
+/**
+ * The rock an ore sits in, as in the game (deepslate ores in deepslate, nether ores in
+ * netherrack, the others in stone), or null when the tested block is not an ore.
+ */
+export function oreHost(tested: string | null | undefined): string | null {
+  const name = (tested ?? '').replace(/^.*[:/]/, '').replace(/\.png$/, '')
+  if (!/_ore$/.test(name) && name !== 'ancient_debris') return null
+  if (name.startsWith('deepslate_')) return 'deepslate'
+  if (name.startsWith('nether_') || name === 'ancient_debris') return 'netherrack'
+  return 'stone'
+}
+
+function caveScene(_neighbours: readonly string[], tested?: string | null): Placement[] {
+  // An ore is seen as in a mine: its rock with the ore here and there, not a tunnel all of ore.
+  const host = oreHost(tested)
+  const wall = (x: number, y: number, z: number): string =>
+    host === null ? MINE : (x * 7 + y * 13 + z * 5 + 400) % 6 === 0 ? MINE : host
   const placements: Placement[] = []
   for (let z = -8; z <= 6; z++) {
     for (let x = -3; x <= 3; x++) {
@@ -208,15 +225,23 @@ function caveScene(): Placement[] {
         const inside = x > -3 && x < 3 && y > 0 && y < 4
         if (inside) continue
         // A few vanilla blocks so the walls are not all the same.
-        const ore = (x === -3 && y === 2 && z === -2) || (x === 3 && y === 1 && z === 2)
+        const ore =
+          host === null && ((x === -3 && y === 2 && z === -2) || (x === 3 && y === 1 && z === 2))
         const gravel = y === 0 && (x + z * 3) % 7 === 0
-        placements.push({ block: ore ? 'coal_ore' : gravel ? 'gravel' : MINE, at: [x, y, z] })
+        placements.push({
+          block: ore ? 'coal_ore' : gravel ? 'gravel' : wall(x, y, z),
+          at: [x, y, z]
+        })
       }
     }
   }
   // The tunnel ends against a wall, with a torch: sky light fades inside, block light near it.
+  // For an ore the end wall shows it up close, framed by its rock.
   for (let x = -2; x <= 2; x++) {
-    for (let y = 1; y <= 3; y++) placements.push({ block: MINE, at: [x, y, -9] })
+    for (let y = 1; y <= 3; y++) {
+      const block = host === null || (Math.abs(x) <= 1 && y === 2) ? MINE : host
+      placements.push({ block, at: [x, y, -9] })
+    }
   }
   placements.push({ block: 'torch', at: [0, 1, -7] })
   return placements

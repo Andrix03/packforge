@@ -52,9 +52,9 @@ describe('groupTextures', () => {
     expect(textures[0]?.normal).toBeNull()
   })
 
-  it('ignores non-PNG files and handles root-level textures', () => {
-    const textures = groupTextures(['pack.mcmeta', 'pack.png', 'readme.txt'])
-    expect(textures.map((t) => [t.key, t.folder, t.name])).toEqual([['pack', '', 'pack']])
+  it('ignores non-PNG files and the pack icon, handles root-level textures', () => {
+    const textures = groupTextures(['pack.mcmeta', 'pack.png', 'readme.txt', 'logo.png'])
+    expect(textures.map((t) => [t.key, t.folder, t.name])).toEqual([['logo', '', 'logo']])
   })
 
   it('accepts upper-case extensions', () => {

@@ -245,14 +245,14 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 - [x] Start screen, settings and every dialog restyled; Applica in blocco and Texture connesse as 4-step wizards with Prima/Dopo (2026-10-23; dialogs take the new look through the bridge styles)
 - [x] CTM methods Orizzontale and Verticale (2026-10-23; 4 tiles in the OptiFine / Continuity order, checked against Continuity's HorizontalSpriteProvider)
 - [x] New app icon (`npm run icon` → build/icon.png) and `docs/packforge.gif` for the README (2026-10-23)
-- [ ] Beginner layout + tutorial updated; drive scenarios updated
-- [ ] Strings into a dictionary (Italian; English when Andrea decides)
+- [x] Beginner layout + tutorial updated; drive scenarios updated (2026-10-23)
+- [ ] Strings into a dictionary (Italian; English when Andrea decides) — postponed until the English decision (12c)
 
 ## Phase 12c — Release 1.0
 
-- [ ] Small fixes from the self-test (Esc on the description editor, pack.png counted as a texture, Prova cave for ores)
+- [x] Small fixes from the self-test (Esc on the description editor, pack.png counted as a texture, Prova cave for ores) — 2026-10-23
 - [ ] Version 1.0.0, changelog, user guide, download page; installer tested on a clean PC (also without Minecraft)
-- [ ] "Not affiliated with Mojang/Microsoft" notice in the app
+- [x] "Not affiliated with Mojang/Microsoft" notice in the app (status bar; Impostazioni box still to restyle)
 - [ ] Andrea decides: code signing, English, PackForge licence and price, distribution channel, beta testers
 
 ## After 1.0 (decided 2026-10-23)

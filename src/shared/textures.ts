@@ -24,7 +24,8 @@ const PNG = /\.png$/i
  */
 export function groupTextures(paths: readonly string[]): TextureEntry[] {
   const all = new Set(paths)
-  const pngs = paths.filter((path) => PNG.test(path))
+  // pack.png at the root is the pack's icon, not a texture.
+  const pngs = paths.filter((path) => PNG.test(path) && path.toLowerCase() !== 'pack.png')
   const pngKeys = new Set(pngs.map(stripPng))
   const maps = new Map<string, { normal?: string; specular?: string }>()
   const albedos: string[] = []

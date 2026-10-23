@@ -2960,3 +2960,54 @@ input.seg-range:focus-visible {
   text-transform: uppercase;
   color: #d9d3c7;
 }
+
+/* ---- 12b start screen (canvas: Avvio.dc.html) ---- */
+.app:not(.wide) {
+  max-width: 1180px;
+}
+.start-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 20px;
+  align-items: start;
+}
+.start-left,
+.start-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.start-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--ui-green);
+}
+.start-hero h1 {
+  margin: 0;
+  color: var(--ui-text);
+  font-family: var(--ui-label);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.start-hero p {
+  margin: 2px 0 0;
+}
+@media (max-width: 900px) {
+  .start-screen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* Values people must read (game version): Tiny5 at its 15 px size, like the canvas. */
+.start-right select,
+.version-editor select {
+  min-height: 36px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  background-position:
+    calc(100% - 15px) 15px,
+    calc(100% - 10px) 15px;
+}

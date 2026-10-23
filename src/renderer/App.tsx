@@ -17,6 +17,8 @@ import {
   useCommandStore
 } from './shell/commandContext'
 import { EditorHotbar } from './shell/EditorHotbar'
+import { PixelIcon } from './ui/components'
+import { NAV_ICONS } from './ui/icons'
 import { Shell, type WorkspaceTab } from './shell/Shell'
 import { TestScreen, type TestLive } from './testscreen/TestScreen'
 import { TutorialCard } from './TutorialCard'
@@ -358,20 +360,34 @@ function Window(): React.JSX.Element {
               />
             </>
           ) : (
-            <>
-              <RecentPacksCard
-                // Remount when returning home so the list reflects the last open.
-                key={workspaceKey}
-                onOpen={(path) => void openPack(path)}
-                busy={opening}
-              />
-              <OpenPackCard
-                onPick={(path) => void openPack(path)}
-                busy={opening}
-                error={openError}
-              />
-              <NewPackForm onCreated={(path) => void openPack(path)} />
-            </>
+            // Start screen (canvas: Avvio): logo, open and recent packs on the left, a new pack on the right.
+            <div className="start-screen">
+              <div className="start-left">
+                <header className="start-hero">
+                  <PixelIcon icon={NAV_ICONS.logo} size={48} />
+                  <div>
+                    <h1>PackForge</h1>
+                    <p className="muted">
+                      Officina per resource pack di Minecraft Java · anteprima LabPBR
+                    </p>
+                  </div>
+                </header>
+                <OpenPackCard
+                  onPick={(path) => void openPack(path)}
+                  busy={opening}
+                  error={openError}
+                />
+                <RecentPacksCard
+                  // Remount when returning home so the list reflects the last open.
+                  key={workspaceKey}
+                  onOpen={(path) => void openPack(path)}
+                  busy={opening}
+                />
+              </div>
+              <div className="start-right">
+                <NewPackForm onCreated={(path) => void openPack(path)} />
+              </div>
+            </div>
           )}
         </div>
       </main>

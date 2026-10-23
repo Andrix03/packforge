@@ -235,7 +235,7 @@ bevelled "ore" buttons and green active state, I/O switches, segmented sliders, 
 (Minecraft usage guidelines).
 
 - [x] Style approved (Disegna on the canvas)
-- [ ] Canvas: Pack, Prova, Effetti, Pubblica redrawn in the Disegna style; start screen, settings, dialogs, Beginner layout added
+- [x] Canvas: Pack, Prova, Effetti, Pubblica redrawn in the Disegna style; start screen, settings, dialogs, Beginner layout added — 2026-10-23, waiting for Andrea's review
 - [ ] Design system in code: tokens, Tiny5 bundled, pixel icons, ore buttons, I/O switch, segmented slider, select, panels
 - [ ] Shell: menu bar, Ctrl+K, workspace hotbar, status bar
 - [ ] Disegna: tool rail, options bar, document tabs, floating view bar, two-column dock, timeline

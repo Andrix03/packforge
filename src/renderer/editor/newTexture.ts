@@ -12,6 +12,21 @@ export const STARTING_NOISE_RAMP: RampOptions = { ...DEFAULT_RAMP, contrast: 0.0
 
 export const TEXTURE_SIZES = [16, 32, 64, 128] as const
 
+export interface TextureSize {
+  width: number
+  height: number
+}
+
+/**
+ * The sizes offered for a new texture: the usual squares, or, when it replaces a vanilla texture
+ * of another shape (a 200×20 button, a 256×256 container), that size and its 2× and 4× versions.
+ */
+export function sizeOptions(vanilla: TextureSize | null): TextureSize[] {
+  const squares = TEXTURE_SIZES.map((s) => ({ width: s, height: s }))
+  if (!vanilla || (vanilla.width === 16 && vanilla.height === 16)) return squares
+  return [1, 2, 4].map((k) => ({ width: vanilla.width * k, height: vanilla.height * k }))
+}
+
 export type TextureStart = 'empty' | 'color' | 'noise'
 
 /**
@@ -47,16 +62,17 @@ export function validateTextureFolder(folder: string): string | null {
 
 /** Straight RGBA8 pixels for a new texture. */
 export function createTexturePixels(
-  size: number,
+  size: number | TextureSize,
   start: TextureStart,
   color: Rgba,
   random: () => number = Math.random
 ): Uint8Array {
-  const data = new Uint8Array(size * size * 4)
+  const { width, height } = typeof size === 'number' ? { width: size, height: size } : size
+  const data = new Uint8Array(width * height * 4)
   if (start === 'empty') return data
   const opaque: Rgba = [color[0], color[1], color[2], 255]
   const ramp = start === 'noise' ? generateRamp(opaque, STARTING_NOISE_RAMP) : [opaque]
-  for (let i = 0; i < size * size; i++) {
+  for (let i = 0; i < width * height; i++) {
     data.set(start === 'noise' ? noiseColor(ramp, random) : opaque, i * 4)
   }
   return data

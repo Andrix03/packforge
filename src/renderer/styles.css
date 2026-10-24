@@ -3448,3 +3448,32 @@ button > .glyph,
 .gui-border input {
   width: 100%;
 }
+
+/* ---- 1.1 GUI tab: the mock game screen in the dock ---- */
+.gui-mock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.gui-mock p {
+  margin: 0;
+}
+.gui-mock-stage {
+  padding: 4px;
+}
+.gui-mock-fit {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gui-mock-big {
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gui-mock-big-stage {
+  overflow: auto;
+}

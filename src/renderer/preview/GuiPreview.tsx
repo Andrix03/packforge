@@ -10,11 +10,11 @@ import {
   parseGuiScaling,
   withGuiScaling,
   type Border,
-  type GuiScaling,
-  type SpritePiece
+  type GuiScaling
 } from '../../shared/guiScaling'
 import { assetUrl } from '../../shared/ipc'
 import { Glyph, OreButton, Switch } from '../ui/components'
+import { drawPiece } from './guiDraw'
 import type { AssetSources } from './modelSource'
 
 interface Props {
@@ -219,48 +219,6 @@ function SpriteView(props: {
       title={`${width}×${height}`}
     />
   )
-}
-
-function drawPiece(
-  ctx: CanvasRenderingContext2D,
-  image: HTMLCanvasElement,
-  piece: SpritePiece,
-  px: number,
-  scale: number
-): void {
-  const { source: s, target: t } = piece
-  if (piece.fill === 'stretch') {
-    ctx.drawImage(
-      image,
-      s.x * px,
-      s.y * px,
-      s.width * px,
-      s.height * px,
-      t.x * scale,
-      t.y * scale,
-      t.width * scale,
-      t.height * scale
-    )
-    return
-  }
-  // Tiled: repeat the source from the top-left corner, the last copies cut at the edge.
-  for (let y = 0; y < t.height; y += s.height) {
-    for (let x = 0; x < t.width; x += s.width) {
-      const w = Math.min(s.width, t.width - x)
-      const h = Math.min(s.height, t.height - y)
-      ctx.drawImage(
-        image,
-        s.x * px,
-        s.y * px,
-        w * px,
-        h * px,
-        (t.x + x) * scale,
-        (t.y + y) * scale,
-        w * scale,
-        h * scale
-      )
-    }
-  }
 }
 
 function ScalingEditor(props: {

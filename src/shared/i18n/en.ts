@@ -1947,5 +1947,24 @@ export const EN: Readonly<Record<string, string>> = {
   'Usa la scala di vanilla': 'Use the vanilla scaling',
   'nine-slice': 'nine-slice',
   ripetuto: 'tiled',
-  stirato: 'stretched'
+  stirato: 'stretched',
+  'Menu principale': 'Main menu',
+  HUD: 'HUD',
+  Inventario: 'Inventory',
+  'Giocatore singolo': 'Singleplayer',
+  Multigiocatore: 'Multiplayer',
+  'Minecraft Realms': 'Minecraft Realms',
+  'Opzioni…': 'Options…',
+  'Esci dal gioco': 'Quit Game',
+  Fabbricazione: 'Crafting',
+  'Fatto con PackForge!': 'Made with PackForge!',
+  'Schermata di prova': 'Test screen',
+  Schermata: 'Screen',
+  'Dal tuo pack: {0} di {1} texture, il resto da vanilla. Posizioni approssimate.':
+    'From your pack: {0} of {1} textures, the rest from vanilla. Positions are approximate.',
+  'Creazione…': 'Creating…',
+  'Le texture della GUI del gioco, con una schermata di prova':
+    "The game's GUI textures, with a test screen",
+  GUI: 'GUI',
+  'La schermata a scala GUI vera, 2× o 3×': 'The screen at a real GUI scale, 2× or 3×'
 }

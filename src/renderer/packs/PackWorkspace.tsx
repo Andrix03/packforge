@@ -10,6 +10,7 @@ import type { EditorTarget } from '../editor/TextureEditor'
 import type { AssetSources } from '../preview/modelSource'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { FileTree } from './FileTree'
+import { GuiMockScreen } from './GuiMockScreen'
 import { NewTextureDialog, type NewTextureRequest } from './NewTextureDialog'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
 import { ValidatorDialog } from './ValidatorDialog'
@@ -29,7 +30,11 @@ import { tr } from '../../shared/i18n'
 const DEFAULT_FOLDER = 'assets/minecraft/textures/block'
 const MAX_SEARCH_RESULTS = 500
 
-type Mode = 'pack' | 'vanilla'
+type Mode = 'pack' | 'vanilla' | 'gui'
+
+/** Where the GUI tab opens: the widget sprites (buttons, sliders…); the tree has only the GUI. */
+const GUI_FOLDER = 'assets/minecraft/textures/gui/sprites/widget'
+const GUI_PREFIX = 'assets/minecraft/textures/gui/'
 
 interface SourceFiles {
   files: string[]
@@ -223,6 +228,18 @@ function Workspace({
   )
   const packKeys = useMemo(() => new Set(packTextures.map((t) => t.key)), [packTextures])
   const vanillaKeys = useMemo(() => new Set(vanillaTextures.map((t) => t.key)), [vanillaTextures])
+  // The GUI tab: the game's GUI textures (sprites, containers, title…), vanilla as a reference.
+  const guiSource = useMemo<SourceFiles | null>(
+    () =>
+      jar.status === 'ready'
+        ? { ...jar.value, files: jar.value.files.filter((f) => f.startsWith(GUI_PREFIX)) }
+        : null,
+    [jar]
+  )
+  const guiTextures = useMemo(
+    () => vanillaTextures.filter((t) => t.albedo.includes('/textures/gui/')),
+    [vanillaTextures]
+  )
 
   const initialFolder = useMemo(
     () => pickInitialFolder(packFiles.files, packTextures),
@@ -230,6 +247,7 @@ function Workspace({
   )
   const [mode, setMode] = useState<Mode>('pack')
   const [selectedFolder, setSelectedFolder] = useState(initialFolder)
+  const [guiFolder, setGuiFolder] = useState(GUI_FOLDER)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null)
@@ -298,16 +316,18 @@ function Workspace({
   }
 
   const vanillaReady = jar.status === 'ready'
-  const activeMode: Mode = mode === 'vanilla' && vanillaReady ? 'vanilla' : 'pack'
-  const source: SourceFiles =
-    activeMode === 'vanilla' && jar.status === 'ready' ? jar.value : packFiles
-  const textures = activeMode === 'vanilla' ? vanillaTextures : packTextures
-  const marker: TextureMarker | undefined =
-    activeMode === 'vanilla'
-      ? { keys: packKeys, label: 'P', title: tr('Questa texture è già nel tuo pack') }
-      : vanillaReady
-        ? { keys: vanillaKeys, label: 'V', title: tr('Sostituisce la texture vanilla') }
-        : undefined
+  const activeMode: Mode = mode !== 'pack' && vanillaReady ? mode : 'pack'
+  const fromJar = activeMode !== 'pack'
+  const jarSource: SourceFiles | null =
+    jar.status !== 'ready' ? null : activeMode === 'gui' ? (guiSource ?? jar.value) : jar.value
+  const source: SourceFiles = fromJar && jarSource ? jarSource : packFiles
+  const textures =
+    activeMode === 'vanilla' ? vanillaTextures : activeMode === 'gui' ? guiTextures : packTextures
+  const marker: TextureMarker | undefined = fromJar
+    ? { keys: packKeys, label: 'P', title: tr('Questa texture è già nel tuo pack') }
+    : vanillaReady
+      ? { keys: vanillaKeys, label: 'V', title: tr('Sostituisce la texture vanilla') }
+      : undefined
 
   const zipNote = tr('I pack .zip si aprono in sola lettura')
   // Published only while the screen is visible (hidden under the editor its dialogs would not show).
@@ -401,6 +421,21 @@ function Workspace({
               {tr('Vanilla')}{' '}
               {vanillaReady && <span className="count">{vanillaTextures.length}</span>}
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMode === 'gui'}
+              className={activeMode === 'gui' ? 'tab active' : 'tab'}
+              onClick={() => setMode('gui')}
+              disabled={!vanillaReady}
+              title={
+                vanillaReady
+                  ? tr('Le texture della GUI del gioco, con una schermata di prova')
+                  : vanillaHint(vanilla, jar)
+              }
+            >
+              {tr('GUI')} {vanillaReady && <span className="count">{guiTextures.length}</span>}
+            </button>
           </div>
           <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
         </div>
@@ -408,9 +443,7 @@ function Workspace({
           <TextureBrowser
             // Remount per source: tree expansion is rebuilt around the shared folder.
             key={
-              activeMode === 'vanilla' && jar.status === 'ready'
-                ? `v:${jar.value.assetBase}`
-                : 'pack'
+              fromJar && jar.status === 'ready' ? `${activeMode}:${jar.value.assetBase}` : 'pack'
             }
             selectedKey={
               previewSelection?.base === source.assetBase ? previewSelection.textureKey : null
@@ -426,9 +459,7 @@ function Workspace({
                 name: texture.name,
                 isPack: activeMode === 'pack',
                 sourceLabel:
-                  activeMode === 'vanilla' && jar.status === 'ready'
-                    ? `Vanilla ${jar.value.versionId}`
-                    : 'Pack'
+                  fromJar && jar.status === 'ready' ? `Vanilla ${jar.value.versionId}` : 'Pack'
               })
             }
             // Only pack textures are editable: vanilla pixels never enter the pack. Double-clicking
@@ -441,7 +472,13 @@ function Workspace({
               const own = packTextures.find((entry) => entry.key === texture.key)
               if (own) onEditTexture(own, previewSources)
               else if (canCreate) {
-                setCreating({ folder: texture.folder, name: texture.name, fromVanilla: true })
+                setCreating({
+                  folder: texture.folder,
+                  name: texture.name,
+                  fromVanilla: true,
+                  // Only its size is read: a 200×20 button gets a 200×20 (or 2×, 4×) texture.
+                  vanillaUrl: assetUrl(source.assetBase, texture.albedo)
+                })
               }
             }}
             onNewTexture={
@@ -459,9 +496,9 @@ function Workspace({
             source={source}
             textures={textures}
             marker={marker}
-            coverageKeys={activeMode === 'vanilla' ? packKeys : null}
-            selectedFolder={selectedFolder}
-            onSelectFolder={setSelectedFolder}
+            coverageKeys={fromJar ? packKeys : null}
+            selectedFolder={activeMode === 'gui' ? guiFolder : selectedFolder}
+            onSelectFolder={activeMode === 'gui' ? setGuiFolder : setSelectedFolder}
             selectedFile={selectedFile}
             onSelectFile={setSelectedFile}
             query={query}
@@ -472,11 +509,15 @@ function Workspace({
       {/* Dock: the pack, the 3D preview (outside the browser so it survives Pack/Vanilla switches), the tools. */}
       <aside className="pack-dock">
         {overview}
-        <PreviewPanel
-          target={previewTarget}
-          sources={previewSources}
-          onTest={testable ? () => onTestTexture(testable, previewSources) : null}
-        />
+        {activeMode === 'gui' ? (
+          <GuiMockScreen sources={previewSources} splash={null} />
+        ) : (
+          <PreviewPanel
+            target={previewTarget}
+            sources={previewSources}
+            onTest={testable ? () => onTestTexture(testable, previewSources) : null}
+          />
+        )}
         <section className="pack-tools">
           <h3 className="ph">{tr('Strumenti del pack')}</h3>
           <div className="tool-bar" role="toolbar" aria-label={tr('Strumenti')}>

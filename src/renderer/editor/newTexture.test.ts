@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createTexturePixels,
+  sizeOptions,
   STARTING_NOISE_RAMP,
   validateTextureFolder,
   validateTextureName
@@ -34,6 +35,22 @@ describe('validateTextureFolder', () => {
     'assets/Minecraft/textures/block',
     'assets/minecraft/textures/..'
   ])('rejects %j', (folder) => expect(validateTextureFolder(folder)).not.toBeNull())
+})
+
+describe('sizeOptions', () => {
+  it('offers squares, or the vanilla shape and its 2x and 4x', () => {
+    expect(sizeOptions(null).map((s) => s.width)).toEqual([16, 32, 64, 128])
+    expect(sizeOptions({ width: 16, height: 16 }).map((s) => s.width)).toEqual([16, 32, 64, 128])
+    expect(sizeOptions({ width: 200, height: 20 })).toEqual([
+      { width: 200, height: 20 },
+      { width: 400, height: 40 },
+      { width: 800, height: 80 }
+    ])
+  })
+
+  it('fills a non-square texture', () => {
+    expect(createTexturePixels({ width: 3, height: 2 }, 'color', [1, 2, 3, 255]).length).toBe(24)
+  })
 })
 
 describe('createTexturePixels', () => {

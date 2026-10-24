@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   createTexturePixels,
-  TEXTURE_SIZES,
+  sizeOptions,
+  type TextureSize,
   validateTextureFolder,
   validateTextureName,
   type TextureStart
@@ -19,6 +20,8 @@ export interface NewTextureRequest {
   fromVanilla: boolean
   /** A texture of the pack to offer as the starting point (e.g. the previous growth stage). */
   copyFrom?: { path: string; url: string } | null
+  /** The vanilla texture it replaces: only its size is read, to offer the same shape. */
+  vanillaUrl?: string | null
 }
 
 const STARTS: Array<{ value: TextureStart; label: string; hint: string }> = [
@@ -49,7 +52,12 @@ export function NewTextureDialog({
 }): React.JSX.Element {
   const [folder, setFolder] = useState(request.folder)
   const [name, setName] = useState(request.name)
-  const [size, setSize] = useState<number>(16)
+  const [size, setSize] = useState<TextureSize>({ width: 16, height: 16 })
+  const vanillaSize = useImageSize(request.vanillaUrl ?? null)
+  const options = sizeOptions(vanillaSize)
+  // The chosen size, or the first offered (the vanilla one) until one is picked.
+  const chosen =
+    options.find((o) => o.width === size.width && o.height === size.height) ?? options[0] ?? size
   const copyFrom = request.copyFrom ?? null
   const [start, setStart] = useState<TextureStart | 'copy'>(copyFrom ? 'copy' : 'noise')
   const [color, setColor] = useState<Rgba>([127, 127, 127, 255])
@@ -69,8 +77,8 @@ export function NewTextureDialog({
     setError(null)
     try {
       let image: { width: number; height: number; rgba: Uint8Array } = {
-        width: size,
-        height: size,
+        width: chosen.width,
+        height: chosen.height,
         rgba: new Uint8Array()
       }
       if (start === 'copy' && copyFrom) {
@@ -81,7 +89,7 @@ export function NewTextureDialog({
         const { width, height, data } = decoded.image
         image = { width, height, rgba: new Uint8Array(data) }
       } else if (start !== 'copy') {
-        image.rgba = createTexturePixels(size, start, color)
+        image.rgba = createTexturePixels(chosen, start, color)
       }
       const result = await window.api.invoke(
         'texture:save',
@@ -147,23 +155,28 @@ export function NewTextureDialog({
         <div className="field" hidden={start === 'copy'}>
           {tr('Dimensione')}
           <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Dimensione')}>
-            {TEXTURE_SIZES.map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={size === value}
-                className={size === value ? 'tab active' : 'tab'}
-                onClick={() => setSize(value)}
-                title={
-                  value === 16
-                    ? tr('Come le texture vanilla')
-                    : tr('{0}× la risoluzione vanilla', value / 16)
-                }
-              >
-                {value}×{value}
-              </button>
-            ))}
+            {options.map((value, i) => {
+              const on = value.width === chosen.width && value.height === chosen.height
+              // ×1, ×2, ×4 of the vanilla size, or of 16 for the usual squares.
+              const factor = vanillaSize && options.length === 3 ? [1, 2, 4][i] : value.width / 16
+              return (
+                <button
+                  key={`${value.width}x${value.height}`}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  className={on ? 'tab active' : 'tab'}
+                  onClick={() => setSize(value)}
+                  title={
+                    factor === 1
+                      ? tr('Come le texture vanilla')
+                      : tr('{0}× la risoluzione vanilla', factor ?? 1)
+                  }
+                >
+                  {value.width}×{value.height}
+                </button>
+              )
+            })}
           </div>
         </div>
         <div className="field">
@@ -213,7 +226,7 @@ export function NewTextureDialog({
         {(problem ?? error) && <p className="field-error small">{problem ?? error}</p>}
         <div className="row">
           <button type="submit" className="primary" disabled={busy || problem !== null}>
-            {busy ? 'Creazione…' : tr('Crea e apri nell’editor')}
+            {busy ? tr('Creazione…') : tr('Crea e apri nell’editor')}
           </button>
           <button type="button" onClick={onCancel}>
             {tr('Annulla')}
@@ -222,4 +235,26 @@ export function NewTextureDialog({
       </form>
     </div>
   )
+}
+
+/** Natural size of an image (only its size: the pixels are never read), null while loading. */
+function useImageSize(url: string | null): TextureSize | null {
+  const [loaded, setLoaded] = useState<{ url: string; size: TextureSize } | null>(null)
+  useEffect(() => {
+    if (!url) return
+    let cancelled = false
+    const image = new Image()
+    image.src = url
+    void image
+      .decode()
+      .then(() => {
+        if (!cancelled)
+          setLoaded({ url, size: { width: image.naturalWidth, height: image.naturalHeight } })
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [url])
+  return loaded?.url === url ? loaded.size : null
 }

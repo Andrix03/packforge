@@ -2059,5 +2059,20 @@ export const EN: Readonly<Record<string, string>> = {
   'Salvare le modifiche prima di creare il modello 3D?':
     'Save the changes before creating the 3D model?',
   'Serve il gioco installato (nella cartella .minecraft) per leggere la definizione dell’oggetto.':
-    'The installed game (in the .minecraft folder) is needed to read the item definition.'
+    'The installed game (in the .minecraft folder) is needed to read the item definition.',
+  'Prima persona': 'First person',
+  'Terza persona': 'Third person',
+  'A terra': 'On the ground',
+  'In testa': 'On the head',
+  Cornice: 'Item frame',
+  'Anteprima oggetto': 'Item preview',
+  'Come lo disegna il gioco con items/{0}.json.': 'As the game draws it with items/{0}.json.',
+  'Nessuna definizione in items/: mostro il modello {0}.':
+    'No definition in items/: showing the model {0}.',
+  Dove: 'Where',
+  'L’oggetto, trascina per girarlo': 'The item, drag to turn it',
+  'Niente da disegnare in questo stato.': 'Nothing to draw in this state.',
+  'Parte dell’oggetto la disegna il gioco con il suo codice: qui non si vede.':
+    "Part of the item is drawn by the game's code: it doesn't show here.",
+  Altro: 'Other'
 }

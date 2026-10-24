@@ -19,7 +19,9 @@ import { GuiPreview } from '../preview/GuiPreview'
 import { guiTextureKind } from '../../shared/guiScaling'
 import { ArmorPreview } from '../preview/ArmorPreview'
 import { Item3dDialog } from './Item3dDialog'
+import { ItemPreview } from '../preview/ItemPreview'
 import { item3dPlan } from '../../shared/item3d'
+import { isItemTexture } from '../../shared/itemPreview'
 import type { FormatRange } from '../../shared/modelRules'
 import { armorPreviewRole } from '../../shared/trims'
 import type { TestLive } from '../testscreen/TestScreen'
@@ -1714,47 +1716,59 @@ export function TextureEditor({
                 sources={target.sources}
               />
             )}
-            {!guiTextureKind(target.path) && !armorPreviewRole(target.path) && (
-              <>
-                <button
-                  type="button"
-                  className="small-button preview-size"
-                  aria-pressed={bigPreview}
-                  onClick={() => setBigPreview((big) => !big)}
-                  title={tr('Allarga la colonna di destra per vedere meglio il blocco')}
-                >
-                  <Glyph name="resize" />
-                  {bigPreview ? tr('3D piccolo') : tr('3D grande')}
-                </button>
-                <PreviewPanel
-                  target={previewTarget}
-                  sources={target.sources}
-                  live={
-                    tallCanvases && tallUrls
-                      ? {
-                          url: tallUrls.lower,
-                          canvas: tallCanvases.lower,
-                          revision,
-                          maps: null,
-                          animation: null,
-                          extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }]
-                        }
-                      : {
-                          url: target.url,
-                          canvas: source,
-                          revision,
-                          maps: liveMaps,
-                          // An animation the editor cannot handle keeps playing from the file.
-                          ...(animationNote ? {} : { animation })
-                        }
-                  }
-                  initialShape="block"
-                  onBlockTextures={setBlockTextures}
-                  onGrowthStages={setGrowthStages}
-                  effects={surface === 'color' ? null : effects}
-                />
-              </>
+            {isItemTexture(target.path) && (
+              <ItemPreview
+                key={target.path}
+                path={target.path}
+                canvas={source}
+                revision={revision}
+                sources={target.sources}
+                range={formats}
+              />
             )}
+            {!guiTextureKind(target.path) &&
+              !armorPreviewRole(target.path) &&
+              !isItemTexture(target.path) && (
+                <>
+                  <button
+                    type="button"
+                    className="small-button preview-size"
+                    aria-pressed={bigPreview}
+                    onClick={() => setBigPreview((big) => !big)}
+                    title={tr('Allarga la colonna di destra per vedere meglio il blocco')}
+                  >
+                    <Glyph name="resize" />
+                    {bigPreview ? tr('3D piccolo') : tr('3D grande')}
+                  </button>
+                  <PreviewPanel
+                    target={previewTarget}
+                    sources={target.sources}
+                    live={
+                      tallCanvases && tallUrls
+                        ? {
+                            url: tallUrls.lower,
+                            canvas: tallCanvases.lower,
+                            revision,
+                            maps: null,
+                            animation: null,
+                            extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }]
+                          }
+                        : {
+                            url: target.url,
+                            canvas: source,
+                            revision,
+                            maps: liveMaps,
+                            // An animation the editor cannot handle keeps playing from the file.
+                            ...(animationNote ? {} : { animation })
+                          }
+                    }
+                    initialShape="block"
+                    onBlockTextures={setBlockTextures}
+                    onGrowthStages={setGrowthStages}
+                    effects={surface === 'color' ? null : effects}
+                  />
+                </>
+              )}
             {surface === 'normal' && maps?.normal && !target.readOnly && (
               <GeneratorPanel
                 settings={generator}

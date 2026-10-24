@@ -260,45 +260,7 @@ function paeth(a: number, b: number, c: number): number {
  */
 export function encodePng(image: RgbaImage): Uint8Array {
   const { width, height, data } = image
-  const stride = width * 4
-  const raw = new Uint8Array((stride + 1) * height)
-  let previous: Uint8Array = new Uint8Array(stride)
-  const candidate = new Uint8Array(stride)
-  for (let y = 0; y < height; y++) {
-    const line = data.subarray(y * stride, (y + 1) * stride)
-    let best = 0
-    let bestScore = Infinity
-    let bestLine = new Uint8Array(stride)
-    for (let filter = 0; filter <= 4; filter++) {
-      let score = 0
-      for (let i = 0; i < stride; i++) {
-        const left = i >= 4 ? line[i - 4]! : 0
-        const up = previous[i]!
-        const upLeft = i >= 4 ? previous[i - 4]! : 0
-        const predicted =
-          filter === 0
-            ? 0
-            : filter === 1
-              ? left
-              : filter === 2
-                ? up
-                : filter === 3
-                  ? (left + up) >> 1
-                  : paeth(left, up, upLeft)
-        const value = (line[i]! - predicted) & 0xff
-        candidate[i] = value
-        score += value < 128 ? value : 256 - value
-      }
-      if (score < bestScore) {
-        bestScore = score
-        best = filter
-        bestLine = candidate.slice()
-      }
-    }
-    raw[y * (stride + 1)] = best
-    raw.set(bestLine, y * (stride + 1) + 1)
-    previous = line
-  }
+  const raw = filterRows(data, width * 4, height, 4)
 
   const ihdr = new Uint8Array(13)
   const ihdrView = new DataView(ihdr.buffer)
@@ -348,4 +310,131 @@ function concat(parts: readonly Uint8Array[]): Uint8Array {
     offset += part.length
   }
   return out
+}
+
+/**
+ * Encodes RGBA8 as an indexed PNG (palette + tRNS) when it has at most 256 distinct RGBA values,
+ * at the smallest bit depth that holds them (1, 2, 4 or 8); null otherwise. Lossless: every
+ * pixel, transparent ones included, decodes to the same RGBA.
+ */
+export function encodeIndexedPng(image: RgbaImage): Uint8Array | null {
+  const { width, height, data } = image
+  const index = new Map<number, number>()
+  const colors: number[] = []
+  for (let i = 0; i < data.length; i += 4) {
+    const key = ((data[i]! << 24) | (data[i + 1]! << 16) | (data[i + 2]! << 8) | data[i + 3]!) >>> 0
+    if (index.has(key)) continue
+    if (colors.length === 256) return null
+    index.set(key, colors.length)
+    colors.push(key)
+  }
+  // Translucent entries first: tRNS stops at the last one.
+  const order = colors
+    .map((key, i) => ({ key, i }))
+    .sort((a, b) => Number((a.key & 0xff) === 255) - Number((b.key & 0xff) === 255) || a.i - b.i)
+  const slot = new Map<number, number>(order.map((entry, n) => [entry.key, n]))
+  const count = order.length
+  const depth = count <= 2 ? 1 : count <= 4 ? 2 : count <= 16 ? 4 : 8
+  const stride = Math.ceil((width * depth) / 8)
+  const packed = new Uint8Array(stride * height)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4
+      const key =
+        ((data[i]! << 24) | (data[i + 1]! << 16) | (data[i + 2]! << 8) | data[i + 3]!) >>> 0
+      const value = slot.get(key)!
+      const bit = x * depth
+      packed[y * stride + (bit >> 3)]! |= value << (8 - depth - (bit & 7))
+    }
+  }
+  const palette = new Uint8Array(count * 3)
+  const alphas: number[] = []
+  order.forEach(({ key }, n) => {
+    palette[n * 3] = key >>> 24
+    palette[n * 3 + 1] = (key >>> 16) & 0xff
+    palette[n * 3 + 2] = (key >>> 8) & 0xff
+    if ((key & 0xff) !== 255) alphas.push(key & 0xff)
+  })
+  const ihdr = new Uint8Array(13)
+  const ihdrView = new DataView(ihdr.buffer)
+  ihdrView.setUint32(0, width)
+  ihdrView.setUint32(4, height)
+  ihdr[8] = depth
+  ihdr[9] = 3 // palette
+  return concat([
+    Uint8Array.from(PNG_SIGNATURE),
+    chunk('IHDR', ihdr),
+    chunk('PLTE', palette),
+    ...(alphas.length > 0 ? [chunk('tRNS', Uint8Array.from(alphas))] : []),
+    chunk('IDAT', zlibSync(filterRows(packed, stride, height, 1), { level: 9 })),
+    chunk('IEND', new Uint8Array(0))
+  ])
+}
+
+/**
+ * The smallest lossless encoding of a PNG file: the original, an RGBA re-encode or an indexed
+ * one, each candidate decoded again and compared pixel by pixel before it is used. 16-bit or
+ * unreadable files are returned as they are.
+ */
+export function optimizePng(bytes: Uint8Array): Uint8Array {
+  const decoded = decodePng(bytes)
+  if (!decoded.ok || decoded.image.reducedFrom16Bit) return bytes
+  const image = decoded.image
+  let best = bytes
+  for (const candidate of [encodeIndexedPng(image), encodePng(image)]) {
+    if (!candidate || candidate.length >= best.length) continue
+    const check = decodePng(candidate)
+    if (
+      check.ok &&
+      check.image.width === image.width &&
+      check.image.height === image.height &&
+      check.image.data.every((v, i) => v === image.data[i])
+    ) {
+      best = candidate
+    }
+  }
+  return best
+}
+
+/** Rows with the PNG filter of smallest absolute sum each (bpp: bytes per pixel, at least 1). */
+function filterRows(data: Uint8Array, stride: number, height: number, bpp: number): Uint8Array {
+  const raw = new Uint8Array((stride + 1) * height)
+  let previous: Uint8Array = new Uint8Array(stride)
+  const candidate = new Uint8Array(stride)
+  for (let y = 0; y < height; y++) {
+    const line = data.subarray(y * stride, (y + 1) * stride)
+    let best = 0
+    let bestScore = Infinity
+    let bestLine = new Uint8Array(stride)
+    for (let filter = 0; filter <= 4; filter++) {
+      let score = 0
+      for (let i = 0; i < stride; i++) {
+        const left = i >= bpp ? line[i - bpp]! : 0
+        const up = previous[i]!
+        const upLeft = i >= bpp ? previous[i - bpp]! : 0
+        const predicted =
+          filter === 0
+            ? 0
+            : filter === 1
+              ? left
+              : filter === 2
+                ? up
+                : filter === 3
+                  ? (left + up) >> 1
+                  : paeth(left, up, upLeft)
+        const value = (line[i]! - predicted) & 0xff
+        candidate[i] = value
+        score += value < 128 ? value : 256 - value
+      }
+      if (score < bestScore) {
+        bestScore = score
+        best = filter
+        bestLine = candidate.slice()
+      }
+    }
+    raw[y * (stride + 1)] = best
+    raw.set(bestLine, y * (stride + 1) + 1)
+    previous = line
+  }
+  return raw
 }

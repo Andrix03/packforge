@@ -161,7 +161,7 @@ export function ExportDialog({
                     <strong>{variantLabel(variant)}</strong>
                     <p className="small">
                       {result.ok
-                        ? `${result.path}, ${result.files} file, ${(result.bytes / 1024).toFixed(0)} KB${result.kept.length > 0 ? tr(', {0} texture lasciate alla loro risoluzione', result.kept.length) : ''}`
+                        ? `${result.path}, ${result.files} file, ${(result.bytes / 1024).toFixed(0)} KB${result.kept.length > 0 ? tr(', {0} texture lasciate alla loro risoluzione', result.kept.length) : ''}${result.saved >= 1024 ? tr(', PNG ottimizzati: {0} KB in meno', (result.saved / 1024).toFixed(0)) : ''}`
                         : result.error}
                     </p>
                   </div>

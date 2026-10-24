@@ -2292,5 +2292,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Tutta la texture. La trasparenza non cambia.': "The whole texture. Transparency doesn't change.",
   Azzera: 'Reset',
   'Tinta, saturazione, luminosità, contrasto e livelli della texture o della selezione':
-    'Hue, saturation, lightness, contrast and levels of the texture or the selection'
+    'Hue, saturation, lightness, contrast and levels of the texture or the selection',
+  ', PNG ottimizzati: {0} KB in meno': ', PNGs optimised: {0} KB less'
 }

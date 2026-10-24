@@ -50,6 +50,7 @@ import {
   packPngFile,
   saveCtmProperties,
   saveModelJson,
+  saveSplashes,
   saveTexture,
   saveTextureMcmeta
 } from './textureFile'
@@ -490,6 +491,12 @@ const handlers: IpcHandlers = {
     const current = getSource('pack')
     if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     return saveCtmProperties(current.source, path, content)
+  },
+
+  'pack:saveSplashes': async (content) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return saveSplashes(current.source, content)
   },
 
   'model:saveJson': async (path, content) => {

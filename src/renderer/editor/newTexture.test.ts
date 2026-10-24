@@ -48,6 +48,15 @@ describe('sizeOptions', () => {
     ])
   })
 
+  it('offers smaller sizes for a vanilla texture already drawn large', () => {
+    expect(sizeOptions({ width: 1024, height: 256 }).map((s) => `${s.width}x${s.height}`)).toEqual([
+      '256x64',
+      '512x128',
+      '1024x256',
+      '2048x512'
+    ])
+  })
+
   it('fills a non-square texture', () => {
     expect(createTexturePixels({ width: 3, height: 2 }, 'color', [1, 2, 3, 255]).length).toBe(24)
   })

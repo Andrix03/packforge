@@ -32,12 +32,13 @@ const SCREEN_NAMES: Record<MockScreenKind, string> = {
 
 export function GuiMockScreen({
   sources,
-  splash
+  onOpenTitle
 }: {
   sources: AssetSources
-  /** A line of the pack's splashes.txt, when it has one. */
-  splash: string | null
+  /** Opens the title and loading screen window. */
+  onOpenTitle: () => void
 }): React.JSX.Element {
+  const splash = usePackSplash(sources)
   const [kind, setKind] = useState<MockScreenKind>('title')
   const [big, setBig] = useState<number | null>(null)
   useEscape(() => setBig(null), big !== null)
@@ -84,6 +85,10 @@ export function GuiMockScreen({
         {/* Drawn at 2× and fitted to the column: pixels stay square enough to judge colours. */}
         <MockCanvas screen={screen} loaded={loaded} scale={2} kind={kind} fit />
       </div>
+      <button type="button" className="small-button" onClick={onOpenTitle}>
+        <Glyph name="book" />
+        {tr('Titolo e caricamento…')}
+      </button>
       {big !== null && (
         <div className="modal-backdrop" role="presentation" onClick={() => setBig(null)}>
           <div
@@ -174,6 +179,30 @@ function MockCanvas(props: {
       height={screen.height * scale}
     />
   )
+}
+
+/** The first line of the pack's splashes.txt (the game picks one at random), or null. */
+function usePackSplash(sources: AssetSources): string | null {
+  const path = 'assets/minecraft/texts/splashes.txt'
+  const url = sources.pack.files.has(path)
+    ? assetUrl(sources.pack.base, path, sources.pack.versions[path] ?? 0)
+    : null
+  const [loaded, setLoaded] = useState<{ url: string; line: string | null } | null>(null)
+  useEffect(() => {
+    if (!url) return
+    let cancelled = false
+    void fetch(url, { cache: 'no-store' })
+      .then((r) => r.text())
+      .then((text) => {
+        const line = text.split(/\r?\n/).find((l) => l.trim() !== '') ?? null
+        if (!cancelled) setLoaded({ url, line })
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [url])
+  return url && loaded?.url === url ? loaded.line : null
 }
 
 /** Images and scalings of a screen, each from the pack when it has the image, else vanilla. */

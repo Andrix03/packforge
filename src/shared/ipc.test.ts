@@ -95,6 +95,7 @@ describe('registerHandlers', () => {
       'settings:setCheckUpdates': () => ({ ok: false, error: 'unused' }),
       'settings:setTutorial': () => ({ ok: false, error: 'unused' }),
       'settings:setLanguage': () => ({ ok: false, error: 'unused' }),
+      'pack:saveSplashes': () => ({ ok: false, error: 'unused' }),
       'app:restart': () => undefined,
       'app:checkUpdate': () => ({ status: 'off' }),
       'app:openRelease': () => ({ ok: false }),

@@ -11,6 +11,7 @@ import type { AssetSources } from '../preview/modelSource'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { FileTree } from './FileTree'
 import { GuiMockScreen } from './GuiMockScreen'
+import { TitleScreensDialog } from './TitleScreensDialog'
 import { NewTextureDialog, type NewTextureRequest } from './NewTextureDialog'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
 import { ValidatorDialog } from './ValidatorDialog'
@@ -265,6 +266,7 @@ function Workspace({
   const [showBackups, setShowBackups] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
+  const [titleScreens, setTitleScreens] = useState(false)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
     previewSelection?.isPack && previewSelection.mcmeta
@@ -381,6 +383,15 @@ function Workspace({
             enabled: canCreate,
             why: zipNote,
             run: () => setBatching({ selection: null, maps: { specular: true, normal: false } })
+          },
+          {
+            id: 'pack:title',
+            label: tr('Titolo e caricamento…'),
+            menu: 'Pack',
+            area: 'Pack',
+            enabled: vanillaReady,
+            why: tr('Serve il jar vanilla'),
+            run: () => setTitleScreens(true)
           },
           {
             id: 'pack:resize',
@@ -510,7 +521,7 @@ function Workspace({
       <aside className="pack-dock">
         {overview}
         {activeMode === 'gui' ? (
-          <GuiMockScreen sources={previewSources} splash={null} />
+          <GuiMockScreen sources={previewSources} onOpenTitle={() => setTitleScreens(true)} />
         ) : (
           <PreviewPanel
             target={previewTarget}
@@ -656,6 +667,26 @@ function Workspace({
           </div>
         </section>
       </aside>
+      {titleScreens && (
+        <TitleScreensDialog
+          sources={previewSources}
+          canCreate={canCreate}
+          onClose={() => setTitleScreens(false)}
+          onOpen={(path) => {
+            const own = packTextures.find((entry) => entry.albedo === path)
+            setTitleScreens(false)
+            if (own) onEditTexture(own, previewSources)
+            else if (canCreate && jar.status === 'ready') {
+              setCreating({
+                folder: path.slice(0, path.lastIndexOf('/')),
+                name: path.slice(path.lastIndexOf('/') + 1, -'.png'.length),
+                fromVanilla: true,
+                vanillaUrl: assetUrl(jar.value.assetBase, path)
+              })
+            }
+          }}
+        />
+      )}
       {varying && (
         <VariantsDialog
           source={varying}

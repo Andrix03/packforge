@@ -55,9 +55,14 @@ export function NewTextureDialog({
   const [size, setSize] = useState<TextureSize>({ width: 16, height: 16 })
   const vanillaSize = useImageSize(request.vanillaUrl ?? null)
   const options = sizeOptions(vanillaSize)
-  // The chosen size, or the first offered (the vanilla one) until one is picked.
+  // The chosen size, else the vanilla one, else the first offered.
+  const same = (a: TextureSize, b: TextureSize | null): boolean =>
+    b !== null && a.width === b.width && a.height === b.height
   const chosen =
-    options.find((o) => o.width === size.width && o.height === size.height) ?? options[0] ?? size
+    options.find((o) => same(o, size)) ??
+    options.find((o) => same(o, vanillaSize)) ??
+    options[0] ??
+    size
   const copyFrom = request.copyFrom ?? null
   const [start, setStart] = useState<TextureStart | 'copy'>(copyFrom ? 'copy' : 'noise')
   const [color, setColor] = useState<Rgba>([127, 127, 127, 255])
@@ -155,10 +160,10 @@ export function NewTextureDialog({
         <div className="field" hidden={start === 'copy'}>
           {tr('Dimensione')}
           <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Dimensione')}>
-            {options.map((value, i) => {
+            {options.map((value) => {
               const on = value.width === chosen.width && value.height === chosen.height
               // ×1, ×2, ×4 of the vanilla size, or of 16 for the usual squares.
-              const factor = vanillaSize && options.length === 3 ? [1, 2, 4][i] : value.width / 16
+              const factor = vanillaSize ? value.width / vanillaSize.width : value.width / 16
               return (
                 <button
                   key={`${value.width}x${value.height}`}

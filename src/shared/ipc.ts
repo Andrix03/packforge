@@ -188,6 +188,8 @@ export interface IpcContract {
   'settings:setTutorial': { args: [state: TutorialState]; result: SettingsUpdateResult }
   /** Saved for the next start (the language is fixed while the app runs). */
   'settings:setLanguage': { args: [language: Language]; result: SettingsUpdateResult }
+  /** Folder packs: the title screen splashes, one per line (empty deletes the file). */
+  'pack:saveSplashes': { args: [content: string]; result: SaveTextureResult }
   /** Restarts PackForge (after changing the language). */
   'app:restart': { args: []; result: void }
   /** Asks GitHub for the latest release (skipped when turned off in the settings). */
@@ -281,6 +283,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setCheckUpdates': true,
   'settings:setTutorial': true,
   'settings:setLanguage': true,
+  'pack:saveSplashes': true,
   'app:restart': true,
   'app:checkUpdate': true,
   'app:openRelease': true,

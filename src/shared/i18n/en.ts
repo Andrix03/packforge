@@ -1966,5 +1966,34 @@ export const EN: Readonly<Record<string, string>> = {
   'Le texture della GUI del gioco, con una schermata di prova':
     "The game's GUI textures, with a test screen",
   GUI: 'GUI',
-  'La schermata a scala GUI vera, 2× o 3×': 'The screen at a real GUI scale, 2× or 3×'
+  'La schermata a scala GUI vera, 2× o 3×': 'The screen at a real GUI scale, 2× or 3×',
+  'Titolo e caricamento…': 'Title and loading screen…',
+  'Serve il jar vanilla': 'Needs the vanilla jar',
+  Davanti: 'Front',
+  Dietro: 'Back',
+  'Titolo e caricamento': 'Title and loading screen',
+  'Panorama del titolo': 'Title panorama',
+  'Sei facce di un cubo visto da dentro, che gira piano. Le facce vicine devono combaciare ai bordi; dalla 26.x vanilla le scarica il launcher, qui le vedi solo come riferimento.':
+    "Six faces of a cube seen from the inside, turning slowly. Neighbouring faces must match at the edges; since 26.x the launcher downloads vanilla's, here they are only a reference.",
+  Logo: 'Logo',
+  'Logo di Minecraft': 'Minecraft logo',
+  'Scritta Java Edition': 'Java Edition line',
+  'Schermata di caricamento': 'Loading screen',
+  'Logo Mojang Studios': 'Mojang Studios logo',
+  'Lo sfondo lo decide il gioco: rosso, o nero con l’opzione «Logo monocromatico». Il logo è diviso in due metà, una sopra l’altra nel file, affiancate sullo schermo.':
+    'The game sets the background: red, or black with the “Monochrome logo” option. The logo is split in two halves, one above the other in the file, side by side on screen.',
+  'Frasi del titolo (splashes.txt)': 'Title splashes (splashes.txt)',
+  'dal tuo pack': 'from your pack',
+  'vanilla, riferimento': 'vanilla, reference',
+  'Crea la tua': 'Create yours',
+  'Sfondo nero (logo monocromatico)': 'Black background (monochrome logo)',
+  'Salvate.': 'Saved.',
+  'Una frase per riga: il gioco ne pesca una a caso. Le frasi del tuo pack sostituiscono tutte quelle di vanilla; lascia vuoto per tornare a quelle.':
+    "One splash per line: the game picks one at random. Your pack's splashes replace all of vanilla's; leave it empty to go back to those.",
+  'Frasi del titolo': 'Title splashes',
+  '{0} frasi': '{0} splashes',
+  'Salva le frasi': 'Save the splashes',
+  'Elenco delle frasi non valido.': 'Invalid list of splashes.',
+  'Impossibile eliminare il file: {0}': "Couldn't delete the file: {0}",
+  'le frasi': 'the splashes'
 }

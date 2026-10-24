@@ -12,11 +12,24 @@ export type PackSource =
 
 export const MAX_LISTED_FILES = 50_000
 /** Files the renderer may read, with their type and size cap. */
-const SERVED_TYPES: Array<{ suffix: string; contentType: string; maxBytes: number }> = [
+const SERVED_TYPES: Array<{
+  suffix: string
+  contentType: string
+  maxBytes: number
+  /** Only under this folder (text files are served from texts/ alone). */
+  under?: RegExp
+}> = [
   { suffix: '.png', contentType: 'image/png', maxBytes: 16 * 1024 * 1024 },
   { suffix: '.mcmeta', contentType: 'application/json', maxBytes: 1024 * 1024 },
   // Block models and block states for the 3D preview.
   { suffix: '.json', contentType: 'application/json', maxBytes: 1024 * 1024 },
+  // Title screen splashes (texts/splashes.txt).
+  {
+    suffix: '.txt',
+    contentType: 'text/plain; charset=utf-8',
+    maxBytes: 256 * 1024,
+    under: /^assets\/[a-z0-9_.-]+\/texts\//
+  },
   // Connected textures (optifine/ctm/**.properties) for the Test scenes.
   { suffix: '.properties', contentType: 'text/plain; charset=utf-8', maxBytes: 64 * 1024 }
 ]
@@ -94,7 +107,9 @@ export async function listPackFiles(
  * another type, missing or too big.
  */
 export async function readPackAsset(source: PackSource, path: string): Promise<PackAsset | null> {
-  const type = SERVED_TYPES.find((t) => path.toLowerCase().endsWith(t.suffix))
+  const type = SERVED_TYPES.find(
+    (t) => path.toLowerCase().endsWith(t.suffix) && (!t.under || t.under.test(path))
+  )
   if (!type || !isSafePackPath(path)) return null
   const bytes = await readBytes(source, path, type.maxBytes)
   return bytes ? { bytes, contentType: type.contentType } : null

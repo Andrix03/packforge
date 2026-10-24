@@ -2122,5 +2122,25 @@ export const EN: Readonly<Record<string, string>> = {
   'Salva la definizione': 'Save the definition',
   'Il file items/ che dice al gioco cosa disegnare e quando':
     'The items/ file that tells the game what to draw, and when',
-  Definizione: 'Definition'
+  Definizione: 'Definition',
+  'Scegli almeno un colore da sollevare.': 'Pick at least one colour to raise.',
+  'Pixel in rilievo: {0}': 'Raised pixels: {0}',
+  'Il modello di questo blocco non è un cubo con questa texture su tutte le facce: per ora solo blocchi così (minerali, pietre…).':
+    "This block's model isn't a cube with this texture on every face: for now only blocks like that (ores, stones…).",
+  'Pixel in rilievo': 'Raised pixels',
+  'I colori che scegli escono dal blocco come piccoli cubetti, su ogni faccia (minerali 3D). Contro un altro blocco non si vedono, come le facce. Modello vanilla, funziona senza mod.':
+    'The colours you pick stand out of the block as small cubes, on every face (3D ores). Against another block they are hidden, like the faces. Vanilla model, works without mods.',
+  'Leggo la texture e il modello…': 'Reading the texture and the model…',
+  'Colori che escono': 'Colours that stand out',
+  '{0}: {1} pixel': '{0}: {1} pixels',
+  'Quanto escono': 'How far they stand out',
+  'Mezzo pixel': 'Half a pixel',
+  '{0} pixel': '{0} pixel',
+  'Solo sui lati (non sopra e sotto)': 'Only on the sides (not top and bottom)',
+  'Modello pesante: tanti blocchi così rallentano il gioco. Scegli meno colori.':
+    'Heavy model: many blocks like this slow the game down. Pick fewer colours.',
+  'Scrivi il modello': 'Write the model',
+  'Alcuni colori escono dal blocco in 3D (minerali, gemme)':
+    'Some colours stand out of the block in 3D (ores, gems)',
+  'Salvare le modifiche prima di creare il modello?': 'Save the changes before creating the model?'
 }

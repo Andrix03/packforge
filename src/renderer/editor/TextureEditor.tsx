@@ -22,6 +22,7 @@ import { Item3dDialog } from './Item3dDialog'
 import { ItemPreview } from '../preview/ItemPreview'
 import { NameVariantDialog } from './NameVariantDialog'
 import { DefinitionDialog } from './DefinitionDialog'
+import { PopOutDialog } from './PopOutDialog'
 import { item3dPlan } from '../../shared/item3d'
 import { isItemTexture } from '../../shared/itemPreview'
 import type { FormatRange } from '../../shared/modelRules'
@@ -198,6 +199,7 @@ export function TextureEditor({
   const [item3dOpen, setItem3dOpen] = useState(false)
   const [nameVariantOpen, setNameVariantOpen] = useState(false)
   const [definitionOpen, setDefinitionOpen] = useState(false)
+  const [popOutOpen, setPopOutOpen] = useState(false)
   // Only textures of an item the game knows (its definition in the pack or vanilla).
   const itemPlan = item3dPlan(target.path)
   const item3d =
@@ -1417,6 +1419,17 @@ export function TextureEditor({
           }}
         />
       )}
+      {popOutOpen && (
+        <PopOutDialog
+          path={target.path}
+          sources={target.sources}
+          onClose={() => setPopOutOpen(false)}
+          onDone={(written) => {
+            setPopOutOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
       {definitionOpen && item3d && (
         <DefinitionDialog
           path={target.path}
@@ -1917,6 +1930,21 @@ export function TextureEditor({
               >
                 <Glyph name="dice" />
                 {tr('Varianti casuali')}
+              </button>
+            )}
+            {target.path.includes('/textures/block/') && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Alcuni colori escono dal blocco in 3D (minerali, gemme)')}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
+                    (ok) => ok && setPopOutOpen(true)
+                  )
+                }
+              >
+                <Glyph name="up" />
+                {tr('Pixel in rilievo')}
               </button>
             )}
             {item3d && !target.readOnly && (

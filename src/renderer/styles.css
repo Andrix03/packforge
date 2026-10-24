@@ -3710,3 +3710,41 @@ button > .glyph,
 .ok-text {
   color: var(--accent);
 }
+/* Pixels that pop out */
+.modal.pop-out-dialog {
+  width: min(640px, 100%);
+}
+.pop-out-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.pop-out-map {
+  width: 192px;
+  height: 192px;
+  image-rendering: pixelated;
+}
+.pop-out-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 220px;
+}
+.pop-out-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pop-color {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--ui-edge-dark);
+  border-radius: 0;
+}
+.pop-color[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

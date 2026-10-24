@@ -1,6 +1,6 @@
-import { tr } from './i18n'
 // First-run tutorial for Beginner mode: "il tuo primo blocco". Each step completes by itself
 // when the user really does it (renderer/tutorialEvents.ts). Pure data + logic.
+import { tr } from './i18n'
 
 export type TutorialStep = 'pack' | 'texture' | 'paint' | 'save' | 'test' | 'game'
 

@@ -1,6 +1,6 @@
-import { tr } from '../../shared/i18n'
 // Backups before pack files change (see main/backups.ts). Only the files an operation will
 // really write are listed: restoring removes the ones it created.
+import { tr } from '../../shared/i18n'
 
 /** Takes the backup; on failure asks whether to go on without it. False = stop. */
 export async function backupBefore(label: string, paths: readonly string[]): Promise<boolean> {

@@ -1,7 +1,7 @@
-import { tr } from './i18n'
 // Texture animation from `<texture>.png.mcmeta` (the "animation" section).
 // Source: https://minecraft.wiki/w/Resource_pack (texture animation
 // properties), verified 2026-10-18.
+import { tr } from './i18n'
 
 export const TICKS_PER_SECOND = 20
 

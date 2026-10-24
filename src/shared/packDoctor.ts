@@ -1,7 +1,7 @@
-import { tr } from './i18n'
 // Pack Doctor (Phase 17 logic): what changed between two game versions, how to port a pack's
 // files across a rename, and file names the game silently ignores. Pure: main reads the jars and
 // hashes the decoded pixels; nothing from a jar is ever copied into a pack.
+import { tr } from './i18n'
 
 /** Pixel hashes of the textures of one game version: pack path → hash of the decoded RGBA. */
 export type TextureHashes = ReadonlyMap<string, string>

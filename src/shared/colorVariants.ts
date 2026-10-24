@@ -1,10 +1,10 @@
-import { tr } from './i18n'
 // Color variants of a texture (e.g. every wool color from one wool). Pure.
 //
 // Colors: the 16 dyes' `textureDiffuseColor` read from the 26.3 client (DyeColor). Recoloring
 // works in OKLab (perceptual): each pixel keeps its offset from the texture's mean lightness and
 // color, and the mean moves to the dye color. Shading and details survive, and white, black and
 // grays work too (a plain hue rotation cannot make white or black).
+import { tr } from './i18n'
 
 export interface Dye {
   /** Game id, used in file names (`light_blue_wool`). */

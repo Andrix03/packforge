@@ -1,6 +1,6 @@
-import { tr } from '../../shared/i18n'
 // Scenes of the Test screen: where the tested block goes, next to which other blocks.
 // Coordinates are block positions (+X east, +Y up, +Z south); the ground is y = 0.
+import { tr } from '../../shared/i18n'
 
 export type Vec3 = [number, number, number]
 

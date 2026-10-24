@@ -1,4 +1,3 @@
-import { tr } from './i18n'
 // LabPBR 1.3 material maps: decode/encode of the `_n` and `_s` textures. Pure, shared by the
 // preview (the shader mirrors these formulas) and the future PBR tools.
 // Source (verified 2026-10-18): https://shaderlabs.org/wiki/LabPBR_Material_Standard
@@ -10,6 +9,7 @@ import { tr } from './i18n'
 //       65–255 = subsurface scattering; A 0–254 = emission, 255 = none.
 // The spec leaves 238–254 unassigned: like shader packs that skip the predefined metals (and Photon
 // for 238–254), they are read as an albedo metal. X/Y decode as byte / 255 * 2 - 1, like the packs.
+import { tr } from './i18n'
 
 export type Rgba = [number, number, number, number]
 

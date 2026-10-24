@@ -1,10 +1,10 @@
-import { tr } from './i18n'
 // GUI sprites (`textures/gui/sprites/…`, 1.20.2+): the `gui.scaling` section of their .png.mcmeta
 // and how the game lays a sprite out at a given size. Checked on the 26.3 client
 // (GuiSpriteScaling codecs and GuiGraphicsExtractor.blitNineSlicedSprite, read with javap). Pure.
 //
 // Sizes are in GUI units: the sprite's `width`/`height` are its logical size (a 2× sprite has
 // twice the pixels); sources below are in those units, so a drawer multiplies by the scale.
+import { tr } from './i18n'
 
 export interface Border {
   left: number

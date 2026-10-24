@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { layoutSprite, parseGuiScaling, type GuiScaling } from './guiScaling'
+import {
+  guiArea,
+  guiTextureKind,
+  layoutSprite,
+  logicalSize,
+  parseGuiScaling,
+  withGuiScaling,
+  type GuiScaling
+} from './guiScaling'
 
 const nine = (extra: Record<string, unknown> = {}) => ({
   gui: { scaling: { type: 'nine_slice', width: 200, height: 20, border: 4, ...extra } }
@@ -56,5 +64,74 @@ describe('layoutSprite', () => {
     const pieces = layoutSprite(scaling, 6, 6)
     expect(pieces[0]!.target).toEqual({ x: 0, y: 0, width: 3, height: 3 })
     expect(pieces.filter((p) => p.target.width > 0 && p.target.height > 0)).toHaveLength(4)
+  })
+})
+
+describe('withGuiScaling', () => {
+  const nineSlice: GuiScaling = {
+    type: 'nine_slice',
+    width: 200,
+    height: 20,
+    border: { left: 3, top: 3, right: 3, bottom: 3 },
+    stretchInner: false
+  }
+
+  it('writes the section like the vanilla files and keeps the other sections', () => {
+    const text = withGuiScaling({ animation: { frametime: 2 } }, nineSlice)
+    expect(JSON.parse(text ?? '')).toEqual({
+      animation: { frametime: 2 },
+      gui: { scaling: { type: 'nine_slice', width: 200, height: 20, border: 3 } }
+    })
+    const uneven = withGuiScaling(null, {
+      ...nineSlice,
+      border: { left: 1, top: 2, right: 3, bottom: 4 },
+      stretchInner: true
+    })
+    expect(JSON.parse(uneven ?? '').gui.scaling).toEqual({
+      type: 'nine_slice',
+      width: 200,
+      height: 20,
+      border: { left: 1, top: 2, right: 3, bottom: 4 },
+      stretch_inner: true
+    })
+    // Written then read back: the same scaling.
+    expect(parseGuiScaling(JSON.parse(uneven ?? ''))).toMatchObject({
+      ok: true,
+      scaling: { stretchInner: true, border: { left: 1, top: 2, right: 3, bottom: 4 } }
+    })
+  })
+
+  it('removes only the scaling, and the file when nothing is left', () => {
+    expect(withGuiScaling({ gui: { scaling: { type: 'stretch' } } }, null)).toBeNull()
+    expect(JSON.parse(withGuiScaling({ animation: {}, gui: { scaling: {} } }, null) ?? '')).toEqual(
+      {
+        animation: {}
+      }
+    )
+  })
+})
+
+describe('GUI paths and sizes', () => {
+  it('tells sprites, title textures and other GUI textures apart, with their area', () => {
+    const p = 'assets/minecraft/textures/gui/'
+    expect(guiTextureKind(`${p}sprites/widget/button.png`)).toBe('sprite')
+    expect(guiTextureKind(`${p}title/background/panorama_0.png`)).toBe('title')
+    expect(guiTextureKind(`${p}container/furnace.png`)).toBe('gui')
+    expect(guiTextureKind('assets/minecraft/textures/block/stone.png')).toBeNull()
+    expect(guiArea(`${p}sprites/container/furnace/lit_progress.png`)).toBe('container')
+    expect(guiArea(`${p}title/minecraft.png`)).toBe('title')
+    expect(guiArea(`${p}book.png`)).toBe('gui')
+  })
+
+  it('measures a sprite in GUI units: its scaling, else the vanilla size, else its pixels', () => {
+    const stretch: GuiScaling = { type: 'stretch' }
+    expect(
+      logicalSize({ type: 'tile', width: 8, height: 4 }, { width: 32, height: 16 }, null)
+    ).toEqual({ width: 8, height: 4 })
+    expect(logicalSize(stretch, { width: 64, height: 64 }, { width: 32, height: 32 })).toEqual({
+      width: 32,
+      height: 32
+    })
+    expect(logicalSize(stretch, { width: 16, height: 16 }, null)).toEqual({ width: 16, height: 16 })
   })
 })

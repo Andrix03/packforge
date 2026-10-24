@@ -1916,5 +1916,36 @@ export const EN: Readonly<Record<string, string>> = {
   'dell\'overlay "{0}"': 'of the overlay "{0}"',
   'Versioni {0} non valide.': 'Invalid versions {0}.',
   'La versione minima {0} è più recente della massima.':
-    'The minimum version {0} is newer than the maximum.'
+    'The minimum version {0} is newer than the maximum.',
+  'Impossibile salvare il .png.mcmeta.': "Couldn't save the .png.mcmeta.",
+  'Anteprima GUI': 'GUI preview',
+  '{0}×{1} unità GUI, {2}×{3} pixel.': '{0}×{1} GUI units, {2}×{3} pixels.',
+  'Stirato: il gioco lo allunga alla misura che gli serve, pixel compresi.':
+    'Stretched: the game pulls it to whatever size it needs, pixels and all.',
+  'In vanilla questo sprite è {0}, ma la scala si legge dal .png.mcmeta del pack che dà l’immagine: senza il tuo, il gioco lo stira.':
+    'In vanilla this sprite is {0}, but the scaling is read from the .png.mcmeta of the pack that provides the image: without yours, the game stretches it.',
+  Stirato: 'Stretch',
+  'Tutto lo sprite allungato alla misura richiesta':
+    'The whole sprite stretched to the size asked for',
+  Ripetuto: 'Tile',
+  'Lo sprite ripetuto per riempire la misura richiesta':
+    'The sprite repeated to fill the size asked for',
+  'Nine-slice': 'Nine-slice',
+  'Angoli fissi, bordi e centro che si allungano o si ripetono':
+    'Fixed corners, edges and centre that stretch or repeat',
+  Sinistra: 'Left',
+  Sopra: 'Top',
+  Destra: 'Right',
+  Sotto: 'Bottom',
+  'Scala dello sprite (gui.scaling)': 'Sprite scaling (gui.scaling)',
+  'Tipo di scala': 'Scaling type',
+  'Bordo {0}': '{0} border',
+  'Centro allungato invece che ripetuto': 'Stretch the centre instead of repeating it',
+  'Le linee arancioni sul primo sprite sono i bordi: gli angoli restano fissi.':
+    'The orange lines on the first sprite are the borders: the corners stay fixed.',
+  'Salva la scala': 'Save the scaling',
+  'Usa la scala di vanilla': 'Use the vanilla scaling',
+  'nine-slice': 'nine-slice',
+  ripetuto: 'tiled',
+  stirato: 'stretched'
 }

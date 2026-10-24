@@ -15,6 +15,8 @@ import { GrowthTabs } from './GrowthTabs'
 import { RandomVariantsDialog } from './RandomVariantsDialog'
 import { splitHalves, stackHalves, tallHalves } from './tallPlant'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
+import { GuiPreview } from '../preview/GuiPreview'
+import { guiTextureKind } from '../../shared/guiScaling'
 import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
 import { AdvicePanel } from './AdvicePanel'
@@ -1656,43 +1658,71 @@ export function TextureEditor({
               )}
           </div>
           <div className="editor-side">
-            <button
-              type="button"
-              className="small-button preview-size"
-              aria-pressed={bigPreview}
-              onClick={() => setBigPreview((big) => !big)}
-              title={tr('Allarga la colonna di destra per vedere meglio il blocco')}
-            >
-              <Glyph name="resize" />
-              {bigPreview ? tr('3D piccolo') : tr('3D grande')}
-            </button>
-            <PreviewPanel
-              target={previewTarget}
-              sources={target.sources}
-              live={
-                tallCanvases && tallUrls
-                  ? {
-                      url: tallUrls.lower,
-                      canvas: tallCanvases.lower,
-                      revision,
-                      maps: null,
-                      animation: null,
-                      extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }]
-                    }
-                  : {
-                      url: target.url,
-                      canvas: source,
-                      revision,
-                      maps: liveMaps,
-                      // An animation the editor cannot handle keeps playing from the file.
-                      ...(animationNote ? {} : { animation })
-                    }
-              }
-              initialShape="block"
-              onBlockTextures={setBlockTextures}
-              onGrowthStages={setGrowthStages}
-              effects={surface === 'color' ? null : effects}
-            />
+            {guiTextureKind(target.path) && (
+              <GuiPreview
+                key={target.path}
+                path={target.path}
+                canvas={source}
+                revision={revision}
+                mcmeta={mcmetaOnDisk.value}
+                sources={target.sources}
+                readOnly={target.readOnly}
+                onSaveMcmeta={async (content) => {
+                  const written = await window.api.invoke(
+                    'texture:saveMcmeta',
+                    target.path,
+                    content
+                  )
+                  if (!written.ok) return false
+                  setMcmetaOnDisk((current) => ({
+                    value: content === null ? null : (JSON.parse(content) as unknown),
+                    frames: current.frames
+                  }))
+                  return true
+                }}
+              />
+            )}
+            {!guiTextureKind(target.path) && (
+              <>
+                <button
+                  type="button"
+                  className="small-button preview-size"
+                  aria-pressed={bigPreview}
+                  onClick={() => setBigPreview((big) => !big)}
+                  title={tr('Allarga la colonna di destra per vedere meglio il blocco')}
+                >
+                  <Glyph name="resize" />
+                  {bigPreview ? tr('3D piccolo') : tr('3D grande')}
+                </button>
+                <PreviewPanel
+                  target={previewTarget}
+                  sources={target.sources}
+                  live={
+                    tallCanvases && tallUrls
+                      ? {
+                          url: tallUrls.lower,
+                          canvas: tallCanvases.lower,
+                          revision,
+                          maps: null,
+                          animation: null,
+                          extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }]
+                        }
+                      : {
+                          url: target.url,
+                          canvas: source,
+                          revision,
+                          maps: liveMaps,
+                          // An animation the editor cannot handle keeps playing from the file.
+                          ...(animationNote ? {} : { animation })
+                        }
+                  }
+                  initialShape="block"
+                  onBlockTextures={setBlockTextures}
+                  onGrowthStages={setGrowthStages}
+                  effects={surface === 'color' ? null : effects}
+                />
+              </>
+            )}
             {surface === 'normal' && maps?.normal && !target.readOnly && (
               <GeneratorPanel
                 settings={generator}

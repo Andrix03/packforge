@@ -151,6 +151,69 @@ export function layoutSprite(
   return pieces
 }
 
+/** What kind of GUI texture a pack path is, or null for anything else. */
+export type GuiTextureKind = 'sprite' | 'title' | 'gui'
+
+export function guiTextureKind(path: string): GuiTextureKind | null {
+  const m = /^assets\/[^/]+\/textures\/gui\/(.+)\.png$/.exec(path)
+  if (!m || !m[1]) return null
+  if (m[1].startsWith('sprites/')) return 'sprite'
+  if (m[1].startsWith('title/')) return 'title'
+  return 'gui'
+}
+
+/**
+ * The sprite's area for grouping: `textures/gui/sprites/container/furnace/…` → "container";
+ * other GUI textures by their folder ("title", "container"…), "gui" at the root.
+ */
+export function guiArea(path: string): string {
+  const m = /textures\/gui\/(?:sprites\/)?([^/]+)\//.exec(path)
+  return m?.[1] ?? 'gui'
+}
+
+/**
+ * The .png.mcmeta text with `gui.scaling` set to `scaling` (null removes the gui section), every
+ * other section kept. Null when nothing is left: the file can be deleted. A nine-slice border with
+ * four equal sides is written as one number, like the vanilla files.
+ */
+export function withGuiScaling(original: unknown, scaling: GuiScaling | null): string | null {
+  const root: Record<string, unknown> = isRecord(original) ? { ...original } : {}
+  const gui: Record<string, unknown> = isRecord(root['gui']) ? { ...root['gui'] } : {}
+  delete gui['scaling']
+  if (scaling) gui['scaling'] = scalingJson(scaling)
+  if (Object.keys(gui).length > 0) root['gui'] = gui
+  else delete root['gui']
+  return Object.keys(root).length > 0 ? `${JSON.stringify(root, null, 2)}\n` : null
+}
+
+function scalingJson(scaling: GuiScaling): Record<string, unknown> {
+  if (scaling.type === 'stretch') return { type: 'stretch' }
+  if (scaling.type === 'tile') return { type: 'tile', width: scaling.width, height: scaling.height }
+  const { left, top, right, bottom } = scaling.border
+  const border = left === top && top === right && right === bottom ? left : scaling.border
+  return {
+    type: 'nine_slice',
+    width: scaling.width,
+    height: scaling.height,
+    border,
+    ...(scaling.stretchInner ? { stretch_inner: true } : {})
+  }
+}
+
+/**
+ * A sprite's logical size in GUI units: from its scaling when it has one, otherwise the vanilla
+ * sprite's size (a higher-resolution pack draws the same GUI units with more pixels), otherwise
+ * its own pixels.
+ */
+export function logicalSize(
+  scaling: GuiScaling,
+  pixels: { width: number; height: number },
+  vanilla: { width: number; height: number } | null
+): { width: number; height: number } {
+  if (scaling.type !== 'stretch') return { width: scaling.width, height: scaling.height }
+  return vanilla ?? pixels
+}
+
 function readBorder(value: unknown): Border | null {
   if (isNonNegativeInt(value)) return { left: value, top: value, right: value, bottom: value }
   if (!isRecord(value)) return null

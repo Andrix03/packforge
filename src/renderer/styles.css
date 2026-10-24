@@ -3391,3 +3391,60 @@ button > .glyph,
 .editor-header > div > button {
   align-self: center;
 }
+
+/* ---- 1.1 GUI preview (editor side, in place of the 3D block for textures/gui/…) ---- */
+.gui-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.gui-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gui-preview p {
+  margin: 0;
+}
+.gui-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  max-height: 420px;
+  overflow: auto;
+  /* The game's menu backdrop: a dark, dimmed world. */
+  background: #2b2b2b;
+}
+.gui-sprite {
+  image-rendering: pixelated;
+  flex: none;
+}
+.gui-warning {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--ui-amber);
+}
+.gui-scaling {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gui-borders {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.gui-border {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gui-border input {
+  width: 100%;
+}

@@ -54,6 +54,13 @@ describe('openPack — folder', () => {
     expect(result).toMatchObject({ ok: false })
   })
 
+  it('points to the subfolder that holds the pack', async () => {
+    await mkdir(join(root, 'My Pack'))
+    await writeFile(join(root, 'My Pack', 'pack.mcmeta'), '{}')
+    const result = await openPack(root)
+    expect(result.ok === false && result.error).toContain('"My Pack"')
+  })
+
   it('still opens packs with an invalid pack.mcmeta, reporting issues', async () => {
     await writeFile(join(root, 'pack.mcmeta'), '{ broken')
     const result = await openPack(root)

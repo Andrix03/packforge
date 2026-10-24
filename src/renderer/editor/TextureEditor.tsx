@@ -15,6 +15,29 @@ import { GrowthTabs } from './GrowthTabs'
 import { RandomVariantsDialog } from './RandomVariantsDialog'
 import { splitHalves, stackHalves, tallHalves } from './tallPlant'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
+import { GuiPreview } from '../preview/GuiPreview'
+import { guiTextureKind } from '../../shared/guiScaling'
+import { ArmorPreview } from '../preview/ArmorPreview'
+import { Item3dDialog } from './Item3dDialog'
+import { ItemPreview } from '../preview/ItemPreview'
+import { ColormapPreview } from '../preview/ColormapPreview'
+import { colormapOf } from '../../shared/biomeTint'
+import { isPolytoneColormap } from '../../shared/polytone'
+import { NameVariantDialog } from './NameVariantDialog'
+import { DefinitionDialog } from './DefinitionDialog'
+import { PopOutDialog } from './PopOutDialog'
+import { DisplayDialog } from './DisplayDialog'
+import { BlockShapesDialog } from './BlockShapesDialog'
+import { ModelEditorDialog } from './ModelEditorDialog'
+import { AdjustDialog } from './AdjustDialog'
+import { MobVariantsDialog } from './MobVariantsDialog'
+import { isEntityTexture } from '../../shared/randomEntities'
+import { adjustPixels, type Adjustments } from '../../shared/adjust'
+import { presetsFor } from '../../shared/blockPresets'
+import { item3dPlan } from '../../shared/item3d'
+import { isItemTexture } from '../../shared/itemPreview'
+import type { FormatRange } from '../../shared/modelRules'
+import { armorPreviewRole } from '../../shared/trims'
 import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
 import { AdvicePanel } from './AdvicePanel'
@@ -37,7 +60,7 @@ import type { Floating } from './selection'
 import * as selectionActions from './selectionActions'
 import { combine, History, pixelCommand, type Command } from './history'
 import { LayersPanel } from './LayersPanel'
-import { replacePixels, TRANSPARENT, type Rgba } from './pixels'
+import { diffPixels, replacePixels, TRANSPARENT, type Rgba } from './pixels'
 import { PixelCanvas, type Tools } from './PixelCanvas'
 import { DEFAULT_RAMP, generateRamp, type RampOptions } from './ramp'
 import { RampPanel } from './RampPanel'
@@ -131,9 +154,12 @@ export function TextureEditor({
   onClose,
   onSwitch,
   onTest,
-  suspended = false
+  suspended = false,
+  formats = null
 }: {
   target: EditorTarget
+  /** The formats of the releases that load the pack (null: none). */
+  formats?: FormatRange | null
   onClose: () => void
   /** Opens the test screen on the texture as it is now (unsaved changes included). */
   onTest: (live: TestLive) => void
@@ -181,6 +207,25 @@ export function TextureEditor({
   const [creatingPath, setCreatingPath] = useState<string | null>(null)
   const [randomVariants, setRandomVariants] = useState(false)
   const [plantShape, setPlantShape] = useState(false)
+  const [item3dOpen, setItem3dOpen] = useState(false)
+  const [nameVariantOpen, setNameVariantOpen] = useState(false)
+  const [definitionOpen, setDefinitionOpen] = useState(false)
+  const [popOutOpen, setPopOutOpen] = useState(false)
+  const [displayOpen, setDisplayOpen] = useState(false)
+  const [shapesOpen, setShapesOpen] = useState(false)
+  const [elementsOpen, setElementsOpen] = useState(false)
+  const [adjustOpen, setAdjustOpen] = useState(false)
+  const [mobVariantsOpen, setMobVariantsOpen] = useState(false)
+  // The block model named like the texture (pack or vanilla), for the element editor.
+  const blockModel = blockModelFor(target.path, target.sources)
+  // Only textures of an item the game knows (its definition in the pack or vanilla).
+  const itemPlan = item3dPlan(target.path)
+  const item3d =
+    itemPlan &&
+    (target.sources.pack.files.has(itemPlan.definitionPath) ||
+      target.sources.vanilla?.files.has(itemPlan.definitionPath))
+      ? itemPlan
+      : null
   /** The crop drawn by this texture (for its plant shape), when it has growth stages. */
   const crop = useMemo(
     () =>
@@ -979,6 +1024,17 @@ export function TextureEditor({
     refresh()
   }
 
+  /** "Regola colori" on the painted layer (the selection only, when there is one): one step. */
+  function applyAdjustments(adjustments: Adjustments): void {
+    if (!doc || channel) return
+    settle()
+    const layer = doc.active.pixels
+    const before = new Uint8ClampedArray(layer.data)
+    layer.data.set(adjustPixels(before, adjustments, doc.selection?.mask ?? null))
+    doc.recomposite()
+    commit(pixelCommand(layer, diffPixels(layer, before)))
+  }
+
   function applyMaterial(): void {
     const map = maps?.specular
     if (!map || !doc) return
@@ -1379,6 +1435,118 @@ export function TextureEditor({
           }}
         />
       )}
+      {item3dOpen && item3d && (
+        <Item3dDialog
+          path={target.path}
+          plan={item3d}
+          sources={target.sources}
+          range={formats}
+          onClose={() => setItem3dOpen(false)}
+          onDone={(written) => {
+            setItem3dOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
+      {mobVariantsOpen && (
+        <MobVariantsDialog
+          path={target.path}
+          sources={target.sources}
+          onClose={() => setMobVariantsOpen(false)}
+          onOpen={(variant, written) => {
+            setMobVariantsOpen(false)
+            void switchTo(variant, written)
+          }}
+        />
+      )}
+      {adjustOpen && doc && (
+        <AdjustDialog
+          pixels={doc.active.pixels}
+          mask={doc.selection?.mask ?? null}
+          onClose={() => setAdjustOpen(false)}
+          onApply={(adjustments) => {
+            setAdjustOpen(false)
+            applyAdjustments(adjustments)
+          }}
+        />
+      )}
+      {elementsOpen && blockModel && (
+        <ModelEditorDialog
+          model={blockModel}
+          sources={target.sources}
+          range={formats}
+          onClose={() => setElementsOpen(false)}
+          onDone={(written) => {
+            setElementsOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
+      {shapesOpen && (
+        <BlockShapesDialog
+          path={target.path}
+          sources={target.sources}
+          onClose={() => setShapesOpen(false)}
+          onDone={(written) => {
+            setShapesOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
+      {displayOpen && (
+        <DisplayDialog
+          path={target.path}
+          sources={target.sources}
+          range={formats}
+          canvas={source}
+          revision={revision}
+          onClose={() => setDisplayOpen(false)}
+          onSaved={(written) => {
+            setDisplayOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
+      {popOutOpen && (
+        <PopOutDialog
+          selection={doc?.selection?.mask ?? null}
+          path={target.path}
+          sources={target.sources}
+          onClose={() => setPopOutOpen(false)}
+          onDone={(written) => {
+            setPopOutOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
+      {definitionOpen && item3d && (
+        <DefinitionDialog
+          path={target.path}
+          plan={item3d}
+          sources={target.sources}
+          range={formats}
+          canvas={source}
+          revision={revision}
+          onClose={() => setDefinitionOpen(false)}
+          onSaved={(written) => {
+            setDefinitionOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
+      {nameVariantOpen && item3d && (
+        <NameVariantDialog
+          path={target.path}
+          plan={item3d}
+          sources={target.sources}
+          range={formats}
+          onClose={() => setNameVariantOpen(false)}
+          onCreated={(path, written) => {
+            setNameVariantOpen(false)
+            void switchTo(path, written)
+          }}
+        />
+      )}
       {randomVariants && (
         <RandomVariantsDialog
           path={target.path}
@@ -1656,43 +1824,100 @@ export function TextureEditor({
               )}
           </div>
           <div className="editor-side">
-            <button
-              type="button"
-              className="small-button preview-size"
-              aria-pressed={bigPreview}
-              onClick={() => setBigPreview((big) => !big)}
-              title={tr('Allarga la colonna di destra per vedere meglio il blocco')}
-            >
-              <Glyph name="resize" />
-              {bigPreview ? tr('3D piccolo') : tr('3D grande')}
-            </button>
-            <PreviewPanel
-              target={previewTarget}
-              sources={target.sources}
-              live={
-                tallCanvases && tallUrls
-                  ? {
-                      url: tallUrls.lower,
-                      canvas: tallCanvases.lower,
-                      revision,
-                      maps: null,
-                      animation: null,
-                      extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }]
+            {guiTextureKind(target.path) && (
+              <GuiPreview
+                key={target.path}
+                path={target.path}
+                canvas={source}
+                revision={revision}
+                mcmeta={mcmetaOnDisk.value}
+                sources={target.sources}
+                readOnly={target.readOnly}
+                onSaveMcmeta={async (content) => {
+                  const written = await window.api.invoke(
+                    'texture:saveMcmeta',
+                    target.path,
+                    content
+                  )
+                  if (!written.ok) return false
+                  setMcmetaOnDisk((current) => ({
+                    value: content === null ? null : (JSON.parse(content) as unknown),
+                    frames: current.frames
+                  }))
+                  return true
+                }}
+              />
+            )}
+            {armorPreviewRole(target.path) && (
+              <ArmorPreview
+                key={target.path}
+                path={target.path}
+                canvas={source}
+                revision={revision}
+                sources={target.sources}
+              />
+            )}
+            {colormapKind(target.path) && (
+              <ColormapPreview
+                colormap={colormapKind(target.path)!}
+                canvas={source}
+                revision={revision}
+              />
+            )}
+            {isItemTexture(target.path) && (
+              <ItemPreview
+                key={target.path}
+                path={target.path}
+                canvas={source}
+                revision={revision}
+                sources={target.sources}
+                range={formats}
+              />
+            )}
+            {!guiTextureKind(target.path) &&
+              !armorPreviewRole(target.path) &&
+              !isItemTexture(target.path) &&
+              !colormapKind(target.path) && (
+                <>
+                  <button
+                    type="button"
+                    className="small-button preview-size"
+                    aria-pressed={bigPreview}
+                    onClick={() => setBigPreview((big) => !big)}
+                    title={tr('Allarga la colonna di destra per vedere meglio il blocco')}
+                  >
+                    <Glyph name="resize" />
+                    {bigPreview ? tr('3D piccolo') : tr('3D grande')}
+                  </button>
+                  <PreviewPanel
+                    target={previewTarget}
+                    sources={target.sources}
+                    live={
+                      tallCanvases && tallUrls
+                        ? {
+                            url: tallUrls.lower,
+                            canvas: tallCanvases.lower,
+                            revision,
+                            maps: null,
+                            animation: null,
+                            extras: [{ url: tallUrls.upper, canvas: tallCanvases.upper }]
+                          }
+                        : {
+                            url: target.url,
+                            canvas: source,
+                            revision,
+                            maps: liveMaps,
+                            // An animation the editor cannot handle keeps playing from the file.
+                            ...(animationNote ? {} : { animation })
+                          }
                     }
-                  : {
-                      url: target.url,
-                      canvas: source,
-                      revision,
-                      maps: liveMaps,
-                      // An animation the editor cannot handle keeps playing from the file.
-                      ...(animationNote ? {} : { animation })
-                    }
-              }
-              initialShape="block"
-              onBlockTextures={setBlockTextures}
-              onGrowthStages={setGrowthStages}
-              effects={surface === 'color' ? null : effects}
-            />
+                    initialShape="block"
+                    onBlockTextures={setBlockTextures}
+                    onGrowthStages={setGrowthStages}
+                    effects={surface === 'color' ? null : effects}
+                  />
+                </>
+              )}
             {surface === 'normal' && maps?.normal && !target.readOnly && (
               <GeneratorPanel
                 settings={generator}
@@ -1761,7 +1986,8 @@ export function TextureEditor({
                 }}
               />
             )}
-            {showTips && <AdvicePanel advice={advice} />}
+            {/* Palette and contrast advice is about block-like textures, not colormaps. */}
+            {showTips && !colormapKind(target.path) && <AdvicePanel advice={advice} />}
 
             <ReferencePanel
               url={referenceUrl}
@@ -1787,6 +2013,36 @@ export function TextureEditor({
                 {tr('Confronta con vanilla')}
               </button>
             )}
+            {doc && !channel && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr(
+                  'Tinta, saturazione, luminosità, contrasto e livelli della texture o della selezione'
+                )}
+                onClick={() => setAdjustOpen(true)}
+              >
+                <Glyph name="gear" />
+                {tr('Regola colori')}
+              </button>
+            )}
+            {isEntityTexture(target.path) && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr(
+                  'Più texture per questo mob: OptiFine o ETF ne scelgono una a caso, anche per bioma o nome'
+                )}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare le varianti?')).then(
+                    (ok) => ok && setMobVariantsOpen(true)
+                  )
+                }
+              >
+                <Glyph name="dice" />
+                {tr('Varianti del mob')}
+              </button>
+            )}
             {target.path.includes('/textures/block/') && !target.readOnly && (
               <button
                 type="button"
@@ -1802,6 +2058,105 @@ export function TextureEditor({
               >
                 <Glyph name="dice" />
                 {tr('Varianti casuali')}
+              </button>
+            )}
+            {target.path.includes('/textures/block/') && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Alcuni colori escono dal blocco in 3D (minerali, gemme)')}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
+                    (ok) => ok && setPopOutOpen(true)
+                  )
+                }
+              >
+                <Glyph name="up" />
+                {tr('Pixel in rilievo')}
+              </button>
+            )}
+            {presetsFor(target.path).length > 0 && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr(
+                  'Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala, binari)'
+                )}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
+                    (ok) => ok && setShapesOpen(true)
+                  )
+                }
+              >
+                <Glyph icon={NAV_ICONS.cube} />
+                {tr('Forme 3D')}
+              </button>
+            )}
+            {blockModel && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Modifica i cubetti del modello del blocco: posizione, rotazione, facce')}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
+                    (ok) => ok && setElementsOpen(true)
+                  )
+                }
+              >
+                <Glyph name="gear" />
+                {tr('Elementi del modello')}
+              </button>
+            )}
+            {item3d && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Piatto nell’inventario, 3D in mano: un modello fatto dai pixel')}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare il modello 3D?')).then(
+                    (ok) => ok && setItem3dOpen(true)
+                  )
+                }
+              >
+                <Glyph icon={NAV_ICONS.cube} />
+                {tr('3D in mano')}
+              </button>
+            )}
+            {item3d && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Una texture diversa quando l’oggetto ha un certo nome nell’incudine')}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare la variante?')).then(
+                    (ok) => ok && setNameVariantOpen(true)
+                  )
+                }
+              >
+                <Glyph name="book" />
+                {tr('Variante per nome')}
+              </button>
+            )}
+            {item3d && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Il file items/ che dice al gioco cosa disegnare e quando')}
+                onClick={() => setDefinitionOpen(true)}
+              >
+                <Glyph name="gear" />
+                {tr('Definizione')}
+              </button>
+            )}
+            {isItemTexture(target.path) && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Come sta l’oggetto in mano, nell’inventario, a terra, in testa')}
+                onClick={() => setDisplayOpen(true)}
+              >
+                <Glyph name="resize" />
+                {tr('Posizioni')}
               </button>
             )}
             {crop && !target.readOnly && (
@@ -2051,4 +2406,19 @@ function formatTime(iso: string): string {
   return Number.isNaN(date.getTime())
     ? tr('data sconosciuta')
     : date.toLocaleString(locale(), { dateStyle: 'short', timeStyle: 'short' })
+}
+
+/** `minecraft:block/stone` for `…/textures/block/stone.png` when that model exists, else null. */
+function blockModelFor(path: string, sources: AssetSources): string | null {
+  const m = /^assets\/([^/]+)\/textures\/block\/([a-z0-9_]+)\.png$/.exec(path)
+  if (!m) return null
+  const file = `assets/${m[1]}/models/block/${m[2]}.json`
+  return sources.pack.files.has(file) || sources.vanilla?.files.has(file)
+    ? `${m[1]}:block/${m[2]}`
+    : null
+}
+
+/** The colormap a texture is: a vanilla one, a Polytone one, or null. */
+function colormapKind(path: string): ReturnType<typeof colormapOf> | 'polytone' | null {
+  return colormapOf(path) ?? (isPolytoneColormap(path) ? 'polytone' : null)
 }

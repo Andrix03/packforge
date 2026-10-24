@@ -1,5 +1,5 @@
-import { tr } from '../../shared/i18n'
 // Editor tool definitions (data only, shared by the tool panel and the shortcuts).
+import { tr } from '../../shared/i18n'
 
 export type ToolId =
   | 'pencil'

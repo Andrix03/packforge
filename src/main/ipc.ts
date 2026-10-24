@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { basename, isAbsolute, join } from 'node:path'
+import { basename, dirname, isAbsolute, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
   registerHandlers,
@@ -50,6 +50,11 @@ import {
   packPngFile,
   saveCtmProperties,
   saveModelJson,
+  movePackFile,
+  saveLang,
+  saveRandomProperties,
+  saveEmissiveProperties,
+  saveSplashes,
   saveTexture,
   saveTextureMcmeta
 } from './textureFile'
@@ -72,6 +77,8 @@ import {
   defaultMinecraftDir,
   listInstalledVersions,
   loadVanillaJar,
+  textureHashes,
+  readVanillaLang,
   VANILLA_ASSET_PREFIXES
 } from './vanilla'
 import { isLanguage, language, tr } from '../shared/i18n'
@@ -492,6 +499,45 @@ const handlers: IpcHandlers = {
     return saveCtmProperties(current.source, path, content)
   },
 
+  'pack:saveSplashes': async (content) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return saveSplashes(current.source, content)
+  },
+
+  'pack:moveFile': async (from, to) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return movePackFile(current.source, from, to)
+  },
+
+  'vanilla:textureHashes': async (versionId) => textureHashes(await minecraftDir(), versionId),
+
+  'pack:saveRandomProperties': async (path, content) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return saveRandomProperties(current.source, path, content)
+  },
+
+  'pack:saveLang': async (code, content) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return saveLang(current.source, code, content)
+  },
+
+  'vanilla:lang': async (code) => {
+    const vanilla = getSource('vanilla')
+    if (!vanilla) return { ok: false, error: tr('Nessuna versione del gioco caricata.') }
+    // The jar lives at versions/<id>/<id>.jar.
+    return readVanillaLang(await minecraftDir(), basename(dirname(vanilla.source.root)), code)
+  },
+
+  'pack:saveEmissiveProperties': async (suffix) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return saveEmissiveProperties(current.source, suffix)
+  },
+
   'model:saveJson': async (path, content) => {
     const current = getSource('pack')
     if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
@@ -671,6 +717,40 @@ const handlers: IpcHandlers = {
       await mkdir(dir, { recursive: true })
       await writeFile(path, png, { flag: 'wx' })
       return { ok: true, path }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  },
+
+  'palette:export': async (name, format, content) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    if (
+      (format !== 'gpl' && format !== 'hex' && format !== 'txt') ||
+      typeof content !== 'string' ||
+      content.length > 64 * 1024
+    ) {
+      return { ok: false, error: tr('Palette non valida.') }
+    }
+    const safe =
+      (typeof name === 'string' ? name : 'palette')
+        .replace(/[^\w.-]+/g, '-')
+        .replace(/^[-.]+|[-.]+$/g, '')
+        .slice(0, 60) || 'palette'
+    // Next to the exports, never over an existing file.
+    const dir = join(defaultExportDir(current.source.root), 'palettes')
+    try {
+      await mkdir(dir, { recursive: true })
+      for (let n = 1; n < 100; n++) {
+        const path = join(dir, `${safe}${n === 1 ? '' : `-${n}`}.${format}`)
+        try {
+          await writeFile(path, content, { flag: 'wx' })
+          return { ok: true, path }
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+        }
+      }
+      return { ok: false, error: tr('Troppi file con questo nome.') }
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) }
     }

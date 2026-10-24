@@ -1,9 +1,9 @@
-import { tr } from './i18n'
 // Biome tint for faces with a tintindex (Java Edition).
 // Sources (verified 2026-10-18): https://minecraft.wiki/w/Biome (colormap
 // sampling, biome temperature/downfall, special colors, fixed spruce/birch
 // colors) and https://minecraft.wiki/w/Color (which blocks use which colormap).
 // Only biomes whose values the wiki states unambiguously are listed.
+import { tr } from './i18n'
 
 export type Rgb = [number, number, number]
 export type Colormap = 'grass' | 'foliage' | 'dry_foliage'
@@ -98,4 +98,10 @@ export function hexToRgb(hex: string): Rgb {
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value))
+}
+
+/** The colormap a texture is (`textures/colormap/grass.png` → grass), or null. */
+export function colormapOf(path: string): Colormap | null {
+  const m = /^assets\/minecraft\/textures\/colormap\/(grass|foliage|dry_foliage)\.png$/.exec(path)
+  return m ? (m[1] as Colormap) : null
 }

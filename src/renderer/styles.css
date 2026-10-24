@@ -2694,6 +2694,25 @@ input[type='radio']:disabled {
   opacity: 0.45;
   cursor: default;
 }
+/* Colour pickers: a square-cornered swatch in a dark pixel frame (the native one is a thin bar). */
+input[type='color'] {
+  appearance: none;
+  flex: none;
+  width: 40px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--ui-edge-dark);
+  border-radius: 0;
+  background: var(--ui-sunken);
+  cursor: pointer;
+}
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type='color']::-webkit-color-swatch {
+  border: none;
+  border-radius: 0;
+}
 .badge {
   border-radius: 0;
   border-color: #4a4a4a;
@@ -3390,4 +3409,671 @@ button > .glyph,
 }
 .editor-header > div > button {
   align-self: center;
+}
+
+/* ---- 1.1 GUI preview (editor side, in place of the 3D block for textures/gui/…) ---- */
+.gui-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.gui-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gui-preview p {
+  margin: 0;
+}
+.armor-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.armor-preview p {
+  margin: 0;
+}
+.armor-view {
+  width: 100%;
+  height: 320px;
+  cursor: grab;
+  touch-action: none;
+}
+.armor-dye {
+  justify-content: space-between;
+}
+.armor-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.armor-choices:empty {
+  display: none;
+}
+.armor-map {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.armor-map canvas {
+  width: 100%;
+  image-rendering: pixelated;
+}
+.armor-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.armor-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.armor-legend i {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--border);
+}
+.gui-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  max-height: 420px;
+  overflow: auto;
+  /* The game's menu backdrop: a dark, dimmed world. */
+  background: #2b2b2b;
+}
+.gui-sprite {
+  image-rendering: pixelated;
+  flex: none;
+}
+.gui-warning {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--ui-amber);
+}
+.gui-scaling {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gui-borders {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.gui-border {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gui-border input {
+  width: 100%;
+}
+
+/* ---- 1.1 GUI tab: the mock game screen in the dock ---- */
+.gui-mock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.gui-mock p {
+  margin: 0;
+}
+.gui-mock-stage {
+  padding: 4px;
+}
+.gui-mock-fit {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gui-mock-big {
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gui-mock-big-stage {
+  overflow: auto;
+}
+
+/* ---- 1.1 Title and loading screen window ---- */
+.title-screens {
+  width: min(760px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.title-section p {
+  margin: 0;
+}
+.panorama-view {
+  display: block;
+  width: 100%;
+  height: 220px;
+}
+.title-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+.title-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+.title-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.title-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+.title-loading-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.title-splashes textarea {
+  width: 100%;
+  font-family: var(--ui-mono);
+}
+
+/* ---- 1.1 Recolour GUI ---- */
+.gui-recolor {
+  width: min(720px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gui-recolor p {
+  margin: 0;
+}
+.gui-recolor-sliders {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 14px;
+}
+.gui-recolor-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.gui-recolor-pair {
+  margin: 0;
+}
+.gui-recolor-pair canvas {
+  max-width: 180px;
+  max-height: 120px;
+  width: auto;
+  height: auto;
+  min-width: 48px;
+}
+.gui-recolor-list {
+  max-height: 180px;
+  overflow: auto;
+}
+.gui-sprite-borders[data-cursor='col'] {
+  cursor: col-resize;
+}
+.gui-sprite-borders[data-cursor='row'] {
+  cursor: row-resize;
+}
+
+/* Item preview (editor side, item textures) */
+.item-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.item-preview p {
+  margin: 0;
+}
+.item-preview .row.wrap {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.item-view {
+  width: 100%;
+  height: 260px;
+  cursor: grab;
+  touch-action: none;
+}
+.item-number {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.overrides-list {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 0.9rem;
+}
+/* Item definition editor: text and checks on the left, the item drawn from the text on the right. */
+.modal.definition-dialog {
+  width: min(980px, 100%);
+}
+.definition-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 12px;
+  align-items: start;
+}
+.definition-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.definition-text textarea {
+  min-height: 360px;
+  resize: vertical;
+  font-family: Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  white-space: pre;
+  tab-size: 2;
+}
+.definition-issues p {
+  margin: 0 0 4px;
+}
+.ok-text {
+  color: var(--accent);
+}
+/* Pixels that pop out */
+.modal.pop-out-dialog {
+  width: min(640px, 100%);
+}
+.pop-out-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.pop-out-map {
+  width: 192px;
+  height: 192px;
+  image-rendering: pixelated;
+}
+.pop-out-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 220px;
+}
+.pop-out-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pop-color {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--ui-edge-dark);
+  border-radius: 0;
+}
+.pop-color[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* Item display transforms */
+.modal.display-dialog {
+  width: min(920px, 100%);
+}
+.display-body {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.display-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.display-field {
+  border: 1px solid var(--border);
+  padding: 6px 10px 8px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.form label.display-axis {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 72px;
+  flex-direction: unset;
+  gap: 8px;
+  align-items: center;
+}
+.display-axis input[type='number'] {
+  padding: 3px 6px;
+}
+/* Element editor */
+.modal.model-editor {
+  width: min(1180px, 100%);
+}
+.model-editor-body {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 300px;
+  gap: 12px;
+  align-items: start;
+}
+.model-list ol {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  max-height: 320px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.model-list .tab {
+  width: 100%;
+  text-align: left;
+  font-size: 0.8rem;
+}
+.model-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.model-row {
+  display: grid;
+  grid-template-columns: 72px repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+.model-row input,
+.model-row select {
+  padding: 4px 6px;
+  min-width: 0;
+}
+.model-faces {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.model-faces th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: normal;
+  padding: 2px 4px;
+}
+.model-faces td {
+  padding: 2px 4px;
+}
+.model-faces select,
+.model-faces input[type='number'] {
+  padding: 3px 4px;
+  min-width: 0;
+}
+.model-uv {
+  display: grid;
+  grid-template-columns: repeat(4, 52px);
+  gap: 3px;
+}
+.model-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.model-view {
+  width: 100%;
+  height: 260px;
+  cursor: grab;
+  touch-action: none;
+}
+.model-issues p {
+  margin: 0 0 4px;
+}
+/* Pack doctor */
+.modal.doctor-dialog {
+  width: min(760px, 100%);
+}
+.doctor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 160px;
+}
+.doctor-list {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 300px;
+  overflow: auto;
+  font-size: 0.85rem;
+}
+.doctor-list li {
+  margin-bottom: 4px;
+}
+.doctor-groups {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* Emissive overlays */
+.modal.emissive-dialog {
+  width: min(560px, 100%);
+}
+.emissive-previews {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.emissive-preview {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+.emissive-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+.palette-files {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.palette-import {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.palette-import input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+/* Colour adjustments */
+.modal.adjust-dialog {
+  width: min(480px, 100%);
+}
+.adjust-previews {
+  display: flex;
+  gap: 12px;
+}
+.adjust-previews figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.adjust-preview {
+  width: 128px;
+  height: 128px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+/* Game texts */
+.modal.lang-dialog {
+  width: min(760px, 100%);
+}
+.lang-search {
+  flex: 1;
+  min-width: 200px;
+}
+.lang-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 380px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lang-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lang-list code {
+  color: var(--muted);
+}
+.lang-list input.lang-changed {
+  border-color: var(--accent);
+}
+/* Colormap preview */
+.colormap-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.colormap-preview p {
+  margin: 0;
+}
+.colormap-view {
+  width: 100%;
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+}
+.colormap-biomes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.colormap-biomes li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.colormap-swatch {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--ui-edge-dark);
+  flex: none;
+}
+/* Mob random textures */
+.modal.mob-variants {
+  width: min(720px, 100%);
+}
+.mob-variant-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.mob-variant-list li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.mob-variant-thumb {
+  width: 96px;
+  height: 48px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.mob-rules {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mob-rule {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 10px;
+  align-items: end;
+}
+.mob-rule input:not([type='checkbox']) {
+  width: 100%;
+  padding: 4px 6px;
+}
+.mob-rule .field-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.mob-rule > button {
+  justify-self: start;
+  align-self: end;
+}
+/* Polytone */
+.modal.polytone-dialog {
+  width: min(560px, 100%);
+}
+.polytone-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.polytone-map {
+  width: 192px;
+  height: 192px;
+  image-rendering: pixelated;
+}
+.polytone-colors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }

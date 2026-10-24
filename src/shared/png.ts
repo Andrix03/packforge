@@ -1,5 +1,5 @@
-import { tr } from './i18n'
 // Minimal PNG header reading (no decoding): signature + IHDR size.
+import { tr } from './i18n'
 
 export const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] as const
 

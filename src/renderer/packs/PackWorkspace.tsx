@@ -3,13 +3,22 @@ import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, findFolder, parentPath } from '../../shared/fileTree'
 import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../shared/ipc'
 import { mapKindOf } from '../../shared/labpbr'
-import { compatibleReleases } from '../../shared/mcmeta'
+import { compatibleFormatRange, compatibleReleases } from '../../shared/mcmeta'
+import { OverridesDialog } from './OverridesDialog'
+import { PackDoctorDialog } from './PackDoctorDialog'
+import { EmissiveDialog } from './EmissiveDialog'
+import { LangDialog } from './LangDialog'
+import { PolytoneDialog } from './PolytoneDialog'
+import type { FormatRange } from '../../shared/modelRules'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
 import type { EditorTarget } from '../editor/TextureEditor'
 import type { AssetSources } from '../preview/modelSource'
 import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { FileTree } from './FileTree'
+import { GuiMockScreen } from './GuiMockScreen'
+import { TitleScreensDialog } from './TitleScreensDialog'
+import { GuiRecolorDialog } from './GuiRecolorDialog'
 import { NewTextureDialog, type NewTextureRequest } from './NewTextureDialog'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
 import { ValidatorDialog } from './ValidatorDialog'
@@ -29,7 +38,11 @@ import { tr } from '../../shared/i18n'
 const DEFAULT_FOLDER = 'assets/minecraft/textures/block'
 const MAX_SEARCH_RESULTS = 500
 
-type Mode = 'pack' | 'vanilla'
+type Mode = 'pack' | 'vanilla' | 'gui'
+
+/** Where the GUI tab opens: the widget sprites (buttons, sliders…); the tree has only the GUI. */
+const GUI_FOLDER = 'assets/minecraft/textures/gui/sprites/widget'
+const GUI_PREFIX = 'assets/minecraft/textures/gui/'
 
 interface SourceFiles {
   files: string[]
@@ -179,6 +192,7 @@ export function PackWorkspace({
       onSelectVersion={(id) => void loadJar(id)}
       canCreate={pack.kind === 'folder'}
       packName={pack.name}
+      formatRange={compatibleFormatRange(pack.mcmeta.formats)}
       onEditTexture={(texture, previewSources) => onEditTexture(targetOf(texture, previewSources))}
       onTestTexture={(texture, previewSources) => onTestTexture(targetOf(texture, previewSources))}
       overview={overview}
@@ -195,6 +209,7 @@ function Workspace({
   onSelectVersion,
   canCreate,
   packName,
+  formatRange,
   onEditTexture,
   onTestTexture,
   overview,
@@ -212,6 +227,8 @@ function Workspace({
   /** Folder packs can get new textures; zip packs are read-only. */
   canCreate: boolean
   packName: string
+  /** The formats of the releases that load the pack (null: none). */
+  formatRange: FormatRange | null
 }): React.JSX.Element {
   const packTextures = useMemo(() => groupTextures(packFiles.files), [packFiles.files])
   const jarFiles = jar.status === 'ready' ? jar.value.files : null
@@ -223,6 +240,18 @@ function Workspace({
   )
   const packKeys = useMemo(() => new Set(packTextures.map((t) => t.key)), [packTextures])
   const vanillaKeys = useMemo(() => new Set(vanillaTextures.map((t) => t.key)), [vanillaTextures])
+  // The GUI tab: the game's GUI textures (sprites, containers, title…), vanilla as a reference.
+  const guiSource = useMemo<SourceFiles | null>(
+    () =>
+      jar.status === 'ready'
+        ? { ...jar.value, files: jar.value.files.filter((f) => f.startsWith(GUI_PREFIX)) }
+        : null,
+    [jar]
+  )
+  const guiTextures = useMemo(
+    () => vanillaTextures.filter((t) => t.albedo.includes('/textures/gui/')),
+    [vanillaTextures]
+  )
 
   const initialFolder = useMemo(
     () => pickInitialFolder(packFiles.files, packTextures),
@@ -230,6 +259,7 @@ function Workspace({
   )
   const [mode, setMode] = useState<Mode>('pack')
   const [selectedFolder, setSelectedFolder] = useState(initialFolder)
+  const [guiFolder, setGuiFolder] = useState(GUI_FOLDER)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null)
@@ -245,8 +275,16 @@ function Workspace({
   const [connecting, setConnecting] = useState<TextureEntry | null>(null)
   const [inGame, setInGame] = useState(false)
   const [showBackups, setShowBackups] = useState(false)
+  const [overriding, setOverriding] = useState(false)
+  const [doctoring, setDoctoring] = useState(false)
+  const [emissive, setEmissive] = useState(false)
+  const [recoloringAll, setRecoloringAll] = useState(false)
+  const [langOpen, setLangOpen] = useState(false)
+  const [polytoneOpen, setPolytoneOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
+  const [titleScreens, setTitleScreens] = useState(false)
+  const [recoloring, setRecoloring] = useState(false)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
     previewSelection?.isPack && previewSelection.mcmeta
@@ -283,6 +321,10 @@ function Workspace({
     }),
     [packFiles.assetBase, packFileSet, fileVersions, jarBase, jarFileSet]
   )
+  // Item models of the pack (they may carry old `overrides` to turn into items/ definitions).
+  const hasItemModels = packFiles.files.some((f) =>
+    /^assets\/[^/]+\/models\/item\/[^/]+\.json$/.test(f)
+  )
   const validatorPack = useMemo<ValidatorSource>(
     () => ({ base: packFiles.assetBase, files: packFileSet, versions: fileVersions }),
     [packFiles.assetBase, packFileSet, fileVersions]
@@ -298,16 +340,18 @@ function Workspace({
   }
 
   const vanillaReady = jar.status === 'ready'
-  const activeMode: Mode = mode === 'vanilla' && vanillaReady ? 'vanilla' : 'pack'
-  const source: SourceFiles =
-    activeMode === 'vanilla' && jar.status === 'ready' ? jar.value : packFiles
-  const textures = activeMode === 'vanilla' ? vanillaTextures : packTextures
-  const marker: TextureMarker | undefined =
-    activeMode === 'vanilla'
-      ? { keys: packKeys, label: 'P', title: tr('Questa texture è già nel tuo pack') }
-      : vanillaReady
-        ? { keys: vanillaKeys, label: 'V', title: tr('Sostituisce la texture vanilla') }
-        : undefined
+  const activeMode: Mode = mode !== 'pack' && vanillaReady ? mode : 'pack'
+  const fromJar = activeMode !== 'pack'
+  const jarSource: SourceFiles | null =
+    jar.status !== 'ready' ? null : activeMode === 'gui' ? (guiSource ?? jar.value) : jar.value
+  const source: SourceFiles = fromJar && jarSource ? jarSource : packFiles
+  const textures =
+    activeMode === 'vanilla' ? vanillaTextures : activeMode === 'gui' ? guiTextures : packTextures
+  const marker: TextureMarker | undefined = fromJar
+    ? { keys: packKeys, label: 'P', title: tr('Questa texture è già nel tuo pack') }
+    : vanillaReady
+      ? { keys: vanillaKeys, label: 'V', title: tr('Sostituisce la texture vanilla') }
+      : undefined
 
   const zipNote = tr('I pack .zip si aprono in sola lettura')
   // Published only while the screen is visible (hidden under the editor its dialogs would not show).
@@ -363,6 +407,24 @@ function Workspace({
             run: () => setBatching({ selection: null, maps: { specular: true, normal: false } })
           },
           {
+            id: 'pack:guiRecolor',
+            label: tr('Ricolora GUI…'),
+            menu: 'Pack',
+            area: 'Pack',
+            enabled: canCreate,
+            why: zipNote,
+            run: () => setRecoloring(true)
+          },
+          {
+            id: 'pack:title',
+            label: tr('Titolo e caricamento…'),
+            menu: 'Pack',
+            area: 'Pack',
+            enabled: vanillaReady,
+            why: tr('Serve il jar vanilla'),
+            run: () => setTitleScreens(true)
+          },
+          {
             id: 'pack:resize',
             label: tr('Ridimensiona il pack…'),
             menu: 'Pack',
@@ -401,6 +463,21 @@ function Workspace({
               {tr('Vanilla')}{' '}
               {vanillaReady && <span className="count">{vanillaTextures.length}</span>}
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMode === 'gui'}
+              className={activeMode === 'gui' ? 'tab active' : 'tab'}
+              onClick={() => setMode('gui')}
+              disabled={!vanillaReady}
+              title={
+                vanillaReady
+                  ? tr('Le texture della GUI del gioco, con una schermata di prova')
+                  : vanillaHint(vanilla, jar)
+              }
+            >
+              {tr('GUI')} {vanillaReady && <span className="count">{guiTextures.length}</span>}
+            </button>
           </div>
           <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
         </div>
@@ -408,9 +485,7 @@ function Workspace({
           <TextureBrowser
             // Remount per source: tree expansion is rebuilt around the shared folder.
             key={
-              activeMode === 'vanilla' && jar.status === 'ready'
-                ? `v:${jar.value.assetBase}`
-                : 'pack'
+              fromJar && jar.status === 'ready' ? `${activeMode}:${jar.value.assetBase}` : 'pack'
             }
             selectedKey={
               previewSelection?.base === source.assetBase ? previewSelection.textureKey : null
@@ -426,9 +501,7 @@ function Workspace({
                 name: texture.name,
                 isPack: activeMode === 'pack',
                 sourceLabel:
-                  activeMode === 'vanilla' && jar.status === 'ready'
-                    ? `Vanilla ${jar.value.versionId}`
-                    : 'Pack'
+                  fromJar && jar.status === 'ready' ? `Vanilla ${jar.value.versionId}` : 'Pack'
               })
             }
             // Only pack textures are editable: vanilla pixels never enter the pack. Double-clicking
@@ -441,7 +514,13 @@ function Workspace({
               const own = packTextures.find((entry) => entry.key === texture.key)
               if (own) onEditTexture(own, previewSources)
               else if (canCreate) {
-                setCreating({ folder: texture.folder, name: texture.name, fromVanilla: true })
+                setCreating({
+                  folder: texture.folder,
+                  name: texture.name,
+                  fromVanilla: true,
+                  // Only its size is read: a 200×20 button gets a 200×20 (or 2×, 4×) texture.
+                  vanillaUrl: assetUrl(source.assetBase, texture.albedo)
+                })
               }
             }}
             onNewTexture={
@@ -459,9 +538,9 @@ function Workspace({
             source={source}
             textures={textures}
             marker={marker}
-            coverageKeys={activeMode === 'vanilla' ? packKeys : null}
-            selectedFolder={selectedFolder}
-            onSelectFolder={setSelectedFolder}
+            coverageKeys={fromJar ? packKeys : null}
+            selectedFolder={activeMode === 'gui' ? guiFolder : selectedFolder}
+            onSelectFolder={activeMode === 'gui' ? setGuiFolder : setSelectedFolder}
             selectedFile={selectedFile}
             onSelectFile={setSelectedFile}
             query={query}
@@ -472,11 +551,19 @@ function Workspace({
       {/* Dock: the pack, the 3D preview (outside the browser so it survives Pack/Vanilla switches), the tools. */}
       <aside className="pack-dock">
         {overview}
-        <PreviewPanel
-          target={previewTarget}
-          sources={previewSources}
-          onTest={testable ? () => onTestTexture(testable, previewSources) : null}
-        />
+        {activeMode === 'gui' ? (
+          <GuiMockScreen
+            sources={previewSources}
+            onOpenTitle={() => setTitleScreens(true)}
+            onRecolor={canCreate ? () => setRecoloring(true) : null}
+          />
+        ) : (
+          <PreviewPanel
+            target={previewTarget}
+            sources={previewSources}
+            onTest={testable ? () => onTestTexture(testable, previewSources) : null}
+          />
+        )}
         <section className="pack-tools">
           <h3 className="ph">{tr('Strumenti del pack')}</h3>
           <div className="tool-bar" role="toolbar" aria-label={tr('Strumenti')}>
@@ -519,6 +606,39 @@ function Workspace({
                   {tr('Backup')}
                 </button>
               )}
+              <button
+                type="button"
+                className="small-button"
+                title={tr(
+                  'File che il gioco ignora, riferimenti rotti, texture che mancano, cambio di versione'
+                )}
+                onClick={() => setDoctoring(true)}
+              >
+                <Glyph icon={NAV_ICONS.search} />
+                {tr('Diagnosi')}
+              </button>
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Nomi di blocchi e oggetti, messaggi, menu: cambiali per una lingua')}
+                onClick={() => setLangOpen(true)}
+              >
+                <Glyph name="book" />
+                {tr('Testi del gioco')}
+              </button>
+              {canCreate && hasItemModels && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title={tr(
+                    'Crea le definizioni in items/ dagli overrides dei modelli degli oggetti (1.21.4+)'
+                  )}
+                  onClick={() => setOverriding(true)}
+                >
+                  <Glyph name="swap" />
+                  {tr('Overrides in items/')}
+                </button>
+              )}
             </div>
             <div className="tool-group">
               <span className="tool-group-label">{tr('Mappe')}</span>
@@ -542,6 +662,43 @@ function Workspace({
                 <Glyph name="chart" />
                 {tr('Copertura')}
               </button>
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title={tr(
+                    'Crea le texture _e (luce senza shader, OptiFine / Continuity) dalle mappe _s che emettono'
+                  )}
+                  onClick={() => setEmissive(true)}
+                >
+                  <Glyph name="dot" />
+                  {tr('Luce _e')}
+                </button>
+              )}
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title={tr('Cambia insieme i colori di tante texture (blocchi, oggetti, entità…)')}
+                  onClick={() => setRecoloringAll(true)}
+                >
+                  <Glyph icon={CMD_ICONS.color} />
+                  {tr('Ricolora texture')}
+                </button>
+              )}
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title={tr(
+                    'Colori dei biomi con la mod Polytone: una colormap tua per foglie ed erba'
+                  )}
+                  onClick={() => setPolytoneOpen(true)}
+                >
+                  <Glyph name="leaf" />
+                  {tr('Polytone')}
+                </button>
+              )}
               {canCreate && (
                 <button
                   type="button"
@@ -615,6 +772,30 @@ function Workspace({
           </div>
         </section>
       </aside>
+      {recoloring && <GuiRecolorDialog pack={validatorPack} onClose={() => setRecoloring(false)} />}
+      {recoloringAll && (
+        <GuiRecolorDialog pack={validatorPack} anyArea onClose={() => setRecoloringAll(false)} />
+      )}
+      {titleScreens && (
+        <TitleScreensDialog
+          sources={previewSources}
+          canCreate={canCreate}
+          onClose={() => setTitleScreens(false)}
+          onOpen={(path) => {
+            const own = packTextures.find((entry) => entry.albedo === path)
+            setTitleScreens(false)
+            if (own) onEditTexture(own, previewSources)
+            else if (canCreate && jar.status === 'ready') {
+              setCreating({
+                folder: path.slice(0, path.lastIndexOf('/')),
+                name: path.slice(path.lastIndexOf('/') + 1, -'.png'.length),
+                fromVanilla: true,
+                vanillaUrl: assetUrl(jar.value.assetBase, path)
+              })
+            }
+          }}
+        />
+      )}
       {varying && (
         <VariantsDialog
           source={varying}
@@ -636,6 +817,49 @@ function Workspace({
       )}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {showBackups && <BackupsDialog onClose={() => setShowBackups(false)} />}
+      {emissive && <EmissiveDialog pack={validatorPack} onClose={() => setEmissive(false)} />}
+      {polytoneOpen && (
+        <PolytoneDialog
+          pack={validatorPack}
+          onClose={() => setPolytoneOpen(false)}
+          onCreated={(path) => {
+            setPolytoneOpen(false)
+            const key = path.replace(/\.png$/, '')
+            const slash = key.lastIndexOf('/')
+            onEditTexture(
+              {
+                key,
+                folder: key.slice(0, slash),
+                name: key.slice(slash + 1),
+                albedo: path,
+                normal: null,
+                specular: null,
+                mcmeta: null
+              },
+              previewSources
+            )
+          }}
+        />
+      )}
+      {langOpen && (
+        <LangDialog pack={validatorPack} canWrite={canCreate} onClose={() => setLangOpen(false)} />
+      )}
+      {doctoring && (
+        <PackDoctorDialog
+          sources={previewSources}
+          versionId={jar.status === 'ready' ? jar.value.versionId : null}
+          canWrite={canCreate}
+          onClose={() => setDoctoring(false)}
+        />
+      )}
+      {overriding && (
+        <OverridesDialog
+          sources={previewSources}
+          range={formatRange}
+          onClose={() => setOverriding(false)}
+          onDone={() => setOverriding(false)}
+        />
+      )}
       {inGame && <InGameDialog packName={packName} onClose={() => setInGame(false)} />}
       {connecting && (
         <CtmDialog

@@ -1,7 +1,7 @@
-import { tr } from './i18n'
 // Pack Doctor (Phase 17 logic): what changed between two game versions, how to port a pack's
 // files across a rename, and file names the game silently ignores. Pure: main reads the jars and
 // hashes the decoded pixels; nothing from a jar is ever copied into a pack.
+import { tr } from './i18n'
 
 /** Pixel hashes of the textures of one game version: pack path → hash of the decoded RGBA. */
 export type TextureHashes = ReadonlyMap<string, string>
@@ -152,4 +152,96 @@ export function lintPaths(files: Iterable<string>): PathIssue[] {
     }
   }
   return issues
+}
+
+/** What a pack JSON file points to: textures and models it needs to exist. */
+function referencesOf(
+  path: string,
+  json: unknown
+): Array<{ kind: 'texture' | 'model'; id: string }> {
+  const out: Array<{ kind: 'texture' | 'model'; id: string }> = []
+  if (/^assets\/[^/]+\/models\//.test(path) && isRecord(json)) {
+    if (typeof json['parent'] === 'string' && !/^(minecraft:)?builtin\//.test(json['parent'])) {
+      out.push({ kind: 'model', id: json['parent'] })
+    }
+    if (isRecord(json['textures'])) {
+      for (const value of Object.values(json['textures'])) {
+        const sprite = isRecord(value) ? value['sprite'] : value
+        if (typeof sprite === 'string' && !sprite.startsWith('#')) {
+          out.push({ kind: 'texture', id: sprite })
+        }
+      }
+    }
+  } else if (/^assets\/[^/]+\/blockstates\//.test(path) && isRecord(json)) {
+    const visit = (value: unknown): void => {
+      for (const entry of Array.isArray(value) ? value : [value]) {
+        if (isRecord(entry) && typeof entry['model'] === 'string') {
+          out.push({ kind: 'model', id: entry['model'] })
+        }
+      }
+    }
+    if (isRecord(json['variants'])) Object.values(json['variants']).forEach(visit)
+    if (Array.isArray(json['multipart'])) {
+      for (const part of json['multipart']) if (isRecord(part)) visit(part['apply'])
+    }
+  } else if (/^assets\/[^/]+\/items\//.test(path)) {
+    const visit = (value: unknown): void => {
+      if (Array.isArray(value)) value.forEach(visit)
+      if (!isRecord(value)) return
+      const type = String(value['type'] ?? '').replace(/^minecraft:/, '')
+      if (type === 'model' && typeof value['model'] === 'string') {
+        out.push({ kind: 'model', id: value['model'] })
+      }
+      if (type === 'special' && typeof value['base'] === 'string') {
+        out.push({ kind: 'model', id: value['base'] })
+      }
+      Object.values(value).forEach(visit)
+    }
+    visit(json)
+  }
+  return out
+}
+
+/** `block/stone` → `assets/minecraft/<folder>/block/stone<ext>`. */
+function idPath(id: string, folder: string, ext: string): string {
+  const [ns, rest] = id.includes(':') ? (id.split(':', 2) as [string, string]) : ['minecraft', id]
+  return `assets/${ns}/${folder}/${rest}${ext}`
+}
+
+/**
+ * Models, block states and item definitions of the pack that point to a texture or model that
+ * exists neither in the pack nor in the game (`exists`): the game draws them purple and black.
+ * `json`: the parsed files (null when the file is not valid JSON: the game skips it).
+ */
+export function brokenReferences(
+  files: ReadonlyMap<string, unknown>,
+  exists: (path: string) => boolean
+): PathIssue[] {
+  const issues: PathIssue[] = []
+  for (const [path, json] of files) {
+    if (json === null) {
+      issues.push({ path, message: tr('JSON non valido: il gioco ignora il file.') })
+      continue
+    }
+    const missing = new Set<string>()
+    for (const ref of referencesOf(path, json)) {
+      const file =
+        ref.kind === 'texture'
+          ? idPath(ref.id, 'textures', '.png')
+          : idPath(ref.id, 'models', '.json')
+      if (!exists(file))
+        missing.add(`${ref.kind === 'texture' ? tr('texture') : tr('modello')} ${ref.id}`)
+    }
+    for (const what of missing) {
+      issues.push({
+        path,
+        message: tr('Usa {0}, che non esiste: in gioco appare viola e nero.', what)
+      })
+    }
+  }
+  return issues
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

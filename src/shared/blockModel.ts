@@ -1,4 +1,3 @@
-import { tr } from './i18n'
 // Block models and block states (Java Edition), resolved from JSON.
 // Formats checked against the 26.3 client jar (2883 models, 1288 states) and
 // https://minecraft.wiki/w/Model on 2026-10-18:
@@ -6,6 +5,7 @@ import { tr } from './i18n'
 // - element rotation: { origin, axis, angle, rescale? } or { origin, x?, y?, z? } (25w46a+)
 // - faces: uv, texture, cullface, rotation, tintindex; elements: shade_direction_override,
 //   light_emission
+import { tr } from './i18n'
 
 export type Vec3 = [number, number, number]
 export type Direction = 'down' | 'up' | 'north' | 'south' | 'west' | 'east'
@@ -78,9 +78,12 @@ export function texturePath(id: string): string {
   return `assets/${ns}/textures/${path}.png`
 }
 
-/** A block model or block state JSON of a pack: `assets/<ns>/{models,blockstates}/….json`. */
+/**
+ * A model, block state or item definition JSON of a pack:
+ * `assets/<ns>/{models,blockstates,items}/….json`.
+ */
 export function isBlockJsonPath(path: string): boolean {
-  return /^assets\/[a-z0-9_.-]+\/(models|blockstates)\/[a-z0-9_./-]+\.json$/.test(path)
+  return /^assets\/[a-z0-9_.-]+\/(models|blockstates|items)\/[a-z0-9_./-]+\.json$/.test(path)
 }
 
 export function blockstatePath(block: string): string {

@@ -67,6 +67,9 @@ export interface VanillaVersionInfo {
 export type ListVanillaVersionsResult =
   { ok: true; minecraftDir: string; versions: VanillaVersionInfo[] } | { ok: false; error: string }
 
+export type TextureHashesResult =
+  { ok: true; hashes: Record<string, string> } | { ok: false; error: string }
+
 export type LoadVanillaResult =
   | {
       ok: true
@@ -162,8 +165,9 @@ export interface IpcContract {
    */
   'ctm:saveProperties': { args: [path: string, content: string]; result: SaveTextureResult }
   /**
-   * Folder packs only: writes a block model or block state (JSON object as text) under
-   * `assets/<ns>/models/` or `assets/<ns>/blockstates/` (random variants, plant shapes).
+   * Folder packs only: writes a model, block state or item definition (JSON object as text)
+   * under `assets/<ns>/models/`, `blockstates/` or `items/` (random variants, plant shapes, 3D
+   * in hand).
    */
   'model:saveJson': { args: [path: string, content: string]; result: SaveTextureResult }
   /** Autosaves editor pixels as a draft for this pack texture (folder packs only). */
@@ -188,6 +192,27 @@ export interface IpcContract {
   'settings:setTutorial': { args: [state: TutorialState]; result: SettingsUpdateResult }
   /** Saved for the next start (the language is fixed while the app runs). */
   'settings:setLanguage': { args: [language: Language]; result: SettingsUpdateResult }
+  /** Folder packs: the title screen splashes, one per line (empty deletes the file). */
+  'pack:saveSplashes': { args: [content: string]; result: SaveTextureResult }
+  /** Folder packs: moves one file (porting a renamed texture); never onto an existing file. */
+  'pack:moveFile': { args: [from: string, to: string]; result: SaveTextureResult }
+  /** Folder packs: `optifine/emissive.properties` with the emissive suffix (e.g. `_e`). */
+  'pack:saveEmissiveProperties': { args: [suffix: string]; result: SaveTextureResult }
+  /** Folder packs: `assets/minecraft/lang/<code>.json` (a JSON object of texts, as text). */
+  'pack:saveLang': { args: [code: string, content: string]; result: SaveTextureResult }
+  /** Folder packs: the rules of random entity textures (`optifine/random/entity/….properties`). */
+  'pack:saveRandomProperties': { args: [path: string, content: string]; result: SaveTextureResult }
+  /** The loaded game version's texts in one language, and the languages it has. */
+  'vanilla:lang': {
+    args: [code: string]
+    result:
+      { ok: true; entries: Record<string, string>; codes: string[] } | { ok: false; error: string }
+  }
+  /**
+   * Pixel hashes of an installed version's textures (pack path → hash of the decoded RGBA), to
+   * compare two versions. Nothing of the jar leaves main but the hashes.
+   */
+  'vanilla:textureHashes': { args: [versionId: string]; result: TextureHashesResult }
   /** Restarts PackForge (after changing the language). */
   'app:restart': { args: []; result: void }
   /** Asks GitHub for the latest release (skipped when turned off in the settings). */
@@ -228,6 +253,11 @@ export interface IpcContract {
   /** Saves a Prova screenshot (PNG) into `<export folder>/screenshots/`. */
   'export:saveScreenshot': {
     args: [name: string, png: Uint8Array]
+    result: { ok: true; path: string } | { ok: false; error: string }
+  }
+  /** Writes a palette file (.gpl, .hex, .txt) into `<pack> - export/palettes/`, never over a file. */
+  'palette:export': {
+    args: [name: string, format: 'gpl' | 'hex' | 'txt', content: string]
     result: { ok: true; path: string } | { ok: false; error: string }
   }
   /** Opens a folder that holds exports in the file manager. */
@@ -281,6 +311,13 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setCheckUpdates': true,
   'settings:setTutorial': true,
   'settings:setLanguage': true,
+  'pack:saveSplashes': true,
+  'pack:moveFile': true,
+  'pack:saveEmissiveProperties': true,
+  'pack:saveLang': true,
+  'pack:saveRandomProperties': true,
+  'vanilla:lang': true,
+  'vanilla:textureHashes': true,
   'app:restart': true,
   'app:checkUpdate': true,
   'app:openRelease': true,
@@ -292,6 +329,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'export:defaultDir': true,
   'export:listing': true,
   'export:saveScreenshot': true,
+  'palette:export': true,
   'export:openFolder': true,
   'backup:create': true,
   'backup:list': true,

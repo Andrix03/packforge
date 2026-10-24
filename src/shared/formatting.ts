@@ -1,8 +1,8 @@
-import { tr } from './i18n'
 // Legacy `§` formatting codes (Java Edition).
 // Source: https://minecraft.wiki/w/Formatting_codes, verified 2026-10-18.
 // Not stated by the wiki, so approximated here: unknown codes are consumed
 // silently, codes are matched case-insensitively.
+import { tr } from './i18n'
 
 export const SECTION_SIGN = '§'
 

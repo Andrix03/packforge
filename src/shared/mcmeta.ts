@@ -375,3 +375,13 @@ function isFormatInt(value: unknown): value is number {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
+
+/** The formats of the releases that load the pack, lowest to highest (null when none does). */
+export function compatibleFormatRange(
+  formats: PackFormats
+): { min: PackVersion; max: PackVersion } | null {
+  const found = compatibleReleases(formats).map((release) => release.resourceFormat)
+  if (found.length === 0) return null
+  const sorted = [...found].sort(comparePackVersions)
+  return { min: sorted[0]!, max: sorted.at(-1)! }
+}

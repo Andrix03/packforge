@@ -12,6 +12,7 @@ import {
 import { assetUrl } from '../../shared/ipc'
 import { growthVariants, stageBaseNames, stemTint } from '../../shared/crops'
 import { mapPath } from '../../shared/labpbr'
+import { emissivePath } from '../../shared/emissive'
 import type { MeshPart, Rgb } from './BlockPreview'
 import { tr } from '../../shared/i18n'
 
@@ -36,10 +37,15 @@ export function resolveAssetUrl(sources: AssetSources, path: string): string | n
 export function labPbrUrls(
   sources: AssetSources,
   texturePath: string
-): { normalUrl: string | null; specularUrl: string | null } {
+): { normalUrl: string | null; specularUrl: string | null; emissiveUrl: string | null } {
+  // The `_e` overlay only ever comes from the pack (vanilla has none).
+  const emissive = emissivePath(texturePath)
   return {
     normalUrl: resolveAssetUrl(sources, mapPath(texturePath, 'normal')),
-    specularUrl: resolveAssetUrl(sources, mapPath(texturePath, 'specular'))
+    specularUrl: resolveAssetUrl(sources, mapPath(texturePath, 'specular')),
+    emissiveUrl: sources.pack.files.has(emissive)
+      ? assetUrl(sources.pack.base, emissive, sources.pack.versions[emissive] ?? 0)
+      : null
   }
 }
 

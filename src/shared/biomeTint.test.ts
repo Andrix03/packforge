@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { BIOMES, colormapPixel, DEFAULT_BIOME, hexToRgb, tintSourceForBlock } from './biomeTint'
+import {
+  BIOMES,
+  colormapOf,
+  colormapPixel,
+  DEFAULT_BIOME,
+  hexToRgb,
+  tintSourceForBlock
+} from './biomeTint'
 
 describe('colormapPixel', () => {
   it('puts temperature 0 / downfall 0 in the bottom-right corner', () => {
@@ -41,5 +48,13 @@ describe('biomes and colors', () => {
     expect(DEFAULT_BIOME.id).toBe('plains')
     expect(hexToRgb('#80a755')).toEqual([128 / 255, 167 / 255, 85 / 255])
     expect(new Set(BIOMES.map((b) => b.id)).size).toBe(BIOMES.length)
+  })
+})
+
+describe('colormapOf', () => {
+  it('knows the three colormaps', () => {
+    expect(colormapOf('assets/minecraft/textures/colormap/grass.png')).toBe('grass')
+    expect(colormapOf('assets/minecraft/textures/colormap/dry_foliage.png')).toBe('dry_foliage')
+    expect(colormapOf('assets/minecraft/textures/block/grass_block_top.png')).toBeNull()
   })
 })

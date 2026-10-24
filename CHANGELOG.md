@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.2.0 alpha — 2026-10-24
+
+Still a prototype: work on a copy of your pack. This release adds the game's GUI, armour, items,
+3D models and a set of pack tools.
+
+### GUI
+
+- A preview for GUI textures at GUI scale 1–4, with the nine-slice editor (drag the borders) and a
+  warning when a sprite would lose vanilla's scaling.
+- A GUI tab with mock screens (title, HUD, inventory) built from your pack or vanilla.
+- Title screen: panorama (rotating preview), logo, Java Edition line and splash texts; the loading
+  screen on its red or black background.
+- Recolour many textures at once: the GUI, or any texture folder of the pack.
+
+### Armour and trims
+
+- Armour textures open on a 3D player wearing them, both layers, leather with its dye, and a map
+  of where to paint each piece.
+- Trims: paint the armour, a trim pattern or a material palette and see the result live.
+
+### Items
+
+- Items are previewed through their definition (`items/`): inventory, first and third person,
+  ground, head, frame; bow pulling, compass, crossbow states; tints.
+- "3D in hand": flat in the inventory, a 3D model of its pixels in hand.
+- Variants by anvil name (1.21.5+), without OptiFine.
+- Convert old `overrides` (custom model data, bow pulling…) to `items/` definitions.
+- Definition editor with live checks, and an item positions editor (how it sits in hand, on the
+  head…), first person drawn where the game puts it.
+
+### 3D models
+
+- Raised pixels: chosen colours (or a selection) stand out of the block, like 3D ores.
+- Ready-made shapes: bushy leaves, grass on the sides, 3D ladder, 3D rails.
+- A block model element editor with a live 3D view, move arrows and checks for your pack's
+  versions.
+
+### Pack tools
+
+- Pack doctor: files the game ignores, models pointing to missing files (purple and black), game
+  textures you haven't replaced, and porting between two installed versions (renamed textures
+  moved for you).
+- Emissive `_e` textures from your LabPBR maps (OptiFine / Continuity), shown lit in the 3D view.
+- Random mob textures with rules by biome, height or name (OptiFine / ETF).
+- Biome colours: a preview for colormaps, and Polytone colormaps for leaves and grass.
+- Game texts: rename items and change messages for one language.
+- Palette files (.gpl, .hex, .txt) in and out; colour adjustments (hue, saturation, levels) in the
+  editor; exports with losslessly smaller PNGs.
+
 ## 0.1.1 alpha — 2026-10-24
 
 - English is now the default language; Italian is one click away in Settings.

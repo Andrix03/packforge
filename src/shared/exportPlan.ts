@@ -225,7 +225,15 @@ export interface ExportCheck {
 }
 
 export type ExportResult =
-  | { ok: true; path: string; files: number; bytes: number; kept: string[] }
+  | {
+      ok: true
+      path: string
+      files: number
+      bytes: number
+      kept: string[]
+      /** Bytes the lossless PNG optimisation saved. */
+      saved: number
+    }
   | { ok: false; error: string; exists?: boolean }
 
 /** Checks a variant sent by the renderer (main re-validates everything). */

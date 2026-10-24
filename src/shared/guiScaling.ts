@@ -1,10 +1,10 @@
-import { tr } from './i18n'
 // GUI sprites (`textures/gui/sprites/…`, 1.20.2+): the `gui.scaling` section of their .png.mcmeta
 // and how the game lays a sprite out at a given size. Checked on the 26.3 client
 // (GuiSpriteScaling codecs and GuiGraphicsExtractor.blitNineSlicedSprite, read with javap). Pure.
 //
 // Sizes are in GUI units: the sprite's `width`/`height` are its logical size (a 2× sprite has
 // twice the pixels); sources below are in those units, so a drawer multiplies by the scale.
+import { tr } from './i18n'
 
 export interface Border {
   left: number
@@ -149,6 +149,117 @@ export function layoutSprite(
     }
   }
   return pieces
+}
+
+/**
+ * The nine-slice border line under a point of a sprite `width`×`height` (GUI units), for dragging:
+ * the nearest of the four within `tolerance` units, or null.
+ */
+export function borderAt(
+  border: Border,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+  tolerance = 1.5
+): keyof Border | null {
+  const distances: Array<[keyof Border, number]> = [
+    ['left', Math.abs(x - border.left)],
+    ['right', Math.abs(x - (width - border.right))],
+    ['top', Math.abs(y - border.top)],
+    ['bottom', Math.abs(y - (height - border.bottom))]
+  ]
+  const [side, distance] = distances.reduce((best, d) => (d[1] < best[1] ? d : best))
+  return distance <= tolerance ? side : null
+}
+
+/**
+ * The border with `side` moved to the point (x, y), in whole units, kept inside the sprite and
+ * leaving at least one unit of centre (the game refuses a nine-slice without one).
+ */
+export function moveBorder(
+  border: Border,
+  side: keyof Border,
+  width: number,
+  height: number,
+  x: number,
+  y: number
+): Border {
+  const clamp = (value: number, max: number): number =>
+    Math.max(0, Math.min(max, Math.round(value)))
+  switch (side) {
+    case 'left':
+      return { ...border, left: clamp(x, width - border.right - 1) }
+    case 'right':
+      return { ...border, right: clamp(width - x, width - border.left - 1) }
+    case 'top':
+      return { ...border, top: clamp(y, height - border.bottom - 1) }
+    case 'bottom':
+      return { ...border, bottom: clamp(height - y, height - border.top - 1) }
+  }
+}
+
+/** What kind of GUI texture a pack path is, or null for anything else. */
+export type GuiTextureKind = 'sprite' | 'title' | 'gui'
+
+export function guiTextureKind(path: string): GuiTextureKind | null {
+  const m = /^assets\/[^/]+\/textures\/gui\/(.+)\.png$/.exec(path)
+  if (!m || !m[1]) return null
+  if (m[1].startsWith('sprites/')) return 'sprite'
+  if (m[1].startsWith('title/')) return 'title'
+  return 'gui'
+}
+
+/**
+ * The sprite's area for grouping: `textures/gui/sprites/container/furnace/…` → "container";
+ * other GUI textures by their folder ("title", "container"…), "gui" at the root.
+ */
+export function guiArea(path: string): string {
+  const m = /textures\/gui\/(?:sprites\/)?([^/]+)\//.exec(path)
+  return m?.[1] ?? 'gui'
+}
+
+/**
+ * The .png.mcmeta text with `gui.scaling` set to `scaling` (null removes the gui section), every
+ * other section kept. Null when nothing is left: the file can be deleted. A nine-slice border with
+ * four equal sides is written as one number, like the vanilla files.
+ */
+export function withGuiScaling(original: unknown, scaling: GuiScaling | null): string | null {
+  const root: Record<string, unknown> = isRecord(original) ? { ...original } : {}
+  const gui: Record<string, unknown> = isRecord(root['gui']) ? { ...root['gui'] } : {}
+  delete gui['scaling']
+  if (scaling) gui['scaling'] = scalingJson(scaling)
+  if (Object.keys(gui).length > 0) root['gui'] = gui
+  else delete root['gui']
+  return Object.keys(root).length > 0 ? `${JSON.stringify(root, null, 2)}\n` : null
+}
+
+function scalingJson(scaling: GuiScaling): Record<string, unknown> {
+  if (scaling.type === 'stretch') return { type: 'stretch' }
+  if (scaling.type === 'tile') return { type: 'tile', width: scaling.width, height: scaling.height }
+  const { left, top, right, bottom } = scaling.border
+  const border = left === top && top === right && right === bottom ? left : scaling.border
+  return {
+    type: 'nine_slice',
+    width: scaling.width,
+    height: scaling.height,
+    border,
+    ...(scaling.stretchInner ? { stretch_inner: true } : {})
+  }
+}
+
+/**
+ * A sprite's logical size in GUI units: from its scaling when it has one, otherwise the vanilla
+ * sprite's size (a higher-resolution pack draws the same GUI units with more pixels), otherwise
+ * its own pixels.
+ */
+export function logicalSize(
+  scaling: GuiScaling,
+  pixels: { width: number; height: number },
+  vanilla: { width: number; height: number } | null
+): { width: number; height: number } {
+  if (scaling.type !== 'stretch') return { width: scaling.width, height: scaling.height }
+  return vanilla ?? pixels
 }
 
 function readBorder(value: unknown): Border | null {

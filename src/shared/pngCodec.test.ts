@@ -1,6 +1,6 @@
 import { zlibSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
-import { decodePng, encodePng, type RgbaImage } from './pngCodec'
+import { decodePng, encodeIndexedPng, encodePng, optimizePng, type RgbaImage } from './pngCodec'
 
 // Builds PNG files by hand (filter 0 rows) so the decoder is tested against the spec, not
 // against our own encoder.
@@ -173,5 +173,42 @@ describe('decodePng', () => {
     const file = png(1, 1, 8, 6, rows)
     expect(file.length).toBeLessThan(20_000)
     expect(pixels(decodePng(file))).toEqual([[9, 8, 7, 255]])
+  })
+})
+
+describe('optimizePng', () => {
+  const image = (width: number, height: number, pixel: (x: number, y: number) => number[]) => {
+    const data = new Uint8Array(width * height * 4)
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++) data.set(pixel(x, y), (y * width + x) * 4)
+    return { width, height, data }
+  }
+  const same = (a: Uint8Array, b: Uint8Array) =>
+    a.length === b.length && a.every((v, i) => v === b[i])
+
+  it('writes few-colour textures as an indexed PNG that decodes to the same pixels', () => {
+    for (const colours of [2, 4, 16, 200]) {
+      const source = image(16, 16, (x, y) => {
+        const n = (x * 16 + y) % colours
+        return [n, 255 - n, (n * 7) % 256, n % 3 === 0 ? 0 : n % 3 === 1 ? 128 : 255]
+      })
+      const indexed = encodeIndexedPng(source)!
+      const back = decodePng(indexed)
+      expect(back.ok && same(back.image.data, source.data), `${colours} colours`).toBe(true)
+    }
+  })
+
+  it('refuses more than 256 colours and never makes a file bigger', () => {
+    const many = image(32, 32, (x, y) => [x * 8, y * 8, (x * y) % 256, 255])
+    expect(encodeIndexedPng(many)).toBeNull()
+    const original = encodePng(image(16, 16, (x) => [x * 16, 0, 0, 255]))
+    const optimized = optimizePng(original)
+    expect(optimized.length).toBeLessThanOrEqual(original.length)
+    const back = decodePng(optimized)
+    const first = decodePng(original)
+    expect(back.ok && first.ok && same(back.image.data, first.image.data)).toBe(true)
+    // Not a PNG: returned as it is.
+    const junk = Uint8Array.from([1, 2, 3])
+    expect(optimizePng(junk)).toBe(junk)
   })
 })

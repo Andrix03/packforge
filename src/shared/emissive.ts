@@ -1,9 +1,9 @@
-import { tr } from './i18n'
 // Emissive overlays (Phase 18 logic): `<name>_e.png` drawn fullbright over the texture by
 // OptiFine, Continuity (blocks, items) and ETF (entities), made from the LabPBR emission channel
 // (`_s` alpha 0–254, 255 = none) that shader packs read. Research 2026-10-22: the suffix is `_e`
 // unless `optifine/emissive.properties` sets `suffix.emissive`; the overlay's alpha scales its
 // brightness (not a cutout). Pure.
+import { tr } from './i18n'
 
 export interface Pixels {
   width: number

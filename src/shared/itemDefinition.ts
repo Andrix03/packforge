@@ -255,12 +255,20 @@ export interface ItemSituation {
  * entries (with their base model) the preview draws as their base.
  */
 export function modelsFor(root: ItemNode | null, situation: ItemSituation): string[] {
-  const out: string[] = []
+  return drawnModels(root, situation).map((drawn) => drawn.model)
+}
+
+/** Like `modelsFor`, with the tints of each model (by tint index; none for specials). */
+export function drawnModels(
+  root: ItemNode | null,
+  situation: ItemSituation
+): Array<{ model: string; tints: unknown[] }> {
+  const out: Array<{ model: string; tints: unknown[] }> = []
   const visit = (node: ItemNode | null): void => {
     if (!node) return
     switch (node.type) {
       case 'model':
-        out.push(node.model)
+        out.push({ model: node.model, tints: node.tints })
         return
       case 'composite':
         node.models.forEach(visit)
@@ -288,7 +296,7 @@ export function modelsFor(root: ItemNode | null, situation: ItemSituation): stri
         return
       }
       case 'special':
-        out.push(node.base)
+        out.push({ model: node.base, tints: [] })
         return
       case 'empty':
       case 'bundle/selected_item':

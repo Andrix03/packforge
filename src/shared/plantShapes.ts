@@ -1,4 +1,3 @@
-import { tr } from './i18n'
 // Shapes for plant models (crops, flowers): block model JSON written into the pack, so they work
 // in the vanilla game without mods. Research 2026-10-19: Vanilla+ Crops uses a "bushy cross" of
 // 4–6 planes tilted at ±22.5° and ±45° and a taller ripe wheat; vanilla crops are 4 planes
@@ -8,6 +7,7 @@ import { tr } from './i18n'
 // No directional shading, like vanilla crops: `"shade": false` up to 26.2, `shade_direction_override:
 // "up"` from 26.3 (its snapshot 3 removed `shade`). Every element carries both: the 26.3 element
 // deserializer only reads the keys it knows (checked with javap), older ones ignore the new key.
+import { tr } from './i18n'
 
 export type PlantShape = 'crop' | 'cross' | 'bushy' | 'tall'
 

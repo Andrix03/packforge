@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { hsvToRgb, rgbToHsv, sameColor, type Hsv, type UsedColor } from './color'
 import { fromHex, toHex, TRANSPARENT, type Rgba } from './pixels'
 import { Glyph } from '../ui/components'
 import { tr } from '../../shared/i18n'
+/** Swatches drawn for the texture's colours (most used first). */ const MAX_SWATCHES = 256
 
 type Slot = 'primary' | 'secondary'
 
@@ -26,6 +27,14 @@ interface ColorPanelProps {
 export function ColorPanel(props: ColorPanelProps): React.JSX.Element {
   const [slot, setSlot] = useState<Slot>('primary')
   const color = slot === 'primary' ? props.primary : props.secondary
+  // The most used colours, kept in the palette's own (light to dark) order.
+  const shownPalette = useMemo(() => {
+    if (props.palette.length <= MAX_SWATCHES) return props.palette
+    const kept = new Set(
+      [...props.palette].sort((a, b) => b.count - a.count).slice(0, MAX_SWATCHES)
+    )
+    return props.palette.filter((entry) => kept.has(entry))
+  }, [props.palette])
   const pick = (event: React.MouseEvent, value: Rgba): void => {
     event.preventDefault()
     props.onChange(event.button === 2 ? 'secondary' : 'primary', value)
@@ -82,11 +91,15 @@ export function ColorPanel(props: ColorPanelProps): React.JSX.Element {
         <h3 className="panel-title">
           {tr('Colori della texture')} <span className="muted">({props.palette.length})</span>
         </h3>
+        {/* A photo-like texture (a colormap) has thousands: only the most used are drawn. */}
         <SwatchGrid
-          colors={props.palette.map((entry) => entry.color)}
-          counts={props.palette.map((entry) => entry.count)}
+          colors={shownPalette.map((entry) => entry.color)}
+          counts={shownPalette.map((entry) => entry.count)}
           onPick={pick}
         />
+        {props.palette.length > MAX_SWATCHES && (
+          <p className="muted small">{tr('Mostro i {0} colori più usati.', MAX_SWATCHES)}</p>
+        )}
       </section>
     </div>
   )

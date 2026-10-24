@@ -21,7 +21,7 @@ import { compatibleReleases, analyzePackMcmeta } from '../shared/mcmeta'
 import { descriptionMarkdown, factsFromFiles, listingText } from '../shared/listing'
 import { summarizeReleaseSpans } from '../shared/packFormat'
 import { readPngSize } from '../shared/png'
-import { decodePng, encodePng } from '../shared/pngCodec'
+import { decodePng, encodePng, optimizePng } from '../shared/pngCodec'
 import { factorBetween, scaleMcmeta, scaleNearest, type Factor } from '../shared/resize'
 import { writeFileAtomic } from './atomicWrite'
 import { listPackFiles, type PackSource } from './packSource'
@@ -192,6 +192,7 @@ export async function buildExport(
   /** Textures left at their size in a resolution variant (no integer ratio). */
   const kept: string[] = []
   const factors = new Map<string, ReturnType<typeof factorBetween>>()
+  let saved = 0
   for (const path of filesForVariant(files, variant)) {
     let bytes: Uint8Array = await readFile(join(root, ...path.split('/')))
     if (variant.kind === 'resolution' && SCALED.test(path) && path.endsWith('.png')) {
@@ -211,6 +212,12 @@ export async function buildExport(
       } else {
         kept.push(path)
       }
+    }
+    if (path.endsWith('.png')) {
+      // Lossless: indexed when it has few colours, every candidate checked pixel by pixel.
+      const optimized = optimizePng(bytes)
+      saved += bytes.length - optimized.length
+      bytes = optimized
     }
     zip[path] = [bytes, { level: path.endsWith('.png') ? 0 : 6 }]
   }
@@ -248,7 +255,8 @@ export async function buildExport(
     path: target,
     files: Object.keys(zip).length,
     bytes: data.length,
-    kept: kept.sort()
+    kept: kept.sort(),
+    saved
   }
 }
 

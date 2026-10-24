@@ -56,6 +56,8 @@ export interface MeshPart {
   /** LabPBR maps (`_n.png`, `_s.png`), when the pack has them. */
   normalUrl?: string | null
   specularUrl?: string | null
+  /** OptiFine / Continuity emissive overlay (`_e.png`), when the pack has one. */
+  emissiveUrl?: string | null
   translucent: boolean
   quads: Array<{ quad: Quad; tint: Rgb }>
 }
@@ -75,6 +77,8 @@ export interface PartReport {
   animation: TextureAnimation | null
   /** Which LabPBR maps were found and loaded. */
   maps: { normal: boolean; specular: boolean }
+  /** An `_e` emissive overlay was loaded. */
+  emissive: boolean
   /** Italian message when the texture or its animation could not be used. */
   problem: string | null
 }
@@ -190,6 +194,8 @@ interface LoadedPart {
   liveMaps: THREE.Texture[]
   /** Depth-only material for the shadow pass (null: translucent, casts no shadow). */
   shadowMaterial: THREE.ShaderMaterial | null
+  /** The `_e` overlay drawn fullbright over the texture (OptiFine / Continuity), or null. */
+  emissive: THREE.MeshBasicMaterial | null
 }
 
 interface LoadedModel {
@@ -301,6 +307,8 @@ export class BlockPreview {
   /** One HDR pipeline per half of the view (effects on), or null. */
   private composers: [Composer, Composer] | null = null
   private hour = 12
+  /** `_e` overlays drawn (OptiFine / Continuity look). */
+  private emissiveShown = true
   private readonly main: Side = emptySide()
   private readonly other: Side = emptySide()
   /** Whether the right half shows the comparison. */
@@ -598,6 +606,16 @@ export class BlockPreview {
     this.invalidateReflections()
   }
 
+  /** Shows or hides the `_e` overlays (OptiFine / Continuity draw them; vanilla doesn't). */
+  setEmissive(enabled: boolean): void {
+    this.emissiveShown = enabled
+    for (const side of [this.main, this.other]) {
+      side.world.traverse((child) => {
+        if (child.userData['emissive']) child.visible = enabled
+      })
+    }
+  }
+
   setAutoRotate(enabled: boolean): void {
     this.controls.autoRotate = enabled
   }
@@ -689,6 +707,7 @@ export class BlockPreview {
     // Maps being painted in the editor win over their files.
     const liveNormal = live?.maps?.normal ?? null
     const liveSpecular = live?.maps?.specular ?? null
+    const emissiveLoading = part.emissiveUrl ? loadMap(part.emissiveUrl) : null
     const mapsLoading = Promise.all([
       liveNormal ? liveMap(liveNormal) : part.normalUrl ? loadMap(part.normalUrl) : null,
       liveSpecular ? liveMap(liveSpecular) : part.specularUrl ? loadMap(part.specularUrl) : null
@@ -841,7 +860,8 @@ export class BlockPreview {
       liveMaps: [liveNormal && normalMap, liveSpecular && specularMap].filter(
         (map): map is THREE.Texture => Boolean(map)
       ),
-      shadowMaterial
+      shadowMaterial,
+      emissive: emissiveOverlay(await emissiveLoading)
     }
     setStaticFrame(loaded)
     return {
@@ -851,6 +871,7 @@ export class BlockPreview {
         size: part.url ? imageSize : null,
         animation,
         maps: { normal: normalMap !== null, specular: specularMap !== null },
+        emissive: loaded.emissive !== null,
         problem
       }
     }
@@ -877,6 +898,15 @@ export class BlockPreview {
         const mesh = new THREE.Mesh(geometry, part.material)
         mesh.userData['shadowMaterial'] = part.shadowMaterial
         side.world.add(mesh)
+        if (part.emissive) {
+          // Same quads, unlit and drawn after: what OptiFine does with `_e` textures.
+          const glow = new THREE.Mesh(geometry, part.emissive)
+          glow.userData['shadowMaterial'] = null
+          glow.userData['emissive'] = true
+          glow.visible = this.emissiveShown
+          glow.renderOrder = 1
+          side.world.add(glow)
+        }
       }
     }
     const box = new THREE.Box3()
@@ -1008,11 +1038,11 @@ export class BlockPreview {
    * cutout parts with their depth material, translucent ones left out. Visibility is the caller's.
    */
   private drawDepth(side: Side, target: THREE.WebGLRenderTarget, camera: THREE.Camera): void {
-    const swapped: Array<[THREE.Mesh, THREE.Material]> = []
+    const swapped: Array<[THREE.Mesh, THREE.Material, boolean]> = []
     for (const child of side.world.children) {
       if (!(child instanceof THREE.Mesh)) continue
       const caster = child.userData['shadowMaterial'] as THREE.ShaderMaterial | null
-      swapped.push([child, child.material as THREE.Material])
+      swapped.push([child, child.material as THREE.Material, child.visible])
       if (caster) child.material = caster
       else child.visible = false
     }
@@ -1023,9 +1053,9 @@ export class BlockPreview {
     this.renderer.render(this.scene, camera)
     this.renderer.setRenderTarget(null)
     this.skyDome.visible = dome
-    for (const [mesh, material] of swapped) {
+    for (const [mesh, material, visible] of swapped) {
       mesh.material = material
-      mesh.visible = true
+      mesh.visible = visible
     }
   }
 
@@ -1400,6 +1430,35 @@ function setStaticFrame(part: LoadedPart): void {
   ;(part.material.uniforms['frameA']!.value as THREE.Vector4).set(...frame)
   ;(part.material.uniforms['frameB']!.value as THREE.Vector4).set(...frame)
   part.material.uniforms['frameBlend']!.value = 0
+  syncEmissiveFrame(part)
+}
+
+/** The overlay shows the same animation frame as the texture (frameA, as the shader maps it). */
+function syncEmissiveFrame(part: LoadedPart): void {
+  const map = part.emissive?.map
+  if (!map) return
+  const frame = part.material.uniforms['frameA']!.value as THREE.Vector4
+  map.repeat.set(frame.z, frame.w)
+  map.offset.set(frame.x, 1 - frame.y - frame.w)
+}
+
+/** The `_e` overlay material: its pixels at full light, its alpha as strength. */
+function emissiveOverlay(result: MapResult | null): THREE.MeshBasicMaterial | null {
+  if (!result?.ok) return null
+  const map = result.texture
+  map.colorSpace = THREE.SRGBColorSpace
+  map.minFilter = THREE.NearestFilter
+  map.generateMipmaps = false
+  return new THREE.MeshBasicMaterial({
+    map,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+    toneMapped: false
+  })
 }
 
 function setAnimatedFrame(part: LoadedPart, ticks: number): void {
@@ -1414,6 +1473,7 @@ function setAnimatedFrame(part: LoadedPart, ticks: number): void {
   toUniform(current.index, part.material.uniforms['frameA']!.value as THREE.Vector4)
   toUniform(next.index, part.material.uniforms['frameB']!.value as THREE.Vector4)
   part.material.uniforms['frameBlend']!.value = blend
+  syncEmissiveFrame(part)
 }
 
 function srgbToLinear(c: number): number {
@@ -1545,6 +1605,8 @@ function disposePart(part: LoadedPart): void {
   part.geometry.dispose()
   part.material.dispose()
   part.shadowMaterial?.dispose()
+  part.emissive?.map?.dispose()
+  part.emissive?.dispose()
   part.texture.dispose()
   const defaults = defaultMaps()
   if (part.normalMap !== defaults.normal) part.normalMap.dispose()

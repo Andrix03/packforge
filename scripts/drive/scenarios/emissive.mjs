@@ -33,4 +33,27 @@ export default async function emissive(app) {
     'utf8'
   ).catch(() => '')
   app.check(properties === 'suffix.emissive=_e\n', 'emissive.properties written')
+  await app.click('Fatto', '[role=dialog] button')
+  // The watcher brings the new _e files into the pack listing.
+  await app.sleep(1500)
+  await preview(app)
+}
+
+export async function preview(app) {
+  // Glowstone (fixture _s emits) now has its _e: the block preview offers it, at night.
+  await app.openTexture('glowstone.png')
+  await app.click('Modello del blocco', '.editor-side button')
+  await app.waitFor(
+    `[...document.querySelectorAll('.editor-side label')].some((l) => l.textContent.includes('Luce _e'))`,
+    10000
+  )
+  app.check(true, 'the block preview offers the _e light')
+  await app.setValue('.editor-side .preview-control input[type=range]', '0')
+  await app.sleep(1200)
+  await app.shot('emissive-night-on')
+  await app.ev(
+    `[...document.querySelectorAll('.editor-side label')].find((l) => l.textContent.includes('Luce _e')).querySelector('input').click()`
+  )
+  await app.sleep(800)
+  await app.shot('emissive-night-off')
 }

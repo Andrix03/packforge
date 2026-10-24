@@ -111,6 +111,9 @@ export function PreviewPanel({
   const [choices, setChoices] = useState<{ shown: number; count: number }>({ shown: 0, count: 0 })
   const [growing, setGrowing] = useState(false)
   const [windy, setWindy] = useState(false)
+  // `_e` overlays: shown as OptiFine / Continuity draw them, only offered when the block has one.
+  const [emissiveOn, setEmissiveOn] = useState(true)
+  const [glows, setGlows] = useState(false)
   const [status, setStatus] = useState<Status | null>(null)
   const [biomeId, setBiomeId] = useState(DEFAULT_BIOME.id)
   const biome = BIOMES.find((b) => b.id === biomeId) ?? DEFAULT_BIOME
@@ -173,6 +176,7 @@ export function PreviewPanel({
   useEffect(() => previewRef.current?.setTime(hour), [hour])
   useEffect(() => previewRef.current?.setAutoRotate(autoRotate), [autoRotate])
   useEffect(() => previewRef.current?.setWind(windy ? 0.6 : 0), [windy])
+  useEffect(() => previewRef.current?.setEmissive(emissiveOn), [emissiveOn])
 
   // Selecting a texture proposes the block that most likely uses it
   // (state adjusted during render, as React recommends for derived resets).
@@ -202,6 +206,7 @@ export function PreviewPanel({
         }
         const reports = await view.setMesh(cubeMesh(target.key, target.url, target.mcmetaUrl))
         if (current && reports[0]) setStatus(describeTexture(reports[0]))
+        if (current) setGlows(false)
         if (current) {
           // A plain cube: no block faces, growth stages or variants to offer.
           onBlockTextures?.([])
@@ -237,6 +242,7 @@ export function PreviewPanel({
       if (!current) return
       const reports = await view.setMesh(mesh.parts)
       if (!current) return
+      setGlows(reports.some((r) => r.emissive))
       onBlockTextures?.([...new Set(mesh.parts.flatMap((part) => (part.path ? [part.path] : [])))])
       onGrowthStages?.(mesh.stages)
       setVariants(mesh.variants)
@@ -463,6 +469,22 @@ export function PreviewPanel({
             {tr('Vento')}
           </label>
         </div>
+      )}
+
+      {glows && (
+        <label
+          className="checkbox-inline small"
+          title={tr(
+            'Le texture _e restano accese al buio con OptiFine o Continuity (senza mod non si vedono)'
+          )}
+        >
+          <input
+            type="checkbox"
+            checked={emissiveOn}
+            onChange={(event) => setEmissiveOn(event.target.checked)}
+          />
+          {tr('Luce _e (OptiFine / Continuity)')}
+        </label>
       )}
 
       {status?.problems.map((problem) => (

@@ -2298,5 +2298,8 @@ export const EN: Readonly<Record<string, string>> = {
     'pack.mcmeta is in the subfolder "{0}": open that one.',
   'Cosa esce': 'What stands out',
   'La selezione': 'The selection',
-  'Per colore': 'By colour'
+  'Per colore': 'By colour',
+  'Le texture _e restano accese al buio con OptiFine o Continuity (senza mod non si vedono)':
+    'The _e textures stay lit in the dark with OptiFine or Continuity (without mods they do not show)',
+  'Luce _e (OptiFine / Continuity)': 'Light _e (OptiFine / Continuity)'
 }

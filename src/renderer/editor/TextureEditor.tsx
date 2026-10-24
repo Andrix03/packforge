@@ -20,6 +20,7 @@ import { guiTextureKind } from '../../shared/guiScaling'
 import { ArmorPreview } from '../preview/ArmorPreview'
 import { Item3dDialog } from './Item3dDialog'
 import { ItemPreview } from '../preview/ItemPreview'
+import { NameVariantDialog } from './NameVariantDialog'
 import { item3dPlan } from '../../shared/item3d'
 import { isItemTexture } from '../../shared/itemPreview'
 import type { FormatRange } from '../../shared/modelRules'
@@ -194,7 +195,15 @@ export function TextureEditor({
   const [randomVariants, setRandomVariants] = useState(false)
   const [plantShape, setPlantShape] = useState(false)
   const [item3dOpen, setItem3dOpen] = useState(false)
-  const item3d = item3dPlan(target.path)
+  const [nameVariantOpen, setNameVariantOpen] = useState(false)
+  // Only textures of an item the game knows (its definition in the pack or vanilla).
+  const itemPlan = item3dPlan(target.path)
+  const item3d =
+    itemPlan &&
+    (target.sources.pack.files.has(itemPlan.definitionPath) ||
+      target.sources.vanilla?.files.has(itemPlan.definitionPath))
+      ? itemPlan
+      : null
   /** The crop drawn by this texture (for its plant shape), when it has growth stages. */
   const crop = useMemo(
     () =>
@@ -1406,6 +1415,19 @@ export function TextureEditor({
           }}
         />
       )}
+      {nameVariantOpen && item3d && (
+        <NameVariantDialog
+          path={target.path}
+          plan={item3d}
+          sources={target.sources}
+          range={formats}
+          onClose={() => setNameVariantOpen(false)}
+          onCreated={(path, written) => {
+            setNameVariantOpen(false)
+            void switchTo(path, written)
+          }}
+        />
+      )}
       {randomVariants && (
         <RandomVariantsDialog
           path={target.path}
@@ -1893,6 +1915,21 @@ export function TextureEditor({
               >
                 <Glyph icon={NAV_ICONS.cube} />
                 {tr('3D in mano')}
+              </button>
+            )}
+            {item3d && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Una texture diversa quando l’oggetto ha un certo nome nell’incudine')}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare la variante?')).then(
+                    (ok) => ok && setNameVariantOpen(true)
+                  )
+                }
+              >
+                <Glyph name="book" />
+                {tr('Variante per nome')}
               </button>
             )}
             {crop && !target.readOnly && (

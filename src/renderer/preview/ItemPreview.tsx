@@ -406,7 +406,7 @@ export function ItemPreview(props: Props): React.JSX.Element {
         .filter((property) => property !== 'display_context')
         .map((property) => (
           <label key={property} className="small select-field">
-            {property}{' '}
+            {property === 'component' ? tr('Nome nell’incudine') : property}{' '}
             <select
               value={state.selects[property] ?? ''}
               onChange={(event) => {

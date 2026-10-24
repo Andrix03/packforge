@@ -2074,5 +2074,22 @@ export const EN: Readonly<Record<string, string>> = {
   'Niente da disegnare in questo stato.': 'Nothing to draw in this state.',
   'Parte dell’oggetto la disegna il gioco con il suo codice: qui non si vede.':
     "Part of the item is drawn by the game's code: it doesn't show here.",
-  Altro: 'Other'
+  Altro: 'Other',
+  'Serve la 1.21.5 o successiva: le versioni prima non sanno scegliere il modello dal nome.':
+    "Needs 1.21.5 or later: older versions can't pick the model by name.",
+  'Il nome deve contenere almeno una lettera o una cifra.':
+    'The name needs at least one letter or digit.',
+  'Variante per nome «{0}»': 'Name variant «{0}»',
+  'Variante per nome': 'Variant by name',
+  'Variante per nome: {0}': 'Variant by name: {0}',
+  'Rinominato nell’incudine con questo nome esatto (maiuscole comprese), l’oggetto usa una texture sua. Funziona senza mod, al posto delle CIT di OptiFine.':
+    'Renamed in an anvil with this exact name (capitals included), the item uses its own texture. Works without mods, in place of OptiFine CIT.',
+  'Nome nell’incudine': 'Anvil name',
+  'La texture esiste già: la tengo com’è.': 'The texture already exists: kept as it is.',
+  'Nomi già usati: {0}': 'Names already used: {0}',
+  'Crea la variante e disegnala': 'Create the variant and paint it',
+  'Una texture diversa quando l’oggetto ha un certo nome nell’incudine':
+    'A different texture when the item has a given anvil name',
+  'Salvare le modifiche prima di creare la variante?':
+    'Save the changes before creating the variant?'
 }

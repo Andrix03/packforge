@@ -12,6 +12,7 @@ import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { FileTree } from './FileTree'
 import { GuiMockScreen } from './GuiMockScreen'
 import { TitleScreensDialog } from './TitleScreensDialog'
+import { GuiRecolorDialog } from './GuiRecolorDialog'
 import { NewTextureDialog, type NewTextureRequest } from './NewTextureDialog'
 import { TextureGrid, type TextureMarker } from './TextureGrid'
 import { ValidatorDialog } from './ValidatorDialog'
@@ -267,6 +268,7 @@ function Workspace({
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const [titleScreens, setTitleScreens] = useState(false)
+  const [recoloring, setRecoloring] = useState(false)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
     previewSelection?.isPack && previewSelection.mcmeta
@@ -383,6 +385,15 @@ function Workspace({
             enabled: canCreate,
             why: zipNote,
             run: () => setBatching({ selection: null, maps: { specular: true, normal: false } })
+          },
+          {
+            id: 'pack:guiRecolor',
+            label: tr('Ricolora GUI…'),
+            menu: 'Pack',
+            area: 'Pack',
+            enabled: canCreate,
+            why: zipNote,
+            run: () => setRecoloring(true)
           },
           {
             id: 'pack:title',
@@ -521,7 +532,11 @@ function Workspace({
       <aside className="pack-dock">
         {overview}
         {activeMode === 'gui' ? (
-          <GuiMockScreen sources={previewSources} onOpenTitle={() => setTitleScreens(true)} />
+          <GuiMockScreen
+            sources={previewSources}
+            onOpenTitle={() => setTitleScreens(true)}
+            onRecolor={canCreate ? () => setRecoloring(true) : null}
+          />
         ) : (
           <PreviewPanel
             target={previewTarget}
@@ -667,6 +682,7 @@ function Workspace({
           </div>
         </section>
       </aside>
+      {recoloring && <GuiRecolorDialog pack={validatorPack} onClose={() => setRecoloring(false)} />}
       {titleScreens && (
         <TitleScreensDialog
           sources={previewSources}

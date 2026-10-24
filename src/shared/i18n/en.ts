@@ -1995,5 +1995,22 @@ export const EN: Readonly<Record<string, string>> = {
   'Salva le frasi': 'Save the splashes',
   'Elenco delle frasi non valido.': 'Invalid list of splashes.',
   'Impossibile eliminare il file: {0}': "Couldn't delete the file: {0}",
-  'le frasi': 'the splashes'
+  'le frasi': 'the splashes',
+  'Ricolora GUI…': 'Recolour GUI…',
+  Scuro: 'Dark',
+  Caldo: 'Warm',
+  Freddo: 'Cool',
+  'Ricolora GUI ({0})': 'Recolour GUI ({0})',
+  'Ricolora GUI': 'Recolour GUI',
+  'Cambia insieme i colori delle texture GUI del tuo pack: le trasparenze restano, le sfumature si spostano tutte nello stesso modo. Le texture vanilla non si toccano.':
+    "Changes the colours of your pack's GUI textures together: transparency stays, every shade moves the same way. Vanilla textures are not touched.",
+  'Il pack non ha ancora texture GUI: creale dalla scheda GUI, poi torna qui.':
+    'The pack has no GUI textures yet: create them from the GUI tab, then come back here.',
+  Preimpostazioni: 'Presets',
+  'Nessuna modifica': 'No change',
+  'Texture GUI del pack': "The pack's GUI textures",
+  'Ricoloro… {0}/{1}': 'Recolouring… {0}/{1}',
+  '{0} texture ricolorate. Il backup è in Pack › Backup.':
+    '{0} textures recoloured. The backup is in Pack › Backup.',
+  'Ricolora {0}': 'Recolour {0}'
 }

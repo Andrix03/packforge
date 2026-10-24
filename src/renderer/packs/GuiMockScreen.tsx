@@ -17,6 +17,7 @@ import type { AssetSources } from '../preview/modelSource'
 import { drawSprite } from '../preview/guiDraw'
 import { Glyph, OreButton } from '../ui/components'
 import { useEscape } from '../useEscape'
+import { CMD_ICONS } from '../ui/icons'
 
 interface Loaded {
   image: HTMLImageElement
@@ -32,11 +33,14 @@ const SCREEN_NAMES: Record<MockScreenKind, string> = {
 
 export function GuiMockScreen({
   sources,
-  onOpenTitle
+  onOpenTitle,
+  onRecolor
 }: {
   sources: AssetSources
   /** Opens the title and loading screen window. */
   onOpenTitle: () => void
+  /** Opens the GUI recolour window (null for read-only packs). */
+  onRecolor: (() => void) | null
 }): React.JSX.Element {
   const splash = usePackSplash(sources)
   const [kind, setKind] = useState<MockScreenKind>('title')
@@ -85,10 +89,18 @@ export function GuiMockScreen({
         {/* Drawn at 2× and fitted to the column: pixels stay square enough to judge colours. */}
         <MockCanvas screen={screen} loaded={loaded} scale={2} kind={kind} fit />
       </div>
-      <button type="button" className="small-button" onClick={onOpenTitle}>
-        <Glyph name="book" />
-        {tr('Titolo e caricamento…')}
-      </button>
+      <div className="row wrap">
+        <button type="button" className="small-button" onClick={onOpenTitle}>
+          <Glyph name="book" />
+          {tr('Titolo e caricamento…')}
+        </button>
+        {onRecolor && (
+          <button type="button" className="small-button" onClick={onRecolor}>
+            <Glyph icon={CMD_ICONS.color} />
+            {tr('Ricolora GUI…')}
+          </button>
+        )}
+      </div>
       {big !== null && (
         <div className="modal-backdrop" role="presentation" onClick={() => setBig(null)}>
           <div

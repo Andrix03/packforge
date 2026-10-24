@@ -3533,3 +3533,40 @@ button > .glyph,
   width: 100%;
   font-family: var(--ui-mono);
 }
+
+/* ---- 1.1 Recolour GUI ---- */
+.gui-recolor {
+  width: min(720px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gui-recolor p {
+  margin: 0;
+}
+.gui-recolor-sliders {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 14px;
+}
+.gui-recolor-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.gui-recolor-pair {
+  margin: 0;
+}
+.gui-recolor-pair canvas {
+  max-width: 180px;
+  max-height: 120px;
+  width: auto;
+  height: auto;
+  min-width: 48px;
+}
+.gui-recolor-list {
+  max-height: 180px;
+  overflow: auto;
+}

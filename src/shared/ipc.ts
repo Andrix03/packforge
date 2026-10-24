@@ -200,6 +200,8 @@ export interface IpcContract {
   'pack:saveEmissiveProperties': { args: [suffix: string]; result: SaveTextureResult }
   /** Folder packs: `assets/minecraft/lang/<code>.json` (a JSON object of texts, as text). */
   'pack:saveLang': { args: [code: string, content: string]; result: SaveTextureResult }
+  /** Folder packs: the rules of random entity textures (`optifine/random/entity/….properties`). */
+  'pack:saveRandomProperties': { args: [path: string, content: string]; result: SaveTextureResult }
   /** The loaded game version's texts in one language, and the languages it has. */
   'vanilla:lang': {
     args: [code: string]
@@ -313,6 +315,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:moveFile': true,
   'pack:saveEmissiveProperties': true,
   'pack:saveLang': true,
+  'pack:saveRandomProperties': true,
   'vanilla:lang': true,
   'vanilla:textureHashes': true,
   'app:restart': true,

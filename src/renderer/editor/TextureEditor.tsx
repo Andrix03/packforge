@@ -29,6 +29,8 @@ import { DisplayDialog } from './DisplayDialog'
 import { BlockShapesDialog } from './BlockShapesDialog'
 import { ModelEditorDialog } from './ModelEditorDialog'
 import { AdjustDialog } from './AdjustDialog'
+import { MobVariantsDialog } from './MobVariantsDialog'
+import { isEntityTexture } from '../../shared/randomEntities'
 import { adjustPixels, type Adjustments } from '../../shared/adjust'
 import { presetsFor } from '../../shared/blockPresets'
 import { item3dPlan } from '../../shared/item3d'
@@ -212,6 +214,7 @@ export function TextureEditor({
   const [shapesOpen, setShapesOpen] = useState(false)
   const [elementsOpen, setElementsOpen] = useState(false)
   const [adjustOpen, setAdjustOpen] = useState(false)
+  const [mobVariantsOpen, setMobVariantsOpen] = useState(false)
   // The block model named like the texture (pack or vanilla), for the element editor.
   const blockModel = blockModelFor(target.path, target.sources)
   // Only textures of an item the game knows (its definition in the pack or vanilla).
@@ -1444,6 +1447,17 @@ export function TextureEditor({
           }}
         />
       )}
+      {mobVariantsOpen && (
+        <MobVariantsDialog
+          path={target.path}
+          sources={target.sources}
+          onClose={() => setMobVariantsOpen(false)}
+          onOpen={(variant, written) => {
+            setMobVariantsOpen(false)
+            void switchTo(variant, written)
+          }}
+        />
+      )}
       {adjustOpen && doc && (
         <AdjustDialog
           pixels={doc.active.pixels}
@@ -2008,6 +2022,23 @@ export function TextureEditor({
               >
                 <Glyph name="gear" />
                 {tr('Regola colori')}
+              </button>
+            )}
+            {isEntityTexture(target.path) && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr(
+                  'Più texture per questo mob: OptiFine o ETF ne scelgono una a caso, anche per bioma o nome'
+                )}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare le varianti?')).then(
+                    (ok) => ok && setMobVariantsOpen(true)
+                  )
+                }
+              >
+                <Glyph name="dice" />
+                {tr('Varianti del mob')}
               </button>
             )}
             {target.path.includes('/textures/block/') && !target.readOnly && (

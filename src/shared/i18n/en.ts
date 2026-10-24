@@ -2339,5 +2339,32 @@ export const EN: Readonly<Record<string, string>> = {
   'Il gioco prende il colore di ogni bioma da un punto della mappa: più a sinistra fa caldo, più in alto piove. La metà in basso a destra non si usa.':
     "The game takes each biome's colour from a point of the map: further left is hotter, higher up is rainier. The lower-right half is not used.",
   '(colore fisso, non dalla mappa)': '(fixed colour, not from the map)',
-  'Mostro i {0} colori più usati.': 'Showing the {0} most used colours.'
+  'Mostro i {0} colori più usati.': 'Showing the {0} most used colours.',
+  'Scegli almeno una texture.': 'Pick at least one texture.',
+  'I pesi devono essere tanti quante le texture.': 'There must be as many weights as textures.',
+  'Usa un numero di variante che non esiste.': "Uses a variant number that doesn't exist.",
+  'Regole delle varianti': 'Variant rules',
+  'Regole salvate in {0}': 'Rules saved in {0}',
+  'Varianti del mob': 'Mob variants',
+  'Con OptiFine o Entity Texture Features ogni mob prende a caso una di queste texture. La 1 è questa; le altre stanno in optifine/random/entity/.':
+    'With OptiFine or Entity Texture Features every mob takes one of these textures at random. Number 1 is this one; the others live in optifine/random/entity/.',
+  'Aggiungi la variante {0}': 'Add variant {0}',
+  'Regole (facoltative)': 'Rules (optional)',
+  'Leggo le regole…': 'Reading the rules…',
+  'Nessuna regola: ogni variante ha la stessa probabilità ovunque.':
+    'No rules: every variant is equally likely everywhere.',
+  'Texture della regola {0}': 'Textures of rule {0}',
+  Pesi: 'Weights',
+  uguali: 'equal',
+  Biomi: 'Biomes',
+  'ovunque (es. desert badlands)': 'anywhere (e.g. desert badlands)',
+  'tranne questi': 'except these',
+  'es. 0-64': 'e.g. 0-64',
+  'nome dato col cartellino': 'name given with a name tag',
+  'Aggiungi una regola': 'Add a rule',
+  'Salva le regole': 'Save the rules',
+  'Le regole si provano in ordine: vale la prima che va bene.':
+    'Rules are tried in order: the first that fits wins.',
+  'Più texture per questo mob: OptiFine o ETF ne scelgono una a caso, anche per bioma o nome':
+    'More textures for this mob: OptiFine or ETF pick one at random, also by biome or name'
 }

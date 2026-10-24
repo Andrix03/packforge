@@ -52,6 +52,7 @@ import {
   saveModelJson,
   movePackFile,
   saveLang,
+  saveRandomProperties,
   saveEmissiveProperties,
   saveSplashes,
   saveTexture,
@@ -511,6 +512,12 @@ const handlers: IpcHandlers = {
   },
 
   'vanilla:textureHashes': async (versionId) => textureHashes(await minecraftDir(), versionId),
+
+  'pack:saveRandomProperties': async (path, content) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return saveRandomProperties(current.source, path, content)
+  },
 
   'pack:saveLang': async (code, content) => {
     const current = getSource('pack')

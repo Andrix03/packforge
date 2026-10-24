@@ -99,6 +99,7 @@ describe('registerHandlers', () => {
       'pack:moveFile': () => ({ ok: false, error: 'unused' }),
       'pack:saveEmissiveProperties': () => ({ ok: false, error: 'unused' }),
       'pack:saveLang': () => ({ ok: false, error: 'unused' }),
+      'pack:saveRandomProperties': () => ({ ok: false, error: 'unused' }),
       'vanilla:lang': () => ({ ok: false, error: 'unused' }),
       'vanilla:textureHashes': () => ({ ok: false, error: 'unused' }),
       'app:restart': () => undefined,

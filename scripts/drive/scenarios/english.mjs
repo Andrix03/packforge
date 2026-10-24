@@ -134,8 +134,26 @@ export default async function english(app) {
   await app.waitFor(`document.querySelector('[data-testid=overrides-list]')`, 15000)
   await screen(app, 'dialog-overrides')
   await app.key('Escape')
+  // 1.4: pack doctor, emissive, recolour, game texts.
+  for (const [label, wait] of [
+    ['Doctor', '[data-testid=doctor-problems], [data-testid=doctor-clean]'],
+    ['Light _e', '[data-testid=emissive-plan], [data-testid=emissive-none]'],
+    ['Recolour textures', '.gui-recolor'],
+    ['Game texts', '[data-testid=lang-count]']
+  ]) {
+    await app.click(label, '.tool-bar button')
+    await app.waitFor(`document.querySelector(${JSON.stringify(wait)})`, 20000)
+    await app.sleep(400)
+    await screen(app, `dialog-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`)
+    await app.key('Escape')
+    await app.waitFor(`!document.querySelector('[role=dialog]')`)
+  }
   await openFolder(app, 'assets/minecraft/textures/item')
   await app.openTexture('apple.png')
+  await app.click('Adjust colours', '.editor button')
+  await app.waitFor(`document.querySelector('.adjust-dialog')`)
+  await screen(app, 'dialog-adjust-colours')
+  await app.key('Escape')
   await app.waitFor(`document.querySelector('[data-testid=item-models]')`, 10000)
   await app.sleep(500)
   await screen(app, 'item-preview')

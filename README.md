@@ -134,6 +134,27 @@ npm run dist:zip  # portable Windows build
 Interface fonts: Pixel Operator (CC0) and [Tiny5](https://github.com/Gissio/font_tiny5) (OFL).
 Material format: [LabPBR](https://shaderlabs.org/wiki/LabPBR_Material_Standard) by shaderLABS.
 
+PackForge writes files for formats other people designed and documented. Thank you to:
+
+- **[Polytone](https://github.com/MehVahdJukaar/polytone)** by
+  [MehVahdJukaar](https://github.com/MehVahdJukaar): the custom biome colormaps, and a
+  [wiki](https://github.com/MehVahdJukaar/polytone/wiki) clear enough to build a tool on. Thank you
+  for the chance to make PackForge better.
+- **[OptiFine](https://optifine.net)** and its
+  [documentation](https://optifine.readthedocs.io): connected textures, emissive textures and
+  random entity textures.
+- **[Continuity](https://modrinth.com/mod/continuity)** by PepperCode1 and
+  **[Entity Texture Features](https://github.com/Traben-0/Entity_Texture_Features)** by Traben,
+  which bring those formats to Fabric.
+- **[Iris](https://irisshaders.dev)** and the shader pack authors, whose LabPBR packs the Effects
+  preview tries to approximate.
+- The **[Minecraft Wiki](https://minecraft.wiki)** editors: pack formats, models, item definitions
+  and the rest of the game's formats, version by version.
+
+Built with [Electron](https://www.electronjs.org), [React](https://react.dev),
+[Three.js](https://threejs.org), [fflate](https://github.com/101arrowz/fflate) and
+[chokidar](https://github.com/paulmillr/chokidar).
+
 PackForge is free software under the [GNU General Public License v3.0](LICENSE): you can use,
 study, share and change it, and anything built from it stays under the same licence. Packs you
 make with PackForge are yours, under whatever licence you choose.

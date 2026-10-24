@@ -7,6 +7,8 @@ import {
   isNeutral,
   NEUTRAL,
   packGuiTextures,
+  packTextureAreas,
+  packTexturesIn,
   RECOLOR_PRESETS,
   recolorPixels,
   type RecolorPreset,
@@ -32,13 +34,33 @@ type Phase =
 
 export function GuiRecolorDialog({
   pack,
+  anyArea = false,
   onClose
 }: {
   pack: FileSource
+  /** Opened from the pack tools: any texture folder of the pack can be chosen (GUI otherwise). */
+  anyArea?: boolean
   onClose: () => void
 }): React.JSX.Element {
-  const textures = useMemo(() => packGuiTextures(pack.files), [pack.files])
-  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set(textures))
+  const areas = useMemo(() => packTextureAreas(pack.files), [pack.files])
+  // '' = every texture of the pack.
+  const [area, setArea] = useState<string>(anyArea ? (areas[0]?.area ?? 'block') : 'gui')
+  const gui = area === 'gui'
+  const textures = useMemo(
+    () =>
+      gui ? packGuiTextures(pack.files) : packTexturesIn(pack.files, area === '' ? null : area),
+    [pack.files, gui, area]
+  )
+  // The unticked textures: every area starts with all of its textures ticked.
+  const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set())
+  const selected = new Set(textures.filter((t) => !excluded.has(t)))
+  const setSelected = (next: ReadonlySet<string>): void =>
+    setExcluded(
+      new Set([
+        ...[...excluded].filter((t) => !textures.includes(t)),
+        ...textures.filter((t) => !next.has(t))
+      ])
+    )
   const [settings, setSettings] = useState<RecolorSettings>(RECOLOR_PRESETS.dark)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
   useEscape(onClose, phase.status !== 'running')
@@ -47,7 +69,13 @@ export function GuiRecolorDialog({
   const set = (patch: Partial<RecolorSettings>): void => setSettings({ ...settings, ...patch })
 
   async function apply(): Promise<void> {
-    if (!(await backupBefore(tr('Ricolora GUI ({0})', chosen.length), chosen))) return
+    if (
+      !(await backupBefore(
+        gui ? tr('Ricolora GUI ({0})', chosen.length) : tr('Ricolora texture ({0})', chosen.length),
+        chosen
+      ))
+    )
+      return
     const errors: string[] = []
     let written = 0
     for (let i = 0; i < chosen.length; i++) {
@@ -81,18 +109,46 @@ export function GuiRecolorDialog({
       <div
         className="card modal gui-recolor"
         role="dialog"
-        aria-label={tr('Ricolora GUI')}
+        aria-label={gui ? tr('Ricolora GUI') : tr('Ricolora texture')}
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>{tr('Ricolora GUI')}</h2>
+        <h2>{gui ? tr('Ricolora GUI') : tr('Ricolora texture')}</h2>
         <p className="muted small">
-          {tr(
-            'Cambia insieme i colori delle texture GUI del tuo pack: le trasparenze restano, le sfumature si spostano tutte nello stesso modo. Le texture vanilla non si toccano.'
-          )}
+          {gui
+            ? tr(
+                'Cambia insieme i colori delle texture GUI del tuo pack: le trasparenze restano, le sfumature si spostano tutte nello stesso modo. Le texture vanilla non si toccano.'
+              )
+            : tr(
+                'Cambia insieme i colori di tante texture del tuo pack: le trasparenze restano, le sfumature si spostano tutte nello stesso modo. Le mappe _n / _s e le texture vanilla non si toccano.'
+              )}
         </p>
+        {anyArea && (
+          <label className="small select-field">
+            {tr('Quali texture')}{' '}
+            <select
+              value={area}
+              aria-label={tr('Quali texture')}
+              onChange={(event) => setArea(event.target.value)}
+            >
+              {areas.map(({ area: a, count }) => (
+                <option key={a} value={a}>
+                  {a} ({count})
+                </option>
+              ))}
+              <option value="">
+                {tr(
+                  'Tutte ({0})',
+                  areas.reduce((sum, a) => sum + a.count, 0)
+                )}
+              </option>
+            </select>
+          </label>
+        )}
         {textures.length === 0 ? (
           <p className="small">
-            {tr('Il pack non ha ancora texture GUI: creale dalla scheda GUI, poi torna qui.')}
+            {gui
+              ? tr('Il pack non ha ancora texture GUI: creale dalla scheda GUI, poi torna qui.')
+              : tr('Nessuna texture del pack in questa cartella.')}
           </p>
         ) : (
           <>
@@ -163,7 +219,10 @@ export function GuiRecolorDialog({
                 <BeforeAfter key={path} pack={pack} path={path} settings={settings} />
               ))}
             </div>
-            <ul className="batch-list gui-recolor-list" aria-label={tr('Texture GUI del pack')}>
+            <ul
+              className="batch-list gui-recolor-list"
+              aria-label={gui ? tr('Texture GUI del pack') : tr('Texture del pack')}
+            >
               {textures.map((path) => (
                 <li key={path}>
                   <label className="batch-row">
@@ -177,9 +236,7 @@ export function GuiRecolorDialog({
                         setSelected(next)
                       }}
                     />
-                    <span className="small">
-                      {path.replace(/^assets\/[^/]+\/textures\/gui\//, '')}
-                    </span>
+                    <span className="small">{path.replace(/^assets\/[^/]+\/textures\//, '')}</span>
                   </label>
                 </li>
               ))}

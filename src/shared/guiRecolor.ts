@@ -77,3 +77,31 @@ export function packGuiTextures(files: Iterable<string>): string[] {
     .filter((f) => /^assets\/[^/]+\/textures\/gui\/.+\.png$/.test(f) && mapKindOf(f) === null)
     .sort()
 }
+
+/** Texture folders of the pack (`textures/<area>/…`), most textures first, for a recolour. */
+export function packTextureAreas(files: Iterable<string>): Array<{ area: string; count: number }> {
+  const counts = new Map<string, number>()
+  for (const f of files) {
+    const m = /^assets\/[^/]+\/textures\/([^/]+)\/.+\.png$/.exec(f)
+    if (!m || mapKindOf(f) !== null || /_e\.png$/.test(f)) continue
+    counts.set(m[1]!, (counts.get(m[1]!) ?? 0) + 1)
+  }
+  return [...counts]
+    .map(([area, count]) => ({ area, count }))
+    .sort((a, b) => b.count - a.count || a.area.localeCompare(b.area))
+}
+
+/** The pack's textures of an area (`null` = every area), not their maps or `_e` overlays. */
+export function packTexturesIn(files: Iterable<string>, area: string | null): string[] {
+  return [...files]
+    .filter((f) => {
+      const m = /^assets\/[^/]+\/textures\/([^/]+)\/.+\.png$/.exec(f)
+      return (
+        m !== null &&
+        (area === null || m[1] === area) &&
+        mapKindOf(f) === null &&
+        !/_e\.png$/.test(f)
+      )
+    })
+    .sort()
+}

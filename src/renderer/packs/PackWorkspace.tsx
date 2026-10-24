@@ -276,6 +276,7 @@ function Workspace({
   const [overriding, setOverriding] = useState(false)
   const [doctoring, setDoctoring] = useState(false)
   const [emissive, setEmissive] = useState(false)
+  const [recoloringAll, setRecoloringAll] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const [titleScreens, setTitleScreens] = useState(false)
@@ -665,6 +666,17 @@ function Workspace({
                 <button
                   type="button"
                   className="small-button"
+                  title={tr('Cambia insieme i colori di tante texture (blocchi, oggetti, entità…)')}
+                  onClick={() => setRecoloringAll(true)}
+                >
+                  <Glyph icon={CMD_ICONS.color} />
+                  {tr('Ricolora texture')}
+                </button>
+              )}
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
                   title={tr(
                     'Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo'
                   )}
@@ -735,6 +747,9 @@ function Workspace({
         </section>
       </aside>
       {recoloring && <GuiRecolorDialog pack={validatorPack} onClose={() => setRecoloring(false)} />}
+      {recoloringAll && (
+        <GuiRecolorDialog pack={validatorPack} anyArea onClose={() => setRecoloringAll(false)} />
+      )}
       {titleScreens && (
         <TitleScreensDialog
           sources={previewSources}

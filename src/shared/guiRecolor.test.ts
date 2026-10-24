@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { NEUTRAL, packGuiTextures, RECOLOR_PRESETS, recolorPixels } from './guiRecolor'
+import {
+  NEUTRAL,
+  packGuiTextures,
+  packTextureAreas,
+  packTexturesIn,
+  RECOLOR_PRESETS,
+  recolorPixels
+} from './guiRecolor'
 
 const pixel = (r: number, g: number, b: number, a = 255) => new Uint8ClampedArray([r, g, b, a])
 const luma = (p: Uint8ClampedArray) =>
@@ -51,5 +58,29 @@ describe('packGuiTextures', () => {
       'assets/minecraft/textures/gui/container/inventory.png',
       'assets/minecraft/textures/gui/sprites/widget/button.png'
     ])
+  })
+})
+
+describe('texture areas', () => {
+  const files = [
+    'assets/minecraft/textures/block/stone.png',
+    'assets/minecraft/textures/block/stone_n.png',
+    'assets/minecraft/textures/block/lamp_e.png',
+    'assets/minecraft/textures/block/dirt.png',
+    'assets/minecraft/textures/item/apple.png',
+    'assets/minecraft/textures/gui/sprites/widget/button.png',
+    'pack.png'
+  ]
+  it('counts the textures by folder, maps and overlays left out', () => {
+    expect(packTextureAreas(files)).toEqual([
+      { area: 'block', count: 2 },
+      { area: 'gui', count: 1 },
+      { area: 'item', count: 1 }
+    ])
+    expect(packTexturesIn(files, 'block')).toEqual([
+      'assets/minecraft/textures/block/dirt.png',
+      'assets/minecraft/textures/block/stone.png'
+    ])
+    expect(packTexturesIn(files, null)).toHaveLength(4)
   })
 })

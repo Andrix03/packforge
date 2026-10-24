@@ -2301,5 +2301,15 @@ export const EN: Readonly<Record<string, string>> = {
   'Per colore': 'By colour',
   'Le texture _e restano accese al buio con OptiFine o Continuity (senza mod non si vedono)':
     'The _e textures stay lit in the dark with OptiFine or Continuity (without mods they do not show)',
-  'Luce _e (OptiFine / Continuity)': 'Light _e (OptiFine / Continuity)'
+  'Luce _e (OptiFine / Continuity)': 'Light _e (OptiFine / Continuity)',
+  'Ricolora texture ({0})': 'Recolour textures ({0})',
+  'Ricolora texture': 'Recolour textures',
+  'Cambia insieme i colori di tante texture del tuo pack: le trasparenze restano, le sfumature si spostano tutte nello stesso modo. Le mappe _n / _s e le texture vanilla non si toccano.':
+    "Changes the colours of many of your pack's textures together: transparency stays, shades all shift the same way. _n / _s maps and vanilla textures are not touched.",
+  'Quali texture': 'Which textures',
+  'Tutte ({0})': 'All ({0})',
+  'Nessuna texture del pack in questa cartella.': 'No pack texture in this folder.',
+  'Texture del pack': 'Pack textures',
+  'Cambia insieme i colori di tante texture (blocchi, oggetti, entità…)':
+    'Changes the colours of many textures together (blocks, items, entities…)'
 }

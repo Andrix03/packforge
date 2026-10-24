@@ -24,6 +24,8 @@ import { NameVariantDialog } from './NameVariantDialog'
 import { DefinitionDialog } from './DefinitionDialog'
 import { PopOutDialog } from './PopOutDialog'
 import { DisplayDialog } from './DisplayDialog'
+import { BlockShapesDialog } from './BlockShapesDialog'
+import { presetsFor } from '../../shared/blockPresets'
 import { item3dPlan } from '../../shared/item3d'
 import { isItemTexture } from '../../shared/itemPreview'
 import type { FormatRange } from '../../shared/modelRules'
@@ -202,6 +204,7 @@ export function TextureEditor({
   const [definitionOpen, setDefinitionOpen] = useState(false)
   const [popOutOpen, setPopOutOpen] = useState(false)
   const [displayOpen, setDisplayOpen] = useState(false)
+  const [shapesOpen, setShapesOpen] = useState(false)
   // Only textures of an item the game knows (its definition in the pack or vanilla).
   const itemPlan = item3dPlan(target.path)
   const item3d =
@@ -1421,6 +1424,17 @@ export function TextureEditor({
           }}
         />
       )}
+      {shapesOpen && (
+        <BlockShapesDialog
+          path={target.path}
+          sources={target.sources}
+          onClose={() => setShapesOpen(false)}
+          onDone={(written) => {
+            setShapesOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
       {displayOpen && (
         <DisplayDialog
           path={target.path}
@@ -1961,6 +1975,21 @@ export function TextureEditor({
               >
                 <Glyph name="up" />
                 {tr('Pixel in rilievo')}
+              </button>
+            )}
+            {presetsFor(target.path).length > 0 && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala)')}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
+                    (ok) => ok && setShapesOpen(true)
+                  )
+                }
+              >
+                <Glyph icon={NAV_ICONS.cube} />
+                {tr('Forme 3D')}
               </button>
             )}
             {item3d && !target.readOnly && (

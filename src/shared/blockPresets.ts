@@ -1,0 +1,155 @@
+// Ready-made 3D block shapes (Phase 13 presets), vanilla model JSON only, after the most
+// downloaded model packs on Modrinth: bushy leaves (Better Leaves style: crossed planes sticking out
+// of the leaf cube), grass all over the block's sides (Fast Better Grass style) and a ladder made
+// of its pixels (shared/extrude.ts). Vanilla models they replace, checked on 26.3: block/leaves
+// (tint 0 on every face), block/grass_block, block/ladder (a plane at z 15.2 seen from north). Pure.
+import { namespaced } from './blockModel'
+import { extrudeModel } from './extrude'
+import { tr } from './i18n'
+
+export type BlockPresetId = 'bushy_leaves' | 'grass_sides' | 'ladder_3d'
+
+export interface BlockPreset {
+  id: BlockPresetId
+  label: string
+  hint: string
+  /** The block model written (`minecraft:block/oak_leaves`). */
+  model: string
+}
+
+/** The presets that fit a block texture. */
+export function presetsFor(texturePath: string): BlockPreset[] {
+  const m = /^assets\/([^/]+)\/textures\/block\/([a-z0-9_]+)\.png$/.exec(texturePath)
+  if (!m) return []
+  const [, ns, name] = m as unknown as [string, string, string]
+  const out: BlockPreset[] = []
+  if (name.endsWith('_leaves')) {
+    out.push({
+      id: 'bushy_leaves',
+      label: tr('Foglie folte'),
+      hint: tr('Ciuffi di foglie che escono dal blocco su ogni lato.'),
+      model: `${ns}:block/${name}`
+    })
+  }
+  if (ns === 'minecraft' && /^grass_block_(top|side|side_overlay)$/.test(name)) {
+    out.push({
+      id: 'grass_sides',
+      label: tr('Erba sui lati'),
+      hint: tr('I lati del blocco d’erba diventano verdi come la cima (terra solo sotto).'),
+      model: 'minecraft:block/grass_block'
+    })
+  }
+  if (name === 'ladder') {
+    out.push({
+      id: 'ladder_3d',
+      label: tr('Scala in 3D'),
+      hint: tr('Pioli e montanti in rilievo, fatti dai pixel della texture.'),
+      model: `${ns}:block/ladder`
+    })
+  }
+  return out
+}
+
+const CUBE_FACES = ['down', 'up', 'north', 'south', 'west', 'east'] as const
+
+/**
+ * Leaves with crossed planes reaching `spread` pixels out of the cube: two diagonal (45°, allowed
+ * in every version) and two straight through the middle; every face tinted like the leaves.
+ */
+export function bushyLeavesModel(texture: string, spread = 3): Record<string, unknown> {
+  const face = { uv: [0, 0, 16, 16], texture: '#all', tintindex: 0 }
+  const lo = -spread
+  const hi = 16 + spread
+  const plane = (
+    from: number[],
+    to: number[],
+    faces: string[],
+    angle: number | null
+  ): Record<string, unknown> => ({
+    from,
+    to,
+    ...(angle === null ? {} : { rotation: { origin: [8, 8, 8], axis: 'y', angle } }),
+    faces: Object.fromEntries(faces.map((f) => [f, face]))
+  })
+  return {
+    parent: 'minecraft:block/block',
+    textures: { all: texture, particle: texture },
+    elements: [
+      {
+        from: [0, 0, 0],
+        to: [16, 16, 16],
+        faces: Object.fromEntries(CUBE_FACES.map((f) => [f, { ...face, cullface: f }]))
+      },
+      plane([lo, lo, 8], [hi, hi, 8], ['north', 'south'], 45),
+      plane([lo, lo, 8], [hi, hi, 8], ['north', 'south'], -45),
+      plane([lo, lo, 8], [hi, hi, 8], ['north', 'south'], null),
+      plane([8, lo, lo], [8, hi, hi], ['west', 'east'], null)
+    ]
+  }
+}
+
+/** The grass block with the top texture (tinted) on its four sides too; dirt underneath. */
+export function grassSidesModel(): Record<string, unknown> {
+  const top = { uv: [0, 0, 16, 16], texture: '#top', tintindex: 0 }
+  return {
+    parent: 'minecraft:block/block',
+    textures: {
+      particle: 'minecraft:block/dirt',
+      bottom: 'minecraft:block/dirt',
+      top: 'minecraft:block/grass_block_top'
+    },
+    elements: [
+      {
+        from: [0, 0, 0],
+        to: [16, 16, 16],
+        faces: Object.fromEntries(
+          CUBE_FACES.map((f) => [
+            f,
+            f === 'down'
+              ? { uv: [0, 0, 16, 16], texture: '#bottom', cullface: f }
+              : { ...top, cullface: f }
+          ])
+        )
+      }
+    ]
+  }
+}
+
+export type LadderResult =
+  | { ok: true; model: Record<string, unknown>; elements: number; faces: number }
+  | { ok: false; error: string }
+
+/**
+ * The ladder extruded one pixel deep against the wall it hangs on (the south side of the model,
+ * like vanilla's plane at z 15.2), reading the right way round from the north as vanilla does.
+ */
+export function ladder3dModel(
+  width: number,
+  height: number,
+  opaque: (x: number, y: number) => boolean,
+  texture: string
+): LadderResult {
+  const extruded = extrudeModel(width, height, opaque, namespaced(texture), {
+    thickness: 1,
+    budget: 120
+  })
+  if (!extruded.ok) return extruded
+  const swap: Record<string, string> = { east: 'west', west: 'east' }
+  type Element = { from: number[]; to: number[]; faces: Record<string, unknown> }
+  const elements = (extruded.model['elements'] as Element[]).map((e) => ({
+    // Mirrored in x (the extrusion reads right from the south) and moved against the wall.
+    from: [16 - e.to[0]!, e.from[1]!, e.from[2]! + 7.5],
+    to: [16 - e.from[0]!, e.to[1]!, e.to[2]! + 7.5],
+    faces: Object.fromEntries(Object.entries(e.faces).map(([f, v]) => [swap[f] ?? f, v]))
+  }))
+  return {
+    ok: true,
+    model: {
+      ambientocclusion: false,
+      textures: { particle: namespaced(texture), texture: namespaced(texture) },
+      elements
+    },
+    elements: elements.length,
+    faces: extruded.faces
+  }
+}

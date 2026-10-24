@@ -2155,5 +2155,20 @@ export const EN: Readonly<Record<string, string>> = {
   'Salva le posizioni': 'Save the positions',
   'Come sta l’oggetto in mano, nell’inventario, a terra, in testa':
     'How the item sits in hand, in the inventory, on the ground, on the head',
-  Posizioni: 'Positions'
+  Posizioni: 'Positions',
+  'Foglie folte': 'Bushy leaves',
+  'Ciuffi di foglie che escono dal blocco su ogni lato.':
+    'Tufts of leaves sticking out of the block on every side.',
+  'Erba sui lati': 'Grass on the sides',
+  'I lati del blocco d’erba diventano verdi come la cima (terra solo sotto).':
+    "The grass block's sides turn green like its top (dirt only underneath).",
+  'Scala in 3D': '3D ladder',
+  'Pioli e montanti in rilievo, fatti dai pixel della texture.':
+    "Raised rungs and rails, made of the texture's pixels.",
+  'Forma 3D: {0}': '3D shape: {0}',
+  'Forme 3D': '3D shapes',
+  'Forme pronte, come i pack 3D più scaricati: scritte come modello del blocco nel pack, funzionano senza mod.':
+    "Ready-made shapes, like the most downloaded 3D packs: written as the block's model in the pack, they work without mods.",
+  'Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala)':
+    'Ready-made 3D shapes for this block (bushy leaves, grass on the sides, ladder)'
 }

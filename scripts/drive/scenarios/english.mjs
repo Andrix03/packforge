@@ -1,5 +1,9 @@
 // The English interface: every screen and dialog speaks English and no Italian text is left on
 // screen (common Italian words in the visible text give it away). Paths are ignored.
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { png } from '../fixtures.mjs'
+
 export const options = { language: 'en' }
 
 const ITALIAN =
@@ -35,7 +39,48 @@ const DIALOGS = [
   ['Connected textures', '[role=dialog]']
 ]
 
+/** Opens the file tree down to `path` (folders already open stay open). */
+async function openFolder(app, path) {
+  const parts = path.split('/')
+  for (let i = 3; i <= parts.length; i++) {
+    const folder = parts.slice(0, i).join('/')
+    await app.waitFor(
+      `[...document.querySelectorAll('button')].some((b) => b.title === '${folder}')`
+    )
+    await app.ev(`(() => {
+      const button = [...document.querySelectorAll('button')].find((b) => b.title === '${folder}')
+      if (button.getAttribute('aria-expanded') !== 'true') button.click()
+    })()`)
+    await app.sleep(150)
+  }
+}
+
+/** 1.2 files: an item with old overrides, an item texture, an armor texture. */
+async function writeItems(app) {
+  const at = (...parts) => join(app.paths.pack, 'assets', 'minecraft', ...parts)
+  await mkdir(at('models', 'item'), { recursive: true })
+  await mkdir(at('textures', 'item'), { recursive: true })
+  await mkdir(at('textures', 'entity', 'equipment', 'humanoid'), { recursive: true })
+  await writeFile(
+    at('models', 'item', 'apple.json'),
+    JSON.stringify({
+      parent: 'item/generated',
+      textures: { layer0: 'item/apple' },
+      overrides: [{ predicate: { custom_model_data: 1 }, model: 'item/golden_apple' }]
+    })
+  )
+  await writeFile(
+    at('textures', 'item', 'apple.png'),
+    png(16, 16, (x, y) => ((x - 8) ** 2 + (y - 8) ** 2 < 30 ? [200, 30, 40, 255] : [0, 0, 0, 0]))
+  )
+  await writeFile(
+    at('textures', 'entity', 'equipment', 'humanoid', 'iron.png'),
+    png(64, 32, () => [150, 150, 160, 255])
+  )
+}
+
 export default async function english(app) {
+  await writeItems(app)
   await app.waitFor(`document.querySelector('.shell-hotbar')`)
   app.check(
     (
@@ -79,6 +124,38 @@ export default async function english(app) {
   await screen(app, 'dialog-recolour')
   await app.key('Escape')
   await app.click('Pack', '.mode-bar [role=tab]')
+
+  // 1.2: overrides tool, item preview and its dialogs, armor preview.
+  await app.click('Overrides to items/', '.tool-bar button')
+  await app.waitFor(`document.querySelector('[data-testid=overrides-list]')`, 15000)
+  await screen(app, 'dialog-overrides')
+  await app.key('Escape')
+  await openFolder(app, 'assets/minecraft/textures/item')
+  await app.openTexture('apple.png')
+  await app.waitFor(`document.querySelector('[data-testid=item-models]')`, 10000)
+  await app.sleep(500)
+  await screen(app, 'item-preview')
+  await app.click('3D in hand', '.editor button')
+  await app.waitFor(`document.querySelector('[role=dialog]')`)
+  await app.sleep(800)
+  await screen(app, 'dialog-3d-in-hand')
+  await app.key('Escape')
+  await app.click('Variant by name', '.editor button')
+  await app.waitFor(`document.querySelector('[role=dialog]')`)
+  await app.setValue('[role=dialog] input', 'Excalibur')
+  await app.sleep(500)
+  await screen(app, 'dialog-variant-by-name')
+  await app.key('Escape')
+  await app.click('Pack', '.shell-tab')
+  await app.waitFor(`!document.querySelector('.editor')`)
+  await openFolder(app, 'assets/minecraft/textures/entity/equipment/humanoid')
+  await app.openTexture('iron.png')
+  await app.waitFor(`document.querySelector('.armor-preview')`)
+  await app.sleep(500)
+  await screen(app, 'armor-preview')
+  await app.click('Pack', '.shell-tab')
+  await app.waitFor(`!document.querySelector('.editor')`)
+  await openFolder(app, 'assets/minecraft/textures/block')
 
   await app.openTexture('stone.png')
   await screen(app, 'paint')

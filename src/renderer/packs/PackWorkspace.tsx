@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, findFolder, parentPath } from '../../shared/fileTree'
 import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../shared/ipc'
 import { mapKindOf } from '../../shared/labpbr'
-import { compatibleReleases } from '../../shared/mcmeta'
+import { compatibleFormatRange, compatibleReleases } from '../../shared/mcmeta'
+import { OverridesDialog } from './OverridesDialog'
+import type { FormatRange } from '../../shared/modelRules'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
 import type { EditorTarget } from '../editor/TextureEditor'
@@ -186,6 +188,7 @@ export function PackWorkspace({
       onSelectVersion={(id) => void loadJar(id)}
       canCreate={pack.kind === 'folder'}
       packName={pack.name}
+      formatRange={compatibleFormatRange(pack.mcmeta.formats)}
       onEditTexture={(texture, previewSources) => onEditTexture(targetOf(texture, previewSources))}
       onTestTexture={(texture, previewSources) => onTestTexture(targetOf(texture, previewSources))}
       overview={overview}
@@ -202,6 +205,7 @@ function Workspace({
   onSelectVersion,
   canCreate,
   packName,
+  formatRange,
   onEditTexture,
   onTestTexture,
   overview,
@@ -219,6 +223,8 @@ function Workspace({
   /** Folder packs can get new textures; zip packs are read-only. */
   canCreate: boolean
   packName: string
+  /** The formats of the releases that load the pack (null: none). */
+  formatRange: FormatRange | null
 }): React.JSX.Element {
   const packTextures = useMemo(() => groupTextures(packFiles.files), [packFiles.files])
   const jarFiles = jar.status === 'ready' ? jar.value.files : null
@@ -265,6 +271,7 @@ function Workspace({
   const [connecting, setConnecting] = useState<TextureEntry | null>(null)
   const [inGame, setInGame] = useState(false)
   const [showBackups, setShowBackups] = useState(false)
+  const [overriding, setOverriding] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const [titleScreens, setTitleScreens] = useState(false)
@@ -304,6 +311,10 @@ function Workspace({
       vanilla: jarBase && jarFileSet ? { base: jarBase, files: jarFileSet } : null
     }),
     [packFiles.assetBase, packFileSet, fileVersions, jarBase, jarFileSet]
+  )
+  // Item models of the pack (they may carry old `overrides` to turn into items/ definitions).
+  const hasItemModels = packFiles.files.some((f) =>
+    /^assets\/[^/]+\/models\/item\/[^/]+\.json$/.test(f)
   )
   const validatorPack = useMemo<ValidatorSource>(
     () => ({ base: packFiles.assetBase, files: packFileSet, versions: fileVersions }),
@@ -586,6 +597,19 @@ function Workspace({
                   {tr('Backup')}
                 </button>
               )}
+              {canCreate && hasItemModels && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title={tr(
+                    'Crea le definizioni in items/ dagli overrides dei modelli degli oggetti (1.21.4+)'
+                  )}
+                  onClick={() => setOverriding(true)}
+                >
+                  <Glyph name="swap" />
+                  {tr('Overrides in items/')}
+                </button>
+              )}
             </div>
             <div className="tool-group">
               <span className="tool-group-label">{tr('Mappe')}</span>
@@ -724,6 +748,14 @@ function Workspace({
       )}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {showBackups && <BackupsDialog onClose={() => setShowBackups(false)} />}
+      {overriding && (
+        <OverridesDialog
+          sources={previewSources}
+          range={formatRange}
+          onClose={() => setOverriding(false)}
+          onDone={() => setOverriding(false)}
+        />
+      )}
       {inGame && <InGameDialog packName={packName} onClose={() => setInGame(false)} />}
       {connecting && (
         <CtmDialog

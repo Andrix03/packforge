@@ -3673,3 +3673,10 @@ button > .glyph,
   flex-direction: column;
   gap: 4px;
 }
+.overrides-list {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 0.9rem;
+}

@@ -2091,5 +2091,21 @@ export const EN: Readonly<Record<string, string>> = {
   'Una texture diversa quando l’oggetto ha un certo nome nell’incudine':
     'A different texture when the item has a given anvil name',
   'Salvare le modifiche prima di creare la variante?':
-    'Save the changes before creating the variant?'
+    'Save the changes before creating the variant?',
+  '{0}: il predicato «{1}» non si può convertire.': '{0}: the predicate «{1}» cannot be converted.',
+  'Overrides degli oggetti': 'Item overrides',
+  'Overrides degli oggetti in items/': 'Item overrides to items/',
+  'Dalla 1.21.4 il gioco ignora gli "overrides" nei modelli degli oggetti (custom_model_data, arco che si tende…) e legge le definizioni in items/. Le creo dai tuoi overrides; i modelli restano come sono per le versioni vecchie.':
+    'Since 1.21.4 the game ignores the "overrides" in item models (custom_model_data, a bow being pulled…) and reads the definitions in items/. I create them from your overrides; the models stay as they are for older versions.',
+  'Il pack si ferma prima della 1.21.4: le definizioni servono quando allarghi le versioni.':
+    'The pack stops before 1.21.4: the definitions matter once you widen the versions.',
+  'Leggo i modelli degli oggetti…': 'Reading the item models…',
+  'Nessun modello di oggetto con overrides.': 'No item model with overrides.',
+  'ha già items/{0}.json: lo lascio com’è.': 'already has items/{0}.json: left as it is.',
+  '{0} overrides convertiti.': '{0} overrides converted.',
+  '{0} definizioni scritte.': '{0} definitions written.',
+  'Scrivi {0} definizioni': 'Write {0} definitions',
+  'Crea le definizioni in items/ dagli overrides dei modelli degli oggetti (1.21.4+)':
+    'Create the items/ definitions from the overrides of the item models (1.21.4+)',
+  'Overrides in items/': 'Overrides to items/'
 }

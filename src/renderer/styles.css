@@ -3909,3 +3909,18 @@ button > .glyph,
   gap: 2px;
   align-items: center;
 }
+.palette-files {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.palette-import {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.palette-import input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}

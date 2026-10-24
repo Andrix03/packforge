@@ -2269,5 +2269,18 @@ export const EN: Readonly<Record<string, string>> = {
   'Scrivi {0} file _e': 'Write {0} _e files',
   'Crea le texture _e (luce senza shader, OptiFine / Continuity) dalle mappe _s che emettono':
     'Create the _e textures (light without shaders, OptiFine / Continuity) from the _s maps that emit',
-  'Luce _e': 'Light _e'
+  'Luce _e': 'Light _e',
+  'Palette non valida.': 'Invalid palette.',
+  'Troppi file con questo nome.': 'Too many files with this name.',
+  '.gpl (GIMP, Aseprite, Krita), .hex (Lospec), .txt (Paint.NET)':
+    '.gpl (GIMP, Aseprite, Krita), .hex (Lospec), .txt (Paint.NET)',
+  'Importa…': 'Import…',
+  'Importa una palette': 'Import a palette',
+  '«{0}» importata, colori saltati: {1}.': '«{0}» imported, colours skipped: {1}.',
+  '«{0}» importata.': '«{0}» imported.',
+  'Esporta come': 'Export as',
+  'Formato di esportazione': 'Export format',
+  'Salva la palette come file, nella cartella delle esportazioni':
+    'Save the palette as a file, in the exports folder',
+  'Salvata in {0}': 'Saved in {0}'
 }

@@ -120,6 +120,7 @@ describe('registerHandlers', () => {
       'export:defaultDir': () => null,
       'export:listing': () => ({ ok: false, error: 'unused' }),
       'export:saveScreenshot': () => ({ ok: false, error: 'unused' }),
+      'palette:export': () => ({ ok: false, error: 'unused' }),
       'export:openFolder': () => ({ ok: false }),
       'backup:create': () => ({ ok: false, error: 'unused' }),
       'backup:list': () => [],

@@ -245,6 +245,11 @@ export interface IpcContract {
     args: [name: string, png: Uint8Array]
     result: { ok: true; path: string } | { ok: false; error: string }
   }
+  /** Writes a palette file (.gpl, .hex, .txt) into `<pack> - export/palettes/`, never over a file. */
+  'palette:export': {
+    args: [name: string, format: 'gpl' | 'hex' | 'txt', content: string]
+    result: { ok: true; path: string } | { ok: false; error: string }
+  }
   /** Opens a folder that holds exports in the file manager. */
   'export:openFolder': { args: [dir: string]; result: { ok: boolean } }
   /** The open pack's copy in resourcepacks. */
@@ -311,6 +316,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'export:defaultDir': true,
   'export:listing': true,
   'export:saveScreenshot': true,
+  'palette:export': true,
   'export:openFolder': true,
   'backup:create': true,
   'backup:list': true,

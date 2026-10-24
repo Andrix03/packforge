@@ -700,6 +700,40 @@ const handlers: IpcHandlers = {
     }
   },
 
+  'palette:export': async (name, format, content) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    if (
+      (format !== 'gpl' && format !== 'hex' && format !== 'txt') ||
+      typeof content !== 'string' ||
+      content.length > 64 * 1024
+    ) {
+      return { ok: false, error: tr('Palette non valida.') }
+    }
+    const safe =
+      (typeof name === 'string' ? name : 'palette')
+        .replace(/[^\w.-]+/g, '-')
+        .replace(/^[-.]+|[-.]+$/g, '')
+        .slice(0, 60) || 'palette'
+    // Next to the exports, never over an existing file.
+    const dir = join(defaultExportDir(current.source.root), 'palettes')
+    try {
+      await mkdir(dir, { recursive: true })
+      for (let n = 1; n < 100; n++) {
+        const path = join(dir, `${safe}${n === 1 ? '' : `-${n}`}.${format}`)
+        try {
+          await writeFile(path, content, { flag: 'wx' })
+          return { ok: true, path }
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+        }
+      }
+      return { ok: false, error: tr('Troppi file con questo nome.') }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  },
+
   'export:openFolder': async (dir) => {
     if (typeof dir !== 'string' || !isAbsolute(dir)) return { ok: false }
     try {

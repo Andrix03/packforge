@@ -3,10 +3,12 @@ import { MAX_PALETTE_COLORS, MAX_PALETTES, type SavedPalette } from '../../share
 import { toHex8 } from './color'
 import { fromHex, type Rgba } from './pixels'
 import { tr } from '../../shared/i18n'
+import { exportPalette, importPalette, type PaletteFormat } from '../../shared/paletteFiles'
 
 /**
  * Saved palettes (kept in the settings, shared by every texture): save the ramp or the texture's
- * colors, pick from a palette (left → primary, right → secondary), use one as the shading ramp.
+ * colors, pick from a palette (left → primary, right → secondary), use one as the shading ramp,
+ * import palette files (.gpl, .hex, .txt) and export them next to the pack's exports.
  */
 export function PalettesPanel({
   palettes,
@@ -24,6 +26,8 @@ export function PalettesPanel({
   onUseAsRamp: (colors: Rgba[]) => void
 }): React.JSX.Element {
   const [name, setName] = useState('')
+  const [format, setFormat] = useState<PaletteFormat>('gpl')
+  const [message, setMessage] = useState<string | null>(null)
   const full = palettes.length >= MAX_PALETTES
 
   function save(colors: readonly Rgba[]): void {
@@ -76,6 +80,59 @@ export function PalettesPanel({
           {tr('Salva colori texture')}
         </button>
       </div>
+      <div className="row palette-files">
+        <label
+          className="small-button palette-import"
+          title={tr('.gpl (GIMP, Aseprite, Krita), .hex (Lospec), .txt (Paint.NET)')}
+        >
+          {tr('Importa…')}
+          <input
+            type="file"
+            accept=".gpl,.hex,.txt"
+            disabled={full}
+            aria-label={tr('Importa una palette')}
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              event.target.value = ''
+              if (!file) return
+              void file.text().then((text) => {
+                const imported = importPalette(text, file.name)
+                if (!imported.ok) {
+                  setMessage(imported.error)
+                  return
+                }
+                onChange([...palettes, imported.palette])
+                setMessage(
+                  imported.skipped > 0
+                    ? tr(
+                        '«{0}» importata, colori saltati: {1}.',
+                        imported.palette.name,
+                        imported.skipped
+                      )
+                    : tr('«{0}» importata.', imported.palette.name)
+                )
+              })
+            }}
+          />
+        </label>
+        <label className="small select-field">
+          {tr('Esporta come')}{' '}
+          <select
+            value={format}
+            aria-label={tr('Formato di esportazione')}
+            onChange={(event) => setFormat(event.target.value as PaletteFormat)}
+          >
+            <option value="gpl">.gpl</option>
+            <option value="hex">.hex</option>
+            <option value="txt">.txt</option>
+          </select>
+        </label>
+      </div>
+      {message && (
+        <p className="muted small" data-testid="palette-message">
+          {message}
+        </p>
+      )}
       {palettes.map((palette, index) => {
         const colors = palette.colors
           .map((hex) => fromHex(hex))
@@ -92,6 +149,26 @@ export function PalettesPanel({
                   title={tr('Usa questi colori come rampa per Ombra e Rumore')}
                 >
                   {tr('Usa come rampa')}
+                </button>
+                <button
+                  type="button"
+                  className="small-button"
+                  aria-label={tr('Esporta {0}', palette.name)}
+                  title={tr('Salva la palette come file, nella cartella delle esportazioni')}
+                  onClick={() =>
+                    void window.api
+                      .invoke(
+                        'palette:export',
+                        palette.name,
+                        format,
+                        exportPalette(palette, format)
+                      )
+                      .then((result) =>
+                        setMessage(result.ok ? tr('Salvata in {0}', result.path) : result.error)
+                      )
+                  }
+                >
+                  {tr('Esporta')}
                 </button>
                 <button
                   type="button"

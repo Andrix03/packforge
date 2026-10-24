@@ -6,6 +6,7 @@ import { mapKindOf } from '../../shared/labpbr'
 import { compatibleFormatRange, compatibleReleases } from '../../shared/mcmeta'
 import { OverridesDialog } from './OverridesDialog'
 import { PackDoctorDialog } from './PackDoctorDialog'
+import { EmissiveDialog } from './EmissiveDialog'
 import type { FormatRange } from '../../shared/modelRules'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
@@ -274,6 +275,7 @@ function Workspace({
   const [showBackups, setShowBackups] = useState(false)
   const [overriding, setOverriding] = useState(false)
   const [doctoring, setDoctoring] = useState(false)
+  const [emissive, setEmissive] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const [titleScreens, setTitleScreens] = useState(false)
@@ -651,6 +653,19 @@ function Workspace({
                   type="button"
                   className="small-button"
                   title={tr(
+                    'Crea le texture _e (luce senza shader, OptiFine / Continuity) dalle mappe _s che emettono'
+                  )}
+                  onClick={() => setEmissive(true)}
+                >
+                  <Glyph name="dot" />
+                  {tr('Luce _e')}
+                </button>
+              )}
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title={tr(
                     'Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo'
                   )}
                   onClick={() =>
@@ -761,6 +776,7 @@ function Workspace({
       )}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {showBackups && <BackupsDialog onClose={() => setShowBackups(false)} />}
+      {emissive && <EmissiveDialog pack={validatorPack} onClose={() => setEmissive(false)} />}
       {doctoring && (
         <PackDoctorDialog
           sources={previewSources}

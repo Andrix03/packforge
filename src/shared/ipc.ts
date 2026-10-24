@@ -196,6 +196,8 @@ export interface IpcContract {
   'pack:saveSplashes': { args: [content: string]; result: SaveTextureResult }
   /** Folder packs: moves one file (porting a renamed texture); never onto an existing file. */
   'pack:moveFile': { args: [from: string, to: string]; result: SaveTextureResult }
+  /** Folder packs: `optifine/emissive.properties` with the emissive suffix (e.g. `_e`). */
+  'pack:saveEmissiveProperties': { args: [suffix: string]; result: SaveTextureResult }
   /**
    * Pixel hashes of an installed version's textures (pack path → hash of the decoded RGBA), to
    * compare two versions. Nothing of the jar leaves main but the hashes.
@@ -296,6 +298,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setLanguage': true,
   'pack:saveSplashes': true,
   'pack:moveFile': true,
+  'pack:saveEmissiveProperties': true,
   'vanilla:textureHashes': true,
   'app:restart': true,
   'app:checkUpdate': true,

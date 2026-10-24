@@ -97,6 +97,7 @@ describe('registerHandlers', () => {
       'settings:setLanguage': () => ({ ok: false, error: 'unused' }),
       'pack:saveSplashes': () => ({ ok: false, error: 'unused' }),
       'pack:moveFile': () => ({ ok: false, error: 'unused' }),
+      'pack:saveEmissiveProperties': () => ({ ok: false, error: 'unused' }),
       'vanilla:textureHashes': () => ({ ok: false, error: 'unused' }),
       'app:restart': () => undefined,
       'app:checkUpdate': () => ({ status: 'off' }),

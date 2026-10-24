@@ -3888,3 +3888,24 @@ button > .glyph,
   flex-direction: column;
   gap: 4px;
 }
+/* Emissive overlays */
+.modal.emissive-dialog {
+  width: min(560px, 100%);
+}
+.emissive-previews {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.emissive-preview {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+.emissive-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}

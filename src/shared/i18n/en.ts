@@ -2248,5 +2248,26 @@ export const EN: Readonly<Record<string, string>> = {
   'Tolta dal gioco.': 'Removed from the game.',
   'File che il gioco ignora, riferimenti rotti, texture che mancano, cambio di versione':
     'Files the game ignores, broken references, missing textures, version change',
-  Diagnosi: 'Doctor'
+  Diagnosi: 'Doctor',
+  'Suffisso non valido.': 'Invalid suffix.',
+  'Texture emissive _e': 'Emissive textures _e',
+  'Texture emissive': 'Emissive textures',
+  'Texture emissive (_e)': 'Emissive textures (_e)',
+  'Le parti che brillano nella mappa _s diventano una texture _e: con OptiFine o Continuity restano accese anche al buio, senza shader.':
+    'The parts that glow in the _s map become an _e texture: with OptiFine or Continuity they stay lit in the dark too, without shaders.',
+  'Leggo le texture con la mappa _s…': 'Reading the textures with an _s map…',
+  'Nessuna mappa _s del pack emette luce (canale alfa sotto 255).':
+    'No _s map of the pack emits light (alpha channel below 255).',
+  Soglia: 'Threshold',
+  'Luce piena': 'Full light',
+  'Ogni pixel che brilla a piena luminosità, invece di seguire la mappa.':
+    'Every glowing pixel at full brightness, instead of following the map.',
+  '{0} texture con luce, {1} file _e da scrivere.':
+    '{0} textures with light, {1} _e files to write.',
+  'Sostituisci i _e che esistono già ({0})': 'Replace the _e files that already exist ({0})',
+  '{0} file _e scritti.': '{0} _e files written.',
+  'Scrivi {0} file _e': 'Write {0} _e files',
+  'Crea le texture _e (luce senza shader, OptiFine / Continuity) dalle mappe _s che emettono':
+    'Create the _e textures (light without shaders, OptiFine / Continuity) from the _s maps that emit',
+  'Luce _e': 'Light _e'
 }

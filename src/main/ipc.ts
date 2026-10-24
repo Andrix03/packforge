@@ -51,6 +51,7 @@ import {
   saveCtmProperties,
   saveModelJson,
   movePackFile,
+  saveEmissiveProperties,
   saveSplashes,
   saveTexture,
   saveTextureMcmeta
@@ -508,6 +509,12 @@ const handlers: IpcHandlers = {
   },
 
   'vanilla:textureHashes': async (versionId) => textureHashes(await minecraftDir(), versionId),
+
+  'pack:saveEmissiveProperties': async (suffix) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return saveEmissiveProperties(current.source, suffix)
+  },
 
   'model:saveJson': async (path, content) => {
     const current = getSource('pack')

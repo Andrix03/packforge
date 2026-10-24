@@ -7,7 +7,7 @@ import { namespaced } from './blockModel'
 import { extrudeModel } from './extrude'
 import { tr } from './i18n'
 
-export type BlockPresetId = 'bushy_leaves' | 'grass_sides' | 'ladder_3d'
+export type BlockPresetId = 'bushy_leaves' | 'grass_sides' | 'ladder_3d' | 'rails_3d'
 
 export interface BlockPreset {
   id: BlockPresetId
@@ -37,6 +37,19 @@ export function presetsFor(texturePath: string): BlockPreset[] {
       label: tr('Erba sui lati'),
       hint: tr('I lati del blocco d’erba diventano verdi come la cima (terra solo sotto).'),
       model: 'minecraft:block/grass_block'
+    })
+  }
+  if (
+    ns === 'minecraft' &&
+    /^(rail|rail_corner|(powered|detector|activator)_rail(_on)?)$/.test(name)
+  ) {
+    out.push({
+      id: 'rails_3d',
+      label: tr('Binari in 3D'),
+      hint: tr(
+        'Rotaie e traversine in rilievo, anche sui binari in salita, fatti dai pixel della texture.'
+      ),
+      model: `minecraft:block/${name}`
     })
   }
   if (name === 'ladder') {
@@ -152,4 +165,78 @@ export function ladder3dModel(
     elements: elements.length,
     faces: extruded.faces
   }
+}
+
+export type RailSlope = 'flat' | 'ne' | 'sw'
+
+/**
+ * A rail made of its pixels, one pixel thick, lying where vanilla's plane is (y 1) or, for the
+ * sloped ones, on the same 45° slope (every piece turned about vanilla's pivot, rescaled the
+ * same way). Read from above like vanilla: the texture's top row to the north.
+ */
+export function rail3dModel(
+  width: number,
+  height: number,
+  opaque: (x: number, y: number) => boolean,
+  texture: string,
+  slope: RailSlope
+): LadderResult {
+  const extruded = extrudeModel(width, height, opaque, namespaced(texture), {
+    thickness: 1,
+    budget: 120
+  })
+  if (!extruded.ok) return extruded
+  const base = slope === 'flat' ? 1 : 9
+  type Face = { uv: number[]; texture: string; rotation?: number }
+  type Element = { from: number[]; to: number[]; faces: Record<string, Face> }
+  const elements = (extruded.model['elements'] as Element[]).map((e) => {
+    const faces: Record<string, Face> = {}
+    for (const [name, face] of Object.entries(e.faces)) {
+      const [u1, v1, u2, v2] = face.uv as [number, number, number, number]
+      // The sprite's front (south) looks up, its back down; its top edge faces north.
+      if (name === 'south') faces['up'] = { ...face, texture: '#rail' }
+      else if (name === 'north')
+        faces['down'] = { uv: [u1 < u2 ? u1 : u2, v2, u1 < u2 ? u2 : u1, v1], texture: '#rail' }
+      else if (name === 'up') faces['north'] = { uv: [u2, v1, u1, v2], texture: '#rail' }
+      else if (name === 'down') faces['south'] = { ...face, texture: '#rail' }
+      // The side strips run along z now: turned to lie along the face.
+      else faces[name] = { ...face, texture: '#rail', rotation: 90 }
+    }
+    return {
+      from: [e.from[0]!, e.from[2]! - 7.5 + base, 16 - e.to[1]!],
+      to: [e.to[0]!, e.to[2]! - 7.5 + base, 16 - e.from[1]!],
+      ...(slope === 'flat'
+        ? {}
+        : {
+            rotation: {
+              origin: [8, 9, 8],
+              axis: 'x',
+              angle: slope === 'ne' ? 45 : -45,
+              rescale: true
+            }
+          }),
+      faces
+    }
+  })
+  return {
+    ok: true,
+    model: {
+      ambientocclusion: false,
+      textures: { particle: '#rail', rail: namespaced(texture) },
+      elements
+    },
+    elements: elements.length,
+    faces: extruded.faces
+  }
+}
+
+/** The vanilla rail models drawn by a rail texture, with their slope. */
+export function railModelsFor(name: string): Array<{ model: string; slope: RailSlope }> {
+  const flat = [{ model: `minecraft:block/${name}`, slope: 'flat' as const }]
+  if (name === 'rail_corner') return flat
+  return [
+    ...flat,
+    { model: `minecraft:block/${name}_raised_ne`, slope: 'ne' as const },
+    { model: `minecraft:block/${name}_raised_sw`, slope: 'sw' as const }
+  ]
 }

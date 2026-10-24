@@ -2077,7 +2077,9 @@ export function TextureEditor({
               <button
                 type="button"
                 className="small-button"
-                title={tr('Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala)')}
+                title={tr(
+                  'Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala, binari)'
+                )}
                 onClick={() =>
                   void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
                     (ok) => ok && setShapesOpen(true)

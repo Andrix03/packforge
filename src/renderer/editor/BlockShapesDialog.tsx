@@ -5,6 +5,8 @@ import {
   grassSidesModel,
   ladder3dModel,
   presetsFor,
+  rail3dModel,
+  railModelsFor,
   type BlockPresetId
 } from '../../shared/blockPresets'
 import { tr } from '../../shared/i18n'
@@ -48,6 +50,40 @@ export function BlockShapesDialog({
     setWorking(true)
     setError(null)
     try {
+      if (preset.id === 'rails_3d') {
+        // Every model this rail texture draws: flat, and both slopes when it has them.
+        const image = await loadPng(sources.pack, path)
+        const opaque = (x: number, y: number): boolean =>
+          image.data[(y * image.width + x) * 4 + 3]! > 0
+        const name = path.replace(/^.*\//, '').replace(/\.png$/, '')
+        const targets = railModelsFor(name).filter(({ model }) => {
+          const p = modelPath(model)
+          return sources.pack.files.has(p) || sources.vanilla?.files.has(p)
+        })
+        const own = targets
+          .map(({ model }) => modelPath(model))
+          .filter((p) => sources.pack.files.has(p))
+        if (!(await backupBefore(tr('Forma 3D: {0}', preset.label), own))) {
+          setWorking(false)
+          return
+        }
+        const written: string[] = []
+        for (const { model, slope } of targets) {
+          const result = rail3dModel(image.width, image.height, opaque, texture, slope)
+          if (!result.ok) throw new Error(result.error)
+          const file = modelPath(model)
+          const saved = await window.api.invoke(
+            'model:saveJson',
+            file,
+            `${JSON.stringify(result.model, null, 2)}\n`
+          )
+          if (!saved.ok) throw new Error(saved.error)
+          written.push(file)
+        }
+        onDone(written)
+        setWorking(false)
+        return
+      }
       let model: Record<string, unknown>
       if (preset.id === 'bushy_leaves') model = bushyLeavesModel(texture, spread)
       else if (preset.id === 'grass_sides') model = grassSidesModel()

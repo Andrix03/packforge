@@ -48,6 +48,12 @@ export default async function blockShapes(app) {
       x === 2 || x === 13 || (y % 4 === 1 && x > 2 && x < 13) ? [130, 95, 50, 255] : [0, 0, 0, 0]
     )
   )
+  await writeFile(
+    join(app.paths.pack, ...BLOCK, 'rail.png'),
+    png(16, 16, (x, y) =>
+      x === 3 || x === 12 ? [150, 150, 160, 255] : y % 4 === 1 ? [110, 80, 40, 255] : [0, 0, 0, 0]
+    )
+  )
   await app.openPack({ waitForVanilla: true })
 
   await apply(app, 'oak_leaves.png', null)
@@ -72,4 +78,15 @@ export default async function blockShapes(app) {
     'grass on the four sides, dirt underneath'
   )
   await app.shot('shape-grass')
+  await backToPack(app)
+
+  await apply(app, 'rail.png', null)
+  const flat = await model(app, 'rail')
+  const raised = await model(app, 'rail_raised_ne')
+  app.check(
+    flat.elements.every((e) => e.from[1] === 1) &&
+      raised.elements.every((e) => e.rotation?.angle === 45),
+    `3D rails, flat and sloped (${flat.elements.length} elements)`
+  )
+  await app.shot('shape-rails')
 }

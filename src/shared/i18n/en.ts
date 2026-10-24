@@ -2169,8 +2169,8 @@ export const EN: Readonly<Record<string, string>> = {
   'Forme 3D': '3D shapes',
   'Forme pronte, come i pack 3D più scaricati: scritte come modello del blocco nel pack, funzionano senza mod.':
     "Ready-made shapes, like the most downloaded 3D packs: written as the block's model in the pack, they work without mods.",
-  'Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala)':
-    'Ready-made 3D shapes for this block (bushy leaves, grass on the sides, ladder)',
+  'Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala, binari)':
+    'Ready-made 3D shapes for this block (bushy leaves, grass on the sides, ladder, rails)',
   Nord: 'North',
   Sud: 'South',
   Est: 'East',
@@ -2366,5 +2366,8 @@ export const EN: Readonly<Record<string, string>> = {
   'Le regole si provano in ordine: vale la prima che va bene.':
     'Rules are tried in order: the first that fits wins.',
   'Più texture per questo mob: OptiFine o ETF ne scelgono una a caso, anche per bioma o nome':
-    'More textures for this mob: OptiFine or ETF pick one at random, also by biome or name'
+    'More textures for this mob: OptiFine or ETF pick one at random, also by biome or name',
+  'Binari in 3D': '3D rails',
+  'Rotaie e traversine in rilievo, anche sui binari in salita, fatti dai pixel della texture.':
+    "Raised rails and ties, on sloped rails too, made of the texture's pixels."
 }

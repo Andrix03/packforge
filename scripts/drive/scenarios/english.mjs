@@ -64,6 +64,22 @@ export default async function english(app) {
   await screen(app, 'dialog-new-texture')
   await app.key('Escape')
 
+  // 1.1: the GUI tab, the title and loading screen window, the GUI recolour.
+  await app.click('GUI', '.mode-bar [role=tab]')
+  await app.waitFor(`document.querySelector('.gui-mock canvas')`)
+  await app.sleep(600)
+  await screen(app, 'gui-tab')
+  await app.click('Title and loading screen', '.gui-mock button')
+  await app.waitFor(`document.querySelector('.title-screens')`)
+  await app.sleep(600)
+  await screen(app, 'dialog-title')
+  await app.key('Escape')
+  await app.click('Recolour GUI', '.gui-mock button')
+  await app.waitFor(`document.querySelector('.gui-recolor')`)
+  await screen(app, 'dialog-recolour')
+  await app.key('Escape')
+  await app.click('Pack', '.mode-bar [role=tab]')
+
   await app.openTexture('stone.png')
   await screen(app, 'paint')
   await app.click('Pro', '.shell-hotbar button, .editor-hotbar button')

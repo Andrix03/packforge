@@ -55,6 +55,12 @@ Also: batch-apply a material to dozens of textures with a before/after view, con
 for Continuity and OptiFine, resizing with sharp pixels, colour variants for the 16 dyes, and an
 interface in **English or Italian**.
 
+New in 0.2: the game's **GUI** (nine-slice editor, mock screens, title and loading screen),
+**armour and trims** on a 3D player, **items** through their definitions (3D in hand, variants by
+anvil name, positions in hand), **3D block models** (raised pixels, bushy leaves, 3D rails, an
+element editor), and pack tools: a pack doctor with porting between versions, emissive `_e`
+textures, random mob textures, Polytone biome colours and the game's texts.
+
 <table>
   <tr>
     <td><img src=".github/assets/paint.png" alt="The Paint workspace: pixel editor, 3D preview, colours"></td>
@@ -70,9 +76,10 @@ interface in **English or Italian**.
 
 Roughly in this order, if the prototype survives:
 
-- [ ] Game GUI textures: inventory, buttons, the title screen and the loading screen
-- [ ] Armour, armour trims and the new item definitions
-- [ ] Simple block and item models
+- [x] Game GUI textures: inventory, buttons, the title screen and the loading screen (0.2)
+- [x] Armour, armour trims and the new item definitions (0.2)
+- [x] Simple block and item models (0.2)
+- [ ] A painting engine with pressure brushes and bigger canvases
 - [ ] macOS (the Linux build is new and has had very little testing)
 - [ ] A signed Windows installer: free signing through SignPath is being set up, see below
 

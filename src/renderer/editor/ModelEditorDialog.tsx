@@ -443,6 +443,9 @@ export function ModelEditorDialog({
                   json={model}
                   sources={sources}
                   selected={element ? selected : null}
+                  onMove={(index, from, to) =>
+                    setElements(elements.map((e, i) => (i === index ? { ...e, from, to } : e)))
+                  }
                 />
                 <p className="small" data-testid="model-cost">
                   {tr('{0} elementi, {1} facce.', cost.elements, cost.faces)}

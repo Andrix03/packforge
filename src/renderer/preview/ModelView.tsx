@@ -9,6 +9,7 @@ import { tr } from '../../shared/i18n'
 import { loadPng } from '../packs/packFetch'
 import { resolveAssetUrl, type AssetSources } from './modelSource'
 import { frameHeight, geometryOf } from './quadMesh'
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 
 async function loadJson(sources: AssetSources, path: string): Promise<unknown> {
   const url = resolveAssetUrl(sources, path)
@@ -24,7 +25,8 @@ export function ModelView({
   id,
   json,
   sources,
-  selected
+  selected,
+  onMove
 }: {
   /** The model's id (`minecraft:block/stone`): its own path reads `json` instead of the file. */
   id: string
@@ -32,6 +34,8 @@ export function ModelView({
   sources: AssetSources
   /** Index of the element to outline, or null. */
   selected: number | null
+  /** Dragging the arrows moves the selected element (whole half pixels): its new from / to. */
+  onMove?: (index: number, from: [number, number, number], to: [number, number, number]) => void
 }): React.JSX.Element {
   const [quads, setQuads] = useState<Quad[]>([])
   const [images, setImages] = useState<ReadonlyMap<string, RgbaImage | null>>(new Map())
@@ -72,7 +76,20 @@ export function ModelView({
   }, [sources, missingKey])
 
   const ref = useRef<HTMLCanvasElement>(null)
+  const onMoveSet = onMove !== undefined
   const holderRef = useRef<THREE.Group | null>(null)
+  // The move arrows: a handle at the selected element's centre.
+  const gizmoRef = useRef<{ controls: TransformControls; handle: THREE.Object3D } | null>(null)
+  const moveRef = useRef(onMove)
+  useEffect(() => {
+    moveRef.current = onMove
+  }, [onMove])
+  const dragStart = useRef<{
+    index: number
+    at: THREE.Vector3
+    from: number[]
+    to: number[]
+  } | null>(null)
   const yaw = useRef(0.7)
   const pitch = useRef(0.45)
   useEffect(() => {
@@ -96,6 +113,32 @@ export function ModelView({
     scene.add(holder)
     holderRef.current = holder
     const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100)
+    const handle = new THREE.Object3D()
+    scene.add(handle)
+    const controls = new TransformControls(camera, canvas)
+    controls.setMode('translate')
+    controls.setSize(1.6)
+    scene.add(controls.getHelper())
+    controls.addEventListener('objectChange', () => {
+      const start = dragStart.current
+      if (!start) return
+      // Whole half pixels of movement (the element keeps its own offset).
+      const delta = handle.position
+        .clone()
+        .sub(start.at)
+        .multiplyScalar(16)
+        .toArray()
+        .map((v) => Math.round(v * 2) / 2)
+      moveRef.current?.(
+        start.index,
+        start.from.map((v, i) => v + delta[i]!) as [number, number, number],
+        start.to.map((v, i) => v + delta[i]!) as [number, number, number]
+      )
+    })
+    controls.addEventListener('dragging-changed', (event) => {
+      if (!event.value) dragStart.current = null
+    })
+    gizmoRef.current = { controls, handle }
     let frame = 0
     const draw = (): void => {
       const width = canvas.clientWidth
@@ -119,6 +162,8 @@ export function ModelView({
     return () => {
       cancelAnimationFrame(frame)
       holderRef.current = null
+      gizmoRef.current = null
+      controls.dispose()
       outline.geometry.dispose()
       renderer.dispose()
     }
@@ -156,8 +201,25 @@ export function ModelView({
       disposables.push(geometry, material)
       group.add(new THREE.Mesh(geometry, material))
     }
-    // The selected element's box (before its rotation).
+    // The selected element's box (before its rotation), with the move arrows at its centre.
     const element = selected === null ? null : elementBox(json, selected)
+    const gizmo = gizmoRef.current
+    if (gizmo) {
+      if (element && onMoveSet) {
+        if (!dragStart.current) {
+          gizmo.handle.position.set(
+            ...(element.from.map((v, i) => (v + element.to[i]!) / 32 - 0.5) as [
+              number,
+              number,
+              number
+            ])
+          )
+        }
+        gizmo.controls.attach(gizmo.handle)
+      } else {
+        gizmo.controls.detach()
+      }
+    }
     if (element) {
       const size = element.to.map((v, i) => Math.max(0.01, (v - element.from[i]!) / 16))
       const box = new THREE.LineSegments(
@@ -176,7 +238,7 @@ export function ModelView({
       holder.remove(group)
       for (const d of disposables) d.dispose()
     }
-  }, [quads, images, json, selected])
+  }, [quads, images, json, selected, onMoveSet])
 
   const drag = useRef<{ x: number; y: number } | null>(null)
   return (
@@ -185,6 +247,20 @@ export function ModelView({
       className="model-view sunken"
       aria-label={tr('Il modello, trascina per girarlo')}
       onPointerDown={(event) => {
+        // On the arrows: TransformControls moves the element, the view doesn't turn.
+        const gizmo = gizmoRef.current
+        if (gizmo && gizmo.controls.axis !== null) {
+          const box = selected === null ? null : elementBox(json, selected)
+          if (box && selected !== null) {
+            dragStart.current = {
+              index: selected,
+              at: gizmo.handle.position.clone(),
+              from: box.from,
+              to: box.to
+            }
+          }
+          return
+        }
         drag.current = { x: event.clientX, y: event.clientY }
         event.currentTarget.setPointerCapture(event.pointerId)
       }}

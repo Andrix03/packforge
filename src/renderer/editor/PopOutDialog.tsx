@@ -48,11 +48,14 @@ function hexAt(image: RgbaImage, i: number): string {
 export function PopOutDialog({
   path,
   sources,
+  selection,
   onClose,
   onDone
 }: {
   path: string
   sources: AssetSources
+  /** The editor's selection over the texture (one byte per pixel), or null. */
+  selection: Uint8Array | null
   onClose: () => void
   onDone: (written: string[]) => void
 }): React.JSX.Element {
@@ -61,6 +64,8 @@ export function PopOutDialog({
   const file = modelPath(texture)
   const [loaded, setLoaded] = useState<{ image: RgbaImage | null; cube: boolean } | null>(null)
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set())
+  // With a selection in the editor, its pixels are the default choice.
+  const [bySelection, setBySelection] = useState(selection !== null)
   const [depth, setDepth] = useState<number>(1)
   const [sidesOnly, setSidesOnly] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -91,13 +96,16 @@ export function PopOutDialog({
     }
     return [...counts].sort((a, b) => b[1] - a[1]).slice(0, 48)
   }, [image])
-  const isChosen = (x: number, y: number): boolean =>
-    !!image &&
-    image.data[(y * image.width + x) * 4 + 3]! > 0 &&
-    chosen.has(hexAt(image, y * image.width + x))
+  const mask =
+    bySelection && selection && image && selection.length === image.width * image.height
+      ? selection
+      : null
+  const picks = (img: RgbaImage, i: number): boolean =>
+    img.data[i * 4 + 3]! > 0 && (mask ? mask[i] === 1 : chosen.has(hexAt(img, i)))
+  const isChosen = (x: number, y: number): boolean => !!image && picks(image, y * image.width + x)
   const faces = sidesOnly ? ALL_FACES.filter((f) => f !== 'up' && f !== 'down') : ALL_FACES
   const result =
-    image && chosen.size > 0
+    image && (mask || chosen.size > 0)
       ? popOutModel(image.width, image.height, isChosen, texture, { depth, faces })
       : null
 
@@ -112,14 +120,16 @@ export function PopOutDialog({
       for (let x = 0; x < image.width; x++) {
         const i = y * image.width + x
         if (image.data[i * 4 + 3] === 0) continue
-        const pops = chosen.has(hexAt(image, i))
+        const pops = picks(image, i)
         context.globalAlpha = pops ? 1 : 0.3
         context.fillStyle = hexAt(image, i)
         context.fillRect(x * MAP_SCALE, y * MAP_SCALE, MAP_SCALE, MAP_SCALE)
       }
     }
     context.globalAlpha = 1
-  }, [image, chosen])
+    // `picks` follows chosen and mask.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [image, chosen, mask])
 
   const save = useSingleFlight(async (): Promise<void> => {
     if (!result?.ok) return
@@ -178,8 +188,35 @@ export function PopOutDialog({
           <div className="pop-out-body">
             <canvas ref={mapRef} className="pop-out-map sunken" aria-hidden="true" />
             <div className="pop-out-options">
-              <span className="lbl">{tr('Colori che escono')}</span>
-              <div className="pop-out-colors" role="group" aria-label={tr('Colori che escono')}>
+              {selection && (
+                <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Cosa esce')}>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={bySelection}
+                    className={bySelection ? 'tab active' : 'tab'}
+                    onClick={() => setBySelection(true)}
+                  >
+                    {tr('La selezione')}
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!bySelection}
+                    className={!bySelection ? 'tab active' : 'tab'}
+                    onClick={() => setBySelection(false)}
+                  >
+                    {tr('Per colore')}
+                  </button>
+                </div>
+              )}
+              {!mask && <span className="lbl">{tr('Colori che escono')}</span>}
+              <div
+                className="pop-out-colors"
+                role="group"
+                aria-label={tr('Colori che escono')}
+                hidden={mask !== null}
+              >
                 {palette.map(([hex, count]) => (
                   <button
                     key={hex}

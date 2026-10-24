@@ -1492,6 +1492,7 @@ export function TextureEditor({
       )}
       {popOutOpen && (
         <PopOutDialog
+          selection={doc?.selection?.mask ?? null}
           path={target.path}
           sources={target.sources}
           onClose={() => setPopOutOpen(false)}

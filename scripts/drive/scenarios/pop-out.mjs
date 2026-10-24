@@ -56,6 +56,24 @@ export default async function popOut(app) {
   await app.sleep(1500)
   await app.shot('pop-out-preview')
 
+  // With a selection (a 3×3 square), the dialog starts on it: one piece per face.
+  await app.click('Pro', '[role=radio]')
+  await app.key('m')
+  await app.editor.draw([
+    [2, 2],
+    [4, 4]
+  ])
+  await app.sleep(200)
+  await app.click('Pixel in rilievo', '.editor button')
+  await app.waitFor(`document.querySelector('[data-testid=pop-plan]')`, 10000)
+  app.check(
+    (await app.ev(`document.querySelector('[data-testid=pop-plan]').textContent`)).startsWith(
+      '7 elementi'
+    ),
+    'the selected square pops as one piece per face'
+  )
+  await app.key('Escape')
+
   await app.click('Pack', '.shell-tab')
   await app.waitFor(`!document.querySelector('.editor')`)
   await app.openTexture('grass_block_top.png')

@@ -21,6 +21,7 @@ import { ArmorPreview } from '../preview/ArmorPreview'
 import { Item3dDialog } from './Item3dDialog'
 import { ItemPreview } from '../preview/ItemPreview'
 import { NameVariantDialog } from './NameVariantDialog'
+import { DefinitionDialog } from './DefinitionDialog'
 import { item3dPlan } from '../../shared/item3d'
 import { isItemTexture } from '../../shared/itemPreview'
 import type { FormatRange } from '../../shared/modelRules'
@@ -196,6 +197,7 @@ export function TextureEditor({
   const [plantShape, setPlantShape] = useState(false)
   const [item3dOpen, setItem3dOpen] = useState(false)
   const [nameVariantOpen, setNameVariantOpen] = useState(false)
+  const [definitionOpen, setDefinitionOpen] = useState(false)
   // Only textures of an item the game knows (its definition in the pack or vanilla).
   const itemPlan = item3dPlan(target.path)
   const item3d =
@@ -1415,6 +1417,21 @@ export function TextureEditor({
           }}
         />
       )}
+      {definitionOpen && item3d && (
+        <DefinitionDialog
+          path={target.path}
+          plan={item3d}
+          sources={target.sources}
+          range={formats}
+          canvas={source}
+          revision={revision}
+          onClose={() => setDefinitionOpen(false)}
+          onSaved={(written) => {
+            setDefinitionOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
       {nameVariantOpen && item3d && (
         <NameVariantDialog
           path={target.path}
@@ -1930,6 +1947,17 @@ export function TextureEditor({
               >
                 <Glyph name="book" />
                 {tr('Variante per nome')}
+              </button>
+            )}
+            {item3d && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Il file items/ che dice al gioco cosa disegnare e quando')}
+                onClick={() => setDefinitionOpen(true)}
+              >
+                <Glyph name="gear" />
+                {tr('Definizione')}
               </button>
             )}
             {crop && !target.readOnly && (

@@ -2107,5 +2107,20 @@ export const EN: Readonly<Record<string, string>> = {
   'Scrivi {0} definizioni': 'Write {0} definitions',
   'Crea le definizioni in items/ dagli overrides dei modelli degli oggetti (1.21.4+)':
     'Create the items/ definitions from the overrides of the item models (1.21.4+)',
-  'Overrides in items/': 'Overrides to items/'
+  'Overrides in items/': 'Overrides to items/',
+  'Definizione dell’oggetto': 'Item definition',
+  'Definizione: {0}': 'Definition: {0}',
+  'Definizione di {0}': 'Definition of {0}',
+  'La definizione del pack. Cosa disegnare, quando: modelli, condizioni, stati.':
+    "The pack's definition. What to draw, and when: models, conditions, states.",
+  'Parti da quella di vanilla: salvando il pack ne ha una sua copia.':
+    "Starting from vanilla's: saving gives the pack its own copy.",
+  'Leggo la definizione…': 'Reading the definition…',
+  'Testo della definizione': 'Definition text',
+  'JSON non valido: {0}': 'Invalid JSON: {0}',
+  'Nessun problema per le versioni del pack.': "No problems for the pack's versions.",
+  'Salva la definizione': 'Save the definition',
+  'Il file items/ che dice al gioco cosa disegnare e quando':
+    'The items/ file that tells the game what to draw, and when',
+  Definizione: 'Definition'
 }

@@ -35,6 +35,8 @@ interface Props {
   revision: number
   sources: AssetSources
   range: FormatRange | null
+  /** A definition being edited, drawn in place of the one in the pack. */
+  definition?: unknown
 }
 
 const CONTEXT_LABELS: Record<(typeof DISPLAY_CONTEXTS)[number], () => string> = {
@@ -132,7 +134,12 @@ export function ItemPreview(props: Props): React.JSX.Element {
       current = false
     }
   }, [sources, definitionPath])
-  const json = definition && definition.path === definitionPath ? definition.json : null
+  const json =
+    props.definition !== undefined
+      ? props.definition
+      : definition && definition.path === definitionPath
+        ? definition.json
+        : null
   const root = useMemo(
     () => (json ? parseItemDefinition(json, props.range ?? ANY_RANGE).root : null),
     [json, props.range]

@@ -2170,5 +2170,35 @@ export const EN: Readonly<Record<string, string>> = {
   'Forme pronte, come i pack 3D più scaricati: scritte come modello del blocco nel pack, funzionano senza mod.':
     "Ready-made shapes, like the most downloaded 3D packs: written as the block's model in the pack, they work without mods.",
   'Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala)':
-    'Ready-made 3D shapes for this block (bushy leaves, grass on the sides, ladder)'
+    'Ready-made 3D shapes for this block (bushy leaves, grass on the sides, ladder)',
+  Nord: 'North',
+  Sud: 'South',
+  Est: 'East',
+  Ovest: 'West',
+  'Elementi di {0}': 'Elements of {0}',
+  'Elementi del modello': 'Model elements',
+  'Elementi: {0}': 'Elements: {0}',
+  'Modello non trovato: {0}': 'Model not found: {0}',
+  'Leggo il modello…': 'Reading the model…',
+  'Gli elementi venivano dal modello padre: salvando, il modello li avrà suoi.':
+    'The elements came from the parent model: saving gives the model its own.',
+  Da: 'From',
+  A: 'To',
+  Rotazione: 'Rotation',
+  'Asse di rotazione': 'Rotation axis',
+  Angolo: 'Angle',
+  Perno: 'Pivot',
+  Faccia: 'Face',
+  'Nascosta da': 'Hidden by',
+  'Faccia {0}': 'Face {0}',
+  'Texture {0}': 'Texture {0}',
+  auto: 'auto',
+  'Nascosta da {0}': 'Hidden by {0}',
+  Mai: 'Never',
+  'Tinta {0}': 'Tint {0}',
+  'Nessun elemento: aggiungine uno.': 'No elements: add one.',
+  'Salva il modello': 'Save the model',
+  'Il modello, trascina per girarlo': 'The model, drag to turn it',
+  'Modifica i cubetti del modello del blocco: posizione, rotazione, facce':
+    'Edit the cuboids of the block model: position, rotation, faces'
 }

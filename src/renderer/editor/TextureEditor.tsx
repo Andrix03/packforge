@@ -25,6 +25,7 @@ import { DefinitionDialog } from './DefinitionDialog'
 import { PopOutDialog } from './PopOutDialog'
 import { DisplayDialog } from './DisplayDialog'
 import { BlockShapesDialog } from './BlockShapesDialog'
+import { ModelEditorDialog } from './ModelEditorDialog'
 import { presetsFor } from '../../shared/blockPresets'
 import { item3dPlan } from '../../shared/item3d'
 import { isItemTexture } from '../../shared/itemPreview'
@@ -205,6 +206,9 @@ export function TextureEditor({
   const [popOutOpen, setPopOutOpen] = useState(false)
   const [displayOpen, setDisplayOpen] = useState(false)
   const [shapesOpen, setShapesOpen] = useState(false)
+  const [elementsOpen, setElementsOpen] = useState(false)
+  // The block model named like the texture (pack or vanilla), for the element editor.
+  const blockModel = blockModelFor(target.path, target.sources)
   // Only textures of an item the game knows (its definition in the pack or vanilla).
   const itemPlan = item3dPlan(target.path)
   const item3d =
@@ -1424,6 +1428,18 @@ export function TextureEditor({
           }}
         />
       )}
+      {elementsOpen && blockModel && (
+        <ModelEditorDialog
+          model={blockModel}
+          sources={target.sources}
+          range={formats}
+          onClose={() => setElementsOpen(false)}
+          onDone={(written) => {
+            setElementsOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
       {shapesOpen && (
         <BlockShapesDialog
           path={target.path}
@@ -1992,6 +2008,21 @@ export function TextureEditor({
                 {tr('Forme 3D')}
               </button>
             )}
+            {blockModel && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Modifica i cubetti del modello del blocco: posizione, rotazione, facce')}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
+                    (ok) => ok && setElementsOpen(true)
+                  )
+                }
+              >
+                <Glyph name="gear" />
+                {tr('Elementi del modello')}
+              </button>
+            )}
             {item3d && !target.readOnly && (
               <button
                 type="button"
@@ -2291,4 +2322,14 @@ function formatTime(iso: string): string {
   return Number.isNaN(date.getTime())
     ? tr('data sconosciuta')
     : date.toLocaleString(locale(), { dateStyle: 'short', timeStyle: 'short' })
+}
+
+/** `minecraft:block/stone` for `…/textures/block/stone.png` when that model exists, else null. */
+function blockModelFor(path: string, sources: AssetSources): string | null {
+  const m = /^assets\/([^/]+)\/textures\/block\/([a-z0-9_]+)\.png$/.exec(path)
+  if (!m) return null
+  const file = `assets/${m[1]}/models/block/${m[2]}.json`
+  return sources.pack.files.has(file) || sources.vanilla?.files.has(file)
+    ? `${m[1]}:block/${m[2]}`
+    : null
 }

@@ -3781,3 +3781,82 @@ button > .glyph,
 .display-axis input[type='number'] {
   padding: 3px 6px;
 }
+/* Element editor */
+.modal.model-editor {
+  width: min(1180px, 100%);
+}
+.model-editor-body {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 300px;
+  gap: 12px;
+  align-items: start;
+}
+.model-list ol {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  max-height: 320px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.model-list .tab {
+  width: 100%;
+  text-align: left;
+  font-size: 0.8rem;
+}
+.model-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.model-row {
+  display: grid;
+  grid-template-columns: 72px repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+.model-row input,
+.model-row select {
+  padding: 4px 6px;
+  min-width: 0;
+}
+.model-faces {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.model-faces th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: normal;
+  padding: 2px 4px;
+}
+.model-faces td {
+  padding: 2px 4px;
+}
+.model-faces select,
+.model-faces input[type='number'] {
+  padding: 3px 4px;
+  min-width: 0;
+}
+.model-uv {
+  display: grid;
+  grid-template-columns: repeat(4, 52px);
+  gap: 3px;
+}
+.model-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.model-view {
+  width: 100%;
+  height: 260px;
+  cursor: grab;
+  touch-action: none;
+}
+.model-issues p {
+  margin: 0 0 4px;
+}

@@ -3924,3 +3924,24 @@ button > .glyph,
   opacity: 0;
   cursor: pointer;
 }
+/* Colour adjustments */
+.modal.adjust-dialog {
+  width: min(480px, 100%);
+}
+.adjust-previews {
+  display: flex;
+  gap: 12px;
+}
+.adjust-previews figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.adjust-preview {
+  width: 128px;
+  height: 128px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}

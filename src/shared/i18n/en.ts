@@ -2282,5 +2282,15 @@ export const EN: Readonly<Record<string, string>> = {
   'Formato di esportazione': 'Export format',
   'Salva la palette come file, nella cartella delle esportazioni':
     'Save the palette as a file, in the exports folder',
-  'Salvata in {0}': 'Saved in {0}'
+  'Salvata in {0}': 'Saved in {0}',
+  'Livelli: nero': 'Levels: black',
+  'Livelli: bianco': 'Levels: white',
+  'Livelli: toni medi': 'Levels: midtones',
+  'Regola colori': 'Adjust colours',
+  'Solo i pixel selezionati. La trasparenza non cambia.':
+    "Only the selected pixels. Transparency doesn't change.",
+  'Tutta la texture. La trasparenza non cambia.': "The whole texture. Transparency doesn't change.",
+  Azzera: 'Reset',
+  'Tinta, saturazione, luminosità, contrasto e livelli della texture o della selezione':
+    'Hue, saturation, lightness, contrast and levels of the texture or the selection'
 }

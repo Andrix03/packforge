@@ -26,6 +26,8 @@ import { PopOutDialog } from './PopOutDialog'
 import { DisplayDialog } from './DisplayDialog'
 import { BlockShapesDialog } from './BlockShapesDialog'
 import { ModelEditorDialog } from './ModelEditorDialog'
+import { AdjustDialog } from './AdjustDialog'
+import { adjustPixels, type Adjustments } from '../../shared/adjust'
 import { presetsFor } from '../../shared/blockPresets'
 import { item3dPlan } from '../../shared/item3d'
 import { isItemTexture } from '../../shared/itemPreview'
@@ -53,7 +55,7 @@ import type { Floating } from './selection'
 import * as selectionActions from './selectionActions'
 import { combine, History, pixelCommand, type Command } from './history'
 import { LayersPanel } from './LayersPanel'
-import { replacePixels, TRANSPARENT, type Rgba } from './pixels'
+import { diffPixels, replacePixels, TRANSPARENT, type Rgba } from './pixels'
 import { PixelCanvas, type Tools } from './PixelCanvas'
 import { DEFAULT_RAMP, generateRamp, type RampOptions } from './ramp'
 import { RampPanel } from './RampPanel'
@@ -207,6 +209,7 @@ export function TextureEditor({
   const [displayOpen, setDisplayOpen] = useState(false)
   const [shapesOpen, setShapesOpen] = useState(false)
   const [elementsOpen, setElementsOpen] = useState(false)
+  const [adjustOpen, setAdjustOpen] = useState(false)
   // The block model named like the texture (pack or vanilla), for the element editor.
   const blockModel = blockModelFor(target.path, target.sources)
   // Only textures of an item the game knows (its definition in the pack or vanilla).
@@ -1015,6 +1018,17 @@ export function TextureEditor({
     refresh()
   }
 
+  /** "Regola colori" on the painted layer (the selection only, when there is one): one step. */
+  function applyAdjustments(adjustments: Adjustments): void {
+    if (!doc || channel) return
+    settle()
+    const layer = doc.active.pixels
+    const before = new Uint8ClampedArray(layer.data)
+    layer.data.set(adjustPixels(before, adjustments, doc.selection?.mask ?? null))
+    doc.recomposite()
+    commit(pixelCommand(layer, diffPixels(layer, before)))
+  }
+
   function applyMaterial(): void {
     const map = maps?.specular
     if (!map || !doc) return
@@ -1425,6 +1439,17 @@ export function TextureEditor({
           onDone={(written) => {
             setItem3dOpen(false)
             onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
+      {adjustOpen && doc && (
+        <AdjustDialog
+          pixels={doc.active.pixels}
+          mask={doc.selection?.mask ?? null}
+          onClose={() => setAdjustOpen(false)}
+          onApply={(adjustments) => {
+            setAdjustOpen(false)
+            applyAdjustments(adjustments)
           }}
         />
       )}
@@ -1959,6 +1984,19 @@ export function TextureEditor({
               >
                 <Glyph name="swap" />
                 {tr('Confronta con vanilla')}
+              </button>
+            )}
+            {doc && !channel && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr(
+                  'Tinta, saturazione, luminosità, contrasto e livelli della texture o della selezione'
+                )}
+                onClick={() => setAdjustOpen(true)}
+              >
+                <Glyph name="gear" />
+                {tr('Regola colori')}
               </button>
             )}
             {target.path.includes('/textures/block/') && !target.readOnly && (

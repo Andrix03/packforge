@@ -77,6 +77,10 @@ async function writeItems(app) {
     at('textures', 'entity', 'equipment', 'humanoid', 'iron.png'),
     png(64, 32, () => [150, 150, 160, 255])
   )
+  await writeFile(
+    at('textures', 'block', 'oak_leaves.png'),
+    png(16, 16, (x, y) => ((x + y) % 4 ? [120, 120, 120, 255] : [0, 0, 0, 0]))
+  )
 }
 
 export default async function english(app) {
@@ -146,6 +150,11 @@ export default async function english(app) {
   await app.sleep(500)
   await screen(app, 'dialog-variant-by-name')
   await app.key('Escape')
+  await app.click('Positions', '.editor button')
+  await app.waitFor(`document.querySelector('.display-dialog')`)
+  await app.sleep(800)
+  await screen(app, 'dialog-positions')
+  await app.key('Escape')
   await app.click('Pack', '.shell-tab')
   await app.waitFor(`!document.querySelector('.editor')`)
   await openFolder(app, 'assets/minecraft/textures/entity/equipment/humanoid')
@@ -157,7 +166,25 @@ export default async function english(app) {
   await app.waitFor(`!document.querySelector('.editor')`)
   await openFolder(app, 'assets/minecraft/textures/block')
 
+  // 1.3: 3D shapes on leaves, raised pixels and model elements on stone.
+  await app.openTexture('oak_leaves.png')
+  await app.click('3D shapes', '.editor button')
+  await app.waitFor(`document.querySelector('[role=dialog]')`)
+  await screen(app, 'dialog-3d-shapes')
+  await app.key('Escape')
+  await app.click('Pack', '.shell-tab')
+  await app.waitFor(`!document.querySelector('.editor')`)
+
   await app.openTexture('stone.png')
+  await app.click('Raised pixels', '.editor button')
+  await app.waitFor(`document.querySelector('.pop-color')`, 10000)
+  await screen(app, 'dialog-raised-pixels')
+  await app.key('Escape')
+  await app.click('Model elements', '.editor button')
+  await app.waitFor(`document.querySelector('.model-list li')`, 10000)
+  await app.sleep(500)
+  await screen(app, 'dialog-model-elements')
+  await app.key('Escape')
   await screen(app, 'paint')
   await app.click('Pro', '.shell-hotbar button, .editor-hotbar button')
   await app.sleep(500)

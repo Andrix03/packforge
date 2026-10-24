@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { unzipSync } from 'fflate'
 import type { VanillaVersionInfo } from '../shared/ipc'
 import type { PackVersion } from '../shared/packFormat'
-import type { PackSource } from './packSource'
+import { isSafePackPath, type PackSource } from './packSource'
 import { tr } from '../shared/i18n'
 
 // Vanilla textures are read from the user's own client jar, in memory, for
@@ -104,14 +104,54 @@ export async function loadVanillaJar(
       return { ok: false, error: tr('Il jar del client è troppo grande.') }
     }
     const data = await readFile(jarPath)
+    const overlay = await readIndexTextures(minecraftDir, version.id)
     return {
       ok: true,
-      source: { kind: 'zip', root: jarPath, data },
+      source: { kind: 'zip', root: jarPath, data, overlay },
       resourceFormat: readJarFormat(data)
     }
   } catch {
     return { ok: false, error: tr('Impossibile leggere il jar di {0}.', version.id) }
   }
+}
+
+/**
+ * Textures the launcher downloads beside the jar (its asset index), as `assets/minecraft/…` →
+ * bytes. Since 26.x the title panorama lives there and the jar only has 1×1 placeholders. Read in
+ * memory, reference only, like the jar.
+ */
+export async function readIndexTextures(
+  minecraftDir: string,
+  versionId: string
+): Promise<Map<string, Uint8Array>> {
+  const overlay = new Map<string, Uint8Array>()
+  try {
+    const versionJson: unknown = JSON.parse(
+      await readFile(join(minecraftDir, 'versions', versionId, `${versionId}.json`), 'utf8')
+    )
+    const record = versionJson as { assetIndex?: { id?: unknown }; assets?: unknown }
+    const indexId = record.assetIndex?.id ?? record.assets
+    if (typeof indexId !== 'string' || !/^[\w.-]+$/.test(indexId)) return overlay
+    const index: unknown = JSON.parse(
+      await readFile(join(minecraftDir, 'assets', 'indexes', `${indexId}.json`), 'utf8')
+    )
+    const objects = (index as { objects?: Record<string, { hash?: unknown; size?: unknown }> })
+      .objects
+    for (const [name, entry] of Object.entries(objects ?? {})) {
+      if (!/^minecraft\/textures\/[a-z0-9_./-]+\.png$/.test(name)) continue
+      if (!isSafePackPath(`assets/${name}`)) continue
+      const hash = entry.hash
+      if (typeof hash !== 'string' || !/^[0-9a-f]{40}$/.test(hash)) continue
+      if (typeof entry.size === 'number' && entry.size > 16 * 1024 * 1024) continue
+      const bytes = await readFile(
+        join(minecraftDir, 'assets', 'objects', hash.slice(0, 2), hash)
+      ).catch(() => null)
+      if (bytes) overlay.set(`assets/${name}`, bytes)
+    }
+  } catch {
+    // No version json or index (an old or modded install): the jar alone.
+  }
+  return overlay
 }
 
 /** Resource pack format from the jar's `version.json`, if readable. */

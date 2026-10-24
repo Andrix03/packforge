@@ -2,9 +2,13 @@ import { readdir, readFile, realpath, stat } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { unzipSync } from 'fflate'
 
-/** Where an opened pack lives. Zip packs keep their bytes in memory. */
+/**
+ * Where an opened pack lives. Zip packs keep their bytes in memory; `overlay` adds or replaces
+ * files of a zip (the vanilla jar gets the launcher-downloaded textures, e.g. the panorama).
+ */
 export type PackSource =
-  { kind: 'folder'; root: string } | { kind: 'zip'; root: string; data: Uint8Array }
+  | { kind: 'folder'; root: string }
+  | { kind: 'zip'; root: string; data: Uint8Array; overlay?: ReadonlyMap<string, Uint8Array> }
 
 export const MAX_LISTED_FILES = 50_000
 /** Files the renderer may read, with their type and size cap. */
@@ -58,6 +62,9 @@ export async function listPackFiles(
         return false
       }
     })
+    for (const name of source.overlay?.keys() ?? []) {
+      if (wanted(name) && !files.includes(name) && files.length < MAX_LISTED_FILES) files.push(name)
+    }
   } else {
     const pending = ['']
     while (pending.length > 0 && !truncated) {
@@ -99,6 +106,8 @@ async function readBytes(
   maxBytes: number
 ): Promise<Uint8Array | null> {
   if (source.kind === 'zip') {
+    const overlaid = source.overlay?.get(path)
+    if (overlaid) return overlaid.length <= maxBytes ? overlaid : null
     try {
       const entries = unzipSync(source.data, {
         filter: (file) => file.name === path && file.originalSize <= maxBytes

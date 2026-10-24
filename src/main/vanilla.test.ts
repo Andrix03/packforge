@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { strToU8, zipSync } from 'fflate'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { listPackFiles } from './packSource'
+import { listPackFiles, readPackAsset } from './packSource'
 import {
   listInstalledVersions,
   loadVanillaJar,
@@ -106,6 +106,38 @@ describe('loadVanillaJar', () => {
       'assets/minecraft/models/block/stone.json',
       'assets/minecraft/textures/block/stone.png'
     ])
+  })
+
+  it('adds the textures of the launcher asset index over the jar (the 26.x panorama)', async () => {
+    const hash = 'ab'.repeat(20)
+    const index = {
+      objects: {
+        'minecraft/textures/gui/title/background/panorama_0.png': { hash, size: 8 },
+        'minecraft/sounds/ambient/cave1.ogg': { hash, size: 8 },
+        'minecraft/textures/../../evil.png': { hash, size: 8 }
+      }
+    }
+    await install(
+      '26.3',
+      { id: '26.3', type: 'release', releaseTime: '2026-09-15', assetIndex: { id: '34' } },
+      jar({ pack_version: { resource_major: 97, resource_minor: 1 } })
+    )
+    await mkdir(join(mc, 'assets', 'indexes'), { recursive: true })
+    await writeFile(join(mc, 'assets', 'indexes', '34.json'), JSON.stringify(index))
+    await mkdir(join(mc, 'assets', 'objects', 'ab'), { recursive: true })
+    await writeFile(join(mc, 'assets', 'objects', 'ab', hash), PNG)
+
+    const result = await loadVanillaJar(mc, '26.3')
+    if (!result.ok) throw new Error(result.error)
+    const { files } = await listPackFiles(result.source, VANILLA_ASSET_PREFIXES)
+    expect(files).toContain('assets/minecraft/textures/gui/title/background/panorama_0.png')
+    // Only textures, and only safe names.
+    expect(files.some((f) => f.includes('sounds') || f.includes('evil'))).toBe(false)
+    const asset = await readPackAsset(
+      result.source,
+      'assets/minecraft/textures/gui/title/background/panorama_0.png'
+    )
+    expect([...(asset?.bytes ?? [])]).toEqual([...PNG])
   })
 
   it.each(['fabric-loader-26.3', '../evil', '..\\evil', '', 42, null])(

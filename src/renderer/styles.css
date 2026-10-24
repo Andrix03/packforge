@@ -3945,3 +3945,32 @@ button > .glyph,
   image-rendering: pixelated;
   object-fit: contain;
 }
+/* Game texts */
+.modal.lang-dialog {
+  width: min(760px, 100%);
+}
+.lang-search {
+  flex: 1;
+  min-width: 200px;
+}
+.lang-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 380px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lang-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lang-list code {
+  color: var(--muted);
+}
+.lang-list input.lang-changed {
+  border-color: var(--accent);
+}

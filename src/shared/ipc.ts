@@ -198,6 +198,14 @@ export interface IpcContract {
   'pack:moveFile': { args: [from: string, to: string]; result: SaveTextureResult }
   /** Folder packs: `optifine/emissive.properties` with the emissive suffix (e.g. `_e`). */
   'pack:saveEmissiveProperties': { args: [suffix: string]; result: SaveTextureResult }
+  /** Folder packs: `assets/minecraft/lang/<code>.json` (a JSON object of texts, as text). */
+  'pack:saveLang': { args: [code: string, content: string]; result: SaveTextureResult }
+  /** The loaded game version's texts in one language, and the languages it has. */
+  'vanilla:lang': {
+    args: [code: string]
+    result:
+      { ok: true; entries: Record<string, string>; codes: string[] } | { ok: false; error: string }
+  }
   /**
    * Pixel hashes of an installed version's textures (pack path → hash of the decoded RGBA), to
    * compare two versions. Nothing of the jar leaves main but the hashes.
@@ -304,6 +312,8 @@ const channelRegistry: Record<IpcChannel, true> = {
   'pack:saveSplashes': true,
   'pack:moveFile': true,
   'pack:saveEmissiveProperties': true,
+  'pack:saveLang': true,
+  'vanilla:lang': true,
   'vanilla:textureHashes': true,
   'app:restart': true,
   'app:checkUpdate': true,

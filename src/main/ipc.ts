@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { basename, isAbsolute, join } from 'node:path'
+import { basename, dirname, isAbsolute, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
   registerHandlers,
@@ -51,6 +51,7 @@ import {
   saveCtmProperties,
   saveModelJson,
   movePackFile,
+  saveLang,
   saveEmissiveProperties,
   saveSplashes,
   saveTexture,
@@ -76,6 +77,7 @@ import {
   listInstalledVersions,
   loadVanillaJar,
   textureHashes,
+  readVanillaLang,
   VANILLA_ASSET_PREFIXES
 } from './vanilla'
 import { isLanguage, language, tr } from '../shared/i18n'
@@ -509,6 +511,19 @@ const handlers: IpcHandlers = {
   },
 
   'vanilla:textureHashes': async (versionId) => textureHashes(await minecraftDir(), versionId),
+
+  'pack:saveLang': async (code, content) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return saveLang(current.source, code, content)
+  },
+
+  'vanilla:lang': async (code) => {
+    const vanilla = getSource('vanilla')
+    if (!vanilla) return { ok: false, error: tr('Nessuna versione del gioco caricata.') }
+    // The jar lives at versions/<id>/<id>.jar.
+    return readVanillaLang(await minecraftDir(), basename(dirname(vanilla.source.root)), code)
+  },
 
   'pack:saveEmissiveProperties': async (suffix) => {
     const current = getSource('pack')

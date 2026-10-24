@@ -7,6 +7,7 @@ import { compatibleFormatRange, compatibleReleases } from '../../shared/mcmeta'
 import { OverridesDialog } from './OverridesDialog'
 import { PackDoctorDialog } from './PackDoctorDialog'
 import { EmissiveDialog } from './EmissiveDialog'
+import { LangDialog } from './LangDialog'
 import type { FormatRange } from '../../shared/modelRules'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
@@ -277,6 +278,7 @@ function Workspace({
   const [doctoring, setDoctoring] = useState(false)
   const [emissive, setEmissive] = useState(false)
   const [recoloringAll, setRecoloringAll] = useState(false)
+  const [langOpen, setLangOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const [titleScreens, setTitleScreens] = useState(false)
@@ -613,6 +615,15 @@ function Workspace({
                 <Glyph icon={NAV_ICONS.search} />
                 {tr('Diagnosi')}
               </button>
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Nomi di blocchi e oggetti, messaggi, menu: cambiali per una lingua')}
+                onClick={() => setLangOpen(true)}
+              >
+                <Glyph name="book" />
+                {tr('Testi del gioco')}
+              </button>
               {canCreate && hasItemModels && (
                 <button
                   type="button"
@@ -792,6 +803,9 @@ function Workspace({
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {showBackups && <BackupsDialog onClose={() => setShowBackups(false)} />}
       {emissive && <EmissiveDialog pack={validatorPack} onClose={() => setEmissive(false)} />}
+      {langOpen && (
+        <LangDialog pack={validatorPack} canWrite={canCreate} onClose={() => setLangOpen(false)} />
+      )}
       {doctoring && (
         <PackDoctorDialog
           sources={previewSources}

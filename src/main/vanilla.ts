@@ -210,3 +210,61 @@ export async function textureHashes(
   hashCache.set(key, hashes)
   return { ok: true, hashes }
 }
+
+/**
+ * The game's texts in one language for the installed `versionId`: `en_us` from the jar, the
+ * others from the launcher's asset index. Also the language codes the index offers. Read on
+ * request (each file is ~0.5 MB), reference only: a pack gets just the lines the user changes.
+ */
+export async function readVanillaLang(
+  minecraftDir: string,
+  versionId: string,
+  code: unknown
+): Promise<
+  { ok: true; entries: Record<string, string>; codes: string[] } | { ok: false; error: string }
+> {
+  if (typeof code !== 'string' || !/^[a-z]{2,3}_[a-z0-9]{2,4}$/.test(code)) {
+    return { ok: false, error: tr('Lingua non valida.') }
+  }
+  const codes = new Set<string>(['en_us'])
+  let bytes: Uint8Array | null = null
+  try {
+    const versionJson = JSON.parse(
+      await readFile(join(minecraftDir, 'versions', versionId, `${versionId}.json`), 'utf8')
+    ) as { assetIndex?: { id?: unknown }; assets?: unknown }
+    const indexId = versionJson.assetIndex?.id ?? versionJson.assets
+    if (typeof indexId === 'string' && /^[\w.-]+$/.test(indexId)) {
+      const index = JSON.parse(
+        await readFile(join(minecraftDir, 'assets', 'indexes', `${indexId}.json`), 'utf8')
+      ) as { objects?: Record<string, { hash?: unknown }> }
+      for (const [name, entry] of Object.entries(index.objects ?? {})) {
+        const m = /^minecraft\/lang\/([a-z]{2,3}_[a-z0-9]{2,4})\.json$/.exec(name)
+        if (!m) continue
+        codes.add(m[1]!)
+        if (m[1] === code && typeof entry.hash === 'string' && /^[0-9a-f]{40}$/.test(entry.hash)) {
+          bytes = await readFile(
+            join(minecraftDir, 'assets', 'objects', entry.hash.slice(0, 2), entry.hash)
+          ).catch(() => null)
+        }
+      }
+    }
+    if (code === 'en_us') {
+      const jar = await readFile(join(minecraftDir, 'versions', versionId, `${versionId}.jar`))
+      const path = 'assets/minecraft/lang/en_us.json'
+      bytes = unzipSync(jar, { filter: (file) => file.name === path })[path] ?? null
+    }
+  } catch {
+    // Missing files: handled below.
+  }
+  if (!bytes) return { ok: false, error: tr('Testi di {0} non trovati per questa versione.', code) }
+  try {
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes))
+    const entries: Record<string, string> = {}
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value === 'string') entries[key] = value
+    }
+    return { ok: true, entries, codes: [...codes].sort() }
+  } catch {
+    return { ok: false, error: tr('Testi di {0} non leggibili.', code) }
+  }
+}

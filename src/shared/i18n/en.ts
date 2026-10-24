@@ -2311,5 +2311,25 @@ export const EN: Readonly<Record<string, string>> = {
   'Nessuna texture del pack in questa cartella.': 'No pack texture in this folder.',
   'Texture del pack': 'Pack textures',
   'Cambia insieme i colori di tante texture (blocchi, oggetti, entità…)':
-    'Changes the colours of many textures together (blocks, items, entities…)'
+    'Changes the colours of many textures together (blocks, items, entities…)',
+  'Testi di {0} non trovati per questa versione.': 'Texts of {0} not found for this version.',
+  'Testi di {0} non leggibili.': 'Texts of {0} unreadable.',
+  'Testi non validi.': 'Invalid texts.',
+  'i testi': 'the texts',
+  'Nessuna versione del gioco caricata.': 'No game version loaded.',
+  'Testi {0}': 'Texts {0}',
+  '{0} righe nel pack per {1}.': '{0} lines in the pack for {1}.',
+  'Testi del gioco': 'Game texts',
+  'Nomi di blocchi e oggetti, messaggi, menu: cambia una riga e il pack la sostituisce in quella lingua. Le altre restano quelle del gioco.':
+    "Block and item names, messages, menus: change a line and the pack replaces it in that language. The others stay the game's.",
+  'Cerca: nome, testo o chiave…': 'Search: name, text or key…',
+  'Cerca nei testi': 'Search the texts',
+  'Leggo i testi…': 'Reading the texts…',
+  'Righe: {0}, mostro le prime {1}: cerca per restringere.':
+    'Lines: {0}, showing the first {1}: search to narrow.',
+  'Righe: {0}.': 'Lines: {0}.',
+  'Salva i testi': 'Save the texts',
+  'Nomi di blocchi e oggetti, messaggi, menu: cambiali per una lingua':
+    'Block and item names, messages, menus: change them for a language',
+  'Nel gioco: {0}': 'In the game: {0}'
 }

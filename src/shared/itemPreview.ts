@@ -252,3 +252,24 @@ export function stateShowing(
 export function isItemTexture(path: string): boolean {
   return /^assets\/[^/]+\/textures\/item\/.+\.png$/.test(path)
 }
+
+/**
+ * The colour a definition tint gives in the preview: its fixed value, or the default the game
+ * uses for an undyed / plain item (dye, potion, firework, map colour, team, custom model data);
+ * grass tints are sampled from the grass colormap at their temperature and downfall.
+ */
+export function itemTint(
+  tint: unknown
+): { rgb: [number, number, number] } | { grass: { temperature: number; downfall: number } } | null {
+  if (!isRecord(tint) || typeof tint['type'] !== 'string') return null
+  const type = tint['type'].replace(/^minecraft:/, '')
+  if (type === 'grass') {
+    const temperature = typeof tint['temperature'] === 'number' ? tint['temperature'] : 0.5
+    const downfall = typeof tint['downfall'] === 'number' ? tint['downfall'] : 1
+    return { grass: { temperature, downfall } }
+  }
+  const value = type === 'constant' ? tint['value'] : tint['default']
+  if (typeof value !== 'number') return null
+  const argb = value >>> 0
+  return { rgb: [(argb >> 16) & 255, (argb >> 8) & 255, argb & 255] }
+}

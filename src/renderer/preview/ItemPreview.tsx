@@ -8,11 +8,12 @@ import * as THREE from 'three'
 import { buildQuads, type Quad } from '../../shared/blockGeometry'
 import { namespaced, texturePath, type TextureRef } from '../../shared/blockModel'
 import { tr } from '../../shared/i18n'
-import { itemProperties, modelsFor, parseItemDefinition } from '../../shared/itemDefinition'
+import { drawnModels, itemProperties, parseItemDefinition } from '../../shared/itemDefinition'
 import { itemQuads, type DisplayTransform } from '../../shared/itemModel'
 import {
   DISPLAY_CONTEXTS,
   itemNamesFor,
+  itemTint,
   numberRange,
   resolveItemModel,
   selectValues,
@@ -25,6 +26,8 @@ import type { RgbaImage } from '../../shared/pngCodec'
 import { loadPng } from '../packs/packFetch'
 import { OreButton, RangeInput, SwitchRow } from '../ui/components'
 import { resolveAssetUrl, type AssetSources } from './modelSource'
+import { loadColormaps, type ColormapPixels } from './colormaps'
+import { colormapPixel } from '../../shared/biomeTint'
 
 interface Props {
   path: string
@@ -146,18 +149,23 @@ export function ItemPreview(props: Props): React.JSX.Element {
       numbers: {}
     }
   const properties = itemProperties(root)
-  const modelIds = root
-    ? modelsFor(root, {
+  const drawn = root
+    ? drawnModels(root, {
         displayContext: context,
         conditions: new Set(state.conditions),
         selects: state.selects,
         numbers: state.numbers
       })
-    : [ownModel]
-  const idsKey = modelIds.join('|')
+    : [{ model: ownModel, tints: [] }]
+  const modelIds = drawn.map((d) => d.model)
+  const idsKey = JSON.stringify(drawn)
 
   const resolved = useResolvedModels(sources, modelIds)
-  const models = modelIds.map((id) => resolved.get(id)).filter((m): m is ItemModelDraw => !!m)
+  const models = drawn.flatMap((d) => {
+    const model = resolved.get(d.model)
+    return model ? [{ ...model, tints: d.tints }] : []
+  })
+  const colormaps = useColormaps(sources)
   const textureIds = [
     ...new Set(
       models.flatMap((m) => [
@@ -255,7 +263,8 @@ export function ItemPreview(props: Props): React.JSX.Element {
       group: THREE.Group,
       quads: Quad[],
       ref: TextureRef | null,
-      layer: number
+      layer: number,
+      tint: number
     ): void => {
       const sprite = ref ? spriteOf(ref.id) : undefined
       const texture = ref ? textureFor(ref.id) : null
@@ -263,6 +272,12 @@ export function ItemPreview(props: Props): React.JSX.Element {
       const geometry = geometryOf(quads, frameHeight(sprite.size) / sprite.size.height)
       const material = new THREE.MeshLambertMaterial({
         map: texture,
+        color: new THREE.Color().setRGB(
+          ((tint >> 16) & 255) / 255,
+          ((tint >> 8) & 255) / 255,
+          (tint & 255) / 255,
+          THREE.SRGBColorSpace
+        ),
         alphaTest: 0.1,
         side: THREE.DoubleSide,
         // Later layers of a flat item lie on the same planes: drawn on top.
@@ -275,24 +290,31 @@ export function ItemPreview(props: Props): React.JSX.Element {
     }
     for (const model of models) {
       const part = new THREE.Group()
+      // Tint index → colour (white when the definition gives no tint for it).
+      const tintOf = (index: number): number =>
+        index < 0 ? 0xffffff : tintColor(model.tints[index], colormaps)
       if (model.layers) {
+        // item/generated: layer i is drawn with tint index i.
         model.layers.forEach((layer, index) => {
           const sprite = spriteOf(layer.id)
           if (!sprite) return
           const { width } = sprite.size
           const height = frameHeight(sprite.size)
           const quads = itemQuads(width, height, sprite.alpha, layer)
-          add(part, quads, layer, index)
+          add(part, quads, layer, index, tintOf(index))
         })
       } else if (model.elements) {
-        const byTexture = new Map<string, Quad[]>()
+        const groups = new Map<string, { id: string; tint: number; quads: Quad[] }>()
         for (const quad of buildQuads(model.elements, { x: 0, y: 0 })) {
           if (!quad.texture) continue
-          const list = byTexture.get(quad.texture.id) ?? []
-          list.push(quad)
-          byTexture.set(quad.texture.id, list)
+          const key = `${quad.texture.id}|${quad.tintIndex}`
+          const group = groups.get(key) ?? { id: quad.texture.id, tint: quad.tintIndex, quads: [] }
+          group.quads.push(quad)
+          groups.set(key, group)
         }
-        for (const [id, quads] of byTexture) add(part, quads, { id, translucent: false }, 0)
+        for (const { id, tint, quads } of groups.values()) {
+          add(part, quads, { id, translucent: false }, 0, tintOf(tint))
+        }
       }
       part.applyMatrix4(displayMatrix(model.display[context]))
       item.add(part)
@@ -310,7 +332,7 @@ export function ItemPreview(props: Props): React.JSX.Element {
     }
     // `idsKey` stands for `models`; `revision` re-reads the painted pixels.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey, resolved, sprites, context, props.revision, props.canvas, path])
+  }, [idsKey, resolved, sprites, colormaps, context, props.revision, props.canvas, path])
 
   const builtin = models.some((m) => m.builtin)
   const update = (next: Partial<ItemState>): void => setChosen({ ...state, ...next })
@@ -526,4 +548,31 @@ function liveSprite(canvas: HTMLCanvasElement | null): Sprite | null {
     size: { width, height: canvas.height },
     alpha: (x, y) => data[(y * width + x) * 4 + 3]! > 0
   }
+}
+
+/** The grass colormap and friends (pack first), for grass tints. */
+function useColormaps(sources: AssetSources): ColormapPixels {
+  const [loaded, setLoaded] = useState<{ sources: AssetSources; maps: ColormapPixels } | null>(null)
+  useEffect(() => {
+    let current = true
+    void loadColormaps(sources).then((maps) => current && setLoaded({ sources, maps }))
+    return () => {
+      current = false
+    }
+  }, [sources])
+  return loaded && loaded.sources === sources ? loaded.maps : {}
+}
+
+/** A definition tint as 0xRRGGBB (white when unknown, or a grass tint without its colormap). */
+function tintColor(tint: unknown, colormaps: ColormapPixels): number {
+  const read = itemTint(tint)
+  if (!read) return 0xffffff
+  if ('rgb' in read) return (read.rgb[0] << 16) | (read.rgb[1] << 8) | read.rgb[2]
+  const pixels = colormaps.grass
+  if (!pixels) return 0xffffff
+  const { x, y } = colormapPixel(read.grass.temperature, read.grass.downfall)
+  const px = Math.min(pixels.width - 1, Math.floor((x / 256) * pixels.width))
+  const py = Math.min(pixels.height - 1, Math.floor((y / 256) * pixels.height))
+  const i = (py * pixels.width + px) * 4
+  return (pixels.data[i]! << 16) | (pixels.data[i + 1]! << 8) | pixels.data[i + 2]!
 }

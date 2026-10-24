@@ -5,7 +5,8 @@ import {
   numberRange,
   resolveItemModel,
   selectValues,
-  stateShowing
+  stateShowing,
+  itemTint
 } from './itemPreview'
 
 const RANGE = { min: { major: 46, minor: 0 }, max: { major: 94, minor: 0 } }
@@ -139,5 +140,17 @@ describe('stateShowing', () => {
       numbers: { use_duration: 13 }
     })
     expect(stateShowing(root, 'item/apple', 'gui')).toBeNull()
+  })
+})
+
+describe('itemTint', () => {
+  it('reads fixed values, defaults and grass', () => {
+    // Undyed leather (-6265536 = 0xFFA06540).
+    expect(itemTint({ type: 'minecraft:dye', default: -6265536 })).toEqual({ rgb: [160, 101, 64] })
+    expect(itemTint({ type: 'minecraft:constant', value: -1 })).toEqual({ rgb: [255, 255, 255] })
+    expect(itemTint({ type: 'minecraft:grass', temperature: 0.5, downfall: 1 })).toEqual({
+      grass: { temperature: 0.5, downfall: 1 }
+    })
+    expect(itemTint({ type: 'minecraft:custom_model_data' })).toBeNull()
   })
 })

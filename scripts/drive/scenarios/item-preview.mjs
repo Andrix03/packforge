@@ -36,6 +36,13 @@ export default async function itemPreview(app) {
     )
   )
 
+  // Grey leather: drawn with the undyed brown of its definition dye tint.
+  await writeFile(
+    join(app.paths.pack, ...ITEM, 'leather_helmet.png'),
+    png(16, 16, (x, y) =>
+      y > 3 && y < 10 && x > 2 && x < 13 ? [200, 200, 200, 255] : [0, 0, 0, 0]
+    )
+  )
   await app.openPack({ waitForVanilla: true })
   await openFolder(app, ITEM.join('/'))
   await app.openTexture('bow_pulling_1.png')
@@ -83,4 +90,19 @@ export default async function itemPreview(app) {
   ])
   await app.sleep(600)
   await app.shot('item-bow-painted')
+  await app.key('s', ['ctrl'])
+  await app.sleep(500)
+  await tinted(app)
+}
+
+export async function tinted(app) {
+  await app.click('Pack', '.shell-tab')
+  await app.waitFor(`!document.querySelector('.editor')`)
+  await app.openTexture('leather_helmet.png')
+  await app.waitFor(
+    `document.querySelector('[data-testid=item-models]')?.textContent.includes('leather_helmet')`,
+    10000
+  )
+  await app.sleep(800)
+  await app.shot('item-leather-tinted')
 }

@@ -99,3 +99,9 @@ export function hexToRgb(hex: string): Rgb {
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value))
 }
+
+/** The colormap a texture is (`textures/colormap/grass.png` → grass), or null. */
+export function colormapOf(path: string): Colormap | null {
+  const m = /^assets\/minecraft\/textures\/colormap\/(grass|foliage|dry_foliage)\.png$/.exec(path)
+  return m ? (m[1] as Colormap) : null
+}

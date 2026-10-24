@@ -20,6 +20,8 @@ import { guiTextureKind } from '../../shared/guiScaling'
 import { ArmorPreview } from '../preview/ArmorPreview'
 import { Item3dDialog } from './Item3dDialog'
 import { ItemPreview } from '../preview/ItemPreview'
+import { ColormapPreview } from '../preview/ColormapPreview'
+import { colormapOf } from '../../shared/biomeTint'
 import { NameVariantDialog } from './NameVariantDialog'
 import { DefinitionDialog } from './DefinitionDialog'
 import { PopOutDialog } from './PopOutDialog'
@@ -1840,6 +1842,13 @@ export function TextureEditor({
                 sources={target.sources}
               />
             )}
+            {colormapOf(target.path) && (
+              <ColormapPreview
+                colormap={colormapOf(target.path)!}
+                canvas={source}
+                revision={revision}
+              />
+            )}
             {isItemTexture(target.path) && (
               <ItemPreview
                 key={target.path}
@@ -1852,7 +1861,8 @@ export function TextureEditor({
             )}
             {!guiTextureKind(target.path) &&
               !armorPreviewRole(target.path) &&
-              !isItemTexture(target.path) && (
+              !isItemTexture(target.path) &&
+              !colormapOf(target.path) && (
                 <>
                   <button
                     type="button"

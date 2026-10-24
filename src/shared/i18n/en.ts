@@ -2331,5 +2331,13 @@ export const EN: Readonly<Record<string, string>> = {
   'Salva i testi': 'Save the texts',
   'Nomi di blocchi e oggetti, messaggi, menu: cambiali per una lingua':
     'Block and item names, messages, menus: change them for a language',
-  'Nel gioco: {0}': 'In the game: {0}'
+  'Nel gioco: {0}': 'In the game: {0}',
+  Erba: 'Grass',
+  'Foglie secche': 'Dry leaves',
+  'Anteprima colormap': 'Colormap preview',
+  'Colori dei biomi: {0}': 'Biome colours: {0}',
+  'Il gioco prende il colore di ogni bioma da un punto della mappa: più a sinistra fa caldo, più in alto piove. La metà in basso a destra non si usa.':
+    "The game takes each biome's colour from a point of the map: further left is hotter, higher up is rainier. The lower-right half is not used.",
+  '(colore fisso, non dalla mappa)': '(fixed colour, not from the map)',
+  'Mostro i {0} colori più usati.': 'Showing the {0} most used colours.'
 }

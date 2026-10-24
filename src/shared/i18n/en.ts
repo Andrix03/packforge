@@ -2293,5 +2293,7 @@ export const EN: Readonly<Record<string, string>> = {
   Azzera: 'Reset',
   'Tinta, saturazione, luminosità, contrasto e livelli della texture o della selezione':
     'Hue, saturation, lightness, contrast and levels of the texture or the selection',
-  ', PNG ottimizzati: {0} KB in meno': ', PNGs optimised: {0} KB less'
+  ', PNG ottimizzati: {0} KB in meno': ', PNGs optimised: {0} KB less',
+  'pack.mcmeta è nella sottocartella "{0}": apri quella.':
+    'pack.mcmeta is in the subfolder "{0}": open that one.'
 }

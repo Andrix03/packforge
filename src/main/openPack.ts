@@ -1,4 +1,4 @@
-import { readFile, stat } from 'node:fs/promises'
+import { readdir, readFile, stat } from 'node:fs/promises'
 import { basename, extname, isAbsolute, join } from 'node:path'
 import { unzipSync } from 'fflate'
 import type { PackSummary } from '../shared/ipc'
@@ -63,7 +63,11 @@ async function readFolderPack(dir: string): Promise<PackFiles | string> {
   try {
     mcmetaSize = (await stat(mcmetaPath)).size
   } catch {
-    return tr('Non è un resource pack: manca pack.mcmeta nella cartella.')
+    // A common slip: the folder holding the pack chosen instead of the pack itself.
+    const inner = await packInSubfolder(dir)
+    return inner
+      ? tr('pack.mcmeta è nella sottocartella "{0}": apri quella.', inner)
+      : tr('Non è un resource pack: manca pack.mcmeta nella cartella.')
   }
   if (mcmetaSize > MAX_MCMETA_BYTES) return tr('pack.mcmeta è troppo grande.')
   const mcmeta = await readFile(mcmetaPath)
@@ -117,4 +121,22 @@ async function readZipPack(path: string): Promise<PackFiles | string> {
 
 function toPngDataUrl(bytes: Uint8Array): string {
   return `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`
+}
+
+/** The name of a direct subfolder that holds a pack.mcmeta (the first one found), or null. */
+async function packInSubfolder(dir: string): Promise<string | null> {
+  try {
+    const entries = await readdir(dir, { withFileTypes: true })
+    for (const entry of entries.slice(0, 200)) {
+      if (!entry.isDirectory()) continue
+      const found = await stat(join(dir, entry.name, 'pack.mcmeta')).then(
+        (s) => s.isFile(),
+        () => false
+      )
+      if (found) return entry.name
+    }
+  } catch {
+    // Unreadable folder: the generic message.
+  }
+  return null
 }

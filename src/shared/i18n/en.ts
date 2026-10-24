@@ -2012,5 +2012,14 @@ export const EN: Readonly<Record<string, string>> = {
   'Ricoloro… {0}/{1}': 'Recolouring… {0}/{1}',
   '{0} texture ricolorate. Il backup è in Pack › Backup.':
     '{0} textures recoloured. The backup is in Pack › Backup.',
-  'Ricolora {0}': 'Recolour {0}'
+  'Ricolora {0}': 'Recolour {0}',
+  'Anteprima armatura': 'Armor preview',
+  'Strato esterno: elmo, corazza e stivali.': 'Outer layer: helmet, chestplate and boots.',
+  'Strato interno: gambali.': 'Inner layer: leggings.',
+  'Giocatore con l’armatura, trascina per girarlo': 'Player wearing the armor, drag to turn it',
+  'Mostra anche i gambali': 'Show the leggings too',
+  'Mostra anche elmo e corazza': 'Show the helmet and chestplate too',
+  'Colore della tintura': 'Dye colour',
+  'Dove dipingere': 'Where to paint',
+  'Mappa dei pezzi dell’armatura sulla texture': 'Map of the armor pieces on the texture'
 }

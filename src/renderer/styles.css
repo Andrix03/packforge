@@ -2694,6 +2694,25 @@ input[type='radio']:disabled {
   opacity: 0.45;
   cursor: default;
 }
+/* Colour pickers: a square-cornered swatch in a dark pixel frame (the native one is a thin bar). */
+input[type='color'] {
+  appearance: none;
+  flex: none;
+  width: 40px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--ui-edge-dark);
+  border-radius: 0;
+  background: var(--ui-sunken);
+  cursor: pointer;
+}
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type='color']::-webkit-color-swatch {
+  border: none;
+  border-radius: 0;
+}
 .badge {
   border-radius: 0;
   border-color: #4a4a4a;
@@ -3408,6 +3427,50 @@ button > .glyph,
 }
 .gui-preview p {
   margin: 0;
+}
+.armor-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.armor-preview p {
+  margin: 0;
+}
+.armor-view {
+  width: 100%;
+  height: 320px;
+  cursor: grab;
+  touch-action: none;
+}
+.armor-dye {
+  justify-content: space-between;
+}
+.armor-map {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.armor-map canvas {
+  width: 100%;
+  image-rendering: pixelated;
+}
+.armor-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.armor-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.armor-legend i {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--border);
 }
 .gui-stage {
   display: flex;

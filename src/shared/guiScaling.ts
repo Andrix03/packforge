@@ -151,6 +151,54 @@ export function layoutSprite(
   return pieces
 }
 
+/**
+ * The nine-slice border line under a point of a sprite `width`×`height` (GUI units), for dragging:
+ * the nearest of the four within `tolerance` units, or null.
+ */
+export function borderAt(
+  border: Border,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+  tolerance = 1.5
+): keyof Border | null {
+  const distances: Array<[keyof Border, number]> = [
+    ['left', Math.abs(x - border.left)],
+    ['right', Math.abs(x - (width - border.right))],
+    ['top', Math.abs(y - border.top)],
+    ['bottom', Math.abs(y - (height - border.bottom))]
+  ]
+  const [side, distance] = distances.reduce((best, d) => (d[1] < best[1] ? d : best))
+  return distance <= tolerance ? side : null
+}
+
+/**
+ * The border with `side` moved to the point (x, y), in whole units, kept inside the sprite and
+ * leaving at least one unit of centre (the game refuses a nine-slice without one).
+ */
+export function moveBorder(
+  border: Border,
+  side: keyof Border,
+  width: number,
+  height: number,
+  x: number,
+  y: number
+): Border {
+  const clamp = (value: number, max: number): number =>
+    Math.max(0, Math.min(max, Math.round(value)))
+  switch (side) {
+    case 'left':
+      return { ...border, left: clamp(x, width - border.right - 1) }
+    case 'right':
+      return { ...border, right: clamp(width - x, width - border.left - 1) }
+    case 'top':
+      return { ...border, top: clamp(y, height - border.bottom - 1) }
+    case 'bottom':
+      return { ...border, bottom: clamp(height - y, height - border.top - 1) }
+  }
+}
+
 /** What kind of GUI texture a pack path is, or null for anything else. */
 export type GuiTextureKind = 'sprite' | 'title' | 'gui'
 

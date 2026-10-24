@@ -4,8 +4,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { tr } from '../../shared/i18n'
 import {
+  borderAt,
   guiTextureKind,
   layoutSprite,
+  moveBorder,
   logicalSize,
   parseGuiScaling,
   withGuiScaling,
@@ -118,6 +120,11 @@ export function GuiPreview(props: Props): React.JSX.Element {
             height={size.height}
             scale={scale}
             borders={i === 0 && shown.type === 'nine_slice' ? shown.border : null}
+            onDragBorder={
+              i === 0 && shown.type === 'nine_slice' && kind === 'sprite' && !props.readOnly
+                ? (border) => setDraft({ ...shown, border })
+                : undefined
+            }
           />
         ))}
       </div>
@@ -187,9 +194,23 @@ function SpriteView(props: {
   height: number
   scale: number
   borders: Border | null
+  /** Dragging a border line (the first sprite of an editable nine-slice). */
+  onDragBorder?: ((border: Border) => void) | undefined
 }): React.JSX.Element {
   const ref = useRef<HTMLCanvasElement>(null)
-  const { canvas, revision, scaling, logical, width, height, scale, borders } = props
+  const dragging = useRef<keyof Border | null>(null)
+  const [hover, setHover] = useState<keyof Border | null>(null)
+  const { canvas, revision, scaling, logical, width, height, scale, borders, onDragBorder } = props
+  /** The pointer in GUI units of this sprite. */
+  const unitsAt = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * width,
+      y: ((event.clientY - rect.top) / rect.height) * height
+    }
+  }
+  const tolerance = Math.max(1, 4 / scale)
+  const draggable = borders !== null && onDragBorder !== undefined
   useEffect(() => {
     const target = ref.current
     if (!target || !canvas || canvas.width === 0) return
@@ -213,10 +234,30 @@ function SpriteView(props: {
   return (
     <canvas
       ref={ref}
-      className="gui-sprite"
+      className={draggable ? 'gui-sprite gui-sprite-borders' : 'gui-sprite'}
+      data-cursor={hover === 'left' || hover === 'right' ? 'col' : hover ? 'row' : undefined}
       width={Math.max(1, width * scale)}
       height={Math.max(1, height * scale)}
       title={`${width}×${height}`}
+      onPointerDown={(event) => {
+        if (!draggable || !borders) return
+        const { x, y } = unitsAt(event)
+        const side = borderAt(borders, width, height, x, y, tolerance)
+        if (!side) return
+        dragging.current = side
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }}
+      onPointerMove={(event) => {
+        if (!draggable || !borders) return
+        const { x, y } = unitsAt(event)
+        const side = dragging.current
+        if (side) onDragBorder(moveBorder(borders, side, width, height, x, y))
+        else setHover(borderAt(borders, width, height, x, y, tolerance))
+      }}
+      onPointerUp={() => {
+        dragging.current = null
+      }}
+      onPointerLeave={() => !dragging.current && setHover(null)}
     />
   )
 }
@@ -303,7 +344,9 @@ function ScalingEditor(props: {
             <span className="small">{tr('Centro allungato invece che ripetuto')}</span>
           </div>
           <p className="muted small">
-            {tr('Le linee arancioni sul primo sprite sono i bordi: gli angoli restano fissi.')}
+            {tr(
+              'Le linee arancioni sul primo sprite sono i bordi: trascinale, o scrivi i numeri. Gli angoli restano fissi.'
+            )}
           </p>
         </>
       )}

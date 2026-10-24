@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  borderAt,
   guiArea,
   guiTextureKind,
   layoutSprite,
   logicalSize,
+  moveBorder,
   parseGuiScaling,
   withGuiScaling,
   type GuiScaling
@@ -133,5 +135,24 @@ describe('GUI paths and sizes', () => {
       height: 32
     })
     expect(logicalSize(stretch, { width: 16, height: 16 }, null)).toEqual({ width: 16, height: 16 })
+  })
+})
+
+describe('dragging nine-slice borders', () => {
+  const border = { left: 3, top: 3, right: 3, bottom: 3 }
+
+  it('finds the line under the pointer', () => {
+    expect(borderAt(border, 200, 20, 3.4, 10)).toBe('left')
+    expect(borderAt(border, 200, 20, 196.8, 10)).toBe('right')
+    expect(borderAt(border, 200, 20, 100, 17.2)).toBe('bottom')
+    expect(borderAt(border, 200, 20, 100, 10)).toBeNull()
+  })
+
+  it('moves one side in whole units, keeping a centre', () => {
+    expect(moveBorder(border, 'left', 200, 20, 10.4, 0)).toEqual({ ...border, left: 10 })
+    expect(moveBorder(border, 'right', 200, 20, 190, 0)).toEqual({ ...border, right: 10 })
+    expect(moveBorder(border, 'top', 200, 20, 0, 40)).toEqual({ ...border, top: 16 })
+    expect(moveBorder(border, 'bottom', 200, 20, 0, -5)).toEqual({ ...border, bottom: 16 })
+    expect(moveBorder(border, 'left', 200, 20, -4, 0)).toEqual({ ...border, left: 0 })
   })
 })

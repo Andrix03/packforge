@@ -1941,8 +1941,8 @@ export const EN: Readonly<Record<string, string>> = {
   'Tipo di scala': 'Scaling type',
   'Bordo {0}': '{0} border',
   'Centro allungato invece che ripetuto': 'Stretch the centre instead of repeating it',
-  'Le linee arancioni sul primo sprite sono i bordi: gli angoli restano fissi.':
-    'The orange lines on the first sprite are the borders: the corners stay fixed.',
+  'Le linee arancioni sul primo sprite sono i bordi: trascinale, o scrivi i numeri. Gli angoli restano fissi.':
+    'The orange lines on the first sprite are the borders: drag them, or type the numbers. The corners stay fixed.',
   'Salva la scala': 'Save the scaling',
   'Usa la scala di vanilla': 'Use the vanilla scaling',
   'nine-slice': 'nine-slice',

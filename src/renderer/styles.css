@@ -3570,3 +3570,9 @@ button > .glyph,
   max-height: 180px;
   overflow: auto;
 }
+.gui-sprite-borders[data-cursor='col'] {
+  cursor: col-resize;
+}
+.gui-sprite-borders[data-cursor='row'] {
+  cursor: row-resize;
+}

@@ -71,6 +71,32 @@ export default async function gui(app) {
     `the vanilla scaling is written (${JSON.stringify(saved.gui?.scaling)})`
   )
 
+  // Dragging the left border line of the first sprite (GUI scale 4: 4 px per unit).
+  const box = await app.ev(`(() => {
+    const c = document.querySelector('.gui-sprite')
+    c.scrollIntoView({ block: 'center', inline: 'start' })
+    const r = c.getBoundingClientRect()
+    return { x: r.x, y: r.y, h: r.height }
+  })()`)
+  const at = (units) => ({ x: box.x + units * 4 + 1, y: box.y + box.h / 2 })
+  const mouse = (type, p, buttons) =>
+    app.send('Input.dispatchMouseEvent', {
+      type,
+      x: p.x,
+      y: p.y,
+      button: 'left',
+      buttons,
+      clickCount: 1
+    })
+  await mouse('mouseMoved', at(3), 0)
+  await mouse('mousePressed', at(3), 1)
+  await mouse('mouseMoved', at(6), 1)
+  await mouse('mouseMoved', at(10), 1)
+  await mouse('mouseReleased', at(10), 0)
+  await app.sleep(200)
+  const dragged = await app.ev(`document.querySelector('[aria-label="Bordo Sinistra"]').value`)
+  app.check(dragged === '10', `dragging the left line sets the border (${dragged})`)
+
   await app.setValue('[aria-label="Bordo Sinistra"]', '5')
   await app.sleep(200)
   await app.click('Salva la scala', '.gui-scaling button')

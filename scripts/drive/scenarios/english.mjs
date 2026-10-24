@@ -139,7 +139,8 @@ export default async function english(app) {
     ['Doctor', '[data-testid=doctor-problems], [data-testid=doctor-clean]'],
     ['Light _e', '[data-testid=emissive-plan], [data-testid=emissive-none]'],
     ['Recolour textures', '.gui-recolor'],
-    ['Game texts', '[data-testid=lang-count]']
+    ['Game texts', '[data-testid=lang-count]'],
+    ['Polytone', '[data-testid=polytone-plan]']
   ]) {
     await app.click(label, '.tool-bar button')
     await app.waitFor(`document.querySelector(${JSON.stringify(wait)})`, 20000)

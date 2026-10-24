@@ -8,6 +8,7 @@ import { OverridesDialog } from './OverridesDialog'
 import { PackDoctorDialog } from './PackDoctorDialog'
 import { EmissiveDialog } from './EmissiveDialog'
 import { LangDialog } from './LangDialog'
+import { PolytoneDialog } from './PolytoneDialog'
 import type { FormatRange } from '../../shared/modelRules'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
@@ -279,6 +280,7 @@ function Workspace({
   const [emissive, setEmissive] = useState(false)
   const [recoloringAll, setRecoloringAll] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const [polytoneOpen, setPolytoneOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const [titleScreens, setTitleScreens] = useState(false)
@@ -689,6 +691,19 @@ function Workspace({
                   type="button"
                   className="small-button"
                   title={tr(
+                    'Colori dei biomi con la mod Polytone: una colormap tua per foglie ed erba'
+                  )}
+                  onClick={() => setPolytoneOpen(true)}
+                >
+                  <Glyph name="leaf" />
+                  {tr('Polytone')}
+                </button>
+              )}
+              {canCreate && (
+                <button
+                  type="button"
+                  className="small-button"
+                  title={tr(
                     'Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo'
                   )}
                   onClick={() =>
@@ -803,6 +818,29 @@ function Workspace({
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {showBackups && <BackupsDialog onClose={() => setShowBackups(false)} />}
       {emissive && <EmissiveDialog pack={validatorPack} onClose={() => setEmissive(false)} />}
+      {polytoneOpen && (
+        <PolytoneDialog
+          pack={validatorPack}
+          onClose={() => setPolytoneOpen(false)}
+          onCreated={(path) => {
+            setPolytoneOpen(false)
+            const key = path.replace(/\.png$/, '')
+            const slash = key.lastIndexOf('/')
+            onEditTexture(
+              {
+                key,
+                folder: key.slice(0, slash),
+                name: key.slice(slash + 1),
+                albedo: path,
+                normal: null,
+                specular: null,
+                mcmeta: null
+              },
+              previewSources
+            )
+          }}
+        />
+      )}
       {langOpen && (
         <LangDialog pack={validatorPack} canWrite={canCreate} onClose={() => setLangOpen(false)} />
       )}

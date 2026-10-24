@@ -2369,5 +2369,23 @@ export const EN: Readonly<Record<string, string>> = {
     'More textures for this mob: OptiFine or ETF pick one at random, also by biome or name',
   'Binari in 3D': '3D rails',
   'Rotaie e traversine in rilievo, anche sui binari in salita, fatti dai pixel della texture.':
-    "Raised rails and ties, on sloped rails too, made of the texture's pixels."
+    "Raised rails and ties, on sloped rails too, made of the texture's pixels.",
+  'Foglie (anche abete e betulla, che in vanilla hanno un colore fisso)':
+    'Leaves (spruce and birch too, which have a fixed colour in vanilla)',
+  'Erba, felci e canne da zucchero': 'Grass, ferns and sugar cane',
+  'Usa lettere minuscole, cifre, _ e - (massimo 40).':
+    'Use lowercase letters, digits, _ and - (at most 40).',
+  'Polytone: {0}': 'Polytone: {0}',
+  'Colori dei biomi (Polytone)': 'Biome colours (Polytone)',
+  'Con la mod Polytone i blocchi scelti prendono il colore da una colormap del tuo pack, bioma per bioma (anche abete e betulla). Senza la mod il pack resta com’è.':
+    'With the Polytone mod the chosen blocks take their colour from a colormap of your pack, biome by biome (spruce and birch too). Without the mod the pack stays as it is.',
+  'Nome della colormap': 'Colormap name',
+  'Caldo e secco': 'Hot and dry',
+  'Caldo e piovoso': 'Hot and rainy',
+  'La colormap esiste già: la tengo com’è.': 'The colormap already exists: kept as it is.',
+  '{0} blocchi in polytone/block_modifiers/': '{0} blocks in polytone/block_modifiers/',
+  'Crea e disegna la colormap': 'Create and paint the colormap',
+  'Colori dei biomi con la mod Polytone: una colormap tua per foglie ed erba':
+    'Biome colours with the Polytone mod: your own colormap for leaves and grass',
+  Polytone: 'Polytone'
 }

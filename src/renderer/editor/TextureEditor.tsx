@@ -22,6 +22,7 @@ import { Item3dDialog } from './Item3dDialog'
 import { ItemPreview } from '../preview/ItemPreview'
 import { ColormapPreview } from '../preview/ColormapPreview'
 import { colormapOf } from '../../shared/biomeTint'
+import { isPolytoneColormap } from '../../shared/polytone'
 import { NameVariantDialog } from './NameVariantDialog'
 import { DefinitionDialog } from './DefinitionDialog'
 import { PopOutDialog } from './PopOutDialog'
@@ -1856,9 +1857,9 @@ export function TextureEditor({
                 sources={target.sources}
               />
             )}
-            {colormapOf(target.path) && (
+            {colormapKind(target.path) && (
               <ColormapPreview
-                colormap={colormapOf(target.path)!}
+                colormap={colormapKind(target.path)!}
                 canvas={source}
                 revision={revision}
               />
@@ -1876,7 +1877,7 @@ export function TextureEditor({
             {!guiTextureKind(target.path) &&
               !armorPreviewRole(target.path) &&
               !isItemTexture(target.path) &&
-              !colormapOf(target.path) && (
+              !colormapKind(target.path) && (
                 <>
                   <button
                     type="button"
@@ -1985,7 +1986,8 @@ export function TextureEditor({
                 }}
               />
             )}
-            {showTips && <AdvicePanel advice={advice} />}
+            {/* Palette and contrast advice is about block-like textures, not colormaps. */}
+            {showTips && !colormapKind(target.path) && <AdvicePanel advice={advice} />}
 
             <ReferencePanel
               url={referenceUrl}
@@ -2414,4 +2416,9 @@ function blockModelFor(path: string, sources: AssetSources): string | null {
   return sources.pack.files.has(file) || sources.vanilla?.files.has(file)
     ? `${m[1]}:block/${m[2]}`
     : null
+}
+
+/** The colormap a texture is: a vanilla one, a Polytone one, or null. */
+function colormapKind(path: string): ReturnType<typeof colormapOf> | 'polytone' | null {
+  return colormapOf(path) ?? (isPolytoneColormap(path) ? 'polytone' : null)
 }

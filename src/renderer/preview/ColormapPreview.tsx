@@ -6,7 +6,8 @@ import { useEffect, useRef } from 'react'
 import { BIOMES, colormapPixel, type Colormap } from '../../shared/biomeTint'
 import { tr } from '../../shared/i18n'
 
-const LABELS: Record<Colormap, () => string> = {
+const LABELS: Record<Colormap | 'polytone', () => string> = {
+  polytone: () => tr('Polytone'),
   grass: () => tr('Erba'),
   foliage: () => tr('Foglie'),
   dry_foliage: () => tr('Foglie secche')
@@ -17,7 +18,8 @@ export function ColormapPreview({
   canvas,
   revision
 }: {
-  colormap: Colormap
+  /** A vanilla colormap, or a Polytone one (sampled like grass, no fixed biome colours). */
+  colormap: Colormap | 'polytone'
   canvas: HTMLCanvasElement | null
   revision: number
 }): React.JSX.Element {
@@ -37,7 +39,7 @@ export function ColormapPreview({
     const data = source?.getImageData(0, 0, canvas.width, canvas.height).data
     BIOMES.forEach((biome, i) => {
       const { x, y } = colormapPixel(biome.temperature, biome.downfall)
-      const fixed = biome.overrides?.[colormap]
+      const fixed = colormap === 'polytone' ? undefined : biome.overrides?.[colormap]
       let color = fixed ?? '#000000'
       if (!fixed && data) {
         const px = Math.min(canvas.width - 1, Math.floor((x / 256) * canvas.width))
@@ -78,7 +80,7 @@ export function ColormapPreview({
             />
             <span className="small">
               {biome.label}
-              {biome.overrides?.[colormap] && (
+              {colormap !== 'polytone' && biome.overrides?.[colormap] && (
                 <span className="muted"> {tr('(colore fisso, non dalla mappa)')}</span>
               )}
             </span>

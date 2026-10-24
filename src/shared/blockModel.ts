@@ -78,9 +78,12 @@ export function texturePath(id: string): string {
   return `assets/${ns}/textures/${path}.png`
 }
 
-/** A block model or block state JSON of a pack: `assets/<ns>/{models,blockstates}/….json`. */
+/**
+ * A model, block state or item definition JSON of a pack:
+ * `assets/<ns>/{models,blockstates,items}/….json`.
+ */
 export function isBlockJsonPath(path: string): boolean {
-  return /^assets\/[a-z0-9_.-]+\/(models|blockstates)\/[a-z0-9_./-]+\.json$/.test(path)
+  return /^assets\/[a-z0-9_.-]+\/(models|blockstates|items)\/[a-z0-9_./-]+\.json$/.test(path)
 }
 
 export function blockstatePath(block: string): string {

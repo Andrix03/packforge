@@ -162,8 +162,9 @@ export interface IpcContract {
    */
   'ctm:saveProperties': { args: [path: string, content: string]; result: SaveTextureResult }
   /**
-   * Folder packs only: writes a block model or block state (JSON object as text) under
-   * `assets/<ns>/models/` or `assets/<ns>/blockstates/` (random variants, plant shapes).
+   * Folder packs only: writes a model, block state or item definition (JSON object as text)
+   * under `assets/<ns>/models/`, `blockstates/` or `items/` (random variants, plant shapes, 3D
+   * in hand).
    */
   'model:saveJson': { args: [path: string, content: string]; result: SaveTextureResult }
   /** Autosaves editor pixels as a draft for this pack texture (folder packs only). */

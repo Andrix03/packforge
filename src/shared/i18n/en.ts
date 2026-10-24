@@ -2030,5 +2030,34 @@ export const EN: Readonly<Record<string, string>> = {
   Armatura: 'Armor',
   Rifinitura: 'Trim',
   'Serve la tavolozza trim_base (vanilla): apri un pack con la versione del gioco.':
-    'The trim_base palette (vanilla) is needed: open a pack with the game version installed.'
+    'The trim_base palette (vanilla) is needed: open a pack with the game version installed.',
+  'Serve la 1.21.4 o successiva: le versioni prima non leggono la cartella items/.':
+    "Needs 1.21.4 or later: older versions don't read the items/ folder.",
+  'Questo oggetto è già 3D in mano.': 'This item is already 3D in hand.',
+  'Questo oggetto cambia aspetto con il suo stato (arco, bussola, rifiniture…): per ora solo gli oggetti con un solo modello.':
+    'This item changes with its state (bow, compass, trims…): for now only items with a single model.',
+  'Nessuna versione del gioco carica questo pack.': 'No game version loads this pack.',
+  '3D in mano: {0}': '3D in hand: {0}',
+  'Salva la texture nel pack prima.': 'Save the texture in the pack first.',
+  '3D in mano': '3D in hand',
+  'Ricarica le risorse nel gioco (F3+T) e prendi l’oggetto in mano.':
+    'Reload the resources in the game (F3+T) and hold the item.',
+  'Nell’inventario, a terra e nelle cornici resta piatto; in mano e in testa diventa un modello 3D fatto dai suoi pixel. Modelli vanilla, funziona senza mod.':
+    'In the inventory, on the ground and in item frames it stays flat; in hand and on the head it becomes a 3D model made of its pixels. Vanilla models, works without mods.',
+  Spessore: 'Thickness',
+  'Sottile (come vanilla)': 'Thin (like vanilla)',
+  'Spessore {0}': 'Thickness {0}',
+  'Leggo la texture e la definizione…': 'Reading the texture and the definition…',
+  '{0} elementi, {1} facce.': '{0} elements, {1} faces.',
+  'Modello pesante: con tanti oggetti così il gioco rallenta.':
+    'Heavy model: many items like this slow the game down.',
+  'Sostituisce {0} file del pack (prima ne faccio il backup).':
+    'Replaces {0} files of the pack (backed up first).',
+  'Crea il modello 3D': 'Create the 3D model',
+  'Piatto nell’inventario, 3D in mano: un modello fatto dai pixel':
+    'Flat in the inventory, 3D in hand: a model made of the pixels',
+  'Salvare le modifiche prima di creare il modello 3D?':
+    'Save the changes before creating the 3D model?',
+  'Serve il gioco installato (nella cartella .minecraft) per leggere la definizione dell’oggetto.':
+    'The installed game (in the .minecraft folder) is needed to read the item definition.'
 }

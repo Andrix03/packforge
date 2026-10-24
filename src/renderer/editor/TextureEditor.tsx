@@ -18,6 +18,9 @@ import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { GuiPreview } from '../preview/GuiPreview'
 import { guiTextureKind } from '../../shared/guiScaling'
 import { ArmorPreview } from '../preview/ArmorPreview'
+import { Item3dDialog } from './Item3dDialog'
+import { item3dPlan } from '../../shared/item3d'
+import type { FormatRange } from '../../shared/modelRules'
 import { armorPreviewRole } from '../../shared/trims'
 import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
@@ -135,9 +138,12 @@ export function TextureEditor({
   onClose,
   onSwitch,
   onTest,
-  suspended = false
+  suspended = false,
+  formats = null
 }: {
   target: EditorTarget
+  /** The formats of the releases that load the pack (null: none). */
+  formats?: FormatRange | null
   onClose: () => void
   /** Opens the test screen on the texture as it is now (unsaved changes included). */
   onTest: (live: TestLive) => void
@@ -185,6 +191,8 @@ export function TextureEditor({
   const [creatingPath, setCreatingPath] = useState<string | null>(null)
   const [randomVariants, setRandomVariants] = useState(false)
   const [plantShape, setPlantShape] = useState(false)
+  const [item3dOpen, setItem3dOpen] = useState(false)
+  const item3d = item3dPlan(target.path)
   /** The crop drawn by this texture (for its plant shape), when it has growth stages. */
   const crop = useMemo(
     () =>
@@ -1383,6 +1391,19 @@ export function TextureEditor({
           }}
         />
       )}
+      {item3dOpen && item3d && (
+        <Item3dDialog
+          path={target.path}
+          plan={item3d}
+          sources={target.sources}
+          range={formats}
+          onClose={() => setItem3dOpen(false)}
+          onDone={(written) => {
+            setItem3dOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
       {randomVariants && (
         <RandomVariantsDialog
           path={target.path}
@@ -1843,6 +1864,21 @@ export function TextureEditor({
               >
                 <Glyph name="dice" />
                 {tr('Varianti casuali')}
+              </button>
+            )}
+            {item3d && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Piatto nell’inventario, 3D in mano: un modello fatto dai pixel')}
+                onClick={() =>
+                  void saveFirst(tr('Salvare le modifiche prima di creare il modello 3D?')).then(
+                    (ok) => ok && setItem3dOpen(true)
+                  )
+                }
+              >
+                <Glyph icon={NAV_ICONS.cube} />
+                {tr('3D in mano')}
               </button>
             )}
             {crop && !target.readOnly && (

@@ -284,9 +284,10 @@ describe('geometry', () => {
 })
 
 describe('isBlockJsonPath', () => {
-  it('accepts models and block states of any namespace, nothing else', () => {
+  it('accepts models, block states and item definitions of any namespace, nothing else', () => {
     expect(isBlockJsonPath('assets/minecraft/models/block/wheat_stage7_v2.json')).toBe(true)
     expect(isBlockJsonPath('assets/mymod/blockstates/ruby.json')).toBe(true)
+    expect(isBlockJsonPath('assets/minecraft/items/apple.json')).toBe(true)
     expect(isBlockJsonPath('assets/minecraft/textures/block/stone.png')).toBe(false)
     expect(isBlockJsonPath('assets/minecraft/models/block/Stone.json')).toBe(false)
     expect(isBlockJsonPath('pack.mcmeta')).toBe(false)

@@ -15,7 +15,9 @@ import { tr } from '../shared/i18n'
 export const VANILLA_ASSET_PREFIXES = [
   'assets/minecraft/textures/',
   'assets/minecraft/models/',
-  'assets/minecraft/blockstates/'
+  'assets/minecraft/blockstates/',
+  // Item definitions (1.21.4+): what an item draws, for "3D in hand".
+  'assets/minecraft/items/'
 ] as const
 const MAX_JAR_BYTES = 512 * 1024 * 1024
 

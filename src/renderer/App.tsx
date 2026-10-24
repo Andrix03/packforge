@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { AppInfo, PackSummary, UpdateCheck } from '../shared/ipc'
-import { compatibleReleases } from '../shared/mcmeta'
+import { compatibleFormatRange, compatibleReleases } from '../shared/mcmeta'
 import { summarizeReleaseSpans } from '../shared/packFormat'
 import { TextureEditor, type EditorTarget } from './editor/TextureEditor'
 import { ErrorBoundary } from './ErrorBoundary'
@@ -326,6 +326,7 @@ function Window(): React.JSX.Element {
           <ErrorBoundary key={editing.url} what={tr("L'editor")} onReset={() => setEditing(null)}>
             <TextureEditor
               target={editing}
+              formats={pack ? compatibleFormatRange(pack.mcmeta.formats) : null}
               onClose={() => setEditing(null)}
               onSwitch={setEditing}
               onTest={(live) => setTesting({ target: editing, live })}

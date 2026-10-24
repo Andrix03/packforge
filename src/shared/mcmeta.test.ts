@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   analyzePackMcmeta,
   buildPackMcmeta,
+  compatibleFormatRange,
   compatibleReleases,
   isCompatibleWith,
   serializeMcmeta,
@@ -216,5 +217,19 @@ describe('descriptionKind', () => {
     expect(kind({ description: ['x'], pack_format: 15 })).toBe('component')
     expect(kind({ pack_format: 15 })).toBe('missing')
     expect(analyzePackMcmeta('nope').descriptionKind).toBe('missing')
+  })
+})
+
+describe('compatibleFormatRange', () => {
+  it('spans the formats of the releases that load the pack', () => {
+    const range = compatibleFormatRange(
+      analyzePackMcmeta(JSON.stringify({ pack: { pack_format: 46, description: '' } })).formats
+    )
+    expect(range).toEqual({ min: { major: 46, minor: 0 }, max: { major: 46, minor: 0 } })
+    expect(
+      compatibleFormatRange(
+        analyzePackMcmeta(JSON.stringify({ pack: { pack_format: 3, description: '' } })).formats
+      )
+    ).toBeNull()
   })
 })

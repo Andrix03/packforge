@@ -23,6 +23,7 @@ import { ItemPreview } from '../preview/ItemPreview'
 import { NameVariantDialog } from './NameVariantDialog'
 import { DefinitionDialog } from './DefinitionDialog'
 import { PopOutDialog } from './PopOutDialog'
+import { DisplayDialog } from './DisplayDialog'
 import { item3dPlan } from '../../shared/item3d'
 import { isItemTexture } from '../../shared/itemPreview'
 import type { FormatRange } from '../../shared/modelRules'
@@ -200,6 +201,7 @@ export function TextureEditor({
   const [nameVariantOpen, setNameVariantOpen] = useState(false)
   const [definitionOpen, setDefinitionOpen] = useState(false)
   const [popOutOpen, setPopOutOpen] = useState(false)
+  const [displayOpen, setDisplayOpen] = useState(false)
   // Only textures of an item the game knows (its definition in the pack or vanilla).
   const itemPlan = item3dPlan(target.path)
   const item3d =
@@ -1419,6 +1421,20 @@ export function TextureEditor({
           }}
         />
       )}
+      {displayOpen && (
+        <DisplayDialog
+          path={target.path}
+          sources={target.sources}
+          range={formats}
+          canvas={source}
+          revision={revision}
+          onClose={() => setDisplayOpen(false)}
+          onSaved={(written) => {
+            setDisplayOpen(false)
+            onSwitch(withWritten(target, written))
+          }}
+        />
+      )}
       {popOutOpen && (
         <PopOutDialog
           path={target.path}
@@ -1986,6 +2002,17 @@ export function TextureEditor({
               >
                 <Glyph name="gear" />
                 {tr('Definizione')}
+              </button>
+            )}
+            {isItemTexture(target.path) && !target.readOnly && (
+              <button
+                type="button"
+                className="small-button"
+                title={tr('Come sta l’oggetto in mano, nell’inventario, a terra, in testa')}
+                onClick={() => setDisplayOpen(true)}
+              >
+                <Glyph name="resize" />
+                {tr('Posizioni')}
               </button>
             )}
             {crop && !target.readOnly && (

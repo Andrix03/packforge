@@ -2142,5 +2142,18 @@ export const EN: Readonly<Record<string, string>> = {
   'Scrivi il modello': 'Write the model',
   'Alcuni colori escono dal blocco in 3D (minerali, gemme)':
     'Some colours stand out of the block in 3D (ores, gems)',
-  'Salvare le modifiche prima di creare il modello?': 'Save the changes before creating the model?'
+  'Salvare le modifiche prima di creare il modello?': 'Save the changes before creating the model?',
+  'Rotazione (gradi)': 'Rotation (degrees)',
+  'Spostamento (pixel)': 'Offset (pixels)',
+  Scala: 'Scale',
+  'Posizioni dell’oggetto': 'Item positions',
+  'Come sta l’oggetto in ogni posto: ruotalo, spostalo, ingrandiscilo. In prima persona e nell’inventario lo vedi dove lo mette il gioco.':
+    'How the item sits in each place: turn it, move it, resize it. In first person and in the inventory you see it where the game puts it.',
+  'Modello: {0}': 'Model: {0}',
+  valore: 'value',
+  'Annulla le modifiche di questa vista': 'Undo the changes of this view',
+  'Salva le posizioni': 'Save the positions',
+  'Come sta l’oggetto in mano, nell’inventario, a terra, in testa':
+    'How the item sits in hand, in the inventory, on the ground, on the head',
+  Posizioni: 'Positions'
 }

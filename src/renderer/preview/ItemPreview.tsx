@@ -37,7 +37,24 @@ interface Props {
   range: FormatRange | null
   /** A definition being edited, drawn in place of the one in the pack. */
   definition?: unknown
+  /** The display context, when the caller chooses it. */
+  context?: string
+  onContext?: (context: string) => void
+  /** A display transform being edited, drawn in place of the model's own for that slot. */
+  displayOverride?: { model: string; slot: string; transform: DisplayTransform } | undefined
+  /** The models drawn in the current state (ids), when they change. */
+  onDrawn?: (models: string[]) => void
 }
+
+type ViewMode = 'hand' | 'slot' | 'orbit'
+
+/** First person and the inventory are shown in place, the rest turned around the item. */
+function viewOf(context: string): ViewMode {
+  return context === 'firstperson_righthand' ? 'hand' : context === 'gui' ? 'slot' : 'orbit'
+}
+
+/** FirstPersonHandsAndItemsRenderer.applyItemArmTransform, right hand at rest (26.3). */
+const HAND_OFFSET = [0.56, -0.52, -0.72] as const
 
 const CONTEXT_LABELS: Record<(typeof DISPLAY_CONTEXTS)[number], () => string> = {
   gui: () => tr('Inventario'),
@@ -146,7 +163,9 @@ export function ItemPreview(props: Props): React.JSX.Element {
   )
   const ownModel = namespaced(path.replace(/^assets\/([^/]+)\/textures\/(.+)\.png$/, '$1:$2'))
 
-  const [context, setContext] = useState<string>('gui')
+  const [ownContext, setOwnContext] = useState<string>('gui')
+  const context = props.context ?? ownContext
+  const setContext = props.onContext ?? setOwnContext
   // null = the first state that shows the painted texture (or the plain one).
   const [chosen, setChosen] = useState<ItemState | null>(null)
   const state: ItemState = chosen ??
@@ -186,7 +205,11 @@ export function ItemPreview(props: Props): React.JSX.Element {
   const sprites = useSprites(sources, textureIds, path)
 
   const ref = useRef<HTMLCanvasElement>(null)
-  const sceneRef = useRef<{ holder: THREE.Group; fit: (box: THREE.Box3) => void } | null>(null)
+  const sceneRef = useRef<{
+    holder: THREE.Group
+    fit: (box: THREE.Box3) => void
+    setView: (mode: ViewMode) => void
+  } | null>(null)
   const yaw = useRef(0)
   useEffect(() => {
     const canvas = ref.current
@@ -194,20 +217,45 @@ export function ItemPreview(props: Props): React.JSX.Element {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
     renderer.setPixelRatio(window.devicePixelRatio || 1)
     renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.setScissorTest(true)
+    // Cleared by hand each frame (the first-person window has its own background).
+    renderer.autoClear = false
     const scene = new THREE.Scene()
     scene.add(new THREE.AmbientLight(0xffffff, 1.8))
     const sun = new THREE.DirectionalLight(0xffffff, 1.4)
     sun.position.set(-0.3, 0.8, 1)
     scene.add(sun)
-    const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100)
+    const orbit = new THREE.PerspectiveCamera(30, 1, 0.01, 100)
+    // First person as in the game: the eye at 0 looking down -z, 70° vertical, a 16:9 window.
+    const eye = new THREE.PerspectiveCamera(70, 16 / 9, 0.01, 100)
+    eye.position.set(0, 0, 0)
+    eye.lookAt(0, 0, -1)
+    // An inventory slot: one block unit across, seen straight on.
+    const slot = new THREE.OrthographicCamera(-0.6, 0.6, 0.6, -0.6, -10, 10)
+    const slotFrame = new THREE.LineLoop(
+      new THREE.BufferGeometry().setFromPoints(
+        [
+          [-0.5, -0.5],
+          [0.5, -0.5],
+          [0.5, 0.5],
+          [-0.5, 0.5]
+        ].map(([x, y]) => new THREE.Vector3(x, y, -5))
+      ),
+      new THREE.LineBasicMaterial({ color: 0x8b8b8b })
+    )
+    scene.add(slotFrame)
     const holder = new THREE.Group()
     scene.add(holder)
     let distance = 3
+    let mode: ViewMode = 'orbit'
     sceneRef.current = {
       holder,
       fit: (box) => {
         const size = box.getSize(new THREE.Vector3()).length()
         distance = Math.max(0.5, size * 1.7)
+      },
+      setView: (next) => {
+        mode = next
       }
     }
     let frame = 0
@@ -216,12 +264,38 @@ export function ItemPreview(props: Props): React.JSX.Element {
       const height = canvas.clientHeight
       if (canvas.width !== Math.round(width * renderer.getPixelRatio())) {
         renderer.setSize(width, height, false)
-        camera.aspect = width / Math.max(1, height)
-        camera.updateProjectionMatrix()
+        orbit.aspect = width / Math.max(1, height)
+        orbit.updateProjectionMatrix()
       }
-      camera.position.set(Math.sin(yaw.current) * distance, 0, Math.cos(yaw.current) * distance)
-      camera.lookAt(0, 0, 0)
-      renderer.render(scene, camera)
+      renderer.setViewport(0, 0, width, height)
+      renderer.setScissor(0, 0, width, height)
+      renderer.clear()
+      slotFrame.visible = mode === 'slot'
+      if (mode === 'hand') {
+        // Letterboxed 16:9, like the game window.
+        const h = Math.min(height, (width * 9) / 16)
+        const w = (h * 16) / 9
+        const x = (width - w) / 2
+        const y = (height - h) / 2
+        renderer.setViewport(x, y, w, h)
+        renderer.setScissor(x, y, w, h)
+        // The game window: a darker 16:9 area.
+        renderer.setClearColor(0x2c313a, 1)
+        renderer.clear()
+        renderer.setClearColor(0x000000, 0)
+        renderer.render(scene, eye)
+      } else if (mode === 'slot') {
+        const side = Math.min(width, height)
+        const x = (width - side) / 2
+        const y = (height - side) / 2
+        renderer.setViewport(x, y, side, side)
+        renderer.setScissor(x, y, side, side)
+        renderer.render(scene, slot)
+      } else {
+        orbit.position.set(Math.sin(yaw.current) * distance, 0, Math.cos(yaw.current) * distance)
+        orbit.lookAt(0, 0, 0)
+        renderer.render(scene, orbit)
+      }
       frame = requestAnimationFrame(draw)
     }
     frame = requestAnimationFrame(draw)
@@ -323,14 +397,27 @@ export function ItemPreview(props: Props): React.JSX.Element {
           add(part, quads, { id, translucent: false }, 0, tintOf(tint))
         }
       }
-      part.applyMatrix4(displayMatrix(model.display[context]))
+      const override = props.displayOverride
+      const display =
+        override && override.slot === context && namespaced(override.model) === namespaced(model.id)
+          ? override.transform
+          : model.display[context]
+      // The model is centred on 0 before its display transform (the game's -0.5 offset).
+      part.applyMatrix4(displayMatrix(display))
       item.add(part)
     }
-    // Centred whatever the context moves it to: the shape and angle matter here, not the place.
-    const box = new THREE.Box3().setFromObject(item)
-    if (!box.isEmpty()) {
-      item.position.sub(box.getCenter(new THREE.Vector3()))
-      target.fit(box)
+    const mode = viewOf(context)
+    target.setView(mode)
+    if (mode === 'hand') {
+      // Where the game puts the right hand's item before its display transform.
+      item.position.set(HAND_OFFSET[0], HAND_OFFSET[1], HAND_OFFSET[2])
+    } else if (mode === 'orbit') {
+      // Centred whatever the context moves it to: the shape and angle matter here, not the place.
+      const box = new THREE.Box3().setFromObject(item)
+      if (!box.isEmpty()) {
+        item.position.sub(box.getCenter(new THREE.Vector3()))
+        target.fit(box)
+      }
     }
     target.holder.add(item)
     return () => {
@@ -339,7 +426,22 @@ export function ItemPreview(props: Props): React.JSX.Element {
     }
     // `idsKey` stands for `models`; `revision` re-reads the painted pixels.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey, resolved, sprites, colormaps, context, props.revision, props.canvas, path])
+  }, [
+    idsKey,
+    resolved,
+    sprites,
+    colormaps,
+    context,
+    props.revision,
+    props.canvas,
+    path,
+    props.displayOverride
+  ])
+  const drawnKey = modelIds.join('|')
+  const onDrawn = props.onDrawn
+  useEffect(() => {
+    onDrawn?.(drawnKey === '' ? [] : drawnKey.split('|'))
+  }, [drawnKey, onDrawn])
 
   const builtin = models.some((m) => m.builtin)
   const update = (next: Partial<ItemState>): void => setChosen({ ...state, ...next })

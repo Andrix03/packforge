@@ -2021,5 +2021,14 @@ export const EN: Readonly<Record<string, string>> = {
   'Mostra anche elmo e corazza': 'Show the helmet and chestplate too',
   'Colore della tintura': 'Dye colour',
   'Dove dipingere': 'Where to paint',
-  'Mappa dei pezzi dell’armatura sulla texture': 'Map of the armor pieces on the texture'
+  'Mappa dei pezzi dell’armatura sulla texture': 'Map of the armor pieces on the texture',
+  'Anteprima rifinitura': 'Trim preview',
+  'Motivo di rifinitura: i grigi di trim_base diventano i colori del materiale.':
+    "Trim pattern: the trim_base greys become the material's colours.",
+  'Colori di un materiale: sostituiscono gli 8 grigi di trim_base, in ordine.':
+    "A material's colours: they replace the 8 trim_base greys, in order.",
+  Armatura: 'Armor',
+  Rifinitura: 'Trim',
+  'Serve la tavolozza trim_base (vanilla): apri un pack con la versione del gioco.':
+    'The trim_base palette (vanilla) is needed: open a pack with the game version installed.'
 }

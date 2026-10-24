@@ -3446,6 +3446,14 @@ button > .glyph,
 .armor-dye {
   justify-content: space-between;
 }
+.armor-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.armor-choices:empty {
+  display: none;
+}
 .armor-map {
   display: flex;
   flex-direction: column;

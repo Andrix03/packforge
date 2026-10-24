@@ -18,7 +18,7 @@ import { PreviewPanel, type PreviewTarget } from '../preview/PreviewPanel'
 import { GuiPreview } from '../preview/GuiPreview'
 import { guiTextureKind } from '../../shared/guiScaling'
 import { ArmorPreview } from '../preview/ArmorPreview'
-import { armorLayerOf } from '../../shared/armorModel'
+import { armorPreviewRole } from '../../shared/trims'
 import type { TestLive } from '../testscreen/TestScreen'
 import { analyzeTexture } from './advice'
 import { AdvicePanel } from './AdvicePanel'
@@ -1684,7 +1684,7 @@ export function TextureEditor({
                 }}
               />
             )}
-            {armorLayerOf(target.path) && (
+            {armorPreviewRole(target.path) && (
               <ArmorPreview
                 key={target.path}
                 path={target.path}
@@ -1693,7 +1693,7 @@ export function TextureEditor({
                 sources={target.sources}
               />
             )}
-            {!guiTextureKind(target.path) && !armorLayerOf(target.path) && (
+            {!guiTextureKind(target.path) && !armorPreviewRole(target.path) && (
               <>
                 <button
                   type="button"

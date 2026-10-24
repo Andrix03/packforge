@@ -5,6 +5,7 @@ import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../share
 import { mapKindOf } from '../../shared/labpbr'
 import { compatibleFormatRange, compatibleReleases } from '../../shared/mcmeta'
 import { OverridesDialog } from './OverridesDialog'
+import { PackDoctorDialog } from './PackDoctorDialog'
 import type { FormatRange } from '../../shared/modelRules'
 import { formatPackVersion, type PackVersion } from '../../shared/packFormat'
 import { groupTextures, type TextureEntry } from '../../shared/textures'
@@ -272,6 +273,7 @@ function Workspace({
   const [inGame, setInGame] = useState(false)
   const [showBackups, setShowBackups] = useState(false)
   const [overriding, setOverriding] = useState(false)
+  const [doctoring, setDoctoring] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
   const [titleScreens, setTitleScreens] = useState(false)
@@ -597,6 +599,17 @@ function Workspace({
                   {tr('Backup')}
                 </button>
               )}
+              <button
+                type="button"
+                className="small-button"
+                title={tr(
+                  'File che il gioco ignora, riferimenti rotti, texture che mancano, cambio di versione'
+                )}
+                onClick={() => setDoctoring(true)}
+              >
+                <Glyph icon={NAV_ICONS.search} />
+                {tr('Diagnosi')}
+              </button>
               {canCreate && hasItemModels && (
                 <button
                   type="button"
@@ -748,6 +761,14 @@ function Workspace({
       )}
       {exporting && <ExportDialog onClose={() => setExporting(false)} />}
       {showBackups && <BackupsDialog onClose={() => setShowBackups(false)} />}
+      {doctoring && (
+        <PackDoctorDialog
+          sources={previewSources}
+          versionId={jar.status === 'ready' ? jar.value.versionId : null}
+          canWrite={canCreate}
+          onClose={() => setDoctoring(false)}
+        />
+      )}
       {overriding && (
         <OverridesDialog
           sources={previewSources}

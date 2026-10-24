@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { diffTextures, lintPaths, missingTextures, renamePlan } from './packDoctor'
+import {
+  brokenReferences,
+  diffTextures,
+  lintPaths,
+  missingTextures,
+  renamePlan
+} from './packDoctor'
 
 const B = 'assets/minecraft/textures/block/'
 
@@ -80,5 +86,53 @@ describe('lintPaths', () => {
       'assets/pack.png'
     ])
     expect(issues[2]!.message).toContain('textures/block/')
+  })
+})
+
+describe('brokenReferences', () => {
+  const have = new Set([
+    'assets/minecraft/textures/block/stone.png',
+    'assets/minecraft/models/block/cube_all.json',
+    'assets/minecraft/models/block/stone.json',
+    'assets/minecraft/models/item/apple.json'
+  ])
+  const exists = (path: string) => have.has(path)
+
+  it('finds missing textures and models in models, states and item definitions', () => {
+    const files = new Map<string, unknown>([
+      [
+        'assets/minecraft/models/block/ruby.json',
+        { parent: 'block/cube_all', textures: { all: 'block/ruby', particle: '#all' } }
+      ],
+      [
+        'assets/minecraft/blockstates/ruby.json',
+        { variants: { '': [{ model: 'block/ruby' }, { model: 'block/ruby_2' }] } }
+      ],
+      [
+        'assets/minecraft/items/ruby.json',
+        {
+          model: {
+            type: 'minecraft:select',
+            cases: [],
+            fallback: { type: 'model', model: 'item/ruby' }
+          }
+        }
+      ],
+      [
+        'assets/minecraft/models/block/fine.json',
+        { parent: 'block/cube_all', textures: { all: 'block/stone' } }
+      ],
+      ['assets/minecraft/models/block/broken.json', null]
+    ])
+    const inPack = (path: string) => exists(path) || files.has(path)
+    const issues = brokenReferences(files, inPack).map(
+      (i) => `${i.path.split('/').slice(-2).join('/')}: ${i.message}`
+    )
+    expect(issues).toEqual([
+      'block/ruby.json: Usa texture block/ruby, che non esiste: in gioco appare viola e nero.',
+      'blockstates/ruby.json: Usa modello block/ruby_2, che non esiste: in gioco appare viola e nero.',
+      'items/ruby.json: Usa modello item/ruby, che non esiste: in gioco appare viola e nero.',
+      'block/broken.json: JSON non valido: il gioco ignora il file.'
+    ])
   })
 })

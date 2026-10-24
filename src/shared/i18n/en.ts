@@ -2200,5 +2200,53 @@ export const EN: Readonly<Record<string, string>> = {
   'Salva il modello': 'Save the model',
   'Il modello, trascina per girarlo': 'The model, drag to turn it',
   'Modifica i cubetti del modello del blocco: posizione, rotazione, facce':
-    'Edit the cuboids of the block model: position, rotation, faces'
+    'Edit the cuboids of the block model: position, rotation, faces',
+  '{0} esiste già: non lo sovrascrivo.': '{0} already exists: not overwritten.',
+  'Impossibile spostare {0}: {1}': 'Could not move {0}: {1}',
+  'Versione non valida.': 'Invalid version.',
+  'JSON non valido: il gioco ignora il file.': 'Invalid JSON: the game skips the file.',
+  texture: 'texture',
+  modello: 'model',
+  'Usa {0}, che non esiste: in gioco appare viola e nero.':
+    "Uses {0}, which doesn't exist: in game it shows purple and black.",
+  'Diagnosi del pack': 'Pack doctor',
+  Problemi: 'Problems',
+  'Cosa manca': "What's missing",
+  'Cambio di versione': 'Version change',
+  'File che il gioco salta senza dirlo, e modelli che puntano a file che non esistono (in gioco: viola e nero).':
+    "Files the game skips without saying so, and models pointing to files that don't exist (in game: purple and black).",
+  'Senza il gioco installato non controllo i riferimenti ai file di vanilla.':
+    'Without the installed game the references to vanilla files are not checked.',
+  'Leggo modelli, stati e oggetti del pack…': "Reading the pack's models, states and items…",
+  'Nessun problema trovato.': 'No problems found.',
+  'Serve il gioco installato: scegli la versione di riferimento nella scheda Vanilla.':
+    'The installed game is needed: pick the reference version in the Vanilla tab.',
+  'Texture della {0} che il pack non sostituisce, per cartella.':
+    "Textures of {0} the pack doesn't replace, by folder.",
+  '…e altre {0}.': '…and {0} more.',
+  'Leggo le texture delle due versioni…': 'Reading the textures of both versions…',
+  'Porting da {0} a {1}': 'Porting from {0} to {1}',
+  '{0} file spostati.': '{0} files moved.',
+  'Confronta le texture di due versioni installate: quelle rinominate si portano nel pack con un clic (con mappe e .mcmeta), quelle tolte e quelle nuove sono elencate.':
+    'Compares the textures of two installed versions: renamed ones are moved in the pack with one click (with maps and .mcmeta), removed and new ones are listed.',
+  'Cerco le versioni installate…': 'Looking for installed versions…',
+  'Servono almeno due versioni installate nel launcher.':
+    'At least two versions installed in the launcher are needed.',
+  'Versione di partenza': 'From version',
+  'Versione di arrivo': 'To version',
+  Confronta: 'Compare',
+  'Rinominate {0}, tolte {1}, nuove {2}, ridisegnate {3}.':
+    'Renamed {0}, removed {1}, new {2}, redrawn {3}.',
+  'File del pack da spostare:': 'Pack files to move:',
+  'diventa {0}': 'becomes {0}',
+  'Sposta {0} file': 'Move {0} files',
+  'Nessun file del pack da rinominare.': 'No pack file to rename.',
+  '{0} file non spostati: il nome nuovo esiste già nel pack.':
+    '{0} files not moved: the new name already exists in the pack.',
+  'Texture del pack che la nuova versione non usa più:':
+    'Pack textures the new version no longer uses:',
+  'Tolta dal gioco.': 'Removed from the game.',
+  'File che il gioco ignora, riferimenti rotti, texture che mancano, cambio di versione':
+    'Files the game ignores, broken references, missing textures, version change',
+  Diagnosi: 'Doctor'
 }

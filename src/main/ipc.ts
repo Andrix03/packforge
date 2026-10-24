@@ -50,6 +50,7 @@ import {
   packPngFile,
   saveCtmProperties,
   saveModelJson,
+  movePackFile,
   saveSplashes,
   saveTexture,
   saveTextureMcmeta
@@ -73,6 +74,7 @@ import {
   defaultMinecraftDir,
   listInstalledVersions,
   loadVanillaJar,
+  textureHashes,
   VANILLA_ASSET_PREFIXES
 } from './vanilla'
 import { isLanguage, language, tr } from '../shared/i18n'
@@ -498,6 +500,14 @@ const handlers: IpcHandlers = {
     if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
     return saveSplashes(current.source, content)
   },
+
+  'pack:moveFile': async (from, to) => {
+    const current = getSource('pack')
+    if (!current) return { ok: false, error: tr('Nessun pack aperto.') }
+    return movePackFile(current.source, from, to)
+  },
+
+  'vanilla:textureHashes': async (versionId) => textureHashes(await minecraftDir(), versionId),
 
   'model:saveJson': async (path, content) => {
     const current = getSource('pack')

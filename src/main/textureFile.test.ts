@@ -1,9 +1,19 @@
-import { mkdir, mkdtemp, readdir, readFile, realpath, rm, symlink } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  realpath,
+  rm,
+  symlink,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { decodePng } from '../shared/pngCodec'
 import {
+  movePackFile,
   packPngFile,
   saveCtmProperties,
   saveSplashes,
@@ -159,5 +169,44 @@ describe('saveSplashes', () => {
     const source = { kind: 'folder', root: pack } as const
     expect((await saveSplashes(source, 'a\0b')).ok).toBe(false)
     expect((await saveSplashes(source, 42)).ok).toBe(false)
+  })
+})
+
+describe('movePackFile', () => {
+  const source = (): { kind: 'folder'; root: string } => ({ kind: 'folder', root: pack })
+  const write = async (path: string, text: string): Promise<void> => {
+    const file = join(pack, ...path.split('/'))
+    await mkdir(join(file, '..'), { recursive: true })
+    await writeFile(file, text)
+  }
+
+  it('moves a file into a new folder and removes the old one', async () => {
+    await write('assets/minecraft/textures/block/grass_path_top.png', 'pixels')
+    const to = 'assets/minecraft/textures/block/dirt_path_top.png'
+    expect(
+      await movePackFile(source(), 'assets/minecraft/textures/block/grass_path_top.png', to)
+    ).toEqual({ ok: true })
+    expect(await readFile(join(pack, ...to.split('/')), 'utf8')).toBe('pixels')
+    expect(await readdir(join(pack, 'assets', 'minecraft', 'textures', 'block'))).toEqual([
+      'dirt_path_top.png'
+    ])
+  })
+
+  it('never overwrites, never leaves assets/ or the pack', async () => {
+    await write('assets/a/x.png', 'one')
+    await write('assets/a/y.png', 'two')
+    expect((await movePackFile(source(), 'assets/a/x.png', 'assets/a/y.png')).ok).toBe(false)
+    expect(await readFile(join(pack, 'assets', 'a', 'y.png'), 'utf8')).toBe('two')
+    expect((await movePackFile(source(), 'assets/a/x.png', 'pack.png')).ok).toBe(false)
+    expect((await movePackFile(source(), 'assets/a/x.png', 'assets/../../x.png')).ok).toBe(false)
+    expect(
+      (
+        await movePackFile(
+          { kind: 'zip', root: pack, data: new Uint8Array() },
+          'assets/a/x.png',
+          'assets/a/z.png'
+        )
+      ).ok
+    ).toBe(false)
   })
 })

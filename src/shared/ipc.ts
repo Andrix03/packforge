@@ -67,6 +67,9 @@ export interface VanillaVersionInfo {
 export type ListVanillaVersionsResult =
   { ok: true; minecraftDir: string; versions: VanillaVersionInfo[] } | { ok: false; error: string }
 
+export type TextureHashesResult =
+  { ok: true; hashes: Record<string, string> } | { ok: false; error: string }
+
 export type LoadVanillaResult =
   | {
       ok: true
@@ -191,6 +194,13 @@ export interface IpcContract {
   'settings:setLanguage': { args: [language: Language]; result: SettingsUpdateResult }
   /** Folder packs: the title screen splashes, one per line (empty deletes the file). */
   'pack:saveSplashes': { args: [content: string]; result: SaveTextureResult }
+  /** Folder packs: moves one file (porting a renamed texture); never onto an existing file. */
+  'pack:moveFile': { args: [from: string, to: string]; result: SaveTextureResult }
+  /**
+   * Pixel hashes of an installed version's textures (pack path → hash of the decoded RGBA), to
+   * compare two versions. Nothing of the jar leaves main but the hashes.
+   */
+  'vanilla:textureHashes': { args: [versionId: string]; result: TextureHashesResult }
   /** Restarts PackForge (after changing the language). */
   'app:restart': { args: []; result: void }
   /** Asks GitHub for the latest release (skipped when turned off in the settings). */
@@ -285,6 +295,8 @@ const channelRegistry: Record<IpcChannel, true> = {
   'settings:setTutorial': true,
   'settings:setLanguage': true,
   'pack:saveSplashes': true,
+  'pack:moveFile': true,
+  'vanilla:textureHashes': true,
   'app:restart': true,
   'app:checkUpdate': true,
   'app:openRelease': true,

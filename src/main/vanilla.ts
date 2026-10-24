@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -5,7 +6,8 @@ import { join } from 'node:path'
 import { unzipSync } from 'fflate'
 import type { VanillaVersionInfo } from '../shared/ipc'
 import type { PackVersion } from '../shared/packFormat'
-import { isSafePackPath, type PackSource } from './packSource'
+import { isSafePackPath, listPackFiles, readPackAsset, type PackSource } from './packSource'
+import { decodePng } from '../shared/pngCodec'
 import { tr } from '../shared/i18n'
 
 // Vanilla textures are read from the user's own client jar, in memory, for
@@ -175,4 +177,36 @@ export function readJarFormat(jar: Uint8Array): PackVersion | null {
   } catch {
     return null
   }
+}
+
+const hashCache = new Map<string, Record<string, string>>()
+
+/**
+ * Pixel hashes of a version's textures (`assets/minecraft/textures/…png` → sha1 of the decoded
+ * size + RGBA), to find what a newer version renamed, added or removed. Only the hashes leave
+ * this function; kept in memory per version.
+ */
+export async function textureHashes(
+  minecraftDir: string,
+  versionId: unknown
+): Promise<{ ok: true; hashes: Record<string, string> } | { ok: false; error: string }> {
+  if (typeof versionId !== 'string') return { ok: false, error: tr('Versione non valida.') }
+  const key = `${minecraftDir}|${versionId}`
+  const cached = hashCache.get(key)
+  if (cached) return { ok: true, hashes: cached }
+  const loaded = await loadVanillaJar(minecraftDir, versionId)
+  if (!loaded.ok) return loaded
+  const { files } = await listPackFiles(loaded.source, ['assets/minecraft/textures/'])
+  const hashes: Record<string, string> = {}
+  for (const path of files) {
+    if (!path.endsWith('.png')) continue
+    const asset = await readPackAsset(loaded.source, path)
+    if (!asset) continue
+    const decoded = decodePng(asset.bytes)
+    if (!decoded.ok) continue
+    const { width, height, data } = decoded.image
+    hashes[path] = createHash('sha1').update(`${width}x${height}:`).update(data).digest('hex')
+  }
+  hashCache.set(key, hashes)
+  return { ok: true, hashes }
 }

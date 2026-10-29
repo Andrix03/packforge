@@ -2485,5 +2485,11 @@ export const EN: Readonly<Record<string, string>> = {
   'Texture del gioco rifatte': 'Game textures remade',
   'Ultimo backup: {0}': 'Last backup: {0}',
   'Nessun backup ancora: PackForge ne prende uno prima di sovrascrivere i file.':
-    'No backup yet: PackForge takes one before it overwrites files.'
+    'No backup yet: PackForge takes one before it overwrites files.',
+  'Anteprima del mob': 'Mob preview',
+  'Il modello del gioco ({0}), mentre dipingi. Trascina per girarlo.':
+    "The game's model ({0}), while you paint. Drag to turn it.",
+  'Il mob in 3D, trascina per girarlo': 'The mob in 3D, drag to turn it',
+  'Il modello si vede con una texture quadrata, 64×64 o più grande, senza animazione (qui {0}×{1}).':
+    'The model shows with a square texture, 64×64 or larger, without animation (here {0}×{1}).'
 }

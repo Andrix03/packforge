@@ -105,6 +105,8 @@ import {
 } from '../../shared/materialPresets'
 import { Glyph, ToolList, type Tool } from '../ui/components'
 import { EditorHotbar } from '../shell/EditorHotbar'
+import { MobPreview } from '../preview/MobPreview'
+import { mobModelOf } from '../../shared/mobModel'
 import { NAV_ICONS } from '../ui/icons'
 import { locale, tr } from '../../shared/i18n'
 
@@ -1177,6 +1179,8 @@ export function TextureEditor({
     onSwitch(reloadedTarget(target, [target.path, normalPath, specularPath]))
   }
 
+  /** Zombie, husk, drowned: their own 3D model instead of the block. */
+  const mobModel = useMemo(() => mobModelOf(target.path), [target.path])
   /** Runs `then` after offering to save: these tools write files the editor reloads. */
   const afterSave = (question: string, then: () => void) => () =>
     void saveFirst(question).then((ok) => ok && then())
@@ -1528,7 +1532,7 @@ export function TextureEditor({
           }}
         />
       )}
-      {!(maps && !isMapFile && !tallCanvases) && doc && source && (
+      {(isMapFile || tallCanvases) && doc && source && (
         // No map tabs here (a map opened on its own, a tall plant): Prova keeps its tab.
         <div className="map-tabs">
           <div className="face-tabs" role="tablist" aria-label={tr('Cosa dipingi')}>
@@ -1990,6 +1994,7 @@ export function TextureEditor({
                 sources={target.sources}
               />
             )}
+            {mobModel && <MobPreview model={mobModel} canvas={source} revision={revision} />}
             {colormapKind(target.path) && (
               <ColormapPreview
                 colormap={colormapKind(target.path)!}
@@ -2009,6 +2014,7 @@ export function TextureEditor({
             )}
             {!guiTextureKind(target.path) &&
               !armorPreviewRole(target.path) &&
+              !mobModel &&
               !isItemTexture(target.path) &&
               !colormapKind(target.path) && (
                 <>

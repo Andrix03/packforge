@@ -4237,3 +4237,13 @@ button > .glyph,
 .editor-actions h3 {
   margin: 0;
 }
+/* Salute del pack: a few progress bars in the Pack dock. */
+.pack-health {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pack-health h3,
+.pack-health p {
+  margin: 0;
+}

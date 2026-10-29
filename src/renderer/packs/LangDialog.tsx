@@ -17,13 +17,16 @@ export function LangDialog({
   pack,
   canWrite,
   onClose,
-  embedded = false
+  embedded = false,
+  gameVersion = null
 }: {
   pack: FileSource
   canWrite: boolean
   onClose: () => void
   /** Shown as the Testi section instead of a modal (no backdrop, no close button). */
   embedded?: boolean
+  /** The game version whose texts are shown: they are read again when it changes or loads. */
+  gameVersion?: string | null
 }): React.JSX.Element {
   const [code, setCode] = useState('en_us')
   const [codes, setCodes] = useState<string[]>(['en_us'])
@@ -45,6 +48,7 @@ export function LangDialog({
       if (result.ok) {
         setVanilla({ code, entries: result.entries })
         setCodes(result.codes)
+        setError(null)
       } else {
         setVanilla({ code, entries: {} })
         setError(result.error)
@@ -53,7 +57,7 @@ export function LangDialog({
     return () => {
       current = false
     }
-  }, [code])
+  }, [code, gameVersion])
 
   useEffect(() => {
     let current = true

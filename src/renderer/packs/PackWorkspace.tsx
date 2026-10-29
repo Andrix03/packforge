@@ -31,6 +31,7 @@ import { BackupsDialog } from './BackupsDialog'
 import { ExportDialog } from './ExportDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
+import { PackHealth } from './PackHealth'
 import { SectionBrowser } from './SectionBrowser'
 import { PixelIcon, ProgressBar, ToolList, type Tool } from '../ui/components'
 import { SECTION_ICONS } from '../ui/sectionIcons'
@@ -362,14 +363,18 @@ function Workspace({
   )
   /** Pack files (textures, models, texts) per section, for the Pack overview. */
   const sectionCounts = useMemo(() => {
+    // Textures as the grids count them (a texture with its maps is one), plus the text files
+    // (lang, splashes) that Testi and Schermate edit.
     const counts = new Map<SectionId, number>()
+    const add = (id: SectionId | null): void => {
+      if (id) counts.set(id, (counts.get(id) ?? 0) + 1)
+    }
+    for (const texture of packTextures) add(sectionOf(texture.albedo))
     for (const file of packFiles.files) {
-      const id = sectionOf(file)
-      if (id && (file.endsWith('.png') || id === 'texts' || id === 'screens'))
-        counts.set(id, (counts.get(id) ?? 0) + 1)
+      if (!file.endsWith('.png') && /\/(lang|texts)\//.test(file)) add(sectionOf(file))
     }
     return counts
-  }, [packFiles.files])
+  }, [packTextures, packFiles.files])
   const packSectionCount = useMemo(
     () => packTextures.filter((t) => sectionOf(t.albedo) === section).length,
     [packTextures, section]
@@ -831,6 +836,7 @@ function Workspace({
         <div className="section-page" hidden={section !== 'texts'}>
           <LangDialog
             embedded
+            gameVersion={jar.status === 'ready' ? jar.value.versionId : null}
             pack={validatorPack}
             canWrite={canCreate}
             onClose={() => onSection('pack')}
@@ -893,6 +899,14 @@ function Workspace({
           {/* Dock: the pack, the 3D preview (outside the browser so it survives source switches), the tools. */}
           <aside className="pack-dock">
             {overview}
+            <PackHealth
+              withMaps={mapLessTextures.filter((t) => t.normal && t.specular).length}
+              textures={mapLessTextures.length}
+              remade={packTextures.filter((t) => vanillaKeys.has(t.key)).length}
+              gameTextures={vanillaReady ? vanillaTextures.length : null}
+              canBackup={canCreate}
+              revision={packFiles.files.length}
+            />
             <section className="pack-sections" aria-label={tr('Le sezioni del pack')}>
               <h3 className="ph">{tr('Le sezioni del pack')}</h3>
               <div className="pack-section-list">

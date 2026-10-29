@@ -2479,5 +2479,11 @@ export const EN: Readonly<Record<string, string>> = {
   'Colori dei biomi, cielo, particelle': 'Biome colours, sky, particles',
   'Nomi, messaggi e frasi del gioco': 'Names, messages and lines of the game',
   'Le sezioni del pack': 'The sections of the pack',
-  'Azioni della texture': 'Actions of the texture'
+  'Azioni della texture': 'Actions of the texture',
+  'Salute del pack': 'Pack health',
+  'Mappe PBR complete (_n e _s)': 'PBR maps complete (_n and _s)',
+  'Texture del gioco rifatte': 'Game textures remade',
+  'Ultimo backup: {0}': 'Last backup: {0}',
+  'Nessun backup ancora: PackForge ne prende uno prima di sovrascrivere i file.':
+    'No backup yet: PackForge takes one before it overwrites files.'
 }

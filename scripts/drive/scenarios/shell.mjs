@@ -42,6 +42,10 @@ export default async function shell(app) {
     packTools.includes('Diagnosi') && packTools.includes('Backup'),
     `Pack: tools for the whole pack (${packTools})`
   )
+  const health = await app.ev(
+    `[...document.querySelectorAll('.pack-health [role=progressbar]')].map((b) => b.getAttribute('aria-label') + ' ' + (b.getAttribute('aria-valuenow') ?? '?') + '/' + (b.getAttribute('aria-valuemax') ?? '?')).join(' | ')`
+  )
+  app.check(health.includes('Mappe PBR complete'), `Pack: health bars (${health})`)
   await app.shot('shell-pack')
 
   // Key 2: Blocchi, browsed by group.

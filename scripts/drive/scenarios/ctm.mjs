@@ -58,7 +58,7 @@ async function select(app, fileName) {
 }
 
 async function openDialog(app) {
-  await app.click('Texture connesse')
+  await app.tool('Texture connesse')
   await app.waitFor(`document.querySelector('[aria-label="Texture connesse"]')`)
   await app.sleep(500)
 }

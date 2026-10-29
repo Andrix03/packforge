@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Issue, Severity } from '../../shared/packValidator'
 import { runValidator, type ValidatorResult, type ValidatorSource } from './runValidator'
 import { useEscape } from '../useEscape'
-import { Glyph } from '../ui/components'
+import { Glyph, ProgressBar } from '../ui/components'
 import { GLYPHS } from '../ui/glyphs'
 import { CMD_ICONS, type PixelIconData } from '../ui/icons'
 import { tr } from '../../shared/i18n'
@@ -84,9 +84,9 @@ export function ValidatorDialog({
             tr(' Carica un jar vanilla per controllare anche le mappe delle texture del gioco.')}
         </p>
         {state.status === 'running' && (
-          <p className="small" data-testid="validator-progress">
-            {tr('Controllo… {0}/{1}', state.done, state.total)}
-          </p>
+          <div data-testid="validator-progress">
+            <ProgressBar label={tr('Controllo le mappe')} done={state.done} total={state.total} />
+          </div>
         )}
         {state.status === 'error' && <p className="field-error small">{state.message}</p>}
         {state.status === 'done' && (

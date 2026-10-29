@@ -33,7 +33,6 @@ const DIALOGS = [
   ['Coverage', '[role=dialog]'],
   ['Batch apply', '[role=dialog]'],
   ['Resize', '[role=dialog]'],
-  ['Copy to the game', '[role=dialog]'],
   ['Backup', '[role=dialog]'],
   ['Colour variants', '[role=dialog]'],
   ['Connected textures', '[role=dialog]']
@@ -88,9 +87,9 @@ export default async function english(app) {
   await app.waitFor(`document.querySelector('.shell-hotbar')`)
   app.check(
     (
-      await app.ev(`document.querySelector('.shell-tab[data-workspace="disegna"]').textContent`)
-    ).includes('Paint'),
-    'hotbar says Paint'
+      await app.ev(`document.querySelector('.shell-slot[data-section="blocks"]').textContent`)
+    ).includes('Blocks'),
+    'hotbar says Blocks'
   )
   await screen(app, 'start')
 
@@ -100,37 +99,49 @@ export default async function english(app) {
     `[...document.querySelectorAll('.texture-tile')].find((t) => t.title.endsWith('/glass.png')).click()`
   )
   await app.sleep(500)
+  await app.click('Copy to the game', '.shell-hotbar button')
+  await app.waitFor(`document.querySelector('[role=dialog]')`)
+  await app.sleep(800)
+  await screen(app, 'dialog-copy-to-the-game')
+  await app.key('Escape')
+  await app.waitFor(`!document.querySelector('[role=dialog]')`)
   for (const [label, selector] of DIALOGS) {
-    await app.click(label, '.pack-tools button')
+    await app.tool(label)
     await app.waitFor(`document.querySelector(${JSON.stringify(selector)})`)
     await app.sleep(800)
     await screen(app, `dialog-${label.toLowerCase().replace(/ /g, '-')}`)
     await app.key('Escape')
     await app.waitFor(`!document.querySelector(${JSON.stringify(selector)})`)
   }
+  await app.section('pack')
   await app.click('+ New texture')
   await app.waitFor(`document.querySelector('[role=dialog]')`)
   await screen(app, 'dialog-new-texture')
   await app.key('Escape')
+  await app.section('blocks')
+  await screen(app, 'section-blocks')
 
   // 1.1: the GUI tab, the title and loading screen window, the GUI recolour.
-  await app.click('GUI', '.mode-bar [role=tab]')
+  await app.section('gui')
   await app.waitFor(`document.querySelector('.gui-mock canvas')`)
   await app.sleep(600)
   await screen(app, 'gui-tab')
   await app.click('Title and loading screen', '.gui-mock button')
-  await app.waitFor(`document.querySelector('.title-screens')`)
+  await app.waitFor(`document.querySelector('.section-page .title-screens')`)
   await app.sleep(600)
-  await screen(app, 'dialog-title')
-  await app.key('Escape')
+  await screen(app, 'section-screens')
+  await app.section('texts')
+  await app.waitFor(`document.querySelector('[data-testid=lang-count]')`, 20000)
+  await screen(app, 'section-texts')
+  await app.section('gui')
   await app.click('Recolour GUI', '.gui-mock button')
   await app.waitFor(`document.querySelector('.gui-recolor')`)
   await screen(app, 'dialog-recolour')
   await app.key('Escape')
-  await app.click('Pack', '.mode-bar [role=tab]')
+  await app.section('pack')
 
   // 1.2: overrides tool, item preview and its dialogs, armor preview.
-  await app.click('Overrides to items/', '.tool-bar button')
+  await app.tool('Overrides to items/')
   await app.waitFor(`document.querySelector('[data-testid=overrides-list]')`, 15000)
   await screen(app, 'dialog-overrides')
   await app.key('Escape')
@@ -139,16 +150,16 @@ export default async function english(app) {
     ['Doctor', '[data-testid=doctor-problems], [data-testid=doctor-clean]'],
     ['Light _e', '[data-testid=emissive-plan], [data-testid=emissive-none]'],
     ['Recolour textures', '.gui-recolor'],
-    ['Game texts', '[data-testid=lang-count]'],
     ['Polytone', '[data-testid=polytone-plan]']
   ]) {
-    await app.click(label, '.tool-bar button')
+    await app.tool(label)
     await app.waitFor(`document.querySelector(${JSON.stringify(wait)})`, 20000)
     await app.sleep(400)
     await screen(app, `dialog-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`)
     await app.key('Escape')
     await app.waitFor(`!document.querySelector('[role=dialog]')`)
   }
+  await app.section('pack')
   await openFolder(app, 'assets/minecraft/textures/item')
   await app.openTexture('apple.png')
   await app.click('Adjust colours', '.editor button')
@@ -214,20 +225,22 @@ export default async function english(app) {
   await screen(app, 'dialog-compare')
   await app.key('Escape')
 
-  await app.click('Effects', '.shell-tab')
-  await app.waitFor(`document.querySelector('.shell-tab.active')?.dataset.workspace === 'effetti'`)
+  await app.click('Relief', '.map-tabs [role=tab]')
+  await app.waitFor(
+    `/Relief/.test(document.querySelector('.map-tabs [role=tab][aria-selected=true]')?.textContent ?? '')`
+  )
   await app.sleep(500)
   await screen(app, 'effects')
 
-  await app.click('Paint', '.shell-tab')
-  await app.click('Test', '.editor-header button')
+  await app.click('Colour', '.map-tabs [role=tab]')
+  await app.click('Test', '.map-tabs button')
   await app.waitFor(`document.querySelector('.test-screen')`)
   await app.sleep(1000)
   await screen(app, 'test')
   await app.click('Pack', '.shell-tab')
   await app.waitFor(`!document.querySelector('.editor')`)
 
-  await app.click('Publish', '.shell-tab')
+  await app.click('Publish', '.shell-publish')
   await app.waitFor(`document.querySelector('.publish-screen')`)
   await app.sleep(800)
   await screen(app, 'publish')

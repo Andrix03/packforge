@@ -100,7 +100,8 @@ export default async function tutorial(app) {
   await app.click('Chiudi', '[data-testid=tutorial] button')
   await app.sleep(200)
   app.check(!(await app.ev(`!!document.querySelector('[data-testid=tutorial]')`)), 'closed')
-  await app.click('Impostazioni')
+  await app.click('File', '.shell-menu-button')
+  await app.click('Impostazioni', '.shell-item')
   await app.waitFor(
     `[...document.querySelectorAll('h3')].some((h) => h.textContent === 'Tutorial')`
   )

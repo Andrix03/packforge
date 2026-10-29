@@ -19,7 +19,7 @@ import { backupBefore } from './backup'
 import { errorMessage, fetchText, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
-import { Glyph } from '../ui/components'
+import { Glyph, ProgressBar } from '../ui/components'
 import { tr } from '../../shared/i18n'
 
 type ColorMode = 'game' | 'dye'
@@ -224,7 +224,7 @@ export function VariantsDialog({
         <div className="card modal batch" role="dialog" aria-label={tr('Varianti di colore')}>
           <h2>{tr('Varianti di colore')}</h2>
           {phase.status === 'running' ? (
-            <p className="small">{tr('Creo… {0}/{1}', phase.done, phase.total)}</p>
+            <ProgressBar label={tr('Creo le varianti')} done={phase.done} total={phase.total} />
           ) : (
             <>
               <p className="small" data-testid="variants-result">

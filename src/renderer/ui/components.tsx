@@ -8,7 +8,105 @@ import type {
 import { GLYPHS, type GlyphName } from './glyphs'
 import type { PixelIconData } from './icons'
 import { pictureCss, type PixelPicture } from './pictures'
+import { litCells } from './progress'
 import { segThumbLeft } from './slider'
+
+/**
+ * Segmented progress bar. With `total` it fills green and shows "done / total"; without it the
+ * job length is unknown and three lit segments sweep back and forth.
+ */
+export function ProgressBar({
+  label,
+  done = 0,
+  total,
+  cells = 24
+}: {
+  label: string
+  done?: number | undefined
+  total?: number | undefined
+  cells?: number
+}) {
+  const known = total !== undefined
+  const lit = known ? litCells(done, total, cells) : 0
+  const segments: ReactNode[] = []
+  for (let i = 0; i < cells; i++) {
+    segments.push(<span key={i} className={i < lit ? 'pcell on' : 'pcell'} />)
+  }
+  return (
+    <div
+      className="progress"
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={known ? 0 : undefined}
+      aria-valuemax={known ? total : undefined}
+      aria-valuenow={known ? Math.min(done, total) : undefined}
+    >
+      <div className="progress-head">
+        <span>{label}</span>
+        {known && (
+          <span className="progress-count">
+            {Math.min(done, total)} / {total}
+          </span>
+        )}
+      </div>
+      <div className={known ? 'progress-track' : 'progress-track scan'}>
+        {segments}
+        {!known && <span className="progress-sweep" />}
+      </div>
+    </div>
+  )
+}
+
+export interface Tool {
+  id: string
+  label: string
+  /** One line: what it does, or why it cannot be used now. */
+  tip: string
+  icon?: PixelIconData | undefined
+  glyph?: GlyphName | undefined
+  /** Set when the tool cannot be used now; the row stays, greyed, with this reason. */
+  why?: string | null | undefined
+  run: () => void
+}
+
+/** A section's tools: one row each (icon, name, one line). Disabled rows stay and say why. */
+export function ToolList({ label, tools }: { label: string; tools: readonly Tool[] }) {
+  return (
+    <div className="tool-list" role="toolbar" aria-label={label} aria-orientation="vertical">
+      {tools.map((tool) => {
+        const data = tool.icon ?? (tool.glyph ? GLYPHS[tool.glyph] : undefined)
+        return (
+          <button
+            key={tool.id}
+            type="button"
+            className="tool-row"
+            disabled={Boolean(tool.why)}
+            title={tool.why ?? tool.tip}
+            data-tool={tool.id}
+            onClick={tool.run}
+          >
+            <span className="tool-row-icon">{data && <PixelIcon icon={data} size={32} />}</span>
+            <span className="tool-row-text">
+              <span className="lbl">{tool.label}</span>
+              <span className="muted">{tool.why ?? tool.tip}</span>
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Three squares lit in turn: something is being saved or read (inline, next to a label). */
+export function Busy({ label }: { label: string }) {
+  return (
+    <span className="busy" role="status" aria-label={label}>
+      <i />
+      <i />
+      <i />
+    </span>
+  )
+}
 
 /** 16×16 two-tone pixel icon in currentColor (the shade at 45 %). Sizes: multiples of 16 only. */
 export function PixelIcon({ icon, size = 16 }: { icon: PixelIconData; size?: 16 | 32 | 48 }) {

@@ -21,7 +21,9 @@ export default async function escape(app) {
   )
   await app.sleep(300)
   for (const [button, dialog] of DIALOGS) {
-    await app.click(button)
+    // Copia nel gioco is on the hotbar; the others are section tools.
+    if (button === 'Copia nel gioco') await app.click(button, '.shell-hotbar button')
+    else await app.tool(button)
     await app.waitFor(`document.querySelector(${JSON.stringify(dialog)})`, 10000)
     await app.sleep(300)
     await app.key('Escape')
@@ -30,6 +32,7 @@ export default async function escape(app) {
   }
 
   // In the editor: Esc closes the compare dialog, the selection stays.
+  await app.section('pack')
   await app.openTexture('stone.png')
   await app.click('Pro', '[role=radio]')
   await app.sleep(200)

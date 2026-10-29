@@ -9,7 +9,7 @@ export default async function recolorAll(app) {
   const [stone, stoneN] = await Promise.all([read('stone.png'), read('stone_n.png')])
 
   await app.openPack()
-  await app.click('Ricolora texture', '.tool-bar button')
+  await app.tool('Ricolora texture')
   await app.waitFor(`document.querySelector('.gui-recolor')`)
   app.check(
     (await app.ev(`document.querySelector('[aria-label="Quali texture"]').value`)) === 'block',

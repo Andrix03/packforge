@@ -25,7 +25,7 @@ import { mapPath, type MapKind } from '../../shared/labpbr'
 import type { DecodedPng } from '../../shared/pngCodec'
 import type { TextureEntry } from '../../shared/textures'
 import { Range } from '../editor/GeneratorPanel'
-import { Glyph, Picture, Switch } from '../ui/components'
+import { Glyph, Picture, ProgressBar, Switch } from '../ui/components'
 import { CTM_PICTURES } from '../ui/pictures'
 import { backupBefore } from './backup'
 import { errorMessage, loadPng, type FileSource } from './packFetch'
@@ -44,7 +44,7 @@ const WALL = [
 
 type Phase =
   | { status: 'setup' }
-  | { status: 'working'; text: string }
+  | { status: 'working'; text: string; done?: number; total?: number }
   | { status: 'done'; written: number; errors: string[]; folder: string }
 
 /**
@@ -149,7 +149,12 @@ export function CtmDialog({
       else errors.push(`${path.split('/').pop()}: ${saved.error}`)
     }
     for (const [index, tile] of tiles.entries()) {
-      setPhase({ status: 'working', text: tr('Scrivo i tile… {0}/{1}', index + 1, tiles.length) })
+      setPhase({
+        status: 'working',
+        text: tr('Scrivo i tile'),
+        done: index + 1,
+        total: tiles.length
+      })
       await save(`${folder}/${index}.png`, loaded, tile)
     }
     if (withMaps) {
@@ -172,12 +177,9 @@ export function CtmDialog({
           for (const [index, tile] of mapTiles.entries()) {
             setPhase({
               status: 'working',
-              text: tr(
-                'Scrivo le mappe {0}… {1}/{2}',
-                kind === 'normal' ? '_n' : '_s',
-                index + 1,
-                mapTiles.length
-              )
+              text: tr('Scrivo le mappe {0}', kind === 'normal' ? '_n' : '_s'),
+              done: index + 1,
+              total: mapTiles.length
             })
             await save(mapPath(`${folder}/${index}.png`, kind), map, tile)
           }
@@ -479,7 +481,9 @@ export function CtmDialog({
 
         {/* 4 · Applica */}
         <section className="wizard-step" hidden={step !== 3}>
-          {phase.status === 'working' && <p className="small">{phase.text}</p>}
+          {phase.status === 'working' && (
+            <ProgressBar label={phase.text} done={phase.done} total={phase.total} />
+          )}
           {phase.status === 'done' && (
             <>
               <p className="small" data-testid="ctm-result">

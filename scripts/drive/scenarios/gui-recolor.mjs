@@ -51,7 +51,7 @@ export default async function guiRecolor(app) {
   )
 
   await app.openPack({ waitForVanilla: true })
-  await app.click('GUI', '.mode-bar [role=tab]')
+  await app.section('gui')
   await app.waitFor(`document.querySelector('.gui-mock')`)
   await app.click('Ricolora GUI', '.gui-mock button')
   await app.waitFor(`document.querySelector('[role=dialog][aria-label="Ricolora GUI"]')`)

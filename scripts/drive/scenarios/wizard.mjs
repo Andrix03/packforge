@@ -69,7 +69,7 @@ export default async function wizard(app) {
     `[...document.querySelectorAll('.texture-tile')].find((t) => t.title.endsWith('/glass.png')).click()`
   )
   await app.sleep(300)
-  await app.click('Texture connesse')
+  await app.tool('Texture connesse')
   await app.waitFor(`document.querySelector('[aria-label="Texture connesse"] .wizard-steps')`)
   app.check((await current(app)).includes('1. Texture'), 'CTM: opens on step 1 (Texture)')
   await app.shot('ctm-1-texture')

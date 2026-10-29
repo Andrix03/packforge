@@ -12,20 +12,15 @@ import { PackOverview } from './packs/PackOverview'
 import { PackWorkspace } from './packs/PackWorkspace'
 import { RecentPacksCard } from './packs/RecentPacksCard'
 import { SettingsPanel } from './settings/SettingsPanel'
-import {
-  CommandContext,
-  useCommandList,
-  useCommands,
-  useCommandStore
-} from './shell/commandContext'
-import { EditorHotbar } from './shell/EditorHotbar'
+import { CommandContext, useCommands, useCommandStore } from './shell/commandContext'
 import { PixelIcon } from './ui/components'
 import { NAV_ICONS } from './ui/icons'
-import { Shell, type WorkspaceTab } from './shell/Shell'
+import { Shell } from './shell/Shell'
+import { sectionName } from './shell/sectionNames'
 import { TestScreen, type TestLive } from './testscreen/TestScreen'
 import { TutorialCard } from './TutorialCard'
 import { announceStep } from './tutorialEvents'
-import type { Workspace } from './ui/commands'
+import { SECTION_IDS, sectionOf, type SectionId } from '../shared/sections'
 import { CommandStore } from './ui/commandStore'
 import { tr } from '../shared/i18n'
 
@@ -49,6 +44,10 @@ function Window(): React.JSX.Element {
   const [showSettings, setShowSettings] = useState(false)
   /** The Pubblica screen (export + in-game copy) over the pack screen. */
   const [publishing, setPublishing] = useState(false)
+  /** The hotbar section the pack screen shows (the editor shows its texture's own). */
+  const [section, setSection] = useState<SectionId>('pack')
+  /** Sections opened since the pack was (their pages keep unsaved work while you look elsewhere). */
+  const [visited, setVisited] = useState<ReadonlySet<SectionId>>(() => new Set())
   const [editing, setEditing] = useState<EditorTarget | null>(null)
   /** Test screen, over the editor (live = opened from it) or over the workspace. */
   const [testing, setTesting] = useState<{ target: EditorTarget; live: TestLive | null } | null>(
@@ -102,6 +101,8 @@ function Window(): React.JSX.Element {
       if (result.ok) {
         setPack(result.pack)
         setPublishing(false)
+        setSection('pack')
+        setVisited(new Set())
         setEditing(null)
         setTesting(null)
         setWorkspaceKey((key) => key + 1)
@@ -137,21 +138,14 @@ function Window(): React.JSX.Element {
 
   const editorOpen = pack !== null && editing !== null
   const testOpen = pack !== null && testing !== null
-  const commands = useCommandList()
-  const command = (id: string) => commands.find((c) => c.id === id)
-  /** The editor is on a _n / _s map: that is the Effetti workspace. */
-  const onMaps = command('editor:color')?.enabled === true
-  const workspace: Workspace | null = !pack
+  /** The slot lit in the hotbar: the open texture's section, else the one chosen. */
+  const shownSection: SectionId | null = !pack
     ? null
-    : testOpen
-      ? 'prova'
-      : editorOpen
-        ? onMaps
-          ? 'effetti'
-          : 'disegna'
-        : publishing
-          ? 'pubblica'
-          : 'pack'
+    : editorOpen || testOpen
+      ? (sectionOf((testing?.target ?? editing)?.path ?? '') ?? section)
+      : publishing
+        ? null
+        : section
 
   /** Leaves the test screen the way its own "back" button does. */
   function leaveTest(): void {
@@ -160,53 +154,21 @@ function Window(): React.JSX.Element {
     setTesting(null)
   }
 
-  function goTo(next: Workspace): void {
-    if (next === workspace) return
+  /** Goes to a section: closes the test screen and the editor (which asks about unsaved work). */
+  function goTo(next: SectionId): void {
     setShowSettings(false)
-    setPublishing(next === 'pubblica')
-    if (next === 'pack') {
-      setTesting(null)
-      // The editor asks before throwing unsaved work away.
-      if (editorOpen) store.run('editor:close')
-    } else if (next === 'disegna') {
-      if (testOpen) leaveTest()
-      else if (onMaps) store.run('editor:color')
-    } else if (next === 'effetti') {
-      if (testOpen) leaveTest()
-      store.run('editor:effects')
-    } else if (next === 'prova') {
-      store.run('editor:test')
-    }
+    setPublishing(false)
+    setSection(next)
+    setVisited((all) => (all.has(next) ? all : new Set([...all, next])))
+    if (testOpen) setTesting(null)
+    if (editorOpen) store.run('editor:close')
   }
 
-  const tabs: WorkspaceTab[] = [
-    { id: 'pack', enabled: pack !== null, why: tr('Apri o crea un pack') },
-    {
-      id: 'disegna',
-      enabled: editorOpen || testOpen,
-      why: tr('Scegli una texture nel Pack e premi Disegna')
-    },
-    { id: 'prova', enabled: editorOpen, why: tr('Apri una texture per provarla') },
-    {
-      id: 'effetti',
-      enabled: editorOpen && command('editor:effects') !== undefined,
-      why: tr('Apri una texture per dipingerne le mappe PBR')
-    },
-    {
-      id: 'pubblica',
-      enabled: pack?.kind === 'folder' && !editorOpen && !testOpen,
-      why:
-        editorOpen || testOpen
-          ? tr('Torna al Pack per esportare')
-          : tr('I pack .zip si aprono in sola lettura')
-    }
-  ]
-
-  const WORKSPACES: [Workspace, string][] = [
-    ['pack', tr('Vai a Pack')],
-    ['disegna', tr('Vai a Disegna')],
-    ['prova', tr('Vai a Prova')]
-  ]
+  const canPublish = pack?.kind === 'folder' && !editorOpen && !testOpen
+  function publish(): void {
+    setShowSettings(false)
+    setPublishing(true)
+  }
   useCommands([
     {
       id: 'app:openFolder',
@@ -242,18 +204,28 @@ function Window(): React.JSX.Element {
       why: tr('Prima chiudi l’editor'),
       run: () => setShowSettings(true)
     },
-    ...WORKSPACES.map(([id, label]) => {
-      const tab = tabs.find((t) => t.id === id)
-      return {
-        id: `ws:${id}`,
-        label,
-        menu: 'Visualizza',
-        area: tr('Spazi di lavoro'),
-        enabled: (tab?.enabled ?? false) && workspace !== id,
-        why: tab?.why,
-        run: () => goTo(id)
-      }
-    }),
+    ...SECTION_IDS.map((id, index) => ({
+      id: `section:${id}`,
+      label: tr('Vai a {0}', sectionName(id)),
+      menu: 'Visualizza',
+      area: tr('Sezioni'),
+      keys: String(index + 1),
+      enabled: pack !== null && shownSection !== id,
+      why: pack ? tr('Ci sei già') : tr('Apri o crea un pack'),
+      run: () => goTo(id)
+    })),
+    {
+      id: 'app:publish',
+      label: tr('Pubblica il pack…'),
+      menu: 'File',
+      area: 'Pubblica',
+      enabled: canPublish && !publishing,
+      why:
+        pack?.kind === 'zip'
+          ? tr('I pack .zip si aprono in sola lettura')
+          : tr('Prima chiudi l’editor'),
+      run: publish
+    },
     ...(update
       ? [
           {
@@ -279,16 +251,43 @@ function Window(): React.JSX.Element {
           ? versions || tr('versione del gioco non indicata')
           : tr('apri o crea un pack per iniziare')
       }
-      workspace={workspace}
-      tabs={tabs}
-      onWorkspace={goTo}
+      section={shownSection}
+      sectionsEnabled={pack !== null}
+      keysEnabled={!editorOpen && !testOpen}
+      onSection={goTo}
       right={
-        editorOpen && !testOpen ? (
-          <EditorHotbar />
+        pack ? (
+          // The same two buttons in every section; the editor's own controls are in its header.
+          <>
+            <button
+              type="button"
+              className="ore"
+              title={tr(
+                'Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)'
+              )}
+              disabled={publishing || showSettings || editorOpen || testOpen}
+              onClick={() => store.run('pack:ingame')}
+            >
+              {tr('Copia nel gioco')}
+            </button>
+            <button
+              type="button"
+              className={publishing ? 'ore-on shell-publish active' : 'ore-on shell-publish'}
+              aria-current={publishing ? 'page' : undefined}
+              disabled={!canPublish}
+              title={
+                pack.kind === 'zip'
+                  ? tr('I pack .zip si aprono in sola lettura')
+                  : tr('Esporta lo zip, copia nel gioco, testo per Modrinth e CurseForge')
+              }
+              onClick={publish}
+            >
+              <PixelIcon icon={NAV_ICONS.upload} />
+              <span>{tr('Pubblica')}</span>
+            </button>
+          </>
         ) : (
-          !showSettings &&
-          !editorOpen &&
-          !testOpen && (
+          !showSettings && (
             <button type="button" className="ore" onClick={() => setShowSettings(true)}>
               {tr('Impostazioni')}
             </button>
@@ -382,6 +381,9 @@ function Window(): React.JSX.Element {
                   />
                 }
                 pack={pack}
+                section={section}
+                visited={visited}
+                onSection={goTo}
                 onEditTexture={setEditing}
                 onTestTexture={(target) => setTesting({ target, live: null })}
               />

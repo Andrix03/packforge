@@ -16,11 +16,14 @@ const LIMIT = 150
 export function LangDialog({
   pack,
   canWrite,
-  onClose
+  onClose,
+  embedded = false
 }: {
   pack: FileSource
   canWrite: boolean
   onClose: () => void
+  /** Shown as the Testi section instead of a modal (no backdrop, no close button). */
+  embedded?: boolean
 }): React.JSX.Element {
   const [code, setCode] = useState('en_us')
   const [codes, setCodes] = useState<string[]>(['en_us'])
@@ -32,7 +35,7 @@ export function LangDialog({
   const [query, setQuery] = useState('')
   const [edits, setEdits] = useState<Record<string, string | null>>({})
   const [saved, setSaved] = useState<string | null>(null)
-  useEscape(onClose)
+  useEscape(onClose, !embedded)
   const file = `assets/minecraft/lang/${code}.json`
 
   useEffect(() => {
@@ -94,6 +97,109 @@ export function LangDialog({
     }
   })
 
+  const body = (
+    <>
+      <h2>
+        <Glyph name="book" />
+        {tr('Testi del gioco')}
+      </h2>
+      <p className="muted small">
+        {tr(
+          'Nomi di blocchi e oggetti, messaggi, menu: cambia una riga e il pack la sostituisce in quella lingua. Le altre restano quelle del gioco.'
+        )}
+      </p>
+      <div className="row wrap">
+        <label className="small select-field">
+          {tr('Lingua')}{' '}
+          <select
+            value={code}
+            aria-label={tr('Lingua')}
+            disabled={changed}
+            onChange={(event) => {
+              setCode(event.target.value)
+              setEdits({})
+              setSaved(null)
+            }}
+          >
+            {codes.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        <input
+          className="lang-search"
+          placeholder={tr('Cerca: nome, testo o chiave…')}
+          aria-label={tr('Cerca nei testi')}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
+      {!ready ? (
+        <p className="muted">{tr('Leggo i testi…')}</p>
+      ) : (
+        <>
+          <p className="muted small" data-testid="lang-count">
+            {total > LIMIT
+              ? tr('Righe: {0}, mostro le prime {1}: cerca per restringere.', total, LIMIT)
+              : tr('Righe: {0}.', total)}
+          </p>
+          <ul className="lang-list">
+            {rows.map((row) => (
+              <li key={row.key}>
+                <code className="small">{row.key}</code>
+                <input
+                  value={row.pack ?? ''}
+                  placeholder={row.vanilla ?? ''}
+                  aria-label={row.key}
+                  className={row.pack !== null ? 'lang-changed' : undefined}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    setEdits({ ...edits, [row.key]: value === '' ? null : value })
+                    setSaved(null)
+                  }}
+                />
+                {row.pack !== null && row.vanilla !== null && (
+                  <span className="muted small">{tr('Nel gioco: {0}', row.vanilla)}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {error && <p className="field-error small">{error}</p>}
+      {saved && (
+        <p className="small ok-text" data-testid="lang-saved">
+          {saved}
+        </p>
+      )}
+      <div className="row">
+        {canWrite && (
+          <button
+            type="button"
+            className="primary"
+            disabled={!changed || !ready}
+            onClick={() => save()}
+          >
+            {tr('Salva i testi')}
+          </button>
+        )}
+        {!embedded && (
+          <button type="button" onClick={onClose}>
+            {tr('Chiudi')}
+          </button>
+        )}
+      </div>
+    </>
+  )
+  if (embedded) {
+    return (
+      <section className="card embedded-dialog form lang-dialog" aria-label={tr('Testi del gioco')}>
+        {body}
+      </section>
+    )
+  }
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <div
@@ -102,96 +208,7 @@ export function LangDialog({
         aria-label={tr('Testi del gioco')}
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>
-          <Glyph name="book" />
-          {tr('Testi del gioco')}
-        </h2>
-        <p className="muted small">
-          {tr(
-            'Nomi di blocchi e oggetti, messaggi, menu: cambia una riga e il pack la sostituisce in quella lingua. Le altre restano quelle del gioco.'
-          )}
-        </p>
-        <div className="row wrap">
-          <label className="small select-field">
-            {tr('Lingua')}{' '}
-            <select
-              value={code}
-              aria-label={tr('Lingua')}
-              disabled={changed}
-              onChange={(event) => {
-                setCode(event.target.value)
-                setEdits({})
-                setSaved(null)
-              }}
-            >
-              {codes.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <input
-            className="lang-search"
-            placeholder={tr('Cerca: nome, testo o chiave…')}
-            aria-label={tr('Cerca nei testi')}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-        {!ready ? (
-          <p className="muted">{tr('Leggo i testi…')}</p>
-        ) : (
-          <>
-            <p className="muted small" data-testid="lang-count">
-              {total > LIMIT
-                ? tr('Righe: {0}, mostro le prime {1}: cerca per restringere.', total, LIMIT)
-                : tr('Righe: {0}.', total)}
-            </p>
-            <ul className="lang-list">
-              {rows.map((row) => (
-                <li key={row.key}>
-                  <code className="small">{row.key}</code>
-                  <input
-                    value={row.pack ?? ''}
-                    placeholder={row.vanilla ?? ''}
-                    aria-label={row.key}
-                    className={row.pack !== null ? 'lang-changed' : undefined}
-                    onChange={(event) => {
-                      const value = event.target.value
-                      setEdits({ ...edits, [row.key]: value === '' ? null : value })
-                      setSaved(null)
-                    }}
-                  />
-                  {row.pack !== null && row.vanilla !== null && (
-                    <span className="muted small">{tr('Nel gioco: {0}', row.vanilla)}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        {error && <p className="field-error small">{error}</p>}
-        {saved && (
-          <p className="small ok-text" data-testid="lang-saved">
-            {saved}
-          </p>
-        )}
-        <div className="row">
-          {canWrite && (
-            <button
-              type="button"
-              className="primary"
-              disabled={!changed || !ready}
-              onClick={() => save()}
-            >
-              {tr('Salva i testi')}
-            </button>
-          )}
-          <button type="button" onClick={onClose}>
-            {tr('Chiudi')}
-          </button>
-        </div>
+        {body}
       </div>
     </div>
   )

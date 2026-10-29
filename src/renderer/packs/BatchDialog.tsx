@@ -17,7 +17,7 @@ import { runBatch, type BatchResult, type BatchSettings } from './runBatch'
 import type { ValidatorSource } from './runValidator'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
-import { Glyph } from '../ui/components'
+import { Glyph, ProgressBar } from '../ui/components'
 import { tr } from '../../shared/i18n'
 
 /** Rows drawn at most in the texture list (the filter narrows big packs). */
@@ -420,9 +420,13 @@ export function BatchDialog({
         {/* 4 · Applica */}
         <section className="wizard-step" hidden={step !== 3}>
           {phase.status === 'running' && (
-            <p className="small" data-testid="batch-progress">
-              {tr('Applico… {0}/{1}', phase.done, phase.total)}
-            </p>
+            <div data-testid="batch-progress">
+              <ProgressBar
+                label={tr('Applico alle texture')}
+                done={phase.done}
+                total={phase.total}
+              />
+            </div>
           )}
           {phase.status === 'done' && (
             <>

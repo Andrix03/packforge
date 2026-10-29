@@ -26,7 +26,7 @@ export default async function doctor(app) {
   await writeFile(at('items', 'ruby.json'), '{ "model": ')
 
   await app.openPack({ waitForVanilla: true })
-  await app.click('Diagnosi', '.tool-bar button')
+  await app.tool('Diagnosi')
   await app.waitFor(`document.querySelector('[data-testid=doctor-problems]')`, 20000)
   const problems = await app.ev(
     `document.querySelector('[data-testid=doctor-problems]').textContent`
@@ -85,7 +85,7 @@ export default async function doctor(app) {
   app.check(set?.ok !== false, 'the fake .minecraft is set')
   await app.sleep(800)
 
-  await app.click('Diagnosi', '.tool-bar button')
+  await app.tool('Diagnosi')
   await app.click('Cambio di versione', '[role=dialog] [role=tab]')
   await app.waitFor(`document.querySelector('[aria-label="Versione di partenza"]')`, 10000)
   await app.setValue('[aria-label="Versione di partenza"]', 'old')

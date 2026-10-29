@@ -1,9 +1,12 @@
-// The window frame of the 12b interface: menu bar with the Ctrl+K command search, the workspace
-// hotbar (Pack / Disegna / Prova / Effetti / Pubblica) and the status bar. Screens go inside.
+// The window frame of the v3 interface: menu bar with the Ctrl+K command search, the hotbar of the
+// nine sections (keys 1-9, like the game's) and the status bar. Screens go inside.
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { groupMenus, searchCommands, type Command, type Workspace } from '../ui/commands'
+import { SECTION_IDS, type SectionId } from '../../shared/sections'
+import { groupMenus, searchCommands, type Command } from '../ui/commands'
 import { PixelIcon } from '../ui/components'
 import { NAV_ICONS } from '../ui/icons'
+import { SECTION_ICONS } from '../ui/sectionIcons'
+import { sectionName } from './sectionNames'
 import { useCommandList, useCommandStore } from './commandContext'
 import './shell.css'
 import { tr } from '../../shared/i18n'
@@ -39,43 +42,63 @@ const NAMES: Readonly<Record<string, string>> = {
 }
 const nameOf = (key: string): string => NAMES[key] ?? key
 
-export interface WorkspaceTab {
-  id: Workspace
-  enabled: boolean
-  /** Why it is disabled (tooltip). */
-  why?: string | undefined
+/** What each slot is for (its tooltip). */
+const SLOT_TIPS: Readonly<Record<SectionId, string>> = {
+  pack: tr('Il pack: descrizione, versioni, tutti i file, strumenti per tutto il pack'),
+  blocks: tr('Texture e modelli dei blocchi'),
+  items: tr('Oggetti: texture, 3D in mano, definizioni'),
+  armor: tr('Armature e finiture sul giocatore 3D'),
+  entities: tr('Mob e altre entità, varianti casuali'),
+  gui: tr('Pulsanti, inventari, HUD'),
+  screens: tr('Titolo, panorama e schermata di caricamento'),
+  world: tr('Colori dei biomi, cielo, particelle'),
+  texts: tr('Nomi, messaggi e frasi del gioco')
 }
-
-const TABS: { id: Workspace; label: string; icon: keyof typeof NAV_ICONS }[] = [
-  { id: 'pack', label: tr('Pack'), icon: 'chest' },
-  { id: 'disegna', label: tr('Disegna'), icon: 'pencil' },
-  { id: 'prova', label: tr('Prova'), icon: 'cube' },
-  { id: 'effetti', label: tr('Effetti'), icon: 'spark' },
-  { id: 'pubblica', label: tr('Pubblica'), icon: 'upload' }
-]
 
 export function Shell({
   title,
   subtitle,
-  workspace,
-  tabs,
-  onWorkspace,
+  section,
+  sectionsEnabled,
+  keysEnabled,
+  onSection,
   right,
   status,
   children
 }: {
   title: string
   subtitle: string
-  /** The active workspace, or null on the start screen. */
-  workspace: Workspace | null
-  tabs: readonly WorkspaceTab[]
-  onWorkspace: (id: Workspace) => void
+  /** The section shown, or null when none is (start screen, Pubblica). */
+  section: SectionId | null
+  /** False until a pack is open. */
+  sectionsEnabled: boolean
+  /** Keys 1-9 switch section (off while the editor or a field has the keyboard). */
+  keysEnabled: boolean
+  onSection: (id: SectionId) => void
   /** Buttons at the right of the hotbar. */
   right?: ReactNode
   status: { left: ReactNode; right: ReactNode }
   children: ReactNode
 }) {
   const [searching, setSearching] = useState(false)
+
+  // Keys 1-9 pick a section, like the game's hotbar, unless typing or a dialog is open.
+  useEffect(() => {
+    if (!sectionsEnabled || !keysEnabled) return
+    function onKey(event: KeyboardEvent): void {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return
+      const index = Number(event.key) - 1
+      const id = SECTION_IDS[index]
+      if (!id || !/^[1-9]$/.test(event.key)) return
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (document.querySelector('[role=dialog]')) return
+      event.preventDefault()
+      onSection(id)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [sectionsEnabled, keysEnabled, onSection])
 
   // Ctrl+K anywhere opens the command search.
   useEffect(() => {
@@ -100,24 +123,26 @@ export function Shell({
           <strong>{title}</strong>
           <span className="muted">{subtitle}</span>
         </div>
-        <nav className="shell-tabs" aria-label={tr('Spazi di lavoro')}>
-          {TABS.map((tab) => {
-            const state = tabs.find((t) => t.id === tab.id)
-            const active = workspace === tab.id
-            const enabled = state?.enabled ?? false
+        <nav className="shell-tabs shell-slots" aria-label={tr('Sezioni')}>
+          {SECTION_IDS.map((id, index) => {
+            const active = section === id
             return (
               <button
-                key={tab.id}
+                key={id}
                 type="button"
-                className={active ? 'shell-tab active' : 'shell-tab'}
+                className={active ? 'shell-tab shell-slot active' : 'shell-tab shell-slot'}
                 aria-current={active ? 'page' : undefined}
-                disabled={!enabled && !active}
-                title={!enabled && !active ? state?.why : undefined}
-                data-workspace={tab.id}
-                onClick={() => onWorkspace(tab.id)}
+                aria-keyshortcuts={String(index + 1)}
+                disabled={!sectionsEnabled}
+                title={sectionsEnabled ? SLOT_TIPS[id] : tr('Apri o crea un pack')}
+                data-section={id}
+                onClick={() => onSection(id)}
               >
-                <PixelIcon icon={NAV_ICONS[tab.icon]} />
-                <span>{tab.label}</span>
+                <span className="shell-slot-key" aria-hidden="true">
+                  {index + 1}
+                </span>
+                <PixelIcon icon={SECTION_ICONS[id]} size={32} />
+                <span>{sectionName(id)}</span>
               </button>
             )
           })}

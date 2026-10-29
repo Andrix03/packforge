@@ -7,20 +7,6 @@ import { png } from '../fixtures.mjs'
 
 const WIDGET = ['assets', 'minecraft', 'textures', 'gui', 'sprites', 'widget']
 
-async function openFolder(app, path) {
-  const parts = path.split('/')
-  for (let i = 3; i <= parts.length; i++) {
-    const folder = parts.slice(0, i).join('/')
-    await app.waitFor(
-      `[...document.querySelectorAll('button')].some((b) => b.title === '${folder}')`
-    )
-    await app.ev(
-      `[...document.querySelectorAll('button')].find((b) => b.title === '${folder}').click()`
-    )
-    await app.sleep(150)
-  }
-}
-
 export default async function guiTab(app) {
   const dir = join(app.paths.pack, ...WIDGET)
   await mkdir(dir, { recursive: true })
@@ -31,7 +17,7 @@ export default async function guiTab(app) {
     )
   )
   await app.openPack({ waitForVanilla: true })
-  await app.click('GUI', '.mode-bar [role=tab]')
+  await app.section('gui')
   await app.waitFor(`document.querySelector('.gui-mock canvas')`)
   app.check(
     await app.ev(`!document.querySelector('.pack-dock .preview-canvas')`),
@@ -56,7 +42,8 @@ export default async function guiTab(app) {
   app.check(true, 'HUD and inventory screens')
 
   // A vanilla sprite the pack doesn't have: a new texture of its shape.
-  await openFolder(app, WIDGET.join('/'))
+  await app.click('Gioco', '.source-switch button')
+  await app.click('Pulsanti e widget', '.group-row')
   const found = await app.ev(`(() => {
     const tile = [...document.querySelectorAll('.texture-tile')].find((t) => t.title.endsWith('/button_disabled.png'))
     tile?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))

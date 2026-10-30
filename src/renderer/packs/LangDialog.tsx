@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { tr } from '../../shared/i18n'
+import { language, tr } from '../../shared/i18n'
 import { mergeLang, parseLang, searchLang } from '../../shared/langFile'
 import { backupBefore } from './backup'
 import { errorMessage, fetchText, type FileSource } from './packFetch'
@@ -28,7 +28,8 @@ export function LangDialog({
   /** The game version whose texts are shown: they are read again when it changes or loads. */
   gameVersion?: string | null
 }): React.JSX.Element {
-  const [code, setCode] = useState('en_us')
+  // The interface's language first: an Italian user edits it_it.
+  const [code, setCode] = useState(language() === 'it' ? 'it_it' : 'en_us')
   const [codes, setCodes] = useState<string[]>(['en_us'])
   const [vanilla, setVanilla] = useState<{ code: string; entries: Record<string, string> } | null>(
     null

@@ -269,7 +269,10 @@ function Workspace({
     () => pickInitialFolder(packFiles.files, packTextures),
     [packFiles.files, packTextures]
   )
-  const [mode, setMode] = useState<Mode>('pack')
+  // Each section remembers its own source (the playtest found Oggetti on Gioco after Blocchi).
+  const [modes, setModes] = useState<Partial<Record<SectionId, Mode>>>({})
+  const mode: Mode = modes[section] ?? 'pack'
+  const setMode = (next: Mode): void => setModes((all) => ({ ...all, [section]: next }))
   const [selectedFolder, setSelectedFolder] = useState(initialFolder)
   /** The group chosen in each section's browser (null = all). */
   const [groups, setGroups] = useState<Partial<Record<SectionId, string | null>>>({})

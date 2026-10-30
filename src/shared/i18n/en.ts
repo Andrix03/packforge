@@ -981,7 +981,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Menu degli shader pack, con lo sfondo trasparente':
     'Shader pack menu, with a transparent background',
   'Prova in gioco': 'Test in game',
-  'Prova {0} in gioco': 'Test {0} in game',
   '1. Copia nella cartella resourcepacks': '1. Copy into the resourcepacks folder',
   ', non ancora copiato': ', not copied yet',
   ', copia di PackForge': ", PackForge's copy",
@@ -2501,5 +2500,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Varianti ancora uguali all’originale (nel gioco non cambia niente): {0}':
     'Variants still identical to their original (nothing changes in game): {0}',
   '{0} texture, {1} con _n e _s': '{0} textures, {1} with _n and _s',
-  ', {0} con _n e _s': ', {0} with _n and _s'
+  ', {0} con _n e _s': ', {0} with _n and _s',
+  '{0} nel gioco': '{0} in the game'
 }

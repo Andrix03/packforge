@@ -7,6 +7,13 @@ export default async function lang(app) {
   await app.openPack({ waitForVanilla: true })
   await app.section('texts')
   await app.waitFor(`document.querySelector('[data-testid=lang-count]')`, 20000)
+  app.check(
+    (await app.ev(`document.querySelector('[aria-label="Lingua"]').value`)) === 'it_it',
+    'an Italian interface opens the Italian texts'
+  )
+  await app.setValue('[aria-label="Lingua"]', 'en_us')
+  await app.waitFor(`document.querySelector('[data-testid=lang-count]')`, 20000)
+  await app.sleep(500)
   await app.setValue('[aria-label="Cerca nei testi"]', 'diamond sword')
   await app.waitFor(`document.querySelector('[aria-label="item.minecraft.diamond_sword"]')`, 5000)
   app.check(

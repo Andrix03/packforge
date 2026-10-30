@@ -61,7 +61,7 @@ export function GuiRecolorDialog({
         ...textures.filter((t) => !next.has(t))
       ])
     )
-  const [settings, setSettings] = useState<RecolorSettings>(RECOLOR_PRESETS.dark)
+  const [settings, setSettings] = useState<RecolorSettings>(NEUTRAL)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
   useEscape(onClose, phase.status !== 'running')
   const chosen = textures.filter((t) => selected.has(t))

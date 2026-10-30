@@ -33,6 +33,7 @@ import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 import { PackHealth } from './PackHealth'
 import { coverageReport } from '../../shared/coverage'
+import { isLookupTexture } from '../../shared/resize'
 import { SectionBrowser } from './SectionBrowser'
 import { PixelIcon, ProgressBar, ToolList, type Tool } from '../ui/components'
 import { SECTION_ICONS } from '../ui/sectionIcons'
@@ -1051,7 +1052,8 @@ function Workspace({
       {resizing && (
         <ResizeDialog
           pack={validatorPack}
-          textures={mapLessTextures}
+          // Colormaps, palettes and fonts keep their size (lookup tables, not pictures).
+          textures={mapLessTextures.filter((t) => !isLookupTexture(t.albedo))}
           onClose={() => setResizing(false)}
         />
       )}

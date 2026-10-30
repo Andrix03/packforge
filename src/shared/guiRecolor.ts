@@ -3,6 +3,7 @@
 // alpha channel is never touched. Pure.
 import { oklabToRgb, rgbToOklab } from './colorVariants'
 import { mapKindOf } from './labpbr'
+import { isLookupTexture } from './resize'
 
 export interface RecolorSettings {
   /** Degrees around the colour wheel. */
@@ -83,7 +84,7 @@ export function packTextureAreas(files: Iterable<string>): Array<{ area: string;
   const counts = new Map<string, number>()
   for (const f of files) {
     const m = /^assets\/[^/]+\/textures\/([^/]+)\/.+\.png$/.exec(f)
-    if (!m || mapKindOf(f) !== null || /_e\.png$/.test(f)) continue
+    if (!m || mapKindOf(f) !== null || /_e\.png$/.test(f) || isLookupTexture(f)) continue
     counts.set(m[1]!, (counts.get(m[1]!) ?? 0) + 1)
   }
   return [...counts]
@@ -100,7 +101,8 @@ export function packTexturesIn(files: Iterable<string>, area: string | null): st
         m !== null &&
         (area === null || m[1] === area) &&
         mapKindOf(f) === null &&
-        !/_e\.png$/.test(f)
+        !/_e\.png$/.test(f) &&
+        !isLookupTexture(f)
       )
     })
     .sort()

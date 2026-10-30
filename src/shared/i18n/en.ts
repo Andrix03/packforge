@@ -2491,5 +2491,9 @@ export const EN: Readonly<Record<string, string>> = {
     "The game's model ({0}), while you paint. Drag to turn it.",
   'Il mob in 3D, trascina per girarlo': 'The mob in 3D, drag to turn it',
   'Il modello si vede con una texture quadrata, 64×64 o più grande, senza animazione (qui {0}×{1}).':
-    'The model shows with a square texture, 64×64 or larger, without animation (here {0}×{1}).'
+    'The model shows with a square texture, 64×64 or larger, without animation (here {0}×{1}).',
+  'Il panorama del titolo ha {0} facce su 6: il gioco scarta tutto il pack («Resource reload failed»). Aggiungi le facce che mancano ({1}) o togli quelle che ci sono.':
+    'The title panorama has {0} of 6 faces: the game rejects the whole pack ("Resource reload failed"). Add the missing faces ({1}) or remove the ones there are.',
+  'Le 6 facce del panorama hanno misure diverse ({0}): il gioco scarta tutto il pack. Devono essere tutte della stessa misura.':
+    'The 6 panorama faces have different sizes ({0}): the game rejects the whole pack. They must all be the same size.'
 }

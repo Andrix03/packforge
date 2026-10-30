@@ -21,6 +21,7 @@ import { compatibleReleases, analyzePackMcmeta } from '../shared/mcmeta'
 import { descriptionMarkdown, factsFromFiles, listingText } from '../shared/listing'
 import { summarizeReleaseSpans } from '../shared/packFormat'
 import { readPngSize } from '../shared/png'
+import { PANORAMA_FACES, panoramaMissing, panoramaSizes } from '../shared/panorama'
 import { decodePng, encodePng, optimizePng } from '../shared/pngCodec'
 import { factorBetween, scaleMcmeta, scaleNearest, type Factor } from '../shared/resize'
 import { writeFileAtomic } from './atomicWrite'
@@ -79,6 +80,19 @@ export async function checkExport(
   }
   if (!files.includes('pack.png'))
     check.warnings.push(tr('Manca pack.png: il pack non avrà un’icona.'))
+  // A partial or mixed-size panorama makes the game reject the whole pack.
+  const partial = panoramaMissing(files)
+  if (partial) check.errors.push(partial)
+  else if (PANORAMA_FACES.every((face) => files.includes(face))) {
+    const sizes = await Promise.all(
+      PANORAMA_FACES.map(async (face) => {
+        const size = readPngSize(await readFile(join(source.root, ...face.split('/'))))
+        return size ? ([size.width, size.height] as const) : null
+      })
+    )
+    const mixed = panoramaSizes(sizes)
+    if (mixed) check.errors.push(mixed)
+  }
   if (vanilla?.kind === 'zip') {
     check.vanillaCopies = await findVanillaCopies(source.root, files, vanilla.data)
     if (check.vanillaCopies.length > 0) {

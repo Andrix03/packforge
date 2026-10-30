@@ -9,6 +9,7 @@ import type { AssetSources } from '../preview/modelSource'
 import { Switch } from '../ui/components'
 import { useEscape } from '../useEscape'
 import { PanoramaView } from './PanoramaView'
+import { panoramaMissing } from '../../shared/panorama'
 
 const TITLE = 'assets/minecraft/textures/gui/title/'
 const SPLASHES = 'assets/minecraft/texts/splashes.txt'
@@ -49,6 +50,8 @@ export function TitleScreensDialog({
   canWrite = canCreate
 }: Props): React.JSX.Element {
   useEscape(onClose, !embedded)
+  // Some faces without the others: the game rejects the whole pack.
+  const partial = panoramaMissing(sources.pack.files)
   const urlOf = (path: string): string | null => {
     if (sources.pack.files.has(path))
       return assetUrl(sources.pack.base, path, sources.pack.versions[path] ?? 0)
@@ -75,6 +78,11 @@ export function TitleScreensDialog({
             'Sei facce di un cubo visto da dentro, che gira piano. Le facce vicine devono combaciare ai bordi; dalla 26.x vanilla le scarica il launcher, qui le vedi solo come riferimento.'
           )}
         </p>
+        {partial && (
+          <p className="field-error small" role="alert" data-testid="panorama-partial">
+            {partial}
+          </p>
+        )}
         <div className="title-slots">{FACES.map((path, i) => slot(path, FACE_NAMES[i] ?? ''))}</div>
       </section>
 

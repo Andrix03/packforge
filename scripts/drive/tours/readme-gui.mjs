@@ -1,0 +1,111 @@
+// README GIF "GUI" (see readme-kit.mjs): our own textures, English interface, no captions.
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { png } from '../fixtures.mjs'
+import { recorder } from './readme-kit.mjs'
+
+export const options = { language: 'en' }
+
+async function textures(app) {
+  const at = (...p) => join(app.paths.pack, 'assets', 'minecraft', ...p)
+  await mkdir(at('textures', 'gui', 'sprites', 'widget'), { recursive: true })
+  await mkdir(at('textures', 'entity', 'equipment', 'humanoid'), { recursive: true })
+  await mkdir(at('textures', 'entity', 'equipment', 'humanoid_leggings'), { recursive: true })
+  await mkdir(at('textures', 'trims', 'entity', 'humanoid'), { recursive: true })
+  await mkdir(at('textures', 'palettes', 'trim'), { recursive: true })
+
+  // A bevelled stone button with a gold frame.
+  await writeFile(
+    at('textures', 'gui', 'sprites', 'widget', 'button.png'),
+    png(200, 20, (x, y) =>
+      x < 1 || y < 1 || x > 198 || y > 18
+        ? [40, 30, 10, 255]
+        : x < 3 || y < 3 || x > 196 || y > 16
+          ? [214, 170, 60, 255]
+          : [88 + ((x * 7 + y * 13) % 9), 92 + ((x * 5 + y * 3) % 7), 104, 255]
+    )
+  )
+  await writeFile(
+    at('textures', 'gui', 'sprites', 'widget', 'button.png.mcmeta'),
+    JSON.stringify({ gui: { scaling: { type: 'nine_slice', width: 200, height: 20, border: 3 } } })
+  )
+  // Steel armour with darker seams, and leggings.
+  const armor = (base) =>
+    png(64, 32, (x, y) => {
+      const used = y < 16 || x < 56
+      if (!used) return [0, 0, 0, 0]
+      const seam = x % 8 === 0 || y % 8 === 0
+      const v = (x * 11 + y * 7) % 13
+      return seam ? base.map((c) => c * 0.55).concat(255) : base.map((c) => c - v).concat(255)
+    })
+  await writeFile(
+    at('textures', 'entity', 'equipment', 'humanoid', 'iron.png'),
+    armor([150, 160, 175])
+  )
+  await writeFile(
+    at('textures', 'entity', 'equipment', 'humanoid_leggings', 'iron.png'),
+    armor([120, 130, 150])
+  )
+  // Trim: our own base palette (8 greys), a chevron pattern and an emerald-like material.
+  await writeFile(
+    at('textures', 'palettes', 'trim_base.png'),
+    png(8, 1, (x) => [224 - x * 32, 224 - x * 32, 224 - x * 32, 255])
+  )
+  await writeFile(
+    at('textures', 'trims', 'entity', 'humanoid', 'chevron.png'),
+    png(64, 32, (x, y) => {
+      const chest =
+        x >= 20 && x < 28 && y >= 20 && y < 32 && Math.floor(Math.abs(x - 23.5)) + 20 === y - 1
+      const brow = x >= 8 && x < 16 && y === 9
+      const boots = y === 29 && x < 16
+      return chest || brow || boots
+        ? [224, 224, 224, 255]
+        : x >= 20 && x < 28 && y === 22
+          ? [160, 160, 160, 255]
+          : [0, 0, 0, 0]
+    })
+  )
+  await writeFile(
+    at('textures', 'palettes', 'trim', 'jade.png'),
+    png(8, 1, (x) => [40, 240 - x * 25, 110, 255])
+  )
+}
+
+export default async function tour(app) {
+  const frame = recorder(app)
+  await textures(app)
+  await app.openPack()
+  await app.section('gui')
+  await app.waitFor(
+    `[...document.querySelectorAll('.texture-tile')].some((t) => t.title.endsWith('/button.png'))`
+  )
+  await app.openTexture('button.png')
+  await app.waitFor(`document.querySelector('.gui-sprite-borders')`)
+  await app.click('2×', '.gui-preview-head button')
+  await frame(1800, 800)
+  // Drag the left border line of the first sprite: the nine-slice follows.
+  const box = await app.ev(
+    `(() => { const r = document.querySelector('.gui-sprite-borders').getBoundingClientRect(); return { x: r.x, y: r.y + r.height / 2 } })()`
+  )
+  const mouse = (type, x, buttons) =>
+    app.send('Input.dispatchMouseEvent', {
+      type,
+      x,
+      y: box.y,
+      button: 'left',
+      buttons,
+      clickCount: 1
+    })
+  await mouse('mouseMoved', box.x + 7, 0)
+  await mouse('mousePressed', box.x + 7, 1)
+  for (const dx of [10, 14, 18, 22, 26]) {
+    await mouse('mouseMoved', box.x + dx, 1)
+    await frame(350, 150)
+  }
+  await mouse('mouseReleased', box.x + 26, 0)
+  await frame(800)
+  for (const scale of ['1×', '3×', '4×']) {
+    await app.click(scale, '.gui-preview-head button')
+    await frame(900, 500)
+  }
+}

@@ -70,7 +70,31 @@ trim patterns the game does not recolour, variants never repainted). The full li
 [changelog](CHANGELOG.md).
 
 <p align="center">
-  <img src=".github/assets/gui-armor.gif" width="880" alt="Armour on a 3D player with a trim pattern and material, and the game's GUI">
+  <img src=".github/assets/sections.gif" width="880" alt="The nine sections of the hotbar, each with its textures and tools">
+</p>
+
+<p align="center">
+  <img src=".github/assets/ctm.gif" width="880" alt="Connected glass: the 47 tiles made in the app, a wall without and with the connection">
+</p>
+
+<p align="center">
+  <img src=".github/assets/plants.gif" width="880" alt="A flower reshaped from the cross to a bush and a tall plant">
+</p>
+
+<p align="center">
+  <img src=".github/assets/items.gif" width="880" alt="An apple made 3D in hand, seen in the inventory, in third person, on the ground and in a frame">
+</p>
+
+<p align="center">
+  <img src=".github/assets/armor.gif" width="880" alt="Armour on a 3D player, painted live, with a trim pattern and material">
+</p>
+
+<p align="center">
+  <img src=".github/assets/mob.gif" width="880" alt="A zombie texture painted on the 3D zombie">
+</p>
+
+<p align="center">
+  <img src=".github/assets/gui.gif" width="880" alt="A GUI button with its nine-slice borders dragged, at GUI scale 1 to 4">
 </p>
 
 ## Coming next

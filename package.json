@@ -1,7 +1,7 @@
 {
   "name": "packforge",
   "productName": "PackForge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Minecraft Java Edition resource pack studio with LabPBR preview",
   "private": true,
   "type": "module",

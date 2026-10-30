@@ -41,36 +41,37 @@ looks right, the pack is already in your `resourcepacks` folder and F3 + T does 
 
 ## What works so far
 
-The app is split into five workspaces, one tab each:
+The app is split into nine sections, like the game's hotbar (keys 1–9). Each one lists its
+textures, yours next to the vanilla ones from your own game install, and the tools that fit them:
 
-| Workspace   | What you do there                                                                                                                                                                                                                   |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Pack**    | Open a folder (or a zip, read-only) or start a new pack. Browse your textures next to the vanilla ones from your own game install, check which maps are missing, keep backups.                                                      |
-| **Paint**   | A pixel editor built around Minecraft textures: pencil, bucket, shade along a colour ramp, noise, shapes, selections, symmetry, seamless edges, layers and frame animations. Beginner mode hides the advanced tools and gives tips. |
-| **Test**    | Put the texture in a small world before opening the game: a wall, a floor, farmland, a house corner, a cave where an ore sits in its own rock, a path. Day, sunset, torchlight, Nether, rain.                                       |
-| **Effects** | Paint the LabPBR `_n` and `_s` maps channel by channel, or generate them from the colours and a material preset (stone, wood, metal, glass, ore, leaves…). Parallax, reflections, bloom.                                            |
-| **Publish** | Export a zip with version, credits and changelog, a no-PBR or other-resolution variant, and a ready description for Modrinth and CurseForge. Or copy the pack into the game and let it update while you work.                       |
+| Section      | What you do there                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| **Pack**     | Open a folder (or a zip, read-only) or start a new pack. How much you have retextured, the pack doctor, backups, export.  |
+| **Blocks**   | The pixel editor with the 3D block next to it, the LabPBR `_n` and `_s` maps, connected textures, crops and plant shapes. |
+| **Items**    | Items through their definitions: inventory, in hand, on the head; 3D in hand, variants by anvil name, positions.          |
+| **Armour**   | Armour on a 3D player, trims with their patterns and material palettes.                                                   |
+| **Entities** | Mob textures, a 3D zombie, husk and drowned, random variants by biome, height or name.                                    |
+| **GUI**      | Buttons, inventory and HUD with a nine-slice editor and mock screens; recolour the whole GUI at once.                     |
+| **Screens**  | The title screen (panorama, logo, splash texts) and the loading screen.                                                   |
+| **World**    | Biome colours (colormaps, Polytone), sky and weather, particles, paintings.                                               |
+| **Texts**    | The game's texts for one language: item names and messages.                                                               |
 
-Also: batch-apply a material to dozens of textures with a before/after view, connected textures
-for Continuity and OptiFine, resizing with sharp pixels, colour variants for the 16 dyes, and an
-interface in **English or Italian**.
+The editor is built around Minecraft textures: pencil, bucket, shade along a colour ramp, noise,
+shapes, selections, symmetry, seamless edges, layers and frame animations. Beginner mode hides the
+advanced tools and gives tips. **Test** puts the texture in a small world before opening the game
+(a wall, a floor, farmland, a house corner, a cave, a path) at noon, sunset, by torchlight, in the
+Nether or in the rain. **Publish** exports a zip with version, credits and changelog, and **Copy
+to the game** keeps the pack in your `resourcepacks` folder while you work. Interface in
+**English or Italian**.
 
-New in 0.2: the game's **GUI** (nine-slice editor, mock screens, title and loading screen),
-**armour and trims** on a 3D player, **items** through their definitions (3D in hand, variants by
-anvil name, positions in hand), **3D block models** (raised pixels, bushy leaves, 3D rails, an
-element editor), and pack tools: a pack doctor with porting between versions, emissive `_e`
-textures, random mob textures, Polytone biome colours and the game's texts.
+New in 0.3: the nine sections, health bars for the pack, a 3D zombie preview, plant shapes for
+flowers, and warnings for the mistakes that break a pack in the game (a panorama missing faces,
+trim patterns the game does not recolour, variants never repainted). The full list is in the
+[changelog](CHANGELOG.md).
 
-<table>
-  <tr>
-    <td><img src=".github/assets/paint.png" alt="The Paint workspace: pixel editor, 3D preview, colours"></td>
-    <td><img src=".github/assets/effects.png" alt="The Effects workspace: painting the height map, light presets"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Paint</sub></td>
-    <td align="center"><sub>Effects</sub></td>
-  </tr>
-</table>
+<p align="center">
+  <img src=".github/assets/gui-armor.gif" width="880" alt="Armour on a 3D player with a trim pattern and material, and the game's GUI">
+</p>
 
 ## Coming next
 

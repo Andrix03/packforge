@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { confirmAction } from '../ui/ask'
 import {
   DEFAULT_RECOLOR,
   DYES,
@@ -144,12 +145,12 @@ export function VariantsDialog({
     if (!loaded) return
     if (
       overwriting > 0 &&
-      !window.confirm(
+      !(await confirmAction(
         tr(
           'Sovrascrivere {0}? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).',
           overwriting === 1 ? tr('1 texture esistente') : tr('{0} texture esistenti', overwriting)
         )
-      )
+      ))
     ) {
       return
     }

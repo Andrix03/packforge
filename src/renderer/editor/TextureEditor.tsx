@@ -104,6 +104,7 @@ import {
   type MaterialOptions
 } from '../../shared/materialPresets'
 import { Glyph, ToolList, type Tool } from '../ui/components'
+import { ask, confirmAction } from '../ui/ask'
 import { EditorHotbar } from '../shell/EditorHotbar'
 import { MobPreview } from '../preview/MobPreview'
 import { mobModelOf } from '../../shared/mobModel'
@@ -797,7 +798,12 @@ export function TextureEditor({
    */
   async function saveFirst(question: string): Promise<boolean> {
     if (!modified) return true
-    if (!window.confirm(question)) return false
+    if (
+      !(await confirmAction(question, tr('Salva e continua'), {
+        title: tr('Modifiche non salvate')
+      }))
+    )
+      return false
     return save()
   }
 
@@ -1048,14 +1054,25 @@ export function TextureEditor({
     refresh()
   }
 
-  function close(): void {
-    if (
-      modified &&
-      !window.confirm(tr('Ci sono modifiche non salvate: andranno perse. Chiudere?'))
-    ) {
-      return
+  /** Closes the editor; with unsaved work it asks: save and close, close without saving, cancel. */
+  async function close(): Promise<void> {
+    if (modified) {
+      const choice = await ask({
+        title: tr('Modifiche non salvate'),
+        message: tr('{0} ha modifiche non salvate.', target.name),
+        choices: [
+          { value: 'cancel', label: tr('Annulla') },
+          { value: 'discard', label: tr('Chiudi senza salvare'), danger: true },
+          { value: 'save', label: tr('Salva e chiudi'), primary: true }
+        ],
+        cancel: 'cancel',
+        // The UI scenarios answer the native confirm: OK closed without saving.
+        nativeOk: 'discard'
+      })
+      if (choice === 'cancel') return
+      if (choice === 'save' && !(await save())) return
+      if (choice === 'discard') void window.api.invoke('draft:discard', target.path)
     }
-    if (modified) void window.api.invoke('draft:discard', target.path)
     onClose()
   }
 

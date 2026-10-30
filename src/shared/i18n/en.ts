@@ -607,8 +607,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Salvataggio di {0}': 'Saving {0}',
   'Ci sono modifiche non salvate. Salvarle prima di cambiare texture?':
     'There are unsaved changes. Save them before switching texture?',
-  'Ci sono modifiche non salvate: andranno perse. Chiudere?':
-    'There are unsaved changes: they will be lost. Close?',
   'Salva la texture': 'Save the texture',
   'Nessuna modifica da salvare': 'No changes to save',
   'Pack in sola lettura': 'Read-only pack',
@@ -2501,5 +2499,12 @@ export const EN: Readonly<Record<string, string>> = {
     'Variants still identical to their original (nothing changes in game): {0}',
   '{0} texture, {1} con _n e _s': '{0} textures, {1} with _n and _s',
   ', {0} con _n e _s': ', {0} with _n and _s',
-  '{0} nel gioco': '{0} in the game'
+  '{0} nel gioco': '{0} in the game',
+  Conferma: 'Confirm',
+  Continua: 'Continue',
+  'Salva e continua': 'Save and continue',
+  'Modifiche non salvate': 'Unsaved changes',
+  '{0} ha modifiche non salvate.': '{0} has unsaved changes.',
+  'Chiudi senza salvare': 'Close without saving',
+  'Salva e chiudi': 'Save and close'
 }

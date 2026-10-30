@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { confirmAction } from '../ui/ask'
 import type { BackupInfo } from '../../shared/ipc'
 import { useEscape } from '../useEscape'
 import { Glyph } from '../ui/components'
@@ -31,13 +32,13 @@ export function BackupsDialog({ onClose }: { onClose: () => void }): React.JSX.E
         `${backup.created === 1 ? tr('1 file creato viene rimosso') : tr('{0} file creati vengono rimossi', backup.created)}`
     ].filter(Boolean)
     if (
-      !window.confirm(
+      !(await confirmAction(
         tr(
           'Ripristinare «{0}»? {1}. Prima viene fatto un backup dello stato attuale, quindi si può tornare indietro.',
           backup.label,
           parts.join(' e ')
         )
-      )
+      ))
     ) {
       return
     }
@@ -61,7 +62,9 @@ export function BackupsDialog({ onClose }: { onClose: () => void }): React.JSX.E
 
   async function remove(backup: BackupInfo): Promise<void> {
     if (
-      !window.confirm(tr('Eliminare il backup «{0}»? Non si potrà più ripristinare.', backup.label))
+      !(await confirmAction(
+        tr('Eliminare il backup «{0}»? Non si potrà più ripristinare.', backup.label)
+      ))
     )
       return
     await window.api.invoke('backup:delete', backup.id)

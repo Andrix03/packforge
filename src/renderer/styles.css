@@ -1439,6 +1439,29 @@ kbd {
   margin: 0;
 }
 
+/* The app's question box (ui/ask.tsx): above any dialog that asked it. */
+.ask-backdrop {
+  z-index: 80;
+}
+
+.ask-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.ask-message {
+  white-space: pre-line;
+}
+
+.ask-choices {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.ask-danger {
+  color: var(--error);
+}
+
 .face-tabs {
   display: flex;
   align-items: center;

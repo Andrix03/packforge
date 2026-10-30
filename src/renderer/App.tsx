@@ -22,6 +22,7 @@ import { TutorialCard } from './TutorialCard'
 import { announceStep } from './tutorialEvents'
 import { SECTION_IDS, sectionOf, type SectionId } from '../shared/sections'
 import { CommandStore } from './ui/commandStore'
+import { AskHost } from './ui/AskHost'
 import { tr } from '../shared/i18n'
 
 export function App(): React.JSX.Element {
@@ -29,6 +30,7 @@ export function App(): React.JSX.Element {
   return (
     <CommandContext.Provider value={store}>
       <Window />
+      <AskHost />
     </CommandContext.Provider>
   )
 }

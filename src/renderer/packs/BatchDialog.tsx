@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { confirmAction } from '../ui/ask'
 import { countPlan, planBatch } from '../../shared/batchMaps'
 import { mapPath } from '../../shared/labpbr'
 import {
@@ -120,14 +121,14 @@ export function BatchDialog({
   const apply = useSingleFlight(async (): Promise<void> => {
     if (
       counts.overwrite > 0 &&
-      !window.confirm(
+      !(await confirmAction(
         tr(
           'Sovrascrivere {0}? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).',
           counts.overwrite === 1
             ? tr('1 mappa esistente')
             : tr('{0} mappe esistenti', counts.overwrite)
         )
-      )
+      ))
     ) {
       return
     }

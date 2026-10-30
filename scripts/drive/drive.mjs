@@ -186,6 +186,13 @@ async function connect() {
   await send('Runtime.enable')
   await send('Page.enable')
   await send('Log.enable')
+  if (!scenarioOptions.appDialogs) {
+    // Most scenarios answer native dialogs (app.answerDialogs): the app's own question box
+    // falls back to window.confirm. A scenario sets options.appDialogs to test the box itself.
+    const flag = 'window.__packforgeNativeDialogs = true'
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: flag })
+    await send('Runtime.evaluate', { expression: flag })
+  }
   return createApp(send)
 }
 

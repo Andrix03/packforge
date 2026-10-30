@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { confirmAction } from '../ui/ask'
 import {
   ctmTile,
   DOWN,
@@ -113,12 +114,12 @@ export function CtmDialog({
     if (!loaded || problem) return
     if (
       exists &&
-      !window.confirm(
+      !(await confirmAction(
         tr(
           'La cartella {0} esiste già: sovrascrivere i suoi tile? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).',
           folder
         )
-      )
+      ))
     ) {
       return
     }

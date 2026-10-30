@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { confirmAction } from '../ui/ask'
 import {
   DEFAULT_PROJECT,
   LICENSES,
@@ -85,7 +86,7 @@ export function ExportDialog({
   const exportAll = useSingleFlight(async (): Promise<void> => {
     if (
       blocking &&
-      !window.confirm(tr('Il controllo ha trovato errori (vedi sopra). Esportare comunque?'))
+      !(await confirmAction(tr('Il controllo ha trovato errori (vedi sopra). Esportare comunque?')))
     ) {
       return
     }
@@ -108,7 +109,7 @@ export function ExportDialog({
     for (const variant of variants) {
       setPhase({ status: 'working', text: tr('Creo lo zip {0}…', variantLabel(variant)) })
       let result = await window.api.invoke('export:build', variant, dir, false)
-      if (!result.ok && result.exists && window.confirm(`${result.error} Sovrascriverlo?`)) {
+      if (!result.ok && result.exists && (await confirmAction(`${result.error} Sovrascriverlo?`))) {
         result = await window.api.invoke('export:build', variant, dir, true)
       }
       results.push({ variant, result })

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { confirmAction } from '../ui/ask'
 import { readPngSize } from '../../shared/png'
 import {
   factorBetween,
@@ -152,7 +153,7 @@ export function ResizeDialog({
             lossy.length > 12 ? '…' : ''
           )
         : '')
-    if (files.length === 0 || !window.confirm(question)) {
+    if (files.length === 0 || !(await confirmAction(question))) {
       if (files.length === 0) setPhase({ status: 'done', written: 0, errors })
       else setPhase({ status: 'setup' })
       return

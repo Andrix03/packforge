@@ -1,53 +1,30 @@
-// Draws the question ask() left open (see ask.ts).
-import { useEffect, useSyncExternalStore } from 'react'
+// Draws the question ask() left open (see ask.ts), with packforge-ui's Dialog: focus kept inside,
+// Esc answers `cancel`, the backdrop does not (a question must be answered).
+import { Button, Dialog } from 'packforge-ui'
+import { useSyncExternalStore } from 'react'
 import { answer, openQuestion, subscribe } from './ask'
 
-export function AskHost(): React.JSX.Element | null {
+export function AskHost(): React.JSX.Element {
   const question = useSyncExternalStore(subscribe, openQuestion)
-  useEffect(() => {
-    if (!question) return
-    function onKey(event: KeyboardEvent): void {
-      if (event.key !== 'Escape') return
-      event.stopPropagation()
-      answer(question!.cancel)
-    }
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [question])
-  if (!question) return null
   return (
-    <div
-      className="modal-backdrop ask-backdrop"
-      role="presentation"
-      onClick={() => answer(question.cancel)}
-    >
-      <div
-        className="card modal ask-dialog"
-        role="alertdialog"
-        aria-label={question.title}
-        aria-describedby="ask-message"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>{question.title}</h2>
-        <p id="ask-message" className="ask-message">
-          {question.message}
-        </p>
-        <div className="row ask-choices">
-          {question.choices.map((choice, i) => (
-            <button
-              key={choice.value}
-              type="button"
-              className={choice.primary ? 'ore-on' : choice.danger ? 'ore ask-danger' : 'ore'}
-              // The main answer has the focus: Enter confirms it.
-              autoFocus={choice.primary ?? i === question.choices.length - 1}
-              data-choice={choice.value}
-              onClick={() => answer(choice.value)}
-            >
-              {choice.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+    <Dialog
+      open={question !== null}
+      onOpenChange={(open) => {
+        if (!open && question) answer(question.cancel)
+      }}
+      kind="alert"
+      title={question?.title ?? ''}
+      description={question?.message ?? ''}
+      actions={question?.choices.map((choice) => (
+        <Button
+          key={choice.value}
+          variant={choice.primary ? 'main' : choice.danger ? 'danger' : 'quiet'}
+          data-choice={choice.value}
+          onClick={() => answer(choice.value)}
+        >
+          {choice.label}
+        </Button>
+      ))}
+    />
   )
 }

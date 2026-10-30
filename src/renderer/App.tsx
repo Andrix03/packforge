@@ -13,7 +13,7 @@ import { PackWorkspace } from './packs/PackWorkspace'
 import { RecentPacksCard } from './packs/RecentPacksCard'
 import { SettingsPanel } from './settings/SettingsPanel'
 import { CommandContext, useCommands, useCommandStore } from './shell/commandContext'
-import { PixelIcon } from './ui/components'
+import { Glyph, PixelIcon } from './ui/components'
 import { NAV_ICONS } from './ui/icons'
 import { Shell } from './shell/Shell'
 import { sectionName } from './shell/sectionNames'
@@ -266,9 +266,11 @@ function Window(): React.JSX.Element {
                 'Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)'
               )}
               disabled={publishing || showSettings || editorOpen || testOpen}
+              aria-label={tr('Copia nel gioco')}
               onClick={() => store.run('pack:ingame')}
             >
-              {tr('Copia nel gioco')}
+              <Glyph name="gamepad" />
+              <span>{tr('Copia nel gioco')}</span>
             </button>
             <button
               type="button"

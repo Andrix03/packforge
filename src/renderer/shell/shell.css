@@ -297,14 +297,45 @@
 .shell-tab.shell-slot:disabled svg {
   opacity: 0.35;
 }
-@media (max-width: 1100px) {
+/* Narrow windows: the slots keep icon and key (the name stays in the tooltip and for screen
+   readers), then the right buttons keep only their icon. */
+@media (max-width: 1180px) {
   .shell-tab.shell-slot {
-    width: 62px;
+    width: 52px;
+    height: 50px;
   }
   .shell-tab.shell-slot > span:last-child {
-    font-size: 10px;
-    letter-spacing: 0;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
+}
+@media (max-width: 900px) {
+  .shell-hotbar {
+    gap: 6px;
+    padding: 6px;
+  }
+  .shell-pack span {
+    display: none;
+  }
+  .shell-right .ore > span:not(.glyph),
+  .shell-right .ore-on > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+/* Menu names in the readable font: Tiny5 at 10 px turns the B of "PBR" into an E. */
+.shell-menu-button {
+  font-family: var(--ui-font);
+  font-size: 16px;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .shell-tab.publish.active {
   outline: 3px solid #f3ead6;

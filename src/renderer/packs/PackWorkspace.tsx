@@ -1,4 +1,5 @@
 import { useCommands } from '../shell/commandContext'
+import type { Command } from '../ui/commands'
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, findFolder, parentPath } from '../../shared/fileTree'
 import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../shared/ipc'
@@ -787,6 +788,41 @@ function Workspace({
     previewSelection?.base === source.assetBase ? previewSelection.textureKey : null
   const marker2 = marker
   const tools = sectionTools[section] ?? []
+  // Every section tool is also a Ctrl+K command (going to its section first), so the search
+  // finds what the panels offer. Tools that already have a pack command are not repeated.
+  const HAS_COMMAND = new Set([
+    'export',
+    'validate',
+    'coverage',
+    'batch',
+    'resize',
+    'backup',
+    'guiRecolor',
+    'title'
+  ])
+  const toolCommands: Command[] = []
+  const listed = new Set<string>()
+  for (const [owner, list] of [
+    ['pack', [...packTools, variantsTool]],
+    ...Object.entries(sectionTools)
+  ] as Array<[SectionId, Tool[]]>) {
+    for (const tool of list) {
+      if (HAS_COMMAND.has(tool.id) || listed.has(tool.id)) continue
+      listed.add(tool.id)
+      toolCommands.push({
+        id: `tool:${tool.id}`,
+        label: `${tool.label}…`,
+        area: sectionName(owner),
+        enabled: !tool.why,
+        why: tool.why ?? undefined,
+        run: () => {
+          if (owner !== section) onSection(owner)
+          tool.run()
+        }
+      })
+    }
+  }
+  useCommands(visible ? toolCommands : [])
 
   const preview =
     section === 'gui' ? (

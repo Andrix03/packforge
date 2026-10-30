@@ -48,6 +48,18 @@ export default async function shell(app) {
   app.check(health.includes('Mappe PBR complete'), `Pack: health bars (${health})`)
   await app.shot('shell-pack')
 
+  // Ctrl+K finds the section tools too (the playtest found only 13 commands).
+  await app.key('k', ['ctrl'])
+  await app.waitFor(`document.querySelector('.shell-search-box input')`)
+  await app.setValue('.shell-search-box input', 'diagnosi')
+  const found = await app.ev(`document.querySelector('.shell-result.active')?.textContent ?? ''`)
+  app.check(found.includes('Diagnosi'), `Ctrl+K finds Diagnosi (${found})`)
+  await app.key('Enter')
+  await app.waitFor(`document.querySelector('[role=dialog]')`, 10000)
+  app.check(true, 'and opens it')
+  await app.key('Escape')
+  await app.waitFor(`!document.querySelector('[role=dialog]')`)
+
   // Key 2: Blocchi, browsed by group.
   await app.key('2')
   await app.waitFor(`document.querySelector('.shell-slot.active')?.dataset.section === 'blocks'`)

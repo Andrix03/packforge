@@ -17,7 +17,7 @@ import {
   type ArmorBox,
   type ArmorLayer
 } from '../../shared/armorModel'
-import { HUMANOID_PARTS, applyPalette, type Pixels } from '../../shared/equipment'
+import { HUMANOID_PARTS, applyPalette, offPalettePixels, type Pixels } from '../../shared/equipment'
 import {
   BASE_PALETTES,
   armorMaterialOf,
@@ -311,6 +311,9 @@ export function ArmorPreview(props: Props): React.JSX.Element {
   )
 
   const drag = useRef<number | null>(null)
+  // The pattern's pixels outside the base greys (the painted one, or the chosen pattern).
+  const patternNow = role === 'pattern' ? canvasPixels(props.canvas) : trimShown ? pattern : null
+  const offBase = patternNow && base ? offPalettePixels(patternNow, base) : 0
   const title = role === 'armor' ? tr('Anteprima armatura') : tr('Anteprima rifinitura')
   return (
     <section className="armor-preview card" aria-label={title}>
@@ -360,6 +363,14 @@ export function ArmorPreview(props: Props): React.JSX.Element {
             setMaterial(name ?? undefined)
           )}
       </div>
+      {offBase > 0 && (
+        <p className="field-error small" role="alert" data-testid="trim-off-palette">
+          {tr(
+            '{0} pixel del motivo non usano gli 8 grigi di trim_base: nel gioco restano di quel colore, senza il colore del materiale. Dipingi solo con i grigi della tavolozza trim_base.',
+            offBase
+          )}
+        </p>
+      )}
       {trimShown && !base && (
         <p className="muted small">
           {tr('Serve la tavolozza trim_base (vanilla): apri un pack con la versione del gioco.')}

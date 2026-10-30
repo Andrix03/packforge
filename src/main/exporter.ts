@@ -22,6 +22,8 @@ import { descriptionMarkdown, factsFromFiles, listingText } from '../shared/list
 import { summarizeReleaseSpans } from '../shared/packFormat'
 import { readPngSize } from '../shared/png'
 import { PANORAMA_FACES, panoramaMissing, panoramaSizes } from '../shared/panorama'
+import { offPalettePixels } from '../shared/equipment'
+import { BASE_PALETTES } from '../shared/trims'
 import { decodePng, encodePng, optimizePng } from '../shared/pngCodec'
 import { factorBetween, scaleMcmeta, scaleNearest, type Factor } from '../shared/resize'
 import { writeFileAtomic } from './atomicWrite'
@@ -108,12 +110,56 @@ export async function checkExport(
       tr('Carica un jar vanilla per controllare che il pack non contenga texture del gioco.')
     )
   }
+  const offTrims = await trimsOffPalette(source.root, files, vanilla)
+  if (offTrims.length > 0) {
+    check.warnings.push(
+      tr(
+        'Motivi di finitura con colori fuori dai grigi di trim_base (nel gioco non prendono il colore del materiale): {0}',
+        offTrims.join(', ')
+      )
+    )
+  }
   if (check.stray.length > 0) {
     check.warnings.push(
       tr('{0} file di lavoro o di sistema restano fuori dallo zip.', check.stray.length)
     )
   }
   return check
+}
+
+/** Trim patterns of the pack painted with greys the game does not recolour (file names). */
+async function trimsOffPalette(
+  root: string,
+  files: readonly string[],
+  vanilla: PackSource | null
+): Promise<string[]> {
+  const patterns = files.filter((p) =>
+    /^assets\/[^/]+\/textures\/trims\/(entity|items)\/.+\.png$/.test(p)
+  )
+  if (patterns.length === 0) return []
+  // The base palette: the pack's own, else the game's.
+  let baseBytes: Uint8Array | null = null
+  for (const path of BASE_PALETTES) {
+    if (files.includes(path)) {
+      baseBytes = await readFile(join(root, ...path.split('/')))
+      break
+    }
+  }
+  if (!baseBytes && vanilla?.kind === 'zip') {
+    const found = unzipSync(vanilla.data, {
+      filter: (f) => (BASE_PALETTES as readonly string[]).includes(f.name)
+    })
+    baseBytes = BASE_PALETTES.map((path) => found[path]).find((bytes) => bytes) ?? null
+  }
+  const base = baseBytes ? decodePng(baseBytes) : null
+  if (!base?.ok) return []
+  const off: string[] = []
+  for (const path of patterns) {
+    const image = decodePng(await readFile(join(root, ...path.split('/'))))
+    if (image.ok && offPalettePixels(image.image, base.image) > 0)
+      off.push(path.slice(path.lastIndexOf('/') + 1))
+  }
+  return off
 }
 
 /** Pack PNGs whose pixels equal the game's texture at the same path (never redistributable). */

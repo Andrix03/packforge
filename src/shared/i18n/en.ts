@@ -2495,5 +2495,9 @@ export const EN: Readonly<Record<string, string>> = {
   'Il panorama del titolo ha {0} facce su 6: il gioco scarta tutto il pack («Resource reload failed»). Aggiungi le facce che mancano ({1}) o togli quelle che ci sono.':
     'The title panorama has {0} of 6 faces: the game rejects the whole pack ("Resource reload failed"). Add the missing faces ({1}) or remove the ones there are.',
   'Le 6 facce del panorama hanno misure diverse ({0}): il gioco scarta tutto il pack. Devono essere tutte della stessa misura.':
-    'The 6 panorama faces have different sizes ({0}): the game rejects the whole pack. They must all be the same size.'
+    'The 6 panorama faces have different sizes ({0}): the game rejects the whole pack. They must all be the same size.',
+  '{0} pixel del motivo non usano gli 8 grigi di trim_base: nel gioco restano di quel colore, senza il colore del materiale. Dipingi solo con i grigi della tavolozza trim_base.':
+    "{0} pixels of the pattern do not use the 8 greys of trim_base: in game they keep that colour, without the material's colour. Paint only with the greys of the trim_base palette.",
+  'Motivi di finitura con colori fuori dai grigi di trim_base (nel gioco non prendono il colore del materiale): {0}':
+    "Trim patterns with colours outside the trim_base greys (in game they do not take the material's colour): {0}"
 }

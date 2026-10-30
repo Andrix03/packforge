@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 export default async function polytone(app) {
   await app.openPack()
-  await app.click('Polytone', '.tool-bar button')
+  await app.tool('Polytone')
   await app.waitFor(`document.querySelector('[data-testid=polytone-plan]')`)
   app.check(
     (await app.ev(`document.querySelector('[data-testid=polytone-plan]').textContent`)).includes(

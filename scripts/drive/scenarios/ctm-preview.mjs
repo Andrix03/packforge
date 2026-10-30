@@ -59,7 +59,7 @@ export default async function ctmPreview(app) {
     `[...document.querySelectorAll('.texture-tile')].find((t) => t.title.endsWith('/glass.png')).click()`
   )
   await app.sleep(300)
-  await app.click('Texture connesse')
+  await app.tool('Texture connesse')
   await app.waitFor(`document.querySelector('[aria-label="Texture connesse"]')`)
   await app.sleep(400)
   await app.ev(

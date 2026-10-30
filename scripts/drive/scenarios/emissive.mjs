@@ -18,7 +18,7 @@ export default async function emissive(app) {
   )
 
   await app.openPack()
-  await app.click('Luce _e', '.tool-bar button')
+  await app.tool('Luce _e')
   await app.waitFor(`document.querySelector('[data-testid=emissive-plan]')`, 15000)
   const plan = await app.ev(`document.querySelector('[data-testid=emissive-plan]').textContent`)
   app.check(/file _e da scrivere/.test(plan), `the plan (${plan})`)

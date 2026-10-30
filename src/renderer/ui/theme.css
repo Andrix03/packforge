@@ -411,3 +411,204 @@
 .glyph.alone {
   margin-inline-end: 0;
 }
+
+/* Progress bar (ProgressBar): green segments, or a sweep when the length is unknown. */
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.progress-count {
+  font-family: var(--ui-mono);
+  color: var(--ui-muted);
+}
+.progress-track {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  height: 10px;
+  background: var(--ui-edge-dark);
+  border: 2px solid #0b0b0b;
+  overflow: hidden;
+}
+.pcell {
+  flex: 1;
+  background: #2c2c2c;
+}
+.pcell.on {
+  background: var(--ui-green);
+  box-shadow: inset 0 2px 0 var(--ui-green-light);
+}
+.progress-sweep {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: 12.5%;
+  background: var(--ui-green);
+  box-shadow: inset 0 2px 0 var(--ui-green-light);
+  animation: pf-sweep 1.6s steps(14, end) infinite alternate;
+}
+@keyframes pf-sweep {
+  from {
+    left: 2px;
+  }
+  to {
+    left: calc(87.5% - 2px);
+  }
+}
+
+/* Busy: three squares lit in turn. */
+.busy {
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: middle;
+}
+.busy i {
+  width: 6px;
+  height: 6px;
+  background: var(--ui-green-dark);
+  animation: pf-busy 0.9s steps(1, end) infinite;
+}
+.busy i:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.busy i:nth-child(3) {
+  animation-delay: 0.6s;
+}
+@keyframes pf-busy {
+  0% {
+    background: var(--ui-green-light);
+  }
+  33% {
+    background: var(--ui-green-dark);
+  }
+}
+
+/* Motion: short and stepped like the game, never smooth easing; off when the system asks. */
+@keyframes pf-pop {
+  0% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes pf-rise {
+  0% {
+    transform: translateY(8px);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.ore:active:not(:disabled),
+.ore-on:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.modal {
+  animation: pf-rise 0.12s steps(3, end);
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-sweep,
+  .busy i,
+  .modal,
+  .shell-slot.active {
+    animation: none !important;
+  }
+  .ore:active,
+  .ore-on:active {
+    transform: none;
+  }
+}
+
+/* A section's tools (ToolList): one row each, icon + name + one line. */
+.tool-list {
+  display: flex;
+  flex-direction: column;
+}
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px solid #222;
+  background: var(--ui-panel);
+  color: var(--ui-text);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0;
+}
+.tool-row:hover:not(:disabled) {
+  background: #2f4a26;
+}
+.tool-row:focus-visible {
+  outline: 2px solid var(--ui-green-light);
+  outline-offset: -2px;
+}
+.tool-row-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  color: #c9f0a6;
+}
+.tool-row:disabled {
+  cursor: default;
+  background: #282828;
+}
+.tool-row:disabled .tool-row-icon,
+.tool-row:disabled .lbl {
+  color: var(--ui-faint);
+}
+.tool-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.tool-row-text .lbl {
+  white-space: normal;
+}
+
+/* v3 motion: a section slides in, tiles lift, tool icons nudge; all stepped, all short. */
+.section-browser,
+.section-page {
+  animation: pf-rise 0.14s steps(3, end);
+}
+.texture-tile {
+  transition: transform 0.08s steps(2, end);
+}
+.texture-tile:hover {
+  transform: translateY(-2px);
+}
+.tool-row-icon {
+  transition: transform 0.08s steps(2, end);
+}
+.tool-row:hover:not(:disabled) .tool-row-icon {
+  transform: translateX(2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-browser,
+  .section-page {
+    animation: none;
+  }
+  .texture-tile,
+  .tool-row-icon {
+    transition: none;
+  }
+  .texture-tile:hover,
+  .tool-row:hover .tool-row-icon {
+    transform: none;
+  }
+}

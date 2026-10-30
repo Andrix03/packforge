@@ -51,12 +51,19 @@ export default async function guiRecolor(app) {
   )
 
   await app.openPack({ waitForVanilla: true })
-  await app.click('GUI', '.mode-bar [role=tab]')
+  await app.section('gui')
   await app.waitFor(`document.querySelector('.gui-mock')`)
   await app.click('Ricolora GUI', '.gui-mock button')
   await app.waitFor(`document.querySelector('[role=dialog][aria-label="Ricolora GUI"]')`)
   const listed = await app.ev(`document.querySelectorAll('.gui-recolor-list li').length`)
   app.check(listed === 1, `lists the pack's GUI textures only (${listed})`)
+  app.check(
+    await app.ev(
+      `document.querySelector('.gui-recolor [role=radio][aria-checked=true]')?.textContent.includes('Nessuna modifica')`
+    ),
+    'it opens on no change, not on a preset'
+  )
+  await app.click('Scuro', '.gui-recolor button')
   await app.waitFor(`document.querySelectorAll('.gui-recolor-pair canvas').length === 2`)
   await app.sleep(500)
   await app.shot('gui-recolor')

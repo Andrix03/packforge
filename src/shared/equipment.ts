@@ -154,6 +154,20 @@ export function applyPalette(image: Pixels, base: Pixels, material: Pixels): Uin
   return out
 }
 
+/**
+ * Opaque pixels of a trim pattern whose colour is none of the base palette's greys: the game
+ * leaves them as they are (no material colour), so the trim looks white or grey in game.
+ */
+export function offPalettePixels(image: Pixels, base: Pixels): number {
+  const greys = new Set<number>()
+  for (let i = 0; i < base.width * base.height; i++) greys.add(rgbKey(base.data, i * 4))
+  let off = 0
+  for (let p = 0; p < image.data.length; p += 4) {
+    if (image.data[p + 3] !== 0 && !greys.has(rgbKey(image.data, p))) off++
+  }
+  return off
+}
+
 export interface UvRect {
   x: number
   y: number

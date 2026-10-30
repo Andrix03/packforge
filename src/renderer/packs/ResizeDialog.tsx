@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { confirmAction } from '../ui/ask'
 import { readPngSize } from '../../shared/png'
 import {
   factorBetween,
@@ -13,7 +14,7 @@ import { backupBefore } from './backup'
 import { errorMessage, fetchBytes, fetchText, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
-import { Glyph } from '../ui/components'
+import { Glyph, ProgressBar } from '../ui/components'
 import { tr } from '../../shared/i18n'
 
 /** Rows drawn at most (the filter narrows big packs). */
@@ -30,7 +31,7 @@ interface Prepared {
 
 type Phase =
   | { status: 'setup' }
-  | { status: 'working'; text: string }
+  | { status: 'working'; text: string; done?: number; total?: number }
   | { status: 'done'; written: number; errors: string[] }
 
 /** Brings textures (and their `_n` / `_s`) to one resolution with nearest-neighbour scaling. */
@@ -152,7 +153,7 @@ export function ResizeDialog({
             lossy.length > 12 ? '…' : ''
           )
         : '')
-    if (files.length === 0 || !window.confirm(question)) {
+    if (files.length === 0 || !(await confirmAction(question))) {
       if (files.length === 0) setPhase({ status: 'done', written: 0, errors })
       else setPhase({ status: 'setup' })
       return
@@ -166,7 +167,12 @@ export function ResizeDialog({
     }
     let written = 0
     for (const [index, file] of files.entries()) {
-      setPhase({ status: 'working', text: tr('Scrivo… {0}/{1}', index + 1, files.length) })
+      setPhase({
+        status: 'working',
+        text: tr('Scrivo le texture'),
+        done: index + 1,
+        total: files.length
+      })
       const saved = await window.api.invoke(
         'texture:save',
         file.path,
@@ -197,7 +203,7 @@ export function ResizeDialog({
         <div className="card modal batch" role="dialog" aria-label={tr('Ridimensiona')}>
           <h2>{tr('Ridimensiona')}</h2>
           {phase.status === 'working' ? (
-            <p className="small">{phase.text}</p>
+            <ProgressBar label={phase.text} done={phase.done} total={phase.total} />
           ) : (
             <>
               <p className="small" data-testid="resize-result">

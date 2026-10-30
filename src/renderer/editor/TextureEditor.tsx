@@ -103,7 +103,11 @@ import {
   DEFAULT_MATERIAL,
   type MaterialOptions
 } from '../../shared/materialPresets'
-import { Glyph } from '../ui/components'
+import { Glyph, ToolList, type Tool } from '../ui/components'
+import { ask, confirmAction } from '../ui/ask'
+import { EditorHotbar } from '../shell/EditorHotbar'
+import { MobPreview } from '../preview/MobPreview'
+import { mobModelOf } from '../../shared/mobModel'
 import { NAV_ICONS } from '../ui/icons'
 import { locale, tr } from '../../shared/i18n'
 
@@ -794,7 +798,12 @@ export function TextureEditor({
    */
   async function saveFirst(question: string): Promise<boolean> {
     if (!modified) return true
-    if (!window.confirm(question)) return false
+    if (
+      !(await confirmAction(question, tr('Salva e continua'), {
+        title: tr('Modifiche non salvate')
+      }))
+    )
+      return false
     return save()
   }
 
@@ -1045,14 +1054,25 @@ export function TextureEditor({
     refresh()
   }
 
-  function close(): void {
-    if (
-      modified &&
-      !window.confirm(tr('Ci sono modifiche non salvate: andranno perse. Chiudere?'))
-    ) {
-      return
+  /** Closes the editor; with unsaved work it asks: save and close, close without saving, cancel. */
+  async function close(): Promise<void> {
+    if (modified) {
+      const choice = await ask({
+        title: tr('Modifiche non salvate'),
+        message: tr('{0} ha modifiche non salvate.', target.name),
+        choices: [
+          { value: 'cancel', label: tr('Annulla') },
+          { value: 'discard', label: tr('Chiudi senza salvare'), danger: true },
+          { value: 'save', label: tr('Salva e chiudi'), primary: true }
+        ],
+        cancel: 'cancel',
+        // The UI scenarios answer the native confirm: OK closed without saving.
+        nativeOk: 'discard'
+      })
+      if (choice === 'cancel') return
+      if (choice === 'save' && !(await save())) return
+      if (choice === 'discard') void window.api.invoke('draft:discard', target.path)
     }
-    if (modified) void window.api.invoke('draft:discard', target.path)
     onClose()
   }
 
@@ -1176,6 +1196,131 @@ export function TextureEditor({
     onSwitch(reloadedTarget(target, [target.path, normalPath, specularPath]))
   }
 
+  /** Zombie, husk, drowned: their own 3D model instead of the block. */
+  const mobModel = useMemo(() => mobModelOf(target.path), [target.path])
+  /** Runs `then` after offering to save: these tools write files the editor reloads. */
+  const afterSave = (question: string, then: () => void) => () =>
+    void saveFirst(question).then((ok) => ok && then())
+  const asking = {
+    variants: tr('Salvare le modifiche prima di creare le varianti?'),
+    model: tr('Salvare le modifiche prima di creare il modello?')
+  }
+  // The texture's own actions (v3): one panel under the preview instead of buttons at the bottom.
+  const editable = !target.readOnly
+  const actionTools: Tool[] = [
+    ...(isEntityTexture(target.path) && editable
+      ? [
+          {
+            id: 'mobVariants',
+            label: tr('Varianti del mob'),
+            tip: tr(
+              'Più texture per questo mob: OptiFine o ETF ne scelgono una a caso, anche per bioma o nome'
+            ),
+            glyph: 'dice' as const,
+            run: afterSave(asking.variants, () => setMobVariantsOpen(true))
+          }
+        ]
+      : []),
+    ...(target.path.includes('/textures/block/') && editable
+      ? [
+          {
+            id: 'randomVariants',
+            label: tr('Varianti casuali'),
+            tip: tr(
+              'Più versioni di questa texture: il gioco ne sceglie una a caso per ogni blocco'
+            ),
+            glyph: 'dice' as const,
+            run: afterSave(asking.variants, () => setRandomVariants(true))
+          },
+          {
+            id: 'popOut',
+            label: tr('Pixel in rilievo'),
+            tip: tr('Alcuni colori escono dal blocco in 3D (minerali, gemme)'),
+            glyph: 'up' as const,
+            run: afterSave(asking.model, () => setPopOutOpen(true))
+          }
+        ]
+      : []),
+    ...(presetsFor(target.path).length > 0 && editable
+      ? [
+          {
+            id: 'shapes',
+            label: tr('Forme 3D'),
+            tip: tr(
+              'Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala, binari)'
+            ),
+            icon: NAV_ICONS.cube,
+            run: afterSave(asking.model, () => setShapesOpen(true))
+          }
+        ]
+      : []),
+    ...(blockModel && editable
+      ? [
+          {
+            id: 'elements',
+            label: tr('Elementi del modello'),
+            tip: tr('Modifica i cubetti del modello del blocco: posizione, rotazione, facce'),
+            glyph: 'gear' as const,
+            run: afterSave(asking.model, () => setElementsOpen(true))
+          }
+        ]
+      : []),
+    ...(item3d && editable
+      ? [
+          {
+            id: 'item3d',
+            label: tr('3D in mano'),
+            tip: tr('Piatto nell’inventario, 3D in mano: un modello fatto dai pixel'),
+            icon: NAV_ICONS.cube,
+            run: afterSave(tr('Salvare le modifiche prima di creare il modello 3D?'), () =>
+              setItem3dOpen(true)
+            )
+          },
+          {
+            id: 'nameVariant',
+            label: tr('Variante per nome'),
+            tip: tr('Una texture diversa quando l’oggetto ha un certo nome nell’incudine'),
+            glyph: 'book' as const,
+            run: afterSave(tr('Salvare le modifiche prima di creare la variante?'), () =>
+              setNameVariantOpen(true)
+            )
+          },
+          {
+            id: 'definition',
+            label: tr('Definizione'),
+            tip: tr('Il file items/ che dice al gioco cosa disegnare e quando'),
+            glyph: 'gear' as const,
+            run: () => setDefinitionOpen(true)
+          }
+        ]
+      : []),
+    ...(isItemTexture(target.path) && editable
+      ? [
+          {
+            id: 'display',
+            label: tr('Posizioni'),
+            tip: tr('Come sta l’oggetto in mano, nell’inventario, a terra, in testa'),
+            glyph: 'resize' as const,
+            run: () => setDisplayOpen(true)
+          }
+        ]
+      : []),
+    ...(crop && editable
+      ? [
+          {
+            id: 'plantShape',
+            label: tr('Forma della pianta'),
+            tip: tr('Il modello 3D della pianta: vanilla, croce, cespuglio o alta'),
+            glyph: 'leaf' as const,
+            // The editor reloads with the models / halves it writes: save first.
+            run: afterSave(tr('Salvare le modifiche prima di cambiare la forma?'), () =>
+              setPlantShape(true)
+            )
+          }
+        ]
+      : [])
+  ]
+
   return (
     <section className="editor">
       <header className="editor-header">
@@ -1263,18 +1408,8 @@ export function TextureEditor({
               </button>
             </span>
           )}
-          {doc && source && (
-            <button
-              type="button"
-              title={tr(
-                'Guarda la texture come apparirà nel gioco: scene, distanza, confronto con vanilla'
-              )}
-              onClick={test}
-            >
-              <Glyph icon={NAV_ICONS.cube} />
-              {tr('Prova')}
-            </button>
-          )}
+          {/* Undo / redo, Principiante / Pro, Salva: here, not on the hotbar (v3). */}
+          <EditorHotbar />
           <button type="button" onClick={close}>
             {tr('Chiudi editor')}
           </button>
@@ -1396,6 +1531,7 @@ export function TextureEditor({
       )}
       {maps && !isMapFile && !tallCanvases && (
         <MapTabs
+          onTest={doc && source ? test : null}
           surface={surface}
           channel={channel?.id ?? null}
           maps={(['normal', 'specular'] as const).map((kind) => ({
@@ -1412,6 +1548,24 @@ export function TextureEditor({
             setChannelOf((all) => ({ ...all, [surface]: id }))
           }}
         />
+      )}
+      {(isMapFile || tallCanvases) && doc && source && (
+        // No map tabs here (a map opened on its own, a tall plant): Prova keeps its tab.
+        <div className="map-tabs">
+          <div className="face-tabs" role="tablist" aria-label={tr('Cosa dipingi')}>
+            <button
+              type="button"
+              className="tab test-tab"
+              title={tr(
+                'Guarda la texture come apparirà nel gioco: scene, distanza, confronto con vanilla'
+              )}
+              onClick={test}
+            >
+              <Glyph icon={NAV_ICONS.cube} />
+              {tr('Prova')}
+            </button>
+          </div>
+        </div>
       )}
       {comparing && reference && (
         <CompareDialog
@@ -1857,6 +2011,7 @@ export function TextureEditor({
                 sources={target.sources}
               />
             )}
+            {mobModel && <MobPreview model={mobModel} canvas={source} revision={revision} />}
             {colormapKind(target.path) && (
               <ColormapPreview
                 colormap={colormapKind(target.path)!}
@@ -1876,6 +2031,7 @@ export function TextureEditor({
             )}
             {!guiTextureKind(target.path) &&
               !armorPreviewRole(target.path) &&
+              !mobModel &&
               !isItemTexture(target.path) &&
               !colormapKind(target.path) && (
                 <>
@@ -1918,6 +2074,12 @@ export function TextureEditor({
                   />
                 </>
               )}
+            {actionTools.length > 0 && (
+              <section className="editor-actions" aria-label={tr('Azioni della texture')}>
+                <h3 className="ph">{tr('Azioni della texture')}</h3>
+                <ToolList label={tr('Azioni della texture')} tools={actionTools} />
+              </section>
+            )}
             {surface === 'normal' && maps?.normal && !target.readOnly && (
               <GeneratorPanel
                 settings={generator}
@@ -2024,155 +2186,6 @@ export function TextureEditor({
               >
                 <Glyph name="gear" />
                 {tr('Regola colori')}
-              </button>
-            )}
-            {isEntityTexture(target.path) && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr(
-                  'Più texture per questo mob: OptiFine o ETF ne scelgono una a caso, anche per bioma o nome'
-                )}
-                onClick={() =>
-                  void saveFirst(tr('Salvare le modifiche prima di creare le varianti?')).then(
-                    (ok) => ok && setMobVariantsOpen(true)
-                  )
-                }
-              >
-                <Glyph name="dice" />
-                {tr('Varianti del mob')}
-              </button>
-            )}
-            {target.path.includes('/textures/block/') && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr(
-                  'Più versioni di questa texture: il gioco ne sceglie una a caso per ogni blocco'
-                )}
-                onClick={() =>
-                  void saveFirst(tr('Salvare le modifiche prima di creare le varianti?')).then(
-                    (ok) => ok && setRandomVariants(true)
-                  )
-                }
-              >
-                <Glyph name="dice" />
-                {tr('Varianti casuali')}
-              </button>
-            )}
-            {target.path.includes('/textures/block/') && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr('Alcuni colori escono dal blocco in 3D (minerali, gemme)')}
-                onClick={() =>
-                  void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
-                    (ok) => ok && setPopOutOpen(true)
-                  )
-                }
-              >
-                <Glyph name="up" />
-                {tr('Pixel in rilievo')}
-              </button>
-            )}
-            {presetsFor(target.path).length > 0 && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr(
-                  'Forme 3D pronte per questo blocco (foglie folte, erba sui lati, scala, binari)'
-                )}
-                onClick={() =>
-                  void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
-                    (ok) => ok && setShapesOpen(true)
-                  )
-                }
-              >
-                <Glyph icon={NAV_ICONS.cube} />
-                {tr('Forme 3D')}
-              </button>
-            )}
-            {blockModel && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr('Modifica i cubetti del modello del blocco: posizione, rotazione, facce')}
-                onClick={() =>
-                  void saveFirst(tr('Salvare le modifiche prima di creare il modello?')).then(
-                    (ok) => ok && setElementsOpen(true)
-                  )
-                }
-              >
-                <Glyph name="gear" />
-                {tr('Elementi del modello')}
-              </button>
-            )}
-            {item3d && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr('Piatto nell’inventario, 3D in mano: un modello fatto dai pixel')}
-                onClick={() =>
-                  void saveFirst(tr('Salvare le modifiche prima di creare il modello 3D?')).then(
-                    (ok) => ok && setItem3dOpen(true)
-                  )
-                }
-              >
-                <Glyph icon={NAV_ICONS.cube} />
-                {tr('3D in mano')}
-              </button>
-            )}
-            {item3d && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr('Una texture diversa quando l’oggetto ha un certo nome nell’incudine')}
-                onClick={() =>
-                  void saveFirst(tr('Salvare le modifiche prima di creare la variante?')).then(
-                    (ok) => ok && setNameVariantOpen(true)
-                  )
-                }
-              >
-                <Glyph name="book" />
-                {tr('Variante per nome')}
-              </button>
-            )}
-            {item3d && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr('Il file items/ che dice al gioco cosa disegnare e quando')}
-                onClick={() => setDefinitionOpen(true)}
-              >
-                <Glyph name="gear" />
-                {tr('Definizione')}
-              </button>
-            )}
-            {isItemTexture(target.path) && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr('Come sta l’oggetto in mano, nell’inventario, a terra, in testa')}
-                onClick={() => setDisplayOpen(true)}
-              >
-                <Glyph name="resize" />
-                {tr('Posizioni')}
-              </button>
-            )}
-            {crop && !target.readOnly && (
-              <button
-                type="button"
-                className="small-button"
-                title={tr('Il modello 3D della pianta: vanilla, croce, cespuglio o alta')}
-                onClick={() =>
-                  // The editor reloads with the models / halves it writes: save first.
-                  void saveFirst(tr('Salvare le modifiche prima di cambiare la forma?')).then(
-                    (ok) => ok && setPlantShape(true)
-                  )
-                }
-              >
-                <Glyph name="leaf" />
-                {tr('Forma della pianta')}
               </button>
             )}
             <TilingPreview

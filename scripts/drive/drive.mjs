@@ -186,6 +186,13 @@ async function connect() {
   await send('Runtime.enable')
   await send('Page.enable')
   await send('Log.enable')
+  if (!scenarioOptions.appDialogs) {
+    // Most scenarios answer native dialogs (app.answerDialogs): the app's own question box
+    // falls back to window.confirm. A scenario sets options.appDialogs to test the box itself.
+    const flag = 'window.__packforgeNativeDialogs = true'
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: flag })
+    await send('Runtime.evaluate', { expression: flag })
+  }
   return createApp(send)
 }
 
@@ -270,6 +277,34 @@ function createApp(send) {
         return Boolean(el)
       })()`)
       if (!found) throw new Error(`no ${selector} with text "${text}"`)
+    },
+    /** Clicks a hotbar section slot ('pack', 'blocks', 'gui'…) and waits for it to be shown. */
+    async section(id) {
+      await app.waitFor(
+        `document.querySelector('.shell-slot[data-section="${id}"]:not(:disabled)')`
+      )
+      await app.ev(`document.querySelector('.shell-slot[data-section="${id}"]').click()`)
+      await app.waitFor(
+        `document.querySelector('.shell-slot.active')?.dataset.section === '${id}' && !document.querySelector('.editor')`
+      )
+      await sleep(200)
+    },
+    /**
+     * Clicks the section tool whose name contains `text`; if the current section does not have it,
+     * looks in the others (Pack first). The texture chosen in the grid stays chosen.
+     */
+    async tool(text) {
+      const find = `[...document.querySelectorAll('.tool-row')].find((b) => b.querySelector('.lbl')?.textContent.includes(${JSON.stringify(text)}))`
+      if (!(await ev(`Boolean(${find})`))) {
+        for (const id of ['pack', 'blocks', 'items', 'armor', 'entities', 'gui', 'world']) {
+          await app.section(id)
+          if (await ev(`Boolean(${find})`)) break
+        }
+      }
+      const clicked = await ev(
+        `(() => { const b = ${find}; if (!b || b.disabled) return b ? 'disabled' : 'none'; b.click(); return 'ok' })()`
+      )
+      if (clicked !== 'ok') throw new Error(`tool "${text}": ${clicked}`)
     },
     /** Sets a React-controlled input/select value and fires input + change. */
     async setValue(selector, value) {

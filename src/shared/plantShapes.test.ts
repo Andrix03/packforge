@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { buildQuads } from './blockGeometry'
 import { resolveModel } from './blockModel'
-import { PLANT_SHAPES, plantShapeModel, topTextureId } from './plantShapes'
+import {
+  FLOWER_SHAPES,
+  PLANT_SHAPES,
+  isPlantModel,
+  plantShapeModel,
+  topTextureId
+} from './plantShapes'
 import { variantModel } from './randomVariants'
 
 const TEXTURE = 'minecraft:block/wheat_stage7'
@@ -89,5 +95,57 @@ describe('plant shapes and random variants', () => {
         variantModel('block/wheat_stage7', base, TEXTURE, `${TEXTURE}_v2`)?.['textures']
       ).toEqual({ crop: `${TEXTURE}_v2` })
     }
+  })
+})
+
+describe('isPlantModel', () => {
+  const elementsOf = async (model: Record<string, unknown>) =>
+    (
+      await resolveModel('minecraft:block/test', async (path) =>
+        path === 'assets/minecraft/models/block/test.json' ? model : null
+      )
+    ).elements
+  const plane = (tint?: number) => ({
+    from: [0.8, 0, 8],
+    to: [15.2, 16, 8],
+    faces: {
+      north: {
+        uv: [0, 0, 16, 16],
+        texture: '#cross',
+        ...(tint === undefined ? {} : { tintindex: tint })
+      }
+    }
+  })
+
+  it('knows a flower cross and our own shapes, so a flower can be reshaped again', async () => {
+    const cross = { textures: { cross: 'minecraft:block/poppy' }, elements: [plane(), plane()] }
+    expect(isPlantModel(await elementsOf(cross))).toBe(true)
+    for (const shape of ['bushy', 'tall'] as const) {
+      const model = plantShapeModel(shape, 'minecraft:block/poppy', 'minecraft:block/poppy_top')
+      expect(isPlantModel(await elementsOf(model))).toBe(true)
+    }
+  })
+
+  it('leaves out cubes, tinted grass and single planes', async () => {
+    const cube = {
+      textures: { all: 'minecraft:block/stone' },
+      elements: [
+        { from: [0, 0, 0], to: [16, 16, 16], faces: { up: { texture: '#all' } } },
+        { from: [0, 0, 0], to: [16, 16, 16], faces: { down: { texture: '#all' } } }
+      ]
+    }
+    expect(isPlantModel(await elementsOf(cube))).toBe(false)
+    const grass = {
+      textures: { cross: 'minecraft:block/short_grass' },
+      elements: [plane(0), plane(0)]
+    }
+    expect(isPlantModel(await elementsOf(grass))).toBe(false)
+    const single = { textures: { cross: 'minecraft:block/rail' }, elements: [plane()] }
+    expect(isPlantModel(await elementsOf(single))).toBe(false)
+  })
+
+  it('calls the cross vanilla for flowers', () => {
+    expect(FLOWER_SHAPES.map((s) => s.id)).toEqual(PLANT_SHAPES.map((s) => s.id))
+    expect(FLOWER_SHAPES.find((s) => s.id === 'cross')?.label).toBe('Vanilla')
   })
 })

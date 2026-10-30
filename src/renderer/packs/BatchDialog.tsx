@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { confirmAction } from '../ui/ask'
 import { countPlan, planBatch } from '../../shared/batchMaps'
 import { mapPath } from '../../shared/labpbr'
 import {
@@ -17,7 +18,7 @@ import { runBatch, type BatchResult, type BatchSettings } from './runBatch'
 import type { ValidatorSource } from './runValidator'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
-import { Glyph } from '../ui/components'
+import { Glyph, ProgressBar } from '../ui/components'
 import { tr } from '../../shared/i18n'
 
 /** Rows drawn at most in the texture list (the filter narrows big packs). */
@@ -120,14 +121,14 @@ export function BatchDialog({
   const apply = useSingleFlight(async (): Promise<void> => {
     if (
       counts.overwrite > 0 &&
-      !window.confirm(
+      !(await confirmAction(
         tr(
           'Sovrascrivere {0}? Prima viene fatto un backup (lo trovi in Backup, per tornare indietro).',
           counts.overwrite === 1
             ? tr('1 mappa esistente')
             : tr('{0} mappe esistenti', counts.overwrite)
         )
-      )
+      ))
     ) {
       return
     }
@@ -420,9 +421,13 @@ export function BatchDialog({
         {/* 4 · Applica */}
         <section className="wizard-step" hidden={step !== 3}>
           {phase.status === 'running' && (
-            <p className="small" data-testid="batch-progress">
-              {tr('Applico… {0}/{1}', phase.done, phase.total)}
-            </p>
+            <div data-testid="batch-progress">
+              <ProgressBar
+                label={tr('Applico alle texture')}
+                done={phase.done}
+                total={phase.total}
+              />
+            </div>
           )}
           {phase.status === 'done' && (
             <>

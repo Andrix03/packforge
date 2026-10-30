@@ -264,3 +264,80 @@
 .shell-search-box input {
   border-radius: 0;
 }
+
+/* v3: the nine section slots (keys 1-9), like the game's hotbar. */
+.shell-tab.shell-slot {
+  position: relative;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  width: 78px;
+  height: 56px;
+  padding: 0;
+  border-right: 0;
+  border: 2px solid #3c3c3c;
+}
+.shell-slot-key {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-family: var(--ui-mono);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ui-faint);
+}
+.shell-tab.shell-slot.active {
+  border-color: #f3ead6;
+  outline: 0;
+  animation: pf-pop 0.1s steps(2, end);
+}
+.shell-tab.shell-slot.active .shell-slot-key {
+  color: var(--ui-green-light);
+}
+.shell-tab.shell-slot:disabled svg {
+  opacity: 0.35;
+}
+/* Narrow windows: the slots keep icon and key (the name stays in the tooltip and for screen
+   readers), then the right buttons keep only their icon. */
+@media (max-width: 1180px) {
+  .shell-tab.shell-slot {
+    width: 52px;
+    height: 50px;
+  }
+  .shell-tab.shell-slot > span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+@media (max-width: 900px) {
+  .shell-hotbar {
+    gap: 6px;
+    padding: 6px;
+  }
+  .shell-pack span {
+    display: none;
+  }
+  .shell-right .ore > span:not(.glyph),
+  .shell-right .ore-on > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+/* Menu names in the readable font: Tiny5 at 10 px turns the B of "PBR" into an E. */
+.shell-menu-button {
+  font-family: var(--ui-font);
+  font-size: 16px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.shell-tab.publish.active {
+  outline: 3px solid #f3ead6;
+  outline-offset: -1px;
+}

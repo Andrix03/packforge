@@ -18,7 +18,7 @@ async function select(app, fileName) {
 }
 
 async function openDialog(app) {
-  await app.click('Varianti di colore')
+  await app.tool('Varianti di colore')
   await app.waitFor(`document.querySelectorAll('.variant canvas').length === 16`, 10000)
   await app.sleep(400)
 }
@@ -199,7 +199,7 @@ export default async function variants(app) {
   await app.click('Annulla', '.modal.batch button')
 
   // The validator is fine with the copied maps.
-  await app.click('Controlla mappe')
+  await app.tool('Controlla mappe')
   await app.waitFor(`document.querySelector('[data-testid=validator-summary]')`, 15000)
   const flagged = await app.ev(
     `[...document.querySelectorAll('.validator-issue strong')].map((s) => s.textContent)`

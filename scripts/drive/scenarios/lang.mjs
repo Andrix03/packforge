@@ -5,8 +5,15 @@ import { join } from 'node:path'
 
 export default async function lang(app) {
   await app.openPack({ waitForVanilla: true })
-  await app.click('Testi del gioco', '.tool-bar button')
+  await app.section('texts')
   await app.waitFor(`document.querySelector('[data-testid=lang-count]')`, 20000)
+  app.check(
+    (await app.ev(`document.querySelector('[aria-label="Lingua"]').value`)) === 'it_it',
+    'an Italian interface opens the Italian texts'
+  )
+  await app.setValue('[aria-label="Lingua"]', 'en_us')
+  await app.waitFor(`document.querySelector('[data-testid=lang-count]')`, 20000)
+  await app.sleep(500)
   await app.setValue('[aria-label="Cerca nei testi"]', 'diamond sword')
   await app.waitFor(`document.querySelector('[aria-label="item.minecraft.diamond_sword"]')`, 5000)
   app.check(
@@ -17,7 +24,7 @@ export default async function lang(app) {
   )
   await app.setValue('[aria-label="item.minecraft.diamond_sword"]', 'Excalibur')
   await app.shot('lang-dialog')
-  await app.click('Salva i testi', '[role=dialog] button')
+  await app.click('Salva i testi', '.lang-dialog button')
   await app.waitFor(`document.querySelector('[data-testid=lang-saved]')`, 10000)
   const saved = JSON.parse(
     await readFile(join(app.paths.pack, 'assets', 'minecraft', 'lang', 'en_us.json'), 'utf8')

@@ -70,9 +70,11 @@ export default async function readme(app) {
   await app.sleep(300)
   await frame(app, 1000)
 
-  // Effects: relief from the colours, then three lights.
-  await app.click('Effects', '.shell-tab')
-  await app.waitFor(`document.querySelector('.shell-tab.active')?.dataset.workspace === 'effetti'`)
+  // The relief map: generated from the colours, then three lights.
+  await app.click('Relief _n', '.map-tabs [role=tab]')
+  await app.waitFor(
+    `[...document.querySelectorAll('button')].some((b) => b.textContent.includes('Generate all from the colours'))`
+  )
   await app.sleep(700)
   await frame(app, 700)
   await app.click('Generate all from the colours')
@@ -86,10 +88,10 @@ export default async function readme(app) {
   await app.ev(`document.querySelector('[data-lighting="noon"]').click()`)
 
   // Test: a wall, then the cave.
-  await app.click('Paint', '.shell-tab')
+  await app.click('Colour', '.map-tabs [role=tab]')
   await app.key('s', ['ctrl'])
   await app.sleep(600)
-  await app.click('Test', '.editor-header button')
+  await app.click('Test', '.map-tabs button')
   await app.waitFor(`document.querySelector('.test-screen')`)
   await app.sleep(1500)
   await frame(app, 900)

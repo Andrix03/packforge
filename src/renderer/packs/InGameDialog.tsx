@@ -63,7 +63,7 @@ export function InGameDialog({
   const last = status?.last
   return (
     <DialogFrame embedded={embedded} label={tr('Prova in gioco')} onBackdrop={onClose}>
-      <h2>{tr('Prova {0} in gioco', packName)}</h2>
+      <h2>{tr('{0} nel gioco', packName)}</h2>
 
       <h3 className="panel-title">{tr('1. Copia nella cartella resourcepacks')}</h3>
       {!status ? (

@@ -36,7 +36,15 @@ export default async function display(app) {
     `document.querySelector('[data-testid=display-target]')?.textContent.includes('item/iron_sword')`,
     10000
   )
-  app.check(true, 'edits the sword model drawn in first person')
+  app.check(
+    await app.ev(
+      `document.querySelector('[role=dialog] [aria-checked=true]')?.textContent.includes('Inventario')`
+    ),
+    'opens on the inventory, where the whole item shows'
+  )
+  await app.click('Prima persona', '[role=dialog] button')
+  await app.waitFor(`document.querySelector('[data-testid=display-crop-note]')`)
+  app.check(true, 'first person explains the game crops the item')
   await app.sleep(800)
   await app.shot('display-first-person')
 

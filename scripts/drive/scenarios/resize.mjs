@@ -14,7 +14,7 @@ async function sizeOf(path) {
 }
 
 async function open(app) {
-  await app.click('Ridimensiona', '.tool-bar button')
+  await app.tool('Ridimensiona')
   await app.waitFor(`document.querySelector('[data-testid=resize-histogram]')`, 15000)
   await app.sleep(200)
 }

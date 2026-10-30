@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { panoramaMissing } from '../../shared/panorama'
 import { tr } from '../../shared/i18n'
 import type { VanillaVersionInfo } from '../../shared/ipc'
 import {
@@ -104,7 +105,13 @@ function IssueList({ issues, testId }: { issues: PathIssue[]; testId: string }):
 
 function Problems({ sources }: { sources: AssetSources }): React.JSX.Element {
   const [references, setReferences] = useState<PathIssue[] | null>(null)
-  const names = useMemo(() => lintPaths(sources.pack.files), [sources.pack.files])
+  const names = useMemo(() => {
+    const issues = lintPaths(sources.pack.files)
+    const partial = panoramaMissing(sources.pack.files)
+    if (partial)
+      issues.unshift({ path: 'assets/minecraft/textures/gui/title/background', message: partial })
+    return issues
+  }, [sources.pack.files])
   useEffect(() => {
     if (!sources.vanilla) return
     let current = true

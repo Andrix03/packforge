@@ -7,10 +7,10 @@ import { join } from 'node:path'
 
 export default async function title(app) {
   await app.openPack({ waitForVanilla: true })
-  await app.click('GUI', '.mode-bar [role=tab]')
+  await app.section('gui')
   await app.waitFor(`document.querySelector('.gui-mock')`)
   await app.click('Titolo e caricamento', '.gui-mock button')
-  await app.waitFor(`document.querySelector('[role=dialog][aria-label="Titolo e caricamento"]')`)
+  await app.waitFor(`document.querySelector('.title-screens')`)
   await app.waitFor(`document.querySelector('.panorama-view')`)
   const slots = await app.ev(`document.querySelectorAll('.title-slot').length`)
   app.check(slots === 9, `six faces, two logos and the loading logo (${slots})`)

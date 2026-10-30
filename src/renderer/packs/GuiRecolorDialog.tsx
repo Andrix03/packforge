@@ -15,7 +15,7 @@ import {
   type RecolorSettings
 } from '../../shared/guiRecolor'
 import type { DecodedPng } from '../../shared/pngCodec'
-import { Glyph, OreButton, RangeInput } from '../ui/components'
+import { Glyph, OreButton, ProgressBar, RangeInput } from '../ui/components'
 import { useEscape } from '../useEscape'
 import { backupBefore } from './backup'
 import { errorMessage, loadPng, type FileSource } from './packFetch'
@@ -61,7 +61,7 @@ export function GuiRecolorDialog({
         ...textures.filter((t) => !next.has(t))
       ])
     )
-  const [settings, setSettings] = useState<RecolorSettings>(RECOLOR_PRESETS.dark)
+  const [settings, setSettings] = useState<RecolorSettings>(NEUTRAL)
   const [phase, setPhase] = useState<Phase>({ status: 'setup' })
   useEscape(onClose, phase.status !== 'running')
   const chosen = textures.filter((t) => selected.has(t))
@@ -244,7 +244,7 @@ export function GuiRecolorDialog({
           </>
         )}
         {phase.status === 'running' && (
-          <p className="small">{tr('Ricoloro… {0}/{1}', phase.done, phase.total)}</p>
+          <ProgressBar label={tr('Ricoloro le texture')} done={phase.done} total={phase.total} />
         )}
         {phase.status === 'done' && (
           <p className="small" data-testid="recolor-result">

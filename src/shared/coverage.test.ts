@@ -52,3 +52,15 @@ describe('coverageReport', () => {
     ])
   })
 })
+
+describe('coverageReport and emissive overlays', () => {
+  it('does not count x_e.png next to x.png as a texture missing maps', () => {
+    const report = coverageReport([
+      `${T}block/glowstone.png`,
+      `${T}block/glowstone_e.png`,
+      `${T}block/lonely_e.png`
+    ])
+    expect(report.total).toBe(2)
+    expect(report.missing.map((m) => m.texture.name)).toEqual(['glowstone', 'lonely_e'])
+  })
+})

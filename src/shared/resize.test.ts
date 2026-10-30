@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { factorBetween, resolutionHistogram, scaledSize, scaleMcmeta, scaleNearest } from './resize'
+import {
+  factorBetween,
+  isLookupTexture,
+  resolutionHistogram,
+  scaledSize,
+  scaleMcmeta,
+  scaleNearest
+} from './resize'
 
 const px = (...values: number[]): Uint8Array => {
   const out = new Uint8Array(values.length * 4)
@@ -83,5 +90,19 @@ describe('resolutionHistogram', () => {
       { resolution: 32, count: 1 },
       { resolution: 64, count: 1 }
     ])
+  })
+})
+
+describe('isLookupTexture', () => {
+  it('keeps colormaps, palettes and fonts out of resize and recolour', () => {
+    expect(isLookupTexture('assets/minecraft/textures/colormap/grass.png')).toBe(true)
+    expect(isLookupTexture('assets/minecraft/polytone/colormaps/leaves.png')).toBe(true)
+    expect(isLookupTexture('assets/minecraft/textures/palettes/trim/gold.png')).toBe(true)
+    expect(isLookupTexture('assets/minecraft/textures/trims/color_palettes/gold.png')).toBe(true)
+    expect(isLookupTexture('assets/minecraft/textures/font/ascii.png')).toBe(true)
+    expect(isLookupTexture('assets/minecraft/textures/block/stone.png')).toBe(false)
+    expect(isLookupTexture('assets/minecraft/textures/gui/title/background/panorama_0.png')).toBe(
+      false
+    )
   })
 })

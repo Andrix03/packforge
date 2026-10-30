@@ -7,6 +7,7 @@ import {
   texturePath
 } from '../../shared/blockModel'
 import {
+  FLOWER_SHAPES,
   PLANT_SHAPES,
   plantShapeModel,
   topTextureId,
@@ -82,7 +83,7 @@ async function targetsFor(
 
 /**
  * Writes a plant shape (vanilla planes, cross, bushy, tall) as the models of a crop's growth
- * stages, in the pack. Random variants made by PackForge have the stage model as parent, so they
+ * stages, or of a flower's one model, in the pack. Random variants made by PackForge have the stage model as parent, so they
  * follow. The tall shape also creates the empty `<texture>_top.png` it draws above.
  */
 export function PlantShapeDialog({
@@ -117,6 +118,9 @@ export function PlantShapeDialog({
   }, [sources, block, stages])
 
   const base = path.replace(/_v\d+\.png$/, '.png')
+  // A flower is a plant of one stage: its own shape is the cross, there are no stages to choose.
+  const growing = stages.length > 1
+  const shapes = growing ? PLANT_SHAPES : FLOWER_SHAPES
   const chosen = (targets ?? []).filter((t) => allStages || t.path === base)
 
   const apply = useSingleFlight(async (): Promise<void> => {
@@ -199,12 +203,16 @@ export function PlantShapeDialog({
         ) : (
           <>
             <p className="muted small">
-              {tr(
-                'Il modello 3D degli stadi: scritto nel pack come modello vanilla, funziona senza mod. Le varianti casuali seguono la forma del loro stadio.'
-              )}
+              {growing
+                ? tr(
+                    'Il modello 3D degli stadi: scritto nel pack come modello vanilla, funziona senza mod. Le varianti casuali seguono la forma del loro stadio.'
+                  )
+                : tr(
+                    'Il modello 3D della pianta: scritto nel pack come modello vanilla, funziona senza mod. Le varianti casuali seguono la sua forma.'
+                  )}
             </p>
             <div className="tabs small-tabs wrap" role="radiogroup" aria-label={tr('Forma')}>
-              {PLANT_SHAPES.map((option) => (
+              {shapes.map((option) => (
                 <button
                   key={option.id}
                   type="button"
@@ -218,15 +226,17 @@ export function PlantShapeDialog({
                 </button>
               ))}
             </div>
-            <p className="small">{PLANT_SHAPES.find((s) => s.id === shape)?.hint}</p>
-            <label className="checkbox-inline">
-              <input
-                type="checkbox"
-                checked={allStages}
-                onChange={(event) => setAllStages(event.target.checked)}
-              />
-              {tr('Tutti gli stadi (altrimenti solo quello di questa texture)')}
-            </label>
+            <p className="small">{shapes.find((s) => s.id === shape)?.hint}</p>
+            {growing && (
+              <label className="checkbox-inline">
+                <input
+                  type="checkbox"
+                  checked={allStages}
+                  onChange={(event) => setAllStages(event.target.checked)}
+                />
+                {tr('Tutti gli stadi (altrimenti solo quello di questa texture)')}
+              </label>
+            )}
             {targets === null ? (
               <p className="muted">{tr('Leggo i modelli…')}</p>
             ) : (

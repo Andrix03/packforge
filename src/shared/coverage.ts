@@ -48,6 +48,11 @@ export function coverageFolder(path: string): string | null {
   return match[1] === 'minecraft' ? match[2]! : `${match[1]}:${match[2]}`
 }
 
+/** `x_e.png` with `x.png` in the same folder: the OptiFine / Continuity emissive overlay. */
+function isEmissiveOverlay(path: string, files: ReadonlySet<string>): boolean {
+  return path.endsWith('_e.png') && files.has(path.slice(0, -'_e.png'.length) + '.png')
+}
+
 function folderName(folder: string): string {
   return folder.includes(':') ? folder.slice(folder.indexOf(':') + 1) : folder
 }
@@ -56,6 +61,7 @@ export function coverageReport(packFiles: readonly string[]): CoverageReport {
   const byFolder = new Map<string, FolderCoverage>()
   const missing: CoverageReport['missing'] = []
   let gameMaps = 0
+  const fileSet = new Set(packFiles)
   for (const texture of groupTextures(packFiles)) {
     const folder = coverageFolder(texture.albedo)
     if (!folder) continue
@@ -64,6 +70,9 @@ export function coverageReport(packFiles: readonly string[]): CoverageReport {
       gameMaps++
       continue
     }
+    // An emissive overlay (glowstone_e next to glowstone) is drawn over its texture, not a
+    // texture of its own: it never gets maps.
+    if (isEmissiveOverlay(texture.albedo, fileSet)) continue
     let entry = byFolder.get(folder)
     if (!entry) {
       entry = {

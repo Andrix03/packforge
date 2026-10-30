@@ -12,6 +12,7 @@ import {
 import { assetUrl } from '../../shared/ipc'
 import { growthVariants, stageBaseNames, stemTint } from '../../shared/crops'
 import { mapPath } from '../../shared/labpbr'
+import { isPlantModel } from '../../shared/plantShapes'
 import { emissivePath } from '../../shared/emissive'
 import type { MeshPart, Rgb } from './BlockPreview'
 import { tr } from '../../shared/i18n'
@@ -140,7 +141,10 @@ export interface BlockMesh {
   warnings: string[]
   /** One of its models has an unrotated 16×16×16 element (a full cube, for light and AO). */
   fullCube: boolean
-  /** Growth stages (crops, stems, berries) in age order; empty when the block does not grow. */
+  /**
+   * Growth stages (crops, stems, berries) in age order, or the one stage of a flower; empty when
+   * the block is not a plant.
+   */
   stages: GrowthStage[]
   /** Weights of the variant's random models (empty when it has a single model). */
   choiceWeights: number[]
@@ -206,6 +210,19 @@ export async function loadBlockMesh(
       }
     }
     stages.push({ key: stage.key, textures: [...textures] })
+  }
+  // A flower (one model of flat planes, not growing) is a plant of a single stage, for its shape.
+  const only = variants.length === 1 ? variants[0]!.models : []
+  if (stages.length === 0 && only.length === 1) {
+    const model = await resolve(only[0]!.model)
+    if (isPlantModel(model.elements)) {
+      const textures = new Set(
+        model.elements.flatMap((e) =>
+          Object.values(e.faces).flatMap((f) => (f?.texture ? [texturePath(f.texture.id)] : []))
+        )
+      )
+      stages.push({ key: variants[0]!.key, textures: [...textures] })
+    }
   }
   const preferred = preferTexture
     ? stages.find((stage) => stage.textures.includes(preferTexture))?.key

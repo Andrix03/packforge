@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyPalette,
+  offPalettePixels,
   boxFaces,
   equipmentTexturePath,
   parseEquipment,
@@ -68,5 +69,31 @@ describe('boxFaces', () => {
     expect(head['top']).toEqual({ x: 8, y: 0, width: 8, height: 8 })
     expect(head['front']).toEqual({ x: 8, y: 8, width: 8, height: 8 })
     expect(head['back']).toEqual({ x: 24, y: 8, width: 8, height: 8 })
+  })
+})
+
+describe('offPalettePixels', () => {
+  const px = (colors: number[][]) => ({
+    width: colors.length,
+    height: 1,
+    data: new Uint8ClampedArray(colors.flat())
+  })
+  const base = px([
+    [224, 224, 224, 255],
+    [192, 192, 192, 255]
+  ])
+
+  it('counts opaque pixels outside the base greys, not the transparent ones', () => {
+    const pattern = px([
+      [224, 224, 224, 255],
+      [255, 255, 255, 255],
+      [200, 200, 200, 255],
+      [10, 10, 10, 0]
+    ])
+    expect(offPalettePixels(pattern, base)).toBe(2)
+  })
+
+  it('is zero for a pattern painted with the base greys', () => {
+    expect(offPalettePixels(px([[192, 192, 192, 255]]), base)).toBe(0)
   })
 })

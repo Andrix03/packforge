@@ -60,7 +60,8 @@ export function DisplayDialog({
   onClose: () => void
   onSaved: (written: string[]) => void
 }): React.JSX.Element {
-  const [context, setContext] = useState('firstperson_righthand')
+  // Starts where the whole item shows: in first person the game itself crops it at the screen edge.
+  const [context, setContext] = useState('gui')
   const [drawn, setDrawn] = useState<string[]>([])
   const target = drawn[0] ? namespaced(drawn[0]) : null
   // The model's display as the game resolves it (own entries over its parents').
@@ -166,6 +167,13 @@ export function DisplayDialog({
                 ? tr('Modello: {0}', target.replace(/^minecraft:/, ''))
                 : tr('Niente da disegnare in questo stato.')}
             </p>
+            {context === 'firstperson_righthand' && (
+              <p className="muted small" data-testid="display-crop-note">
+                {tr(
+                  'Come nel gioco: in prima persona l’oggetto esce dal bordo dello schermo (la spada mostra la punta a destra, l’impugnatura sotto).'
+                )}
+              </p>
+            )}
             {FIELDS.map((field) => (
               <fieldset key={field.key} className="display-field">
                 <legend className="lbl">{field.label()}</legend>

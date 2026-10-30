@@ -1,6 +1,7 @@
 import type { MapKind } from '../../shared/labpbr'
 import { channelsOf, type ChannelDef, type ChannelId } from './channels'
 import { Glyph, RangeInput } from '../ui/components'
+import { NAV_ICONS } from '../ui/icons'
 import { tr } from '../../shared/i18n'
 
 export type Surface = 'color' | MapKind
@@ -24,19 +25,25 @@ const SURFACE_LABELS: Record<MapKind, { label: string; title: string }> = {
   }
 }
 
-/** Which image is being painted: the color texture or one channel of its LabPBR maps. */
+/**
+ * The editor's tabs (v3): what is being painted, the color texture or one channel of its LabPBR
+ * maps, and Prova, the texture in a small world.
+ */
 export function MapTabs({
   surface,
   channel,
   maps,
   onSurface,
-  onChannel
+  onChannel,
+  onTest
 }: {
   surface: Surface
   channel: ChannelId | null
   maps: readonly MapTabInfo[]
   onSurface: (surface: Surface) => void
   onChannel: (channel: ChannelId) => void
+  /** Opens the test screen; null hides the tab (nothing loaded yet). */
+  onTest?: (() => void) | null | undefined
 }): React.JSX.Element {
   return (
     <div className="map-tabs">
@@ -75,6 +82,19 @@ export function MapTabs({
             </button>
           )
         })}
+        {onTest && (
+          <button
+            type="button"
+            className="tab test-tab"
+            title={tr(
+              'Guarda la texture come apparirà nel gioco: scene, distanza, confronto con vanilla'
+            )}
+            onClick={onTest}
+          >
+            <Glyph icon={NAV_ICONS.cube} />
+            {tr('Prova')}
+          </button>
+        )}
       </div>
       {surface !== 'color' && (
         <div className="face-tabs channel-tabs" role="tablist" aria-label={tr('Canale')}>

@@ -39,7 +39,7 @@ export default async function overrides(app) {
   await write(items, 'apple.json', ownApple)
 
   await app.openPack({ waitForVanilla: true })
-  await app.click('Overrides in items/', '.tool-bar button')
+  await app.tool('Overrides in items/')
   await app.waitFor(`document.querySelector('[data-testid=overrides-list]')`, 15000)
   const list = await app.ev(`document.querySelector('[data-testid=overrides-list]').textContent`)
   app.check(

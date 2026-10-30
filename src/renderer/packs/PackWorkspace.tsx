@@ -1,4 +1,5 @@
 import { useCommands } from '../shell/commandContext'
+import type { Command } from '../ui/commands'
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, findFolder, parentPath } from '../../shared/fileTree'
 import { assetUrl, type PackSummary, type VanillaVersionInfo } from '../../shared/ipc'
@@ -31,18 +32,24 @@ import { BackupsDialog } from './BackupsDialog'
 import { ExportDialog } from './ExportDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
-import { Glyph } from '../ui/components'
+import { PackHealth } from './PackHealth'
+import { coverageReport } from '../../shared/coverage'
+import { isLookupTexture } from '../../shared/resize'
+import { SectionBrowser } from './SectionBrowser'
+import { PixelIcon, ProgressBar, ToolList, type Tool } from '../ui/components'
+import { SECTION_ICONS } from '../ui/sectionIcons'
 import { CMD_ICONS, NAV_ICONS } from '../ui/icons'
+import { SECTION_FOLDER, SECTION_IDS, sectionOf, type SectionId } from '../../shared/sections'
+import { sectionName } from '../shell/sectionNames'
 import { tr } from '../../shared/i18n'
 
 const DEFAULT_FOLDER = 'assets/minecraft/textures/block'
 const MAX_SEARCH_RESULTS = 500
 
-type Mode = 'pack' | 'vanilla' | 'gui'
+const NO_SECTIONS: ReadonlySet<SectionId> = new Set()
 
-/** Where the GUI tab opens: the widget sprites (buttons, sliders…); the tree has only the GUI. */
-const GUI_FOLDER = 'assets/minecraft/textures/gui/sprites/widget'
-const GUI_PREFIX = 'assets/minecraft/textures/gui/'
+/** Where the textures come from: the pack, or the game (reference only). */
+type Mode = 'pack' | 'vanilla'
 
 interface SourceFiles {
   files: string[]
@@ -68,12 +75,19 @@ interface VanillaJar extends SourceFiles {
 
 export function PackWorkspace({
   pack,
+  section = 'pack',
+  visited,
+  onSection,
   onEditTexture,
   onTestTexture,
   overview,
   visible
 }: {
   pack: PackSummary
+  /** The hotbar section to show (v3). */
+  section?: SectionId
+  visited?: ReadonlySet<SectionId>
+  onSection?: (section: SectionId) => void
   /** False while the editor or the test screen covers it: its commands are withdrawn. */
   visible?: boolean
   /** The pack card, shown at the top of the dock. */
@@ -197,6 +211,9 @@ export function PackWorkspace({
       onTestTexture={(texture, previewSources) => onTestTexture(targetOf(texture, previewSources))}
       overview={overview}
       visible={visible ?? true}
+      section={section}
+      visited={visited ?? NO_SECTIONS}
+      onSection={onSection ?? (() => undefined)}
     />
   )
 }
@@ -213,10 +230,17 @@ function Workspace({
   onEditTexture,
   onTestTexture,
   overview,
-  visible
+  visible,
+  section,
+  visited,
+  onSection
 }: {
   overview: React.ReactNode
   visible: boolean
+  section: SectionId
+  /** Sections opened since the pack was: their pages stay mounted. */
+  visited: ReadonlySet<SectionId>
+  onSection: (section: SectionId) => void
   packFiles: SourceFiles
   fileVersions: Readonly<Record<string, number>>
   vanilla: Loadable<VanillaState>
@@ -240,28 +264,23 @@ function Workspace({
   )
   const packKeys = useMemo(() => new Set(packTextures.map((t) => t.key)), [packTextures])
   const vanillaKeys = useMemo(() => new Set(vanillaTextures.map((t) => t.key)), [vanillaTextures])
-  // The GUI tab: the game's GUI textures (sprites, containers, title…), vanilla as a reference.
-  const guiSource = useMemo<SourceFiles | null>(
-    () =>
-      jar.status === 'ready'
-        ? { ...jar.value, files: jar.value.files.filter((f) => f.startsWith(GUI_PREFIX)) }
-        : null,
-    [jar]
-  )
-  const guiTextures = useMemo(
-    () => vanillaTextures.filter((t) => t.albedo.includes('/textures/gui/')),
-    [vanillaTextures]
-  )
 
   const initialFolder = useMemo(
     () => pickInitialFolder(packFiles.files, packTextures),
     [packFiles.files, packTextures]
   )
-  const [mode, setMode] = useState<Mode>('pack')
+  // Each section remembers its own source (the playtest found Oggetti on Gioco after Blocchi).
+  const [modes, setModes] = useState<Partial<Record<SectionId, Mode>>>({})
+  const mode: Mode = modes[section] ?? 'pack'
+  const setMode = (next: Mode): void => setModes((all) => ({ ...all, [section]: next }))
   const [selectedFolder, setSelectedFolder] = useState(initialFolder)
-  const [guiFolder, setGuiFolder] = useState(GUI_FOLDER)
+  /** The group chosen in each section's browser (null = all). */
+  const [groups, setGroups] = useState<Partial<Record<SectionId, string | null>>>({})
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
+  /** Each section keeps its own search. */
+  const [queries, setQueries] = useState<Partial<Record<SectionId, string>>>({})
+  const query = queries[section] ?? ''
+  const setQuery = (next: string): void => setQueries((all) => ({ ...all, [section]: next }))
   const [previewSelection, setPreviewSelection] = useState<PreviewSelection | null>(null)
   const [creating, setCreating] = useState<NewTextureRequest | null>(null)
   const [validating, setValidating] = useState(false)
@@ -279,11 +298,9 @@ function Workspace({
   const [doctoring, setDoctoring] = useState(false)
   const [emissive, setEmissive] = useState(false)
   const [recoloringAll, setRecoloringAll] = useState(false)
-  const [langOpen, setLangOpen] = useState(false)
   const [polytoneOpen, setPolytoneOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [varying, setVarying] = useState<TextureEntry | null>(null)
-  const [titleScreens, setTitleScreens] = useState(false)
   const [recoloring, setRecoloring] = useState(false)
   const previewVersion = previewSelection?.isPack ? (fileVersions[previewSelection.albedo] ?? 0) : 0
   const previewMcmetaVersion =
@@ -342,11 +359,38 @@ function Workspace({
   const vanillaReady = jar.status === 'ready'
   const activeMode: Mode = mode !== 'pack' && vanillaReady ? mode : 'pack'
   const fromJar = activeMode !== 'pack'
-  const jarSource: SourceFiles | null =
-    jar.status !== 'ready' ? null : activeMode === 'gui' ? (guiSource ?? jar.value) : jar.value
+  const jarSource: SourceFiles | null = jar.status !== 'ready' ? null : jar.value
   const source: SourceFiles = fromJar && jarSource ? jarSource : packFiles
-  const textures =
-    activeMode === 'vanilla' ? vanillaTextures : activeMode === 'gui' ? guiTextures : packTextures
+  const textures = activeMode === 'vanilla' ? vanillaTextures : packTextures
+  // The section's own textures (Blocchi, Oggetti…), from the same source.
+  const sectionTextures = useMemo(
+    () => textures.filter((t) => sectionOf(t.albedo) === section),
+    [textures, section]
+  )
+  // One count of the maps for the whole app: the same as Copertura.
+  const coverage = useMemo(() => coverageReport(packFiles.files), [packFiles.files])
+  /** Pack files (textures, models, texts) per section, for the Pack overview. */
+  const sectionCounts = useMemo(() => {
+    // Textures as the grids count them (a texture with its maps is one), plus the text files
+    // (lang, splashes) that Testi and Schermate edit.
+    const counts = new Map<SectionId, number>()
+    const add = (id: SectionId | null): void => {
+      if (id) counts.set(id, (counts.get(id) ?? 0) + 1)
+    }
+    for (const texture of packTextures) add(sectionOf(texture.albedo))
+    for (const file of packFiles.files) {
+      if (!file.endsWith('.png') && /\/(lang|texts)\//.test(file)) add(sectionOf(file))
+    }
+    return counts
+  }, [packTextures, packFiles.files])
+  const packSectionCount = useMemo(
+    () => packTextures.filter((t) => sectionOf(t.albedo) === section).length,
+    [packTextures, section]
+  )
+  const vanillaSectionCount = useMemo(
+    () => vanillaTextures.filter((t) => sectionOf(t.albedo) === section).length,
+    [vanillaTextures, section]
+  )
   const marker: TextureMarker | undefined = fromJar
     ? { keys: packKeys, label: 'P', title: tr('Questa texture è già nel tuo pack') }
     : vanillaReady
@@ -420,9 +464,14 @@ function Workspace({
             label: tr('Titolo e caricamento…'),
             menu: 'Pack',
             area: 'Pack',
-            enabled: vanillaReady,
-            why: tr('Serve il jar vanilla'),
-            run: () => setTitleScreens(true)
+            run: () => onSection('screens')
+          },
+          {
+            id: 'pack:lang',
+            label: tr('Testi del gioco…'),
+            menu: 'Pack',
+            area: 'Pack',
+            run: () => onSection('texts')
           },
           {
             id: 'pack:resize',
@@ -437,364 +486,537 @@ function Workspace({
       : []
   )
 
+  const selectTexture = (texture: TextureEntry): void =>
+    setPreviewSelection({
+      key: `${source.assetBase}|${texture.key}`,
+      base: source.assetBase,
+      textureKey: texture.key,
+      albedo: texture.albedo,
+      mcmeta: texture.mcmeta,
+      name: texture.name,
+      isPack: activeMode === 'pack',
+      sourceLabel: fromJar && jar.status === 'ready' ? `Vanilla ${jar.value.versionId}` : 'Pack'
+    })
+  // Only pack textures are editable: vanilla pixels never enter the pack. Double-clicking a vanilla
+  // texture opens the pack's version, or offers to create one with that name.
+  const openTexture = (texture: TextureEntry): void => {
+    if (activeMode === 'pack') {
+      onEditTexture(texture, previewSources)
+      return
+    }
+    const own = packTextures.find((entry) => entry.key === texture.key)
+    if (own) onEditTexture(own, previewSources)
+    else if (canCreate) {
+      setCreating({
+        folder: texture.folder,
+        name: texture.name,
+        fromVanilla: true,
+        // Only its size is read: a 200×20 button gets a 200×20 (or 2×, 4×) texture.
+        vanillaUrl: assetUrl(source.assetBase, texture.albedo)
+      })
+    }
+  }
+  const newTextureIn = (folder: string): (() => void) | undefined =>
+    canCreate ? () => setCreating({ folder, name: '', fromVanilla: false }) : undefined
+
+  const zipWhy = canCreate ? null : zipNote
+  /** A pack texture chosen in the grid (not a _n / _s map): what per-texture tools work on. */
+  const chosen =
+    testable &&
+    mapKindOf(testable.albedo) === null &&
+    (section === 'pack' || sectionOf(testable.albedo) === section)
+      ? testable
+      : null
+  const chooseFirst = tr('Scegli prima una texture del pack nella griglia')
+  /** Tools that live in the editor: they open the chosen texture there. */
+  const inEditor = (id: string, label: string, tip: string, glyph: Tool['glyph']): Tool => ({
+    id,
+    label,
+    tip: tr('{0} (nell’editor della texture)', tip),
+    glyph,
+    why: chosen ? zipWhy : chooseFirst,
+    run: () => chosen && onEditTexture(chosen, previewSources)
+  })
+  const packTools: Tool[] = [
+    {
+      id: 'doctor',
+      label: tr('Diagnosi'),
+      tip: tr(
+        'File che il gioco ignora, riferimenti rotti, texture che mancano, cambio di versione'
+      ),
+      icon: NAV_ICONS.search,
+      run: () => setDoctoring(true)
+    },
+    {
+      id: 'validate',
+      label: tr('Controlla mappe'),
+      tip: tr(
+        'Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani'
+      ),
+      glyph: 'check',
+      run: () => setValidating(true)
+    },
+    {
+      id: 'coverage',
+      label: tr('Copertura'),
+      tip: tr('Quante texture del pack hanno già _n e _s, e quali mancano'),
+      glyph: 'chart',
+      run: () => setCovering(true)
+    },
+    {
+      id: 'batch',
+      label: tr('Applica in blocco'),
+      tip: tr(
+        'Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo'
+      ),
+      glyph: 'gear',
+      why: zipWhy,
+      run: () => setBatching({ selection: null, maps: { specular: true, normal: false } })
+    },
+    {
+      id: 'recolor',
+      label: tr('Ricolora texture'),
+      tip: tr('Cambia insieme i colori di tante texture (blocchi, oggetti, entità…)'),
+      icon: CMD_ICONS.color,
+      why: zipWhy,
+      run: () => setRecoloringAll(true)
+    },
+    {
+      id: 'resize',
+      label: tr('Ridimensiona'),
+      tip: tr(
+        'Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe'
+      ),
+      glyph: 'resize',
+      why: zipWhy,
+      run: () => setResizing(true)
+    },
+    {
+      id: 'backup',
+      label: tr('Backup'),
+      tip: tr('I backup presi prima di sovrascrivere file: ripristina una versione precedente'),
+      glyph: 'clock',
+      why: zipWhy,
+      run: () => setShowBackups(true)
+    },
+    {
+      id: 'export',
+      label: tr('Esporta'),
+      tip: tr(
+        'Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti'
+      ),
+      icon: NAV_ICONS.chest,
+      why: zipWhy,
+      run: () => setExporting(true)
+    }
+  ]
+  const emissiveTool: Tool = {
+    id: 'emissive',
+    label: tr('Luce _e'),
+    tip: tr(
+      'Crea le texture _e (luce senza shader, OptiFine / Continuity) dalle mappe _s che emettono'
+    ),
+    glyph: 'dot',
+    why: zipWhy,
+    run: () => setEmissive(true)
+  }
+  const variantsTool: Tool = {
+    id: 'variants',
+    label: tr('Varianti di colore'),
+    tip: chosen
+      ? tr(
+          'Crea le versioni di {0} in tutti i colori (lana, cemento, vetro colorato…)',
+          chosen.name
+        )
+      : tr('La stessa texture nei 16 colori del gioco'),
+    icon: CMD_ICONS.color,
+    why: chosen ? zipWhy : chooseFirst,
+    run: () => setVarying(chosen)
+  }
+  const sectionTools: Partial<Record<SectionId, Tool[]>> = {
+    blocks: [
+      {
+        id: 'connected',
+        label: tr('Texture connesse'),
+        tip: chosen
+          ? tr('Crea i 47 tile delle texture connesse di {0} (Continuity / OptiFine)', chosen.name)
+          : tr('I 47 pezzi che si uniscono (Continuity / OptiFine)'),
+        glyph: 'connected',
+        why: chosen ? zipWhy : chooseFirst,
+        run: () => setConnecting(chosen)
+      },
+      variantsTool,
+      emissiveTool,
+      inEditor(
+        'random',
+        tr('Varianti casuali'),
+        tr('Più versioni: il gioco ne sceglie una per blocco'),
+        'dice'
+      ),
+      inEditor(
+        'popout',
+        tr('Pixel in rilievo'),
+        tr('Alcuni colori escono dal blocco in 3D (minerali, gemme)'),
+        'up'
+      ),
+      inEditor(
+        'shapes',
+        tr('Forme 3D ed elementi'),
+        tr('Foglie folte, erba sui lati, binari, i cubetti del modello'),
+        'gear'
+      ),
+      inEditor('plant', tr('Forma della pianta'), tr('Croce, cespuglio o pianta alta'), 'leaf')
+    ],
+    items: [
+      variantsTool,
+      inEditor(
+        'item3d',
+        tr('3D in mano'),
+        tr('Piatto nell’inventario, in rilievo nella mano'),
+        'up'
+      ),
+      inEditor(
+        'name',
+        tr('Variante per nome'),
+        tr('Una texture diversa quando l’oggetto ha un certo nome nell’incudine'),
+        'book'
+      ),
+      inEditor(
+        'display',
+        tr('Posizioni e definizione'),
+        tr('Come sta in mano, a terra, in testa, e il file items/'),
+        'resize'
+      ),
+      {
+        id: 'overrides',
+        label: tr('Overrides in items/'),
+        tip: tr(
+          'Crea le definizioni in items/ dagli overrides dei modelli degli oggetti (1.21.4+)'
+        ),
+        glyph: 'swap',
+        why: !canCreate ? zipNote : hasItemModels ? null : tr('Il pack non ha modelli di oggetti'),
+        run: () => setOverriding(true)
+      }
+    ],
+    armor: [
+      inEditor(
+        'trims',
+        tr('Armatura e finiture'),
+        tr('Il giocatore 3D con motivo e materiale della finitura'),
+        'gear'
+      ),
+      emissiveTool
+    ],
+    entities: [
+      variantsTool,
+      inEditor(
+        'mobs',
+        tr('Varianti del mob'),
+        tr('Più texture per questo mob, scelte a caso o con regole'),
+        'dice'
+      ),
+      emissiveTool
+    ],
+    gui: [
+      {
+        id: 'guiRecolor',
+        label: tr('Ricolora GUI'),
+        tip: tr('Tutti i pannelli e i pulsanti in un’altra tinta'),
+        icon: CMD_ICONS.color,
+        why: zipWhy,
+        run: () => setRecoloring(true)
+      },
+      {
+        id: 'title',
+        label: tr('Titolo e caricamento'),
+        tip: tr('Panorama, logo, schermata di caricamento: nella sezione Schermate'),
+        glyph: 'arrowRight',
+        run: () => onSection('screens')
+      }
+    ],
+    world: [
+      {
+        id: 'polytone',
+        label: tr('Polytone'),
+        tip: tr('Colori dei biomi con la mod Polytone: una colormap tua per foglie ed erba'),
+        glyph: 'leaf',
+        why: zipWhy,
+        run: () => setPolytoneOpen(true)
+      },
+      {
+        id: 'recolorWorld',
+        label: tr('Ricolora texture'),
+        tip: tr('Cambia insieme i colori di tante texture (blocchi, oggetti, entità…)'),
+        icon: CMD_ICONS.color,
+        why: zipWhy,
+        run: () => setRecoloringAll(true)
+      }
+    ]
+  }
+
+  const sourceSwitch = (
+    <div className="source-switch">
+      <div className="joined" role="radiogroup" aria-label={tr('Da dove')}>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={activeMode === 'pack'}
+          className={activeMode === 'pack' ? 'ore-on' : 'ore'}
+          onClick={() => setMode('pack')}
+        >
+          {tr('Il tuo pack')}
+          <span className="count">{packSectionCount}</span>
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={activeMode === 'vanilla'}
+          className={activeMode === 'vanilla' ? 'ore-on' : 'ore'}
+          disabled={!vanillaReady}
+          title={vanillaReady ? undefined : vanillaHint(vanilla, jar)}
+          onClick={() => setMode('vanilla')}
+        >
+          {tr('Gioco')}
+          {vanillaReady && <span className="count">{vanillaSectionCount}</span>}
+        </button>
+      </div>
+      <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
+    </div>
+  )
+  const jarLoading =
+    activeMode === 'pack' && (jar.status === 'loading' || vanilla.status === 'loading') ? (
+      <ProgressBar label={tr('Leggo le texture del gioco')} />
+    ) : null
+  const selectedKey =
+    previewSelection?.base === source.assetBase ? previewSelection.textureKey : null
+  const marker2 = marker
+  const tools = sectionTools[section] ?? []
+  // Every section tool is also a Ctrl+K command (going to its section first), so the search
+  // finds what the panels offer. Tools that already have a pack command are not repeated.
+  const HAS_COMMAND = new Set([
+    'export',
+    'validate',
+    'coverage',
+    'batch',
+    'resize',
+    'backup',
+    'guiRecolor',
+    'title'
+  ])
+  const toolCommands: Command[] = []
+  const listed = new Set<string>()
+  for (const [owner, list] of [
+    ['pack', [...packTools, variantsTool]],
+    ...Object.entries(sectionTools)
+  ] as Array<[SectionId, Tool[]]>) {
+    for (const tool of list) {
+      if (HAS_COMMAND.has(tool.id) || listed.has(tool.id)) continue
+      listed.add(tool.id)
+      toolCommands.push({
+        id: `tool:${tool.id}`,
+        label: `${tool.label}…`,
+        area: sectionName(owner),
+        enabled: !tool.why,
+        why: tool.why ?? undefined,
+        run: () => {
+          if (owner !== section) onSection(owner)
+          tool.run()
+        }
+      })
+    }
+  }
+  useCommands(visible ? toolCommands : [])
+
+  const preview =
+    section === 'gui' ? (
+      <GuiMockScreen
+        sources={previewSources}
+        onOpenTitle={() => onSection('screens')}
+        onRecolor={canCreate ? () => setRecoloring(true) : null}
+      />
+    ) : (
+      <PreviewPanel
+        target={previewTarget}
+        sources={previewSources}
+        onTest={testable ? () => onTestTexture(testable, previewSources) : null}
+      />
+    )
+
   return (
-    <section className="workspace-wrap pack-screen">
-      <div className="pack-main">
-        <div className="mode-bar">
-          <div className="tabs" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeMode === 'pack'}
-              className={activeMode === 'pack' ? 'tab active' : 'tab'}
-              onClick={() => setMode('pack')}
-            >
-              {tr('Pack')} <span className="count">{packTextures.length}</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeMode === 'vanilla'}
-              className={activeMode === 'vanilla' ? 'tab active' : 'tab'}
-              onClick={() => setMode('vanilla')}
-              disabled={!vanillaReady}
-              title={vanillaReady ? undefined : vanillaHint(vanilla, jar)}
-            >
-              {tr('Vanilla')}{' '}
-              {vanillaReady && <span className="count">{vanillaTextures.length}</span>}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeMode === 'gui'}
-              className={activeMode === 'gui' ? 'tab active' : 'tab'}
-              onClick={() => setMode('gui')}
-              disabled={!vanillaReady}
-              title={
-                vanillaReady
-                  ? tr('Le texture della GUI del gioco, con una schermata di prova')
-                  : vanillaHint(vanilla, jar)
-              }
-            >
-              {tr('GUI')} {vanillaReady && <span className="count">{guiTextures.length}</span>}
-            </button>
-          </div>
-          <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
-        </div>
-        <div className="workspace-row">
-          <TextureBrowser
-            // Remount per source: tree expansion is rebuilt around the shared folder.
-            key={
-              fromJar && jar.status === 'ready' ? `${activeMode}:${jar.value.assetBase}` : 'pack'
-            }
-            selectedKey={
-              previewSelection?.base === source.assetBase ? previewSelection.textureKey : null
-            }
-            versionOf={activeMode === 'pack' ? (path) => fileVersions[path] ?? 0 : undefined}
-            onSelectTexture={(texture) =>
-              setPreviewSelection({
-                key: `${source.assetBase}|${texture.key}`,
-                base: source.assetBase,
-                textureKey: texture.key,
-                albedo: texture.albedo,
-                mcmeta: texture.mcmeta,
-                name: texture.name,
-                isPack: activeMode === 'pack',
-                sourceLabel:
-                  fromJar && jar.status === 'ready' ? `Vanilla ${jar.value.versionId}` : 'Pack'
-              })
-            }
-            // Only pack textures are editable: vanilla pixels never enter the pack. Double-clicking
-            // a vanilla texture opens the pack's version, or offers to create one with that name.
-            onOpenTexture={(texture) => {
-              if (activeMode === 'pack') {
-                onEditTexture(texture, previewSources)
-                return
-              }
-              const own = packTextures.find((entry) => entry.key === texture.key)
+    <section
+      className={`workspace-wrap pack-screen section-${section}`}
+      data-section={section}
+      aria-label={sectionName(section)}
+    >
+      {/* Schermate and Testi stay mounted once opened: unsaved splashes or texts survive a
+          visit to another section. */}
+      {(section === 'screens' || visited.has('screens')) && (
+        <div className="section-page" hidden={section !== 'screens'}>
+          <TitleScreensDialog
+            embedded
+            active={section === 'screens' && visible}
+            sources={previewSources}
+            // "Create yours" copies only the size of the game's texture: it needs the jar.
+            canCreate={canCreate && jar.status === 'ready'}
+            canWrite={canCreate}
+            onClose={() => onSection('pack')}
+            onOpen={(path) => {
+              const own = packTextures.find((entry) => entry.albedo === path)
               if (own) onEditTexture(own, previewSources)
-              else if (canCreate) {
+              else if (canCreate && jar.status === 'ready') {
                 setCreating({
-                  folder: texture.folder,
-                  name: texture.name,
+                  folder: path.slice(0, path.lastIndexOf('/')),
+                  name: path.slice(path.lastIndexOf('/') + 1, -'.png'.length),
                   fromVanilla: true,
-                  // Only its size is read: a 200×20 button gets a 200×20 (or 2×, 4×) texture.
-                  vanillaUrl: assetUrl(source.assetBase, texture.albedo)
+                  vanillaUrl: assetUrl(jar.value.assetBase, path)
                 })
               }
             }}
-            onNewTexture={
-              canCreate
-                ? () =>
-                    setCreating({
-                      folder: selectedFolder.startsWith('assets/')
-                        ? selectedFolder
-                        : DEFAULT_FOLDER,
-                      name: '',
-                      fromVanilla: false
-                    })
-                : undefined
-            }
-            source={source}
-            textures={textures}
-            marker={marker}
-            coverageKeys={fromJar ? packKeys : null}
-            selectedFolder={activeMode === 'gui' ? guiFolder : selectedFolder}
-            onSelectFolder={activeMode === 'gui' ? setGuiFolder : setSelectedFolder}
-            selectedFile={selectedFile}
-            onSelectFile={setSelectedFile}
-            query={query}
-            onQuery={setQuery}
           />
         </div>
-      </div>
-      {/* Dock: the pack, the 3D preview (outside the browser so it survives Pack/Vanilla switches), the tools. */}
-      <aside className="pack-dock">
-        {overview}
-        {activeMode === 'gui' ? (
-          <GuiMockScreen
-            sources={previewSources}
-            onOpenTitle={() => setTitleScreens(true)}
-            onRecolor={canCreate ? () => setRecoloring(true) : null}
+      )}
+      {(section === 'texts' || visited.has('texts')) && (
+        <div className="section-page" hidden={section !== 'texts'}>
+          <LangDialog
+            embedded
+            gameVersion={jar.status === 'ready' ? jar.value.versionId : null}
+            pack={validatorPack}
+            canWrite={canCreate}
+            onClose={() => onSection('pack')}
           />
-        ) : (
-          <PreviewPanel
-            target={previewTarget}
-            sources={previewSources}
-            onTest={testable ? () => onTestTexture(testable, previewSources) : null}
-          />
-        )}
-        <section className="pack-tools">
-          <h3 className="ph">{tr('Strumenti del pack')}</h3>
-          <div className="tool-bar" role="toolbar" aria-label={tr('Strumenti')}>
-            <div className="tool-group">
-              <span className="tool-group-label">{tr('Pack')}</span>
-              <button
-                type="button"
-                className="small-button"
-                title={tr(
-                  'Copia il pack nella cartella resourcepacks del gioco e i tasti per provarlo (F3 + T, Iris)'
-                )}
-                onClick={() => setInGame(true)}
-              >
-                <Glyph name="gamepad" />
-                {tr('Copia nel gioco')}
-              </button>
-              {canCreate && (
+        </div>
+      )}
+      {section === 'screens' || section === 'texts' ? null : section === 'pack' ? (
+        <>
+          <div className="pack-main">
+            <div className="mode-bar">
+              <div className="tabs" role="tablist">
                 <button
                   type="button"
-                  className="small-button"
-                  title={tr(
-                    'Crea lo zip da pubblicare: versione, licenza, crediti, changelog, controlli e varianti'
-                  )}
-                  onClick={() => setExporting(true)}
+                  role="tab"
+                  aria-selected={activeMode === 'pack'}
+                  className={activeMode === 'pack' ? 'tab active' : 'tab'}
+                  onClick={() => setMode('pack')}
                 >
-                  <Glyph icon={NAV_ICONS.chest} />
-                  {tr('Esporta')}
-                </button>
-              )}
-              {canCreate && (
-                <button
-                  type="button"
-                  className="small-button"
-                  title={tr(
-                    'I backup presi prima di sovrascrivere file: ripristina una versione precedente'
-                  )}
-                  onClick={() => setShowBackups(true)}
-                >
-                  <Glyph name="clock" />
-                  {tr('Backup')}
-                </button>
-              )}
-              <button
-                type="button"
-                className="small-button"
-                title={tr(
-                  'File che il gioco ignora, riferimenti rotti, texture che mancano, cambio di versione'
-                )}
-                onClick={() => setDoctoring(true)}
-              >
-                <Glyph icon={NAV_ICONS.search} />
-                {tr('Diagnosi')}
-              </button>
-              <button
-                type="button"
-                className="small-button"
-                title={tr('Nomi di blocchi e oggetti, messaggi, menu: cambiali per una lingua')}
-                onClick={() => setLangOpen(true)}
-              >
-                <Glyph name="book" />
-                {tr('Testi del gioco')}
-              </button>
-              {canCreate && hasItemModels && (
-                <button
-                  type="button"
-                  className="small-button"
-                  title={tr(
-                    'Crea le definizioni in items/ dagli overrides dei modelli degli oggetti (1.21.4+)'
-                  )}
-                  onClick={() => setOverriding(true)}
-                >
-                  <Glyph name="swap" />
-                  {tr('Overrides in items/')}
-                </button>
-              )}
-            </div>
-            <div className="tool-group">
-              <span className="tool-group-label">{tr('Mappe')}</span>
-              <button
-                type="button"
-                className="small-button"
-                title={tr(
-                  'Controlla le mappe _n / _s del pack: dimensioni, animazione, emissione, altezza, file orfani'
-                )}
-                onClick={() => setValidating(true)}
-              >
-                <Glyph icon={NAV_ICONS.search} />
-                {tr('Controlla mappe')}
-              </button>
-              <button
-                type="button"
-                className="small-button"
-                title={tr('Quante texture del pack hanno già _n e _s, e quali mancano')}
-                onClick={() => setCovering(true)}
-              >
-                <Glyph name="chart" />
-                {tr('Copertura')}
-              </button>
-              {canCreate && (
-                <button
-                  type="button"
-                  className="small-button"
-                  title={tr(
-                    'Crea le texture _e (luce senza shader, OptiFine / Continuity) dalle mappe _s che emettono'
-                  )}
-                  onClick={() => setEmissive(true)}
-                >
-                  <Glyph name="dot" />
-                  {tr('Luce _e')}
-                </button>
-              )}
-              {canCreate && (
-                <button
-                  type="button"
-                  className="small-button"
-                  title={tr('Cambia insieme i colori di tante texture (blocchi, oggetti, entità…)')}
-                  onClick={() => setRecoloringAll(true)}
-                >
-                  <Glyph icon={CMD_ICONS.color} />
-                  {tr('Ricolora texture')}
-                </button>
-              )}
-              {canCreate && (
-                <button
-                  type="button"
-                  className="small-button"
-                  title={tr(
-                    'Colori dei biomi con la mod Polytone: una colormap tua per foglie ed erba'
-                  )}
-                  onClick={() => setPolytoneOpen(true)}
-                >
-                  <Glyph name="leaf" />
-                  {tr('Polytone')}
-                </button>
-              )}
-              {canCreate && (
-                <button
-                  type="button"
-                  className="small-button"
-                  title={tr(
-                    'Crea le mappe _s / _n di tante texture insieme, con un preset materiale e/o il generatore di rilievo'
-                  )}
-                  onClick={() =>
-                    setBatching({ selection: null, maps: { specular: true, normal: false } })
-                  }
-                >
-                  <Glyph name="gear" />
-                  {tr('Applica in blocco')}
-                </button>
-              )}
-              {canCreate && (
-                <button
-                  type="button"
-                  className="small-button"
-                  title={tr(
-                    'Porta le texture a una sola risoluzione (16×, 32×, 64×…) a pixel netti, con le loro mappe'
-                  )}
-                  onClick={() => setResizing(true)}
-                >
-                  <Glyph name="resize" />
-                  {tr('Ridimensiona')}
-                </button>
-              )}
-            </div>
-            {canCreate && (
-              <div className="tool-group">
-                <span className="tool-group-label" data-testid="selected-texture">
-                  {testable ? testable.name : tr('Scegli una texture')}
-                </span>
-                <button
-                  type="button"
-                  className="small-button"
-                  disabled={!testable || mapKindOf(testable.albedo) !== null}
-                  title={
-                    testable
-                      ? tr(
-                          'Crea le versioni di {0} in tutti i colori (lana, cemento, vetro colorato…)',
-                          testable.name
-                        )
-                      : tr('Seleziona prima una texture del pack')
-                  }
-                  onClick={() => setVarying(testable)}
-                >
-                  <Glyph icon={CMD_ICONS.color} />
-                  {tr('Varianti di colore')}
+                  {tr('Pack')} <span className="count">{packTextures.length}</span>
                 </button>
                 <button
                   type="button"
-                  className="small-button"
-                  disabled={!testable || mapKindOf(testable.albedo) !== null}
-                  title={
-                    testable
-                      ? tr(
-                          'Crea i 47 tile delle texture connesse di {0} (Continuity / OptiFine)',
-                          testable.name
-                        )
-                      : tr('Seleziona prima una texture del pack')
-                  }
-                  onClick={() => setConnecting(testable)}
+                  role="tab"
+                  aria-selected={activeMode === 'vanilla'}
+                  className={activeMode === 'vanilla' ? 'tab active' : 'tab'}
+                  onClick={() => setMode('vanilla')}
+                  disabled={!vanillaReady}
+                  title={vanillaReady ? undefined : vanillaHint(vanilla, jar)}
                 >
-                  <Glyph name="connected" />
-                  {tr('Texture connesse')}
+                  {tr('Vanilla')}{' '}
+                  {vanillaReady && <span className="count">{vanillaTextures.length}</span>}
                 </button>
               </div>
-            )}
+              <VanillaPicker vanilla={vanilla} jar={jar} onSelect={onSelectVersion} />
+            </div>
+            <div className="workspace-row">
+              <TextureBrowser
+                // Remount per source: tree expansion is rebuilt around the shared folder.
+                key={fromJar && jar.status === 'ready' ? `vanilla:${jar.value.assetBase}` : 'pack'}
+                selectedKey={selectedKey}
+                versionOf={activeMode === 'pack' ? (path) => fileVersions[path] ?? 0 : undefined}
+                onSelectTexture={selectTexture}
+                onOpenTexture={openTexture}
+                onNewTexture={newTextureIn(
+                  selectedFolder.startsWith('assets/') ? selectedFolder : DEFAULT_FOLDER
+                )}
+                source={source}
+                textures={textures}
+                marker={marker2}
+                coverageKeys={fromJar ? packKeys : null}
+                selectedFolder={selectedFolder}
+                onSelectFolder={setSelectedFolder}
+                selectedFile={selectedFile}
+                onSelectFile={setSelectedFile}
+                query={query}
+                onQuery={setQuery}
+              />
+            </div>
           </div>
-        </section>
-      </aside>
+          {/* Dock: the pack, the 3D preview (outside the browser so it survives source switches), the tools. */}
+          <aside className="pack-dock">
+            {overview}
+            <PackHealth
+              withMaps={coverage.complete}
+              textures={coverage.total}
+              remade={packTextures.filter((t) => vanillaKeys.has(t.key)).length}
+              gameTextures={vanillaReady ? vanillaTextures.length : null}
+              canBackup={canCreate}
+              revision={packFiles.files.length}
+            />
+            <section className="pack-sections" aria-label={tr('Le sezioni del pack')}>
+              <h3 className="ph">{tr('Le sezioni del pack')}</h3>
+              <div className="pack-section-list">
+                {SECTION_IDS.filter((id) => id !== 'pack').map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className="pack-section-row"
+                    data-section={id}
+                    onClick={() => onSection(id)}
+                  >
+                    <PixelIcon icon={SECTION_ICONS[id]} />
+                    <span>{sectionName(id)}</span>
+                    <span className="group-count">{sectionCounts.get(id) ?? 0}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+            <section className="pack-tools">
+              <h3 className="ph">{tr('Strumenti per tutto il pack')}</h3>
+              <ToolList label={tr('Strumenti')} tools={[...packTools, variantsTool]} />
+            </section>
+            {preview}
+          </aside>
+        </>
+      ) : (
+        <>
+          <div className="pack-main">
+            <SectionBrowser
+              // A new section starts with its own search and scroll.
+              key={section}
+              section={section}
+              textures={sectionTextures}
+              assetBase={source.assetBase}
+              source={sourceSwitch}
+              group={groups[section] ?? null}
+              onGroup={(group) => setGroups((all) => ({ ...all, [section]: group }))}
+              query={query}
+              onQuery={setQuery}
+              marker={marker2}
+              coverageKeys={fromJar ? packKeys : null}
+              selectedKey={selectedKey}
+              onSelect={selectTexture}
+              onOpen={openTexture}
+              onNewTexture={newTextureIn(SECTION_FOLDER[section])}
+              versionOf={activeMode === 'pack' ? (path) => fileVersions[path] ?? 0 : undefined}
+              loading={jarLoading}
+            />
+          </div>
+          {/* Tools first: they are what a section is for; the preview follows. */}
+          <aside className="pack-dock">
+            <section className="pack-tools">
+              <h3 className="ph">
+                {tr('Strumenti: {0}', sectionName(section))}
+                <span className="muted small" data-testid="selected-texture">
+                  {chosen ? chosen.name : ''}
+                </span>
+              </h3>
+              <ToolList label={tr('Strumenti')} tools={tools} />
+            </section>
+            {preview}
+          </aside>
+        </>
+      )}
       {recoloring && <GuiRecolorDialog pack={validatorPack} onClose={() => setRecoloring(false)} />}
       {recoloringAll && (
         <GuiRecolorDialog pack={validatorPack} anyArea onClose={() => setRecoloringAll(false)} />
-      )}
-      {titleScreens && (
-        <TitleScreensDialog
-          sources={previewSources}
-          canCreate={canCreate}
-          onClose={() => setTitleScreens(false)}
-          onOpen={(path) => {
-            const own = packTextures.find((entry) => entry.albedo === path)
-            setTitleScreens(false)
-            if (own) onEditTexture(own, previewSources)
-            else if (canCreate && jar.status === 'ready') {
-              setCreating({
-                folder: path.slice(0, path.lastIndexOf('/')),
-                name: path.slice(path.lastIndexOf('/') + 1, -'.png'.length),
-                fromVanilla: true,
-                vanillaUrl: assetUrl(jar.value.assetBase, path)
-              })
-            }
-          }}
-        />
       )}
       {varying && (
         <VariantsDialog
@@ -841,9 +1063,6 @@ function Workspace({
           }}
         />
       )}
-      {langOpen && (
-        <LangDialog pack={validatorPack} canWrite={canCreate} onClose={() => setLangOpen(false)} />
-      )}
       {doctoring && (
         <PackDoctorDialog
           sources={previewSources}
@@ -872,7 +1091,8 @@ function Workspace({
       {resizing && (
         <ResizeDialog
           pack={validatorPack}
-          textures={mapLessTextures}
+          // Colormaps, palettes and fonts keep their size (lookup tables, not pictures).
+          textures={mapLessTextures.filter((t) => !isLookupTexture(t.albedo))}
           onClose={() => setResizing(false)}
         />
       )}
@@ -1020,7 +1240,7 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
     ? textures.filter((t) => t.name.toLowerCase().includes(trimmedQuery))
     : textures.filter((t) => t.folder === selectedFolder)
   const visible = trimmedQuery ? matches.slice(0, MAX_SEARCH_RESULTS) : matches
-  const withMaps = matches.filter((t) => t.normal || t.specular).length
+  const withMaps = matches.filter((t) => t.normal && t.specular).length
   const covered = props.coverageKeys
     ? matches.filter((t) => props.coverageKeys?.has(t.key)).length
     : null
@@ -1049,7 +1269,7 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
     covered !== null
       ? tr(', {0} di {1} già nel pack', covered, matches.length)
       : matches.length > 0
-        ? tr(', {0} con mappe PBR', withMaps)
+        ? tr(', {0} con _n e _s', withMaps)
         : ''
 
   return (

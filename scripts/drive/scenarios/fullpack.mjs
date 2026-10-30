@@ -86,6 +86,7 @@ export default async function fullpack(app) {
   // ---- 3. Textures, started from the vanilla list (same name = replaces it in game).
   const dialog = '[aria-label="Nuova texture"]'
   async function fromVanilla(name, start, hex) {
+    await app.section('pack')
     await app.click('Vanilla', '[role=tab], .tab, button')
     await app.setValue('input[aria-label="Cerca texture"]', name)
     await app.waitFor(
@@ -316,7 +317,7 @@ export default async function fullpack(app) {
     `[...document.querySelectorAll('.texture-tile')].find((t) => t.title.endsWith('/glass.png')).click()`
   )
   await app.sleep(300)
-  await app.click('Texture connesse')
+  await app.tool('Texture connesse')
   await app.waitFor(`document.querySelector('[aria-label="Texture connesse"]')`)
   await app.sleep(500)
   await app.shot('11-ctm')
@@ -391,9 +392,9 @@ export default async function fullpack(app) {
   // ---- 5a. Checks: maps validator and coverage.
   await app.click('Pack', '[role=tab], .tab, button')
   await app.setValue('input[aria-label="Cerca texture"]', '')
-  await app.click('Controlla mappe')
+  await app.tool('Controlla mappe')
   await app.waitFor(
-    `document.querySelector('[aria-label="Controllo delle mappe"]') && !document.querySelector('[aria-label="Controllo delle mappe"]').textContent.includes('Controllo…')`,
+    `document.querySelector('[aria-label="Controllo delle mappe"]') && !document.querySelector('[data-testid=validator-progress]')`,
     20000
   )
   await app.sleep(1500)

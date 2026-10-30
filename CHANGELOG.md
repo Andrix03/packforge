@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.3.0 alpha — 2026-10-30
+
+Still a prototype: work on a copy of your pack. This release reorganises the interface into
+sections and fixes what a full test pack, played in the game with and without shaders, turned up.
+
+### A new layout
+
+- Nine sections on a hotbar (keys 1–9): Pack, Blocks, Items, Armour, Entities, GUI, Screens,
+  World, Texts. Each one lists its textures and its own tools; every tool is also a Ctrl+K command.
+- Each section remembers whether it shows your pack or the game's textures.
+- Health bars for the pack: how much of each section you have retextured and how many textures
+  have their `_n` and `_s` maps.
+- Short, stepped animations in the Minecraft style (off when the system asks for reduced motion).
+- Fits narrow windows: the hotbar and the top buttons shrink to icons.
+- Questions are asked in PackForge's own window instead of the system one; closing the editor with
+  unsaved work offers Save and close, Close without saving, Cancel.
+
+### New
+
+- A 3D preview for zombie, husk and drowned textures, random variants included.
+- Plant shapes (cross, grid, bushy, tall) for flowers and saplings too, not only crops.
+
+### Warnings that would have saved a broken pack
+
+- The title panorama with only some of its six faces (the game then rejects the whole pack).
+- A trim pattern painted with greys the game does not recolour (only the 8 of `trim_base` work).
+- Variants by name or random variants still identical to the original texture.
+
+### Fixes
+
+- Colormaps, palettes, fonts and trim palettes are no longer resized or recoloured with the rest.
+- Emissive `_e` textures no longer count as textures missing their PBR maps.
+- Item positions open on the inventory view; first person explains that the game itself crops the
+  item at the screen edge.
+- Game texts open in the interface language and reload when the target version changes.
+
 ## 0.2.0 alpha — 2026-10-24
 
 Still a prototype: work on a copy of your pack. This release adds the game's GUI, armour, items,

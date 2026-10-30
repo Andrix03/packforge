@@ -141,3 +141,16 @@ export function resolutionHistogram(
     .map(([resolution, count]) => ({ resolution, count }))
     .sort((a, b) => b.count - a.count || a.resolution - b.resolution)
 }
+
+/**
+ * Files whose size or colours carry meaning and must stay as they are: biome colormaps (256×256
+ * lookup tables, Polytone's too), trim palettes (8 colours in a row) and font sheets. Resize and
+ * recolour leave them out.
+ */
+export function isLookupTexture(path: string): boolean {
+  return (
+    /^assets\/[^/]+\/polytone\//.test(path) ||
+    /^assets\/[^/]+\/textures\/(colormap|palettes|font)\//.test(path) ||
+    /^assets\/[^/]+\/textures\/trims\/color_palettes\//.test(path)
+  )
+}

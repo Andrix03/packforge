@@ -24,6 +24,7 @@ import { readPngSize } from '../shared/png'
 import { PANORAMA_FACES, panoramaMissing, panoramaSizes } from '../shared/panorama'
 import { offPalettePixels } from '../shared/equipment'
 import { BASE_PALETTES } from '../shared/trims'
+import { variantPairs } from '../shared/variantPairs'
 import { decodePng, encodePng, optimizePng } from '../shared/pngCodec'
 import { factorBetween, scaleMcmeta, scaleNearest, type Factor } from '../shared/resize'
 import { writeFileAtomic } from './atomicWrite'
@@ -110,6 +111,15 @@ export async function checkExport(
       tr('Carica un jar vanilla per controllare che il pack non contenga texture del gioco.')
     )
   }
+  const unpainted = await sameAsOriginal(source.root, files)
+  if (unpainted.length > 0) {
+    check.warnings.push(
+      tr(
+        'Varianti ancora uguali all’originale (nel gioco non cambia niente): {0}',
+        unpainted.join(', ')
+      )
+    )
+  }
   const offTrims = await trimsOffPalette(source.root, files, vanilla)
   if (offTrims.length > 0) {
     check.warnings.push(
@@ -125,6 +135,18 @@ export async function checkExport(
     )
   }
   return check
+}
+
+/** Variant textures with exactly the pixels of their original (copies never repainted). */
+async function sameAsOriginal(root: string, files: readonly string[]): Promise<string[]> {
+  const same: string[] = []
+  const read = async (path: string) => decodePng(await readFile(join(root, ...path.split('/'))))
+  for (const [variant, original] of variantPairs(files)) {
+    const [a, b] = await Promise.all([read(variant), read(original)])
+    if (a.ok && b.ok && samePixels(a.image, b.image))
+      same.push(variant.slice(variant.lastIndexOf('/') + 1))
+  }
+  return same
 }
 
 /** Trim patterns of the pack painted with greys the game does not recolour (file names). */

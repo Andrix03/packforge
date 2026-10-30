@@ -2499,5 +2499,7 @@ export const EN: Readonly<Record<string, string>> = {
   '{0} pixel del motivo non usano gli 8 grigi di trim_base: nel gioco restano di quel colore, senza il colore del materiale. Dipingi solo con i grigi della tavolozza trim_base.':
     "{0} pixels of the pattern do not use the 8 greys of trim_base: in game they keep that colour, without the material's colour. Paint only with the greys of the trim_base palette.",
   'Motivi di finitura con colori fuori dai grigi di trim_base (nel gioco non prendono il colore del materiale): {0}':
-    "Trim patterns with colours outside the trim_base greys (in game they do not take the material's colour): {0}"
+    "Trim patterns with colours outside the trim_base greys (in game they do not take the material's colour): {0}",
+  'Varianti ancora uguali all’originale (nel gioco non cambia niente): {0}':
+    'Variants still identical to their original (nothing changes in game): {0}'
 }

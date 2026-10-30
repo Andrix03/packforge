@@ -32,6 +32,7 @@ import { ExportDialog } from './ExportDialog'
 import { VariantsDialog } from './VariantsDialog'
 import type { ValidatorSource } from './runValidator'
 import { PackHealth } from './PackHealth'
+import { coverageReport } from '../../shared/coverage'
 import { SectionBrowser } from './SectionBrowser'
 import { PixelIcon, ProgressBar, ToolList, type Tool } from '../ui/components'
 import { SECTION_ICONS } from '../ui/sectionIcons'
@@ -361,6 +362,8 @@ function Workspace({
     () => textures.filter((t) => sectionOf(t.albedo) === section),
     [textures, section]
   )
+  // One count of the maps for the whole app: the same as Copertura.
+  const coverage = useMemo(() => coverageReport(packFiles.files), [packFiles.files])
   /** Pack files (textures, models, texts) per section, for the Pack overview. */
   const sectionCounts = useMemo(() => {
     // Textures as the grids count them (a texture with its maps is one), plus the text files
@@ -900,8 +903,8 @@ function Workspace({
           <aside className="pack-dock">
             {overview}
             <PackHealth
-              withMaps={mapLessTextures.filter((t) => t.normal && t.specular).length}
-              textures={mapLessTextures.length}
+              withMaps={coverage.complete}
+              textures={coverage.total}
               remade={packTextures.filter((t) => vanillaKeys.has(t.key)).length}
               gameTextures={vanillaReady ? vanillaTextures.length : null}
               canBackup={canCreate}
@@ -1196,7 +1199,7 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
     ? textures.filter((t) => t.name.toLowerCase().includes(trimmedQuery))
     : textures.filter((t) => t.folder === selectedFolder)
   const visible = trimmedQuery ? matches.slice(0, MAX_SEARCH_RESULTS) : matches
-  const withMaps = matches.filter((t) => t.normal || t.specular).length
+  const withMaps = matches.filter((t) => t.normal && t.specular).length
   const covered = props.coverageKeys
     ? matches.filter((t) => props.coverageKeys?.has(t.key)).length
     : null
@@ -1225,7 +1228,7 @@ function TextureBrowser(props: TextureBrowserProps): React.JSX.Element {
     covered !== null
       ? tr(', {0} di {1} già nel pack', covered, matches.length)
       : matches.length > 0
-        ? tr(', {0} con mappe PBR', withMaps)
+        ? tr(', {0} con _n e _s', withMaps)
         : ''
 
   return (

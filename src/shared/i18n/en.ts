@@ -1108,7 +1108,6 @@ export const EN: Readonly<Record<string, string>> = {
   '{0}: {1} texture': '{0}: {1} textures',
   radice: 'root',
   ', {0} di {1} già nel pack': ', {0} of {1} already in the pack',
-  ', {0} con mappe PBR': ', {0} with PBR maps',
   'La cartella {0} non esiste qui.': "The folder {0} doesn't exist here.",
   "Il pack contiene troppi file: l'elenco è incompleto.":
     'The pack contains too many files: the list is incomplete.',
@@ -2410,7 +2409,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Sfoglia: {0}': 'Browse: {0}',
   Gruppi: 'Groups',
   '{0} texture, {1} già nel pack': '{0} textures, {1} already in the pack',
-  '{0} texture, {1} con mappe PBR': '{0} textures, {1} with PBR maps',
   ' (mostrate {0})': ' ({0} shown)',
   'Il pack non ha ancora texture di questa sezione. Passa a Gioco per sceglierne una da rifare, o crea una texture nuova.':
     'The pack has no textures of this section yet. Switch to Game to pick one to remake, or create a new texture.',
@@ -2501,5 +2499,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Motivi di finitura con colori fuori dai grigi di trim_base (nel gioco non prendono il colore del materiale): {0}':
     "Trim patterns with colours outside the trim_base greys (in game they do not take the material's colour): {0}",
   'Varianti ancora uguali all’originale (nel gioco non cambia niente): {0}':
-    'Variants still identical to their original (nothing changes in game): {0}'
+    'Variants still identical to their original (nothing changes in game): {0}',
+  '{0} texture, {1} con _n e _s': '{0} textures, {1} with _n and _s',
+  ', {0} con _n e _s': ', {0} with _n and _s'
 }

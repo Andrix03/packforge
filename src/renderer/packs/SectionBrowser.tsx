@@ -73,7 +73,8 @@ export function SectionBrowser({
       ? (byGroup.get(activeGroup) ?? [])
       : textures
   const shown = matches.slice(0, MAX_RESULTS)
-  const withMaps = matches.filter((t) => t.normal || t.specular).length
+  // Both maps, as Copertura and Salute del pack count them.
+  const withMaps = matches.filter((t) => t.normal && t.specular).length
   const covered = coverageKeys ? matches.filter((t) => coverageKeys.has(t.key)).length : null
   const title = needle
     ? tr('Ricerca: {0}', query.trim())
@@ -133,7 +134,7 @@ export function SectionBrowser({
           <span className="muted small">
             {covered !== null
               ? tr('{0} texture, {1} già nel pack', matches.length, covered)
-              : tr('{0} texture, {1} con mappe PBR', matches.length, withMaps)}
+              : tr('{0} texture, {1} con _n e _s', matches.length, withMaps)}
             {matches.length > MAX_RESULTS && tr(' (mostrate {0})', MAX_RESULTS)}
           </span>
           <span style={{ flex: 1 }} />

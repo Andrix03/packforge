@@ -61,6 +61,11 @@ export default async function mobVariants(app) {
     10000
   )
   app.check(true, 'the dialog lists texture 1 and variant 2')
+  // The rules load after the list of variants.
+  await app.waitFor(
+    `[...document.querySelectorAll('[role=dialog] button')].some((b) => b.textContent.includes('Aggiungi una regola'))`,
+    10000
+  )
   await app.click('Aggiungi una regola', '[role=dialog] button')
   await app.setValue('[aria-label="Texture della regola 1"]', '2')
   await app.setValue('.mob-rule input[placeholder^="ovunque"]', 'desert')

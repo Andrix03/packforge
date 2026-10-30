@@ -23,7 +23,11 @@ const MODELS: Readonly<Record<string, Pick<MobModel, 'mob' | 'scale'>>> = {
 
 /** The model of a mob texture (`entity/zombie/zombie.png`…), or null when it has none here. */
 export function mobModelOf(path: string): MobModel | null {
-  const m = /^assets\/[^/]+\/textures\/entity\/zombie\/(zombie|husk|drowned)\.png$/.exec(path)
+  // The texture itself, or one of its OptiFine / ETF random variants (zombie2.png…).
+  const m =
+    /^assets\/[^/]+\/(?:textures|optifine\/random)\/entity\/zombie\/(zombie|husk|drowned)\d*\.png$/.exec(
+      path
+    )
   const known = m ? MODELS[m[1] ?? ''] : undefined
   if (!known) return null
   const box = (

@@ -10,6 +10,10 @@ describe('mobModelOf', () => {
     expect(mobModelOf(`${Z}husk.png`)?.scale).toBe(1.0625)
     expect(mobModelOf(`${Z}drowned.png`)?.mob).toBe('drowned')
     expect(mobModelOf(`${Z}drowned_outer_layer.png`)).toBeNull()
+    // Random variants (OptiFine / ETF) use the same model.
+    expect(mobModelOf('assets/minecraft/optifine/random/entity/zombie/zombie2.png')?.mob).toBe(
+      'zombie'
+    )
     expect(mobModelOf('assets/minecraft/textures/entity/cow/cow.png')).toBeNull()
   })
 

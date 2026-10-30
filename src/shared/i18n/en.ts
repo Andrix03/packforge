@@ -2506,5 +2506,10 @@ export const EN: Readonly<Record<string, string>> = {
   'Modifiche non salvate': 'Unsaved changes',
   '{0} ha modifiche non salvate.': '{0} has unsaved changes.',
   'Chiudi senza salvare': 'Close without saving',
-  'Salva e chiudi': 'Save and close'
+  'Salva e chiudi': 'Save and close',
+  Cancelletto: 'Grid',
+  'I 4 piani a cancelletto delle colture.': 'The 4 grid planes of crops.',
+  'I 2 piani in diagonale dei fiori del gioco.': "The 2 diagonal planes of the game's flowers.",
+  'Il modello 3D della pianta: scritto nel pack come modello vanilla, funziona senza mod. Le varianti casuali seguono la sua forma.':
+    "The plant's 3D model: written into the pack as a vanilla model, works without mods. Random variants follow its shape."
 }

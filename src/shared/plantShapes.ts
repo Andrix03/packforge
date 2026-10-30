@@ -7,6 +7,7 @@
 // No directional shading, like vanilla crops: `"shade": false` up to 26.2, `shade_direction_override:
 // "up"` from 26.3 (its snapshot 3 removed `shade`). Every element carries both: the 26.3 element
 // deserializer only reads the keys it knows (checked with javap), older ones ignore the new key.
+import type { ModelElement } from './blockModel'
 import { tr } from './i18n'
 
 export type PlantShape = 'crop' | 'cross' | 'bushy' | 'tall'
@@ -29,6 +30,43 @@ export const PLANT_SHAPES: ReadonlyArray<{ id: PlantShape; label: string; hint: 
     hint: tr('Sale di un blocco: una seconda texture (<nome>_top) disegna la parte di sopra.')
   }
 ]
+
+/**
+ * The shapes offered for a flower (one model, not growing): there the game's own shape is the cross,
+ * and the crop planes are just another choice.
+ */
+export const FLOWER_SHAPES: ReadonlyArray<{ id: PlantShape; label: string; hint: string }> =
+  PLANT_SHAPES.map((option) =>
+    option.id === 'crop'
+      ? { ...option, label: tr('Cancelletto'), hint: tr('I 4 piani a cancelletto delle colture.') }
+      : option.id === 'cross'
+        ? {
+            ...option,
+            label: tr('Vanilla'),
+            hint: tr('I 2 piani in diagonale dei fiori del gioco.')
+          }
+        : option
+  )
+
+/**
+ * Whether a model is a plant a shape can replace: flat planes only (flowers, saplings, our own
+ * shapes), drawing one texture (plus the `_top` of the tall shape), with no tint (grass and ferns
+ * take the biome colour, which the shapes would lose).
+ */
+export function isPlantModel(elements: readonly ModelElement[]): boolean {
+  if (elements.length < 2) return false
+  const ids = new Set<string>()
+  for (const element of elements) {
+    if (![0, 1, 2].some((axis) => element.from[axis] === element.to[axis])) return false
+    for (const face of Object.values(element.faces)) {
+      if (!face) continue
+      if (face.tintIndex >= 0 || !face.texture) return false
+      ids.add(face.texture.id)
+    }
+  }
+  const own = [...ids].filter((id) => !(id.endsWith('_top') && ids.has(id.slice(0, -4))))
+  return own.length === 1
+}
 
 type Vec3 = [number, number, number]
 

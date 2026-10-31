@@ -1,3 +1,4 @@
+import { documentSourcesFor } from './targetSources'
 import { Checkbox } from 'packforge-ui'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { assetUrl, type DraftMaps, type TextureDraft } from '../../shared/ipc'
@@ -122,6 +123,8 @@ export interface EditorTarget {
   mcmetaUrl: string | null
   /** Models and textures for the live 3D preview (pack first, then vanilla). */
   sources: AssetSources
+  /** Pixel-loading sources stay stable while preview assets update. */
+  documentSources?: AssetSources
   /** Asset URL prefix of the open pack. */
   packBase: string
   /** Zip packs are opened read-only. */
@@ -243,13 +246,14 @@ export function TextureEditor({
   const [creatingFrom, setCreatingFrom] = useState<string | null>(null)
   /** Tall plants: both halves painted as one canvas (false = only the opened half). */
   const [wholePlant, setWholePlant] = useState(true)
+  const documentSources = target.documentSources ?? target.sources
   const halves = useMemo(
-    () => tallHalves(target.path, (path) => target.sources.pack.files.has(path)),
-    [target.path, target.sources]
+    () => tallHalves(target.path, (path) => documentSources.pack.files.has(path)),
+    [target.path, documentSources]
   )
   const tall = wholePlant && !target.readOnly ? halves : null
   const urlOf = (path: string): string =>
-    assetUrl(target.packBase, path, target.sources.pack.versions[path] ?? 0)
+    assetUrl(target.packBase, path, documentSources.pack.versions[path] ?? 0)
   const tallUrls = tall ? { upper: urlOf(tall.upper), lower: urlOf(tall.lower) } : null
   const tallKey = tallUrls ? `${tallUrls.upper}|${tallUrls.lower}` : ''
   // The whole plant is edited from its lower half (the one the previews draw for the target).
@@ -313,7 +317,7 @@ export function TextureEditor({
   const isMapFile = mapKindOf(target.path) !== null
   const normalPath = mapPath(target.path, 'normal')
   const specularPath = mapPath(target.path, 'specular')
-  const packFiles = target.sources.pack
+  const packFiles = documentSources.pack
   const normalUrl = packFiles.files.has(normalPath)
     ? assetUrl(target.packBase, normalPath, packFiles.versions[normalPath] ?? 0)
     : null
@@ -401,7 +405,7 @@ export function TextureEditor({
       name: target.name,
       sourceLabel: tr('In modifica')
     }),
-    [target]
+    [target.url, target.textureKey, target.mcmetaUrl, target.name]
   )
   const channelId = channel?.id ?? null
   const swap = useCallback(() => {
@@ -816,7 +820,8 @@ export function TextureEditor({
     if (modified) announceStep('paint')
   }, [modified])
   useEffect(() => {
-    if (target.readOnly) return
+    if (target.readOnly || !doc) return
+    let cancelled = false
     // A whole tall plant watches its two halves (it has no maps in that view).
     const watched =
       tallCanvases && tall ? [tall.upper, tall.lower] : [target.path, normalPath, specularPath]
@@ -830,12 +835,13 @@ export function TextureEditor({
       )
       return path === tall.upper ? halves.upper : halves.lower
     }
-    return window.api.on('pack:filesChanged', ({ paths }) => {
+    const unsubscribe = window.api.on('pack:filesChanged', ({ paths }) => {
       const hit = paths.filter((path) => watched.includes(path))
       if (hit.length === 0) return
       void (async () => {
         for (const path of hit) {
           const bytes = await readFromDisk(target.packBase, path)
+          if (cancelled) return
           const map =
             path === normalPath ? maps?.normal : path === specularPath ? maps?.specular : null
           const ours =
@@ -849,6 +855,10 @@ export function TextureEditor({
         }
       })()
     })
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
   }, [target, normalPath, specularPath, maps, onSwitch, tallCanvases, tall, doc])
 
   useEffect(() => {
@@ -1726,7 +1736,7 @@ export function TextureEditor({
           onCancel={() => setCreatingPath(null)}
           onCreated={(path) => {
             setCreatingPath(null)
-            void switchTo(path)
+            void switchTo(path, [path])
           }}
         />
       )}
@@ -2364,14 +2374,12 @@ function targetFor(
   path: string,
   added: readonly string[] = []
 ): EditorTarget {
-  const { pack } = current.sources
+  const sources = documentSourcesFor(current.sources, path, added)
+  const { pack } = sources
   const mcmeta = `${path}.mcmeta`
-  const files =
-    pack.files.has(path) && added.every((file) => pack.files.has(file))
-      ? pack.files
-      : new Set([...pack.files, path, ...added])
   return {
     ...current,
+    documentSources: sources,
     path,
     textureKey: path.slice(0, -'.png'.length),
     name: path.slice(path.lastIndexOf('/') + 1, -'.png'.length),
@@ -2379,7 +2387,7 @@ function targetFor(
     mcmetaUrl: pack.files.has(mcmeta)
       ? assetUrl(current.packBase, mcmeta, pack.versions[mcmeta] ?? 0)
       : null,
-    sources: { ...current.sources, pack: { ...pack, files } }
+    sources
   }
 }
 

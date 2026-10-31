@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { AppInfo, PackSummary, UpdateCheck } from '../shared/ipc'
 import { compatibleFormatRange, compatibleReleases } from '../shared/mcmeta'
 import { summarizeReleaseSpans } from '../shared/packFormat'
@@ -24,6 +24,8 @@ import { SECTION_IDS, sectionOf, type SectionId } from '../shared/sections'
 import { CommandStore } from './ui/commandStore'
 import { AskHost } from './ui/AskHost'
 import { tr } from '../shared/i18n'
+import type { AssetSources } from './preview/modelSource'
+import { withSources } from './editor/targetSources'
 
 export function App(): React.JSX.Element {
   const [store] = useState(() => new CommandStore())
@@ -55,6 +57,15 @@ function Window(): React.JSX.Element {
   const [testing, setTesting] = useState<{ target: EditorTarget; live: TestLive | null } | null>(
     null
   )
+
+  const onSourcesChange = useCallback((sources: AssetSources) => {
+    setEditing((target) => withSources(target, sources))
+    setTesting((test) => {
+      if (!test) return test
+      const target = withSources(test.target, sources)!
+      return target === test.target ? test : { ...test, target }
+    })
+  }, [])
 
   useEffect(() => {
     window.api
@@ -388,6 +399,7 @@ function Window(): React.JSX.Element {
                 section={section}
                 visited={visited}
                 onSection={goTo}
+                onSourcesChange={onSourcesChange}
                 onEditTexture={setEditing}
                 onTestTexture={(target) => setTesting({ target, live: null })}
               />

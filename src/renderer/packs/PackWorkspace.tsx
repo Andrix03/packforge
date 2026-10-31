@@ -1,3 +1,4 @@
+import { documentSourcesFor } from '../editor/targetSources'
 import { useCommands } from '../shell/commandContext'
 import type { Command } from '../ui/commands'
 import { useEffect, useMemo, useState } from 'react'
@@ -80,6 +81,7 @@ export function PackWorkspace({
   onSection,
   onEditTexture,
   onTestTexture,
+  onSourcesChange,
   overview,
   visible
 }: {
@@ -93,6 +95,7 @@ export function PackWorkspace({
   /** The pack card, shown at the top of the dock. */
   overview?: React.ReactNode
   onEditTexture: (target: EditorTarget) => void
+  onSourcesChange?: ((sources: AssetSources) => void) | undefined
   /** Opens the test screen on a pack texture. */
   onTestTexture: (target: EditorTarget) => void
 }): React.JSX.Element {
@@ -174,25 +177,22 @@ export function PackWorkspace({
   const base = packFiles.value.assetBase
   const targetOf = (texture: TextureEntry, previewSources: AssetSources): EditorTarget => {
     // A texture just created may not be listed yet: the 3D preview must still find it in the pack.
-    const sources = previewSources.pack.files.has(texture.albedo)
-      ? previewSources
-      : {
-          ...previewSources,
-          pack: {
-            ...previewSources.pack,
-            files: new Set([...previewSources.pack.files, texture.albedo])
-          }
-        }
+    const sources = documentSourcesFor(
+      { ...previewSources, pack: { ...previewSources.pack, versions: fileVersions } },
+      texture.albedo,
+      previewSources.pack.files.has(texture.albedo) ? [] : [texture.albedo]
+    )
     return {
       path: texture.albedo,
       textureKey: texture.key,
       name: texture.name,
-      url: assetUrl(base, texture.albedo, fileVersions[texture.albedo] ?? 0),
+      url: assetUrl(base, texture.albedo, sources.pack.versions[texture.albedo] ?? 0),
       mcmetaUrl: texture.mcmeta
         ? assetUrl(base, texture.mcmeta, fileVersions[texture.mcmeta] ?? 0)
         : null,
       readOnly: pack.kind === 'zip',
       packBase: base,
+      documentSources: sources,
       sources
     }
   }
@@ -209,6 +209,7 @@ export function PackWorkspace({
       formatRange={compatibleFormatRange(pack.mcmeta.formats)}
       onEditTexture={(texture, previewSources) => onEditTexture(targetOf(texture, previewSources))}
       onTestTexture={(texture, previewSources) => onTestTexture(targetOf(texture, previewSources))}
+      onSourcesChange={onSourcesChange}
       overview={overview}
       visible={visible ?? true}
       section={section}
@@ -229,6 +230,7 @@ function Workspace({
   formatRange,
   onEditTexture,
   onTestTexture,
+  onSourcesChange,
   overview,
   visible,
   section,
@@ -247,6 +249,7 @@ function Workspace({
   jar: Loadable<VanillaJar>
   onSelectVersion: (versionId: string) => void
   onEditTexture: (texture: TextureEntry, sources: AssetSources) => void
+  onSourcesChange?: ((sources: AssetSources) => void) | undefined
   onTestTexture: (texture: TextureEntry, sources: AssetSources) => void
   /** Folder packs can get new textures; zip packs are read-only. */
   canCreate: boolean
@@ -338,6 +341,9 @@ function Workspace({
     }),
     [packFiles.assetBase, packFileSet, fileVersions, jarBase, jarFileSet]
   )
+  useEffect(() => {
+    onSourcesChange?.(previewSources)
+  }, [previewSources, onSourcesChange])
   // Item models of the pack (they may carry old `overrides` to turn into items/ definitions).
   const hasItemModels = packFiles.files.some((f) =>
     /^assets\/[^/]+\/models\/item\/[^/]+\.json$/.test(f)

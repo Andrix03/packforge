@@ -104,9 +104,8 @@ export function TestScreen({
   const blocks = useMemo(() => listBlocks(sources), [sources])
   const blockSet = useMemo(() => new Set(blocks), [blocks])
 
-  const [blockInput, setBlockInput] = useState(
-    () => guessBlockForTexture(target.textureKey, blocks) ?? ''
-  )
+  const [chosenBlock, setBlockInput] = useState<string | null>(null)
+  const blockInput = chosenBlock ?? guessBlockForTexture(target.textureKey, blocks) ?? ''
   const block = blockSet.has(blockInput.trim()) ? blockInput.trim() : null
   const [sceneKind, setSceneKind] = useState<SceneKind>(isItem ? 'hand' : 'block')
   const scene = sceneByKind(sceneKind)
@@ -293,7 +292,19 @@ export function TestScreen({
     return () => {
       current = false
     }
-  }, [isItem, live, target, sources, comparing, vanillaItemUrl, vanillaSources, maps])
+  }, [
+    isItem,
+    live,
+    target.url,
+    target.name,
+    target.path,
+    target.mcmetaUrl,
+    sources,
+    comparing,
+    vanillaItemUrl,
+    vanillaSources,
+    maps
+  ])
 
   // Day/night cycle: advance the hour on animation frames while playing.
   useEffect(() => {

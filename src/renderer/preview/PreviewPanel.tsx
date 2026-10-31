@@ -100,7 +100,7 @@ export function PreviewPanel({
   const [cycling, setCycling] = useState(false)
   const [autoRotate, setAutoRotate] = useState(false)
   const [shape, setShape] = useState<Shape>(initialShape)
-  const [blockInput, setBlockInput] = useState('')
+  const [blockInput, setBlockInput] = useState<string | null>(null)
   const [variantKey, setVariantKey] = useState<string | null>(null)
   const [variants, setVariants] = useState<BlockstateVariant[]>([])
   const [stages, setStages] = useState<GrowthStage[]>([])
@@ -125,7 +125,9 @@ export function PreviewPanel({
 
   const blocks = useMemo(() => (sources ? listBlocks(sources) : []), [sources])
   const blockSet = useMemo(() => new Set(blocks), [blocks])
-  const block = blockSet.has(blockInput.trim()) ? blockInput.trim() : null
+  const resolvedBlockInput =
+    blockInput ?? (target ? guessBlockForTexture(target.textureKey, blocks) : null) ?? ''
+  const block = blockSet.has(resolvedBlockInput.trim()) ? resolvedBlockInput.trim() : null
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -184,12 +186,9 @@ export function PreviewPanel({
   const [guessedFor, setGuessedFor] = useState<string | null>(null)
   if (target && target.key !== guessedFor) {
     setGuessedFor(target.key)
-    const guess = guessBlockForTexture(target.textureKey, blocks)
     setChoice(null)
-    if (guess) {
-      setBlockInput(guess)
-      setVariantKey(null)
-    }
+    setBlockInput(null)
+    setVariantKey(null)
   }
 
   // Build and show the mesh for the current shape.
@@ -367,14 +366,14 @@ export function PreviewPanel({
         <div className="block-picker">
           <input
             list={listId}
-            value={blockInput}
+            value={resolvedBlockInput}
             onChange={(event) => {
               setBlockInput(event.target.value)
               setVariantKey(null)
             }}
             placeholder={blocks.length ? 'es. oak_stairs' : tr('Nessun blockstate disponibile')}
             aria-label={tr('Blocco')}
-            aria-invalid={blockInput.trim() !== '' && !block}
+            aria-invalid={resolvedBlockInput.trim() !== '' && !block}
             spellCheck={false}
           />
           <datalist id={listId}>

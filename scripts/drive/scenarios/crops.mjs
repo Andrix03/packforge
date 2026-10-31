@@ -40,7 +40,8 @@ export default async function crops(app) {
     `seed stage shown (${await stageText(app)})`
   )
   await app.waitFor(
-    `document.querySelectorAll('[aria-label="Stadi di crescita"] [role=tab]').length === 8`
+    `[...document.querySelectorAll('[aria-label="Stadi di crescita"] [role=tab]')].filter((t) => t.textContent.trim().startsWith('+')).length === 7`,
+    15000
   )
   const missing = (await tabs(app)).filter((t) => t.startsWith('+'))
   app.check(missing.length === 7, `7 stages still to create (${(await tabs(app)).join(' ')})`)

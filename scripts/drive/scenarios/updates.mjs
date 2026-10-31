@@ -57,7 +57,7 @@ export default async function updates(app) {
     `[...document.querySelectorAll('h3')].some((h) => h.textContent === 'Aggiornamenti')`
   )
   const box = await app.ev(
-    `[...document.querySelectorAll('label')].find((l) => l.textContent.includes('nuova versione di PackForge')).querySelector('input').checked`
+    `document.querySelector('.settings [role=checkbox]').getAttribute('aria-checked') === 'true'`
   )
   app.check(box === false, 'the settings show it off')
 }

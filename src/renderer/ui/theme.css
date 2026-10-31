@@ -101,6 +101,44 @@
   border-right: 1px solid #444;
 }
 
+/* Scrollbars: Minecraft scroller. */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--ui-sunken);
+  box-shadow:
+    inset 1px 1px 0 var(--ui-edge-dark),
+    inset -1px -1px 0 #4a4a4a;
+}
+::-webkit-scrollbar-thumb {
+  min-width: 24px;
+  min-height: 24px;
+  border: 1px solid var(--ui-edge-dark);
+  border-radius: 0;
+  background: #c6c6c6;
+  background-clip: padding-box;
+  box-shadow:
+    inset 2px 2px 0 #f4f4f4,
+    inset -2px -2px 0 #8b8b8b;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #d8d8d8;
+}
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--ui-green);
+  box-shadow:
+    inset 2px 2px 0 var(--ui-green-light),
+    inset -2px -2px 0 var(--ui-green-dark);
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+::-webkit-scrollbar-corner {
+  background: var(--ui-sunken);
+}
+
 /* Text. */
 .ph,
 .lbl,

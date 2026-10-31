@@ -160,7 +160,7 @@ export default async function channels(app) {
   await app.click('Altezza', '.channel-tabs [role=tab]')
   app.check(
     await app.ev(
-      `[...document.querySelectorAll('.generator-panel label')].find((l) => l.textContent.includes('Aggiorna mentre')).querySelector('input').checked`
+      `[...document.querySelectorAll('.generator-panel .pf-checkbox')].find((l) => l.textContent.includes('Aggiorna mentre')).querySelector('[role=checkbox]').getAttribute('aria-checked') === 'true'`
     ),
     'auto normals start on for a map without hand-made normals'
   )

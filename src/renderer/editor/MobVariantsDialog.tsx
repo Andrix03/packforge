@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useEffect, useState } from 'react'
 import { Dialog } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
@@ -203,14 +204,11 @@ export function MobVariantsDialog({
                     }
                   />
                 </label>
-                <label className="checkbox-inline small">
-                  <input
-                    type="checkbox"
-                    checked={rule.invertBiomes}
-                    onChange={(event) => update(i, { invertBiomes: event.target.checked })}
-                  />
-                  {tr('tranne questi')}
-                </label>
+                <Checkbox
+                  checked={rule.invertBiomes}
+                  onCheckedChange={(on) => update(i, { invertBiomes: on })}
+                  label={tr('tranne questi')}
+                />
                 <label className="small">
                   {tr('Altezza')}
                   <input

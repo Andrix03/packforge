@@ -21,14 +21,15 @@ const types = (text) => Number(/, (\d+) tip/.exec(text)?.[1] ?? NaN)
 
 async function ctmBox(app) {
   return app.ev(`(() => {
-    const label = [...document.querySelectorAll('.test-side label')].find((l) => l.textContent.startsWith('Texture connesse'))
-    return label ? { title: label.title, text: label.textContent, checked: label.querySelector('input').checked, disabled: label.querySelector('input').disabled } : null
+    const label = [...document.querySelectorAll('.test-side .pf-checkbox')].find((l) => l.textContent.startsWith('Texture connesse'))
+    const box = label?.querySelector('[role=checkbox]')
+    return label ? { title: label.parentElement.title, text: label.textContent, checked: box.getAttribute('aria-checked') === 'true', disabled: box.hasAttribute('data-disabled') } : null
   })()`)
 }
 
 async function toggleCtm(app) {
   await app.ev(
-    `[...document.querySelectorAll('.test-side label')].find((l) => l.textContent.startsWith('Texture connesse')).querySelector('input').click()`
+    `[...document.querySelectorAll('.test-side .pf-checkbox')].find((l) => l.textContent.startsWith('Texture connesse')).querySelector('[role=checkbox]').click()`
   )
   await app.sleep(1800)
 }

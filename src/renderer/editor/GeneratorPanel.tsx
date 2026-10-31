@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import type {
   HeightOptions,
   NormalFilter,
@@ -89,30 +90,24 @@ export function GeneratorPanel({
         onChange={(steps) => setHeight({ steps })}
         format={(value) => (value < 2 ? 'no' : String(value))}
       />
-      <label
-        className="inline-check small"
-        title={tr('I pixel chiari diventano bassi invece che alti')}
-      >
-        <input
-          type="checkbox"
+      <span title={tr('I pixel chiari diventano bassi invece che alti')}>
+        <Checkbox
           checked={height.invert}
-          onChange={(event) => setHeight({ invert: event.target.checked })}
+          onCheckedChange={(on) => setHeight({ invert: on })}
+          label={tr('Inverti')}
         />
-        {tr('Inverti')}
-      </label>
-      <label
-        className="inline-check small"
+      </span>
+      <span
         title={tr(
           'Il pixel più scuro va in fondo e il più chiaro in superficie, qualunque sia la texture'
         )}
       >
-        <input
-          type="checkbox"
+        <Checkbox
           checked={height.autoLevels}
-          onChange={(event) => setHeight({ autoLevels: event.target.checked })}
+          onCheckedChange={(on) => setHeight({ autoLevels: on })}
+          label={tr('Livelli automatici')}
         />
-        {tr('Livelli automatici')}
-      </label>
+      </span>
       <button
         type="button"
         disabled={heightFromColor !== null}
@@ -148,14 +143,13 @@ export function GeneratorPanel({
           <option value="scharr">{tr('Scharr')}</option>
         </select>
       </label>
-      <label className="inline-check small" title={tr('Scrive anche il canale Occlusione (B)')}>
-        <input
-          type="checkbox"
+      <span title={tr('Scrive anche il canale Occlusione (B)')}>
+        <Checkbox
           checked={settings.withOcclusion}
-          onChange={(event) => onSettings({ ...settings, withOcclusion: event.target.checked })}
+          onCheckedChange={(on) => onSettings({ ...settings, withOcclusion: on })}
+          label={tr('Occlusione')}
         />
-        {tr('Occlusione')}
-      </label>
+      </span>
       {settings.withOcclusion && (
         <Range
           label={tr('Forza occlusione')}
@@ -176,30 +170,24 @@ export function GeneratorPanel({
       >
         {tr('Genera normali{0}', settings.withOcclusion ? tr(' e occlusione') : '')}
       </button>
-      <label
-        className="inline-check small"
-        title={tr('Dopo ogni tratto sul canale Altezza rigenera le normali (e l’occlusione)')}
-      >
-        <input
-          type="checkbox"
+      <span title={tr('Dopo ogni tratto sul canale Altezza rigenera le normali (e l’occlusione)')}>
+        <Checkbox
           checked={settings.auto}
-          onChange={(event) => onSettings({ ...settings, auto: event.target.checked })}
+          onCheckedChange={(on) => onSettings({ ...settings, auto: on })}
+          label={tr('Aggiorna mentre dipingi l’altezza')}
         />
-        {tr('Aggiorna mentre dipingi l’altezza')}
-      </label>
-      <label
-        className="inline-check small"
+      </span>
+      <span
         title={tr(
           'I bordi si collegano come quando il blocco si ripete; togli la spunta per texture che non si ripetono'
         )}
       >
-        <input
-          type="checkbox"
+        <Checkbox
           checked={settings.wrap}
-          onChange={(event) => onSettings({ ...settings, wrap: event.target.checked })}
+          onCheckedChange={(on) => onSettings({ ...settings, wrap: on })}
+          label={tr('Bordi ripetibili')}
         />
-        {tr('Bordi ripetibili')}
-      </label>
+      </span>
     </section>
   )
 }

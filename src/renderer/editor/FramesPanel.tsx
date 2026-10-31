@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useEffect, useRef, useState } from 'react'
 import { TICKS_PER_SECOND } from '../../shared/animation'
 import type { EditorDocument } from './document'
@@ -133,29 +134,17 @@ export function FramesPanel({
             }}
           />
         </label>
-        <label
-          className="inline-check small"
-          title={tr('Sfuma gradualmente da un frame al successivo')}
-        >
-          <input
-            type="checkbox"
+        <span title={tr('Sfuma gradualmente da un frame al successivo')}>
+          <Checkbox
             checked={settings.interpolate}
             disabled={readOnly}
-            onChange={(event) => onSettings({ ...settings, interpolate: event.target.checked })}
+            onCheckedChange={(on) => onSettings({ ...settings, interpolate: on })}
+            label={tr('Interpola')}
           />
-          {tr('Interpola')}
-        </label>
-        <label
-          className="inline-check small"
-          title={tr('Mostra il frame precedente in trasparenza')}
-        >
-          <input
-            type="checkbox"
-            checked={onionSkin}
-            onChange={(event) => onOnionSkin(event.target.checked)}
-          />
-          {tr('Onion skin')}
-        </label>
+        </span>
+        <span title={tr('Mostra il frame precedente in trasparenza')}>
+          <Checkbox checked={onionSkin} onCheckedChange={onOnionSkin} label={tr('Onion skin')} />
+        </span>
         <button type="button" className="small-button" onClick={() => setPlaying((p) => !p)}>
           {playing ? (
             <>

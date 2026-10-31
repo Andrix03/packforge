@@ -47,7 +47,7 @@ export default async function flowerShape(app) {
   )
   app.check(labels === 'Cancelletto,Vanilla,Cespuglio,Alta', `flower shapes: ${labels}`)
   app.check(
-    !(await app.ev(`!!document.querySelector('${DIALOG} input[type=checkbox]')`)),
+    !(await app.ev(`!!document.querySelector('${DIALOG} [role=checkbox]')`)),
     'no stages to choose'
   )
   const plan = await app.ev(`document.querySelector('[data-testid=shape-plan]').textContent`)

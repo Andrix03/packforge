@@ -2164,7 +2164,6 @@ export const EN: Readonly<Record<string, string>> = {
   Perno: 'Pivot',
   Faccia: 'Face',
   'Nascosta da': 'Hidden by',
-  'Faccia {0}': 'Face {0}',
   'Texture {0}': 'Texture {0}',
   auto: 'auto',
   'Nascosta da {0}': 'Hidden by {0}',

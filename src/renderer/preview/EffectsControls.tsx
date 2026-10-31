@@ -1,6 +1,7 @@
 // Controls of the LabPBR effects (light, exposure, bloom, POM, rain, metals, reflections, shadows,
 // channel view), grouped like the Effetti screen of the design canvas. Used by Prova and by the
 // editor while it paints the maps (the Effetti workspace).
+import { Checkbox } from 'packforge-ui'
 import type { ReactNode } from 'react'
 import { METAL_MODES, type MetalMode } from '../../shared/labpbr'
 import { Picture, RangeInput } from '../ui/components'
@@ -152,25 +153,20 @@ export function EffectsControls({
                 onChange={(event) => onChange({ pomSamples: Number(event.target.value) })}
               />
             </label>
-            <label className="checkbox-inline">
-              <input
-                type="checkbox"
-                checked={effects.pomShadows}
-                onChange={(event) => onChange({ pomShadows: event.target.checked })}
-              />
-              {tr('Ombre del rilievo')}
-            </label>
-            <label
-              className="checkbox-inline"
+            <Checkbox
+              checked={effects.pomShadows}
+              onCheckedChange={(on) => onChange({ pomShadows: on })}
+              label={tr('Ombre del rilievo')}
+            />
+            <span
               title={tr('I lati dei gradini tra i pixel hanno la loro normale: rilievo a cubetti')}
             >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={effects.pomSlopes}
-                onChange={(event) => onChange({ pomSlopes: event.target.checked })}
+                onCheckedChange={(on) => onChange({ pomSlopes: on })}
+                label={tr('Lati dei pixel (a cubetti)')}
               />
-              {tr('Lati dei pixel (a cubetti)')}
-            </label>
+            </span>
             {pomExtra}
             {!hasNormal && (
               <span className="muted small">

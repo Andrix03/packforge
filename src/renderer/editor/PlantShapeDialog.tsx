@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useEffect, useState } from 'react'
 import { Dialog } from 'packforge-ui'
 import {
@@ -231,14 +232,11 @@ export function PlantShapeDialog({
           </div>
           <p className="small">{shapes.find((s) => s.id === shape)?.hint}</p>
           {growing && (
-            <label className="checkbox-inline">
-              <input
-                type="checkbox"
-                checked={allStages}
-                onChange={(event) => setAllStages(event.target.checked)}
-              />
-              {tr('Tutti gli stadi (altrimenti solo quello di questa texture)')}
-            </label>
+            <Checkbox
+              checked={allStages}
+              onCheckedChange={setAllStages}
+              label={tr('Tutti gli stadi (altrimenti solo quello di questa texture)')}
+            />
           )}
           {targets === null ? (
             <p className="muted">{tr('Leggo i modelli…')}</p>

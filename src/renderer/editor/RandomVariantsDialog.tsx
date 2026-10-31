@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useEffect, useState } from 'react'
 import { Dialog } from 'packforge-ui'
 import {
@@ -303,14 +304,11 @@ export function RandomVariantsDialog({
                   onChange={(event) => setCount(Number(event.target.value))}
                 />
               </label>
-              <label className="checkbox-inline">
-                <input
-                  type="checkbox"
-                  checked={rotate}
-                  onChange={(event) => setRotate(event.target.checked)}
-                />
-                {tr('Ruota a caso (4 orientamenti per versione)')}
-              </label>
+              <Checkbox
+                checked={rotate}
+                onCheckedChange={setRotate}
+                label={tr('Ruota a caso (4 orientamenti per versione)')}
+              />
               <p className="muted small">
                 {tr(
                   'Le copie partono uguali a {0} (con le sue mappe _n/_s): poi le ridisegni. Scrive anche {1} modelli e {2} nel pack; prima fa un backup.',

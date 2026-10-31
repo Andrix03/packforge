@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useEffect, useRef, useState } from 'react'
 import { tr } from '../../shared/i18n'
 
@@ -65,14 +66,9 @@ export function TilingPreview({
     <section className="card tiling-preview">
       <div className="row">
         <strong className="small">{tr('Ripetizione 3×3')}</strong>
-        <label className="inline-check small" title={tr('Mostra dove si ripete la texture')}>
-          <input
-            type="checkbox"
-            checked={showSeams}
-            onChange={(event) => setShowSeams(event.target.checked)}
-          />
-          {tr('Bordi')}
-        </label>
+        <span title={tr('Mostra dove si ripete la texture')}>
+          <Checkbox checked={showSeams} onCheckedChange={setShowSeams} label={tr('Bordi')} />
+        </span>
       </div>
       <canvas ref={canvasRef} className="tiling-canvas checker" />
     </section>

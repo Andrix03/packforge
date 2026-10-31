@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { BIOMES, DEFAULT_BIOME } from '../../shared/biomeTint'
 import type { EditorTarget } from '../editor/TextureEditor'
@@ -491,19 +492,17 @@ export function TestScreen({
               </label>
             )}
             {!isItem && (
-              <label
-                className="checkbox-inline"
+              <span
                 title={tr(
                   'Come nel gioco (livelli mipmap: 4): da lontano i dettagli si fondono in un colore medio'
                 )}
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={mipmaps}
-                  onChange={(event) => setMipmaps(event.target.checked)}
+                  onCheckedChange={setMipmaps}
+                  label={tr('Mipmap come nel gioco')}
                 />
-                {tr('Mipmap come nel gioco')}
-              </label>
+              </span>
             )}
             {!isItem && (
               <label
@@ -528,8 +527,7 @@ export function TestScreen({
               </label>
             )}
             {ctm && (ctm.set || ctm.reason) && (
-              <label
-                className="checkbox-inline"
+              <span
                 title={
                   ctm.set
                     ? tr(
@@ -541,32 +539,29 @@ export function TestScreen({
                     : (ctm.reason ?? '')
                 }
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={ctmOn && ctm.set !== null}
                   disabled={!ctm.set}
-                  onChange={(event) => setCtmOn(event.target.checked)}
+                  onCheckedChange={setCtmOn}
+                  label={tr(
+                    'Texture connesse{0}',
+                    ctm.set ? ` (${ctm.set.method})` : tr(' (non mostrabili)')
+                  )}
                 />
-                {tr(
-                  'Texture connesse{0}',
-                  ctm.set ? ` (${ctm.set.method})` : tr(' (non mostrabili)')
-                )}
-              </label>
+              </span>
             )}
-            <label
-              className="checkbox-inline"
+            <span
               title={
                 vanillaSources ? '' : tr('Carica il jar vanilla dalla scheda Vanilla del pack')
               }
             >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={comparing}
                 disabled={!vanillaSources}
-                onChange={(event) => setCompare(event.target.checked)}
+                onCheckedChange={setCompare}
+                label={tr('Confronta con vanilla (affiancato)')}
               />
-              {tr('Confronta con vanilla (affiancato)')}
-            </label>
+            </span>
             <button type="button" aria-pressed={fly} onClick={() => setFly((on) => !on)}>
               <Glyph icon={fly ? GLYPHS.reset : NAV_ICONS.move} />
               {fly ? tr('Torna a ruotare') : tr('Volo libero')}
@@ -618,17 +613,15 @@ export function TestScreen({
 
           <section className="test-section">
             <strong>{tr('Effetti (LabPBR)')}</strong>
-            <label
-              className="checkbox-inline"
+            <span
               title={tr('Come con uno shader LabPBR (Iris): normali, riflessi, metalli, emissione')}
             >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={effectsOn}
-                onChange={(event) => setEffectsOn(event.target.checked)}
+                onCheckedChange={setEffectsOn}
+                label={tr('Mostra effetti')}
               />
-              {tr('Mostra effetti')}
-            </label>
+            </span>
             <span className="muted small" aria-label={tr('Mappe LabPBR')}>
               {tr('Mappe di questa texture:')} <Glyph name={hasNormal ? 'check' : 'cross'} />
               <span data-map="n" data-ok={hasNormal}>
@@ -646,14 +639,11 @@ export function TestScreen({
                 hasNormal={hasNormal}
                 pomExtra={
                   !isItem && (
-                    <label className="checkbox-inline">
-                      <input
-                        type="checkbox"
-                        checked={comparingPom}
-                        onChange={(event) => setPomCompare(event.target.checked)}
-                      />
-                      {tr('Confronta con e senza POM (affiancato)')}
-                    </label>
+                    <Checkbox
+                      checked={comparingPom}
+                      onCheckedChange={setPomCompare}
+                      label={tr('Confronta con e senza POM (affiancato)')}
+                    />
                   )
                 }
               />

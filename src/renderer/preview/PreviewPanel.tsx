@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { BIOMES, DEFAULT_BIOME } from '../../shared/biomeTint'
 import type { BlockstateVariant } from '../../shared/blockModel'
@@ -457,34 +458,26 @@ export function PreviewPanel({
             aria-label={tr('Stadio di crescita')}
           />
           <span className="muted small">{tr('Stadio {0}/{1}', stageIndex + 1, stages.length)}</span>
-          <label
-            className="checkbox-inline small"
+          <span
             title={tr('Le piante ondeggiano come con gli shader (Iris): il pack da solo non lo fa')}
           >
-            <input
-              type="checkbox"
-              checked={windy}
-              onChange={(event) => setWindy(event.target.checked)}
-            />
-            {tr('Vento')}
-          </label>
+            <Checkbox checked={windy} onCheckedChange={setWindy} label={tr('Vento')} />
+          </span>
         </div>
       )}
 
       {glows && (
-        <label
-          className="checkbox-inline small"
+        <span
           title={tr(
             'Le texture _e restano accese al buio con OptiFine o Continuity (senza mod non si vedono)'
           )}
         >
-          <input
-            type="checkbox"
+          <Checkbox
             checked={emissiveOn}
-            onChange={(event) => setEmissiveOn(event.target.checked)}
+            onCheckedChange={setEmissiveOn}
+            label={tr('Luce _e (OptiFine / Continuity)')}
           />
-          {tr('Luce _e (OptiFine / Continuity)')}
-        </label>
+        </span>
       )}
 
       {status?.problems.map((problem) => (
@@ -531,14 +524,11 @@ export function PreviewPanel({
           <Glyph name={cycling ? 'pause' : 'play'} />
           {cycling ? tr('Ferma ciclo') : tr('Ciclo giorno/notte')}
         </button>
-        <label className="checkbox-inline">
-          <input
-            type="checkbox"
-            checked={autoRotate}
-            onChange={(event) => setAutoRotate(event.target.checked)}
-          />
-          {tr('Rotazione automatica')}
-        </label>
+        <Checkbox
+          checked={autoRotate}
+          onCheckedChange={setAutoRotate}
+          label={tr('Rotazione automatica')}
+        />
       </div>
       <span className="muted small">{tr('Trascina per ruotare, rotella per lo zoom.')}</span>
     </aside>

@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { assetUrl, type DraftMaps, type TextureDraft } from '../../shared/ipc'
 import { decodePng } from '../../shared/pngCodec'
@@ -1360,17 +1361,9 @@ export function TextureEditor({
         </div>
         <div className="row">
           {pro && (
-            <label
-              className="inline-check small"
-              title={tr('Mostra consigli e avvisi anche in modalità Pro')}
-            >
-              <input
-                type="checkbox"
-                checked={proTips}
-                onChange={(event) => setProTips(event.target.checked)}
-              />
-              {tr('Consigli')}
-            </label>
+            <span title={tr('Mostra consigli e avvisi anche in modalità Pro')}>
+              <Checkbox checked={proTips} onCheckedChange={setProTips} label={tr('Consigli')} />
+            </span>
           )}
           {saveError && <span className="field-error small">{saveError}</span>}
           {openError && <span className="field-error small">{openError}</span>}

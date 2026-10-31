@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useEffect, useState } from 'react'
 import { Dialog } from 'packforge-ui'
 import { DIRECTIONS, modelPath, namespaced, type Direction } from '../../shared/blockModel'
@@ -328,19 +329,13 @@ export function ModelEditorDialog({
                         return (
                           <tr key={dir}>
                             <td>
-                              <label className="checkbox-inline">
-                                <input
-                                  type="checkbox"
-                                  checked={face !== null}
-                                  aria-label={tr('Faccia {0}', FACE_LABELS[dir]())}
-                                  onChange={(event) =>
-                                    updateFace(dir, () =>
-                                      event.target.checked ? { texture: firstVariable } : null
-                                    )
-                                  }
-                                />
-                                {FACE_LABELS[dir]()}
-                              </label>
+                              <Checkbox
+                                checked={face !== null}
+                                onCheckedChange={(on) =>
+                                  updateFace(dir, () => (on ? { texture: firstVariable } : null))
+                                }
+                                label={FACE_LABELS[dir]()}
+                              />
                             </td>
                             <td>
                               {face && (
@@ -414,15 +409,18 @@ export function ModelEditorDialog({
                             </td>
                             <td>
                               {face && (
-                                <input
-                                  type="checkbox"
+                                <Checkbox
                                   checked={face.tintindex !== undefined && face.tintindex >= 0}
-                                  aria-label={tr('Tinta {0}', FACE_LABELS[dir]())}
-                                  onChange={(event) =>
+                                  onCheckedChange={(on) =>
                                     updateFace(dir, (f) => {
                                       const rest = without(f!, 'tintindex')
-                                      return event.target.checked ? { ...rest, tintindex: 0 } : rest
+                                      return on ? { ...rest, tintindex: 0 } : rest
                                     })
+                                  }
+                                  label={
+                                    <span className="sr-only">
+                                      {tr('Tinta {0}', FACE_LABELS[dir]())}
+                                    </span>
                                   }
                                 />
                               )}

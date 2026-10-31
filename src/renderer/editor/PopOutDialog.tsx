@@ -1,3 +1,4 @@
+import { Checkbox } from 'packforge-ui'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Dialog } from 'packforge-ui'
 import { modelPath, resolveModel, type ResolvedModel } from '../../shared/blockModel'
@@ -252,14 +253,11 @@ export function PopOutDialog({
                 </button>
               ))}
             </div>
-            <label className="checkbox-inline">
-              <input
-                type="checkbox"
-                checked={sidesOnly}
-                onChange={(event) => setSidesOnly(event.target.checked)}
-              />
-              {tr('Solo sui lati (non sopra e sotto)')}
-            </label>
+            <Checkbox
+              checked={sidesOnly}
+              onCheckedChange={setSidesOnly}
+              label={tr('Solo sui lati (non sopra e sotto)')}
+            />
             {result && !result.ok && <p className="field-error small">{result.error}</p>}
             {result?.ok && (
               <p className="small" data-testid="pop-plan">

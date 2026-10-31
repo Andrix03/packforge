@@ -65,7 +65,9 @@ export default async function effects(app) {
   const maps = await app.ev(mapsText)
   app.check(maps.includes('✓ _n') && maps.includes('✓ _s'), `stone has both maps (${maps})`)
   app.check(
-    await app.ev(`document.querySelector('.test-side input[type=checkbox]:checked') !== null`),
+    await app.ev(
+      `document.querySelector('.test-side [role=checkbox][aria-checked=true]') !== null`
+    ),
     'effects start on when the texture has maps'
   )
   app.check(!(await app.ev(warnings)), `no warnings (${await app.ev(warnings)})`)

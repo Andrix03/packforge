@@ -44,7 +44,7 @@ export async function preview(app) {
   await app.openTexture('glowstone.png')
   await app.click('Modello del blocco', '.editor-side button')
   await app.waitFor(
-    `[...document.querySelectorAll('.editor-side label')].some((l) => l.textContent.includes('Luce _e'))`,
+    `[...document.querySelectorAll('.editor-side .pf-checkbox')].some((l) => l.textContent.includes('Luce _e'))`,
     10000
   )
   app.check(true, 'the block preview offers the _e light')
@@ -52,7 +52,7 @@ export async function preview(app) {
   await app.sleep(1200)
   await app.shot('emissive-night-on')
   await app.ev(
-    `[...document.querySelectorAll('.editor-side label')].find((l) => l.textContent.includes('Luce _e')).querySelector('input').click()`
+    `[...document.querySelectorAll('.editor-side .pf-checkbox')].find((l) => l.textContent.includes('Luce _e')).querySelector('[role=checkbox]').click()`
   )
   await app.sleep(800)
   await app.shot('emissive-night-off')

@@ -67,11 +67,14 @@ export default async function screenshot(app) {
 
   // Effects off: the plain renderer path.
   await app.ev(
-    `[...document.querySelectorAll('.test-side label')].find((l) => /Effetti/.test(l.textContent))?.querySelector('input')?.click()`
+    `[...document.querySelectorAll('.test-side .pf-checkbox')].find((l) => /effetti/i.test(l.textContent))?.querySelector('[role=checkbox]')?.click()`
   )
   await app.sleep(1200)
   const second = await shoot(app)
   const secondPath = second.slice('Salvato: '.length)
   app.check(secondPath !== path, 'a new file each time (never overwritten)')
-  app.check(variety(await readFile(secondPath)) > 20, 'effects off: not blank either')
+  // Without effects the view is flat (one sky colour, a few stone greys): far fewer distinct
+  // bytes than the lit one, while a blank buffer has one or two.
+  const plain = variety(await readFile(secondPath))
+  app.check(plain > 4, `effects off: not blank either (${plain} distinct sampled bytes)`)
 }

@@ -2,13 +2,16 @@ import { useEffect } from 'react'
 
 /**
  * Esc closes the dialog. Listens in the capture phase and stops the event, so the editor under a
- * dialog does not also react (e.g. deselect). `enabled` false while an operation runs.
+ * dialog does not also react (e.g. deselect). `enabled` false while an operation runs. A question
+ * open on top (role alertdialog) is left to answer the Esc.
  */
 export function useEscape(onEscape: () => void, enabled = true): void {
   useEffect(() => {
     if (!enabled) return
     const onKey = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
+      // A question asked over this dialog (ui/AskHost) answers the Esc itself.
+      if (document.querySelector('[role=alertdialog]')) return
       event.preventDefault()
       event.stopImmediatePropagation()
       onEscape()

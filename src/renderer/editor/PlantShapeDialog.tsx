@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import {
   blockstatePath,
   blockstateVariants,
@@ -168,104 +169,105 @@ export function PlantShapeDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form"
-        role="dialog"
-        aria-label={tr('Forma della pianta')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="leaf" />
-          {tr('Forma della pianta: {0}', block)}
-        </h2>
-        {phase.status === 'done' ? (
-          <>
-            <p data-testid="shape-result">
-              {tr(
-                '{0} file scritti{1}.',
-                phase.written.length,
-                phase.errors.length > 0 ? tr(', {0} errori', phase.errors.length) : ''
-              )}
-              {shape === 'tall' && tr(' Disegna la parte alta nelle texture «_top».')}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Forma della pianta')}
+      className="card modal form"
+      dismissible={phase.status !== 'working'}
+    >
+      <h2>
+        <Glyph name="leaf" />
+        {tr('Forma della pianta: {0}', block)}
+      </h2>
+      {phase.status === 'done' ? (
+        <>
+          <p data-testid="shape-result">
+            {tr(
+              '{0} file scritti{1}.',
+              phase.written.length,
+              phase.errors.length > 0 ? tr(', {0} errori', phase.errors.length) : ''
+            )}
+            {shape === 'tall' && tr(' Disegna la parte alta nelle texture «_top».')}
+          </p>
+          {phase.errors.map((error) => (
+            <p key={error} className="field-error small">
+              {error}
             </p>
-            {phase.errors.map((error) => (
-              <p key={error} className="field-error small">
-                {error}
-              </p>
-            ))}
-            <div className="row">
-              <button type="button" className="primary" onClick={() => onDone(phase.written)}>
-                {tr('Fatto')}
+          ))}
+          <div className="row">
+            <button type="button" className="primary" onClick={() => onDone(phase.written)}>
+              {tr('Fatto')}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="muted small">
+            {growing
+              ? tr(
+                  'Il modello 3D degli stadi: scritto nel pack come modello vanilla, funziona senza mod. Le varianti casuali seguono la forma del loro stadio.'
+                )
+              : tr(
+                  'Il modello 3D della pianta: scritto nel pack come modello vanilla, funziona senza mod. Le varianti casuali seguono la sua forma.'
+                )}
+          </p>
+          <div className="tabs small-tabs wrap" role="radiogroup" aria-label={tr('Forma')}>
+            {shapes.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={shape === option.id}
+                className={shape === option.id ? 'tab active' : 'tab'}
+                title={option.hint}
+                onClick={() => setShape(option.id)}
+              >
+                {option.label}
               </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="muted small">
-              {growing
-                ? tr(
-                    'Il modello 3D degli stadi: scritto nel pack come modello vanilla, funziona senza mod. Le varianti casuali seguono la forma del loro stadio.'
-                  )
+            ))}
+          </div>
+          <p className="small">{shapes.find((s) => s.id === shape)?.hint}</p>
+          {growing && (
+            <label className="checkbox-inline">
+              <input
+                type="checkbox"
+                checked={allStages}
+                onChange={(event) => setAllStages(event.target.checked)}
+              />
+              {tr('Tutti gli stadi (altrimenti solo quello di questa texture)')}
+            </label>
+          )}
+          {targets === null ? (
+            <p className="muted">{tr('Leggo i modelli…')}</p>
+          ) : (
+            <p className="muted small" data-testid="shape-plan">
+              {chosen.length === 0
+                ? tr('Nessun modello da cambiare per questa texture.')
                 : tr(
-                    'Il modello 3D della pianta: scritto nel pack come modello vanilla, funziona senza mod. Le varianti casuali seguono la sua forma.'
+                    'Modelli: {0}',
+                    chosen.map((t) => t.model.replace(/^minecraft:/, '')).join(', ')
                   )}
             </p>
-            <div className="tabs small-tabs wrap" role="radiogroup" aria-label={tr('Forma')}>
-              {shapes.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={shape === option.id}
-                  className={shape === option.id ? 'tab active' : 'tab'}
-                  title={option.hint}
-                  onClick={() => setShape(option.id)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <p className="small">{shapes.find((s) => s.id === shape)?.hint}</p>
-            {growing && (
-              <label className="checkbox-inline">
-                <input
-                  type="checkbox"
-                  checked={allStages}
-                  onChange={(event) => setAllStages(event.target.checked)}
-                />
-                {tr('Tutti gli stadi (altrimenti solo quello di questa texture)')}
-              </label>
-            )}
-            {targets === null ? (
-              <p className="muted">{tr('Leggo i modelli…')}</p>
-            ) : (
-              <p className="muted small" data-testid="shape-plan">
-                {chosen.length === 0
-                  ? tr('Nessun modello da cambiare per questa texture.')
-                  : tr(
-                      'Modelli: {0}',
-                      chosen.map((t) => t.model.replace(/^minecraft:/, '')).join(', ')
-                    )}
-              </p>
-            )}
-            {phase.status === 'working' && <p className="muted">{tr('Scrivo i modelli…')}</p>}
-            <div className="row">
-              <button
-                type="button"
-                className="primary"
-                disabled={chosen.length === 0 || phase.status === 'working'}
-                onClick={() => apply()}
-              >
-                {tr('Applica la forma')}
-              </button>
-              <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
-                {tr('Annulla')}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+          )}
+          {phase.status === 'working' && <p className="muted">{tr('Scrivo i modelli…')}</p>}
+          <div className="row">
+            <button
+              type="button"
+              className="primary"
+              disabled={chosen.length === 0 || phase.status === 'working'}
+              onClick={() => apply()}
+            >
+              {tr('Applica la forma')}
+            </button>
+            <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
+              {tr('Annulla')}
+            </button>
+          </div>
+        </>
+      )}
+    </Dialog>
   )
 }

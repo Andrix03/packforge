@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import {
   DEFAULT_EMISSIVE_SUFFIX,
   EMISSIVE_PROPERTIES_PATH,
@@ -113,104 +114,105 @@ export function EmissiveDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form emissive-dialog"
-        role="dialog"
-        aria-label={tr('Texture emissive')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="dot" />
-          {tr('Texture emissive (_e)')}
-        </h2>
-        <p className="muted small">
-          {tr(
-            'Le parti che brillano nella mappa _s diventano una texture _e: con OptiFine o Continuity restano accese anche al buio, senza shader.'
-          )}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Texture emissive')}
+      className="card modal form emissive-dialog"
+      dismissible={phase.status !== 'working'}
+    >
+      <h2>
+        <Glyph name="dot" />
+        {tr('Texture emissive (_e)')}
+      </h2>
+      <p className="muted small">
+        {tr(
+          'Le parti che brillano nella mappa _s diventano una texture _e: con OptiFine o Continuity restano accese anche al buio, senza shader.'
+        )}
+      </p>
+      {candidates === null ? (
+        <p className="muted">{tr('Leggo le texture con la mappa _s…')}</p>
+      ) : glowing.length === 0 ? (
+        <p data-testid="emissive-none">
+          {tr('Nessuna mappa _s del pack emette luce (canale alfa sotto 255).')}
         </p>
-        {candidates === null ? (
-          <p className="muted">{tr('Leggo le texture con la mappa _s…')}</p>
-        ) : glowing.length === 0 ? (
-          <p data-testid="emissive-none">
-            {tr('Nessuna mappa _s del pack emette luce (canale alfa sotto 255).')}
+      ) : (
+        <>
+          <label className="item-number small">
+            <span>
+              {tr('Soglia')} <b>{Math.round(cutoff * 100)}%</b>
+            </span>
+            <RangeInput
+              min={0}
+              max={0.9}
+              step={0.05}
+              value={cutoff}
+              aria-label={tr('Soglia')}
+              onChange={(event) => setCutoff(Number(event.target.value))}
+            />
+          </label>
+          <SwitchRow
+            checked={full}
+            onChange={setFull}
+            label={tr('Luce piena')}
+            note={tr('Ogni pixel che brilla a piena luminosità, invece di seguire la mappa.')}
+          />
+          <div className="emissive-previews">
+            {glowing.slice(0, PREVIEW).map((r) => (
+              <figure key={r.albedo} className="emissive-figure">
+                <OverlayPreview image={r.image} overlay={r.overlay!} />
+                <figcaption className="muted small">
+                  {r.albedo.replace(/^.*\//, '').replace(/\.png$/, '')}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <p className="small" data-testid="emissive-plan">
+            {tr('{0} texture con luce, {1} file _e da scrivere.', glowing.length, toWrite.length)}
           </p>
+          {kept.length > 0 && (
+            <SwitchRow
+              checked={replace}
+              onChange={setReplace}
+              label={tr('Sostituisci i _e che esistono già ({0})', kept.length)}
+            />
+          )}
+        </>
+      )}
+      {phase.status === 'done' && (
+        <>
+          <p data-testid="emissive-result">{tr('{0} file _e scritti.', phase.written)}</p>
+          {phase.errors.map((error) => (
+            <p key={error} className="field-error small">
+              {error}
+            </p>
+          ))}
+        </>
+      )}
+      <div className="row">
+        {phase.status === 'done' ? (
+          <button type="button" className="primary" onClick={onClose}>
+            {tr('Fatto')}
+          </button>
         ) : (
           <>
-            <label className="item-number small">
-              <span>
-                {tr('Soglia')} <b>{Math.round(cutoff * 100)}%</b>
-              </span>
-              <RangeInput
-                min={0}
-                max={0.9}
-                step={0.05}
-                value={cutoff}
-                aria-label={tr('Soglia')}
-                onChange={(event) => setCutoff(Number(event.target.value))}
-              />
-            </label>
-            <SwitchRow
-              checked={full}
-              onChange={setFull}
-              label={tr('Luce piena')}
-              note={tr('Ogni pixel che brilla a piena luminosità, invece di seguire la mappa.')}
-            />
-            <div className="emissive-previews">
-              {glowing.slice(0, PREVIEW).map((r) => (
-                <figure key={r.albedo} className="emissive-figure">
-                  <OverlayPreview image={r.image} overlay={r.overlay!} />
-                  <figcaption className="muted small">
-                    {r.albedo.replace(/^.*\//, '').replace(/\.png$/, '')}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-            <p className="small" data-testid="emissive-plan">
-              {tr('{0} texture con luce, {1} file _e da scrivere.', glowing.length, toWrite.length)}
-            </p>
-            {kept.length > 0 && (
-              <SwitchRow
-                checked={replace}
-                onChange={setReplace}
-                label={tr('Sostituisci i _e che esistono già ({0})', kept.length)}
-              />
-            )}
-          </>
-        )}
-        {phase.status === 'done' && (
-          <>
-            <p data-testid="emissive-result">{tr('{0} file _e scritti.', phase.written)}</p>
-            {phase.errors.map((error) => (
-              <p key={error} className="field-error small">
-                {error}
-              </p>
-            ))}
-          </>
-        )}
-        <div className="row">
-          {phase.status === 'done' ? (
-            <button type="button" className="primary" onClick={onClose}>
-              {tr('Fatto')}
+            <button
+              type="button"
+              className="primary"
+              disabled={toWrite.length === 0 || phase.status === 'working'}
+              onClick={() => apply()}
+            >
+              {tr('Scrivi {0} file _e', toWrite.length)}
             </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="primary"
-                disabled={toWrite.length === 0 || phase.status === 'working'}
-                onClick={() => apply()}
-              >
-                {tr('Scrivi {0} file _e', toWrite.length)}
-              </button>
-              <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
-                {tr('Annulla')}
-              </button>
-            </>
-          )}
-        </div>
+            <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
+              {tr('Annulla')}
+            </button>
+          </>
+        )}
       </div>
-    </div>
+    </Dialog>
   )
 }
 

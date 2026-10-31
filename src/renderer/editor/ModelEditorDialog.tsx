@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { DIRECTIONS, modelPath, namespaced, type Direction } from '../../shared/blockModel'
 import { tr } from '../../shared/i18n'
 import {
@@ -165,330 +166,329 @@ export function ModelEditorDialog({
 
   const firstVariable = variables[0] ?? '#all'
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form model-editor"
-        role="dialog"
-        aria-label={tr('Elementi del modello')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="gear" />
-          {tr('Elementi: {0}', id.replace(/^minecraft:/, ''))}
-        </h2>
-        {missing ? (
-          <p className="field-error small">{tr('Modello non trovato: {0}', file)}</p>
-        ) : !model ? (
-          <p className="muted">{tr('Leggo il modello…')}</p>
-        ) : (
-          <>
-            {loaded?.inherited && (
-              <p className="muted small">
-                {tr('Gli elementi venivano dal modello padre: salvando, il modello li avrà suoi.')}
-              </p>
-            )}
-            <div className="model-editor-body">
-              <div className="model-list">
-                <ol>
-                  {elements.map((e, i) => (
-                    <li key={i}>
-                      <button
-                        type="button"
-                        className={i === selected ? 'tab active' : 'tab'}
-                        aria-pressed={i === selected}
-                        onClick={() => setSelected(i)}
-                      >
-                        {i + 1}: {e.from.join(',')} / {e.to.join(',')}
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-                <div className="row wrap">
-                  <button
-                    type="button"
-                    className="small-button"
-                    onClick={() => {
-                      setElements([...elements, cubeElement(firstVariable)])
-                      setSelected(elements.length)
-                    }}
-                  >
-                    {tr('Aggiungi')}
-                  </button>
-                  <button
-                    type="button"
-                    className="small-button"
-                    disabled={!element}
-                    onClick={() => {
-                      if (!element) return
-                      setElements([...elements, structuredClone(element)])
-                      setSelected(elements.length)
-                    }}
-                  >
-                    {tr('Duplica')}
-                  </button>
-                  <button
-                    type="button"
-                    className="small-button"
-                    disabled={!element}
-                    onClick={() => {
-                      setElements(elements.filter((_, i) => i !== selected))
-                      setSelected(Math.max(0, selected - 1))
-                    }}
-                  >
-                    {tr('Elimina')}
-                  </button>
-                </div>
-              </div>
-
-              <div className="model-fields">
-                {element ? (
-                  <>
-                    <NumberRow
-                      label={tr('Da')}
-                      value={element.from}
-                      step={0.5}
-                      onChange={(from) => updateElement((e) => ({ ...e, from }))}
-                    />
-                    <NumberRow
-                      label={tr('A')}
-                      value={element.to}
-                      step={0.5}
-                      onChange={(to) => updateElement((e) => ({ ...e, to }))}
-                    />
-                    <div className="model-row">
-                      <span className="lbl">{tr('Rotazione')}</span>
-                      <select
-                        aria-label={tr('Asse di rotazione')}
-                        value={element.rotation?.axis ?? ''}
-                        onChange={(event) => {
-                          const axis = event.target.value as 'x' | 'y' | 'z' | ''
-                          updateElement((e) => {
-                            const rest = without(e, 'rotation')
-                            return axis === ''
-                              ? rest
-                              : {
-                                  ...rest,
-                                  rotation: {
-                                    origin: e.rotation?.origin ?? [8, 8, 8],
-                                    axis,
-                                    angle: e.rotation?.angle ?? 22.5
-                                  }
-                                }
-                          })
-                        }}
-                      >
-                        <option value="">{tr('Nessuna')}</option>
-                        <option value="x">X</option>
-                        <option value="y">Y</option>
-                        <option value="z">Z</option>
-                      </select>
-                      {element.rotation && (
-                        <input
-                          type="number"
-                          step={22.5}
-                          value={element.rotation.angle}
-                          aria-label={tr('Angolo')}
-                          onChange={(event) => {
-                            const angle = Number(event.target.value)
-                            if (!Number.isFinite(angle)) return
-                            updateElement((e) => ({
-                              ...e,
-                              rotation: { ...e.rotation!, angle }
-                            }))
-                          }}
-                        />
-                      )}
-                    </div>
-                    {element.rotation && (
-                      <NumberRow
-                        label={tr('Perno')}
-                        value={element.rotation.origin}
-                        step={0.5}
-                        onChange={(origin) =>
-                          updateElement((e) => ({ ...e, rotation: { ...e.rotation!, origin } }))
-                        }
-                      />
-                    )}
-                    <table className="model-faces">
-                      <thead>
-                        <tr>
-                          <th>{tr('Faccia')}</th>
-                          <th>{tr('Texture')}</th>
-                          <th>UV</th>
-                          <th>{tr('Nascosta da')}</th>
-                          <th>{tr('Tinta')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {FACE_ORDER.map((dir) => {
-                          const face = element.faces[dir] ?? null
-                          return (
-                            <tr key={dir}>
-                              <td>
-                                <label className="checkbox-inline">
-                                  <input
-                                    type="checkbox"
-                                    checked={face !== null}
-                                    aria-label={tr('Faccia {0}', FACE_LABELS[dir]())}
-                                    onChange={(event) =>
-                                      updateFace(dir, () =>
-                                        event.target.checked ? { texture: firstVariable } : null
-                                      )
-                                    }
-                                  />
-                                  {FACE_LABELS[dir]()}
-                                </label>
-                              </td>
-                              <td>
-                                {face && (
-                                  <select
-                                    value={face.texture}
-                                    aria-label={tr('Texture {0}', FACE_LABELS[dir]())}
-                                    onChange={(event) =>
-                                      updateFace(dir, (f) => ({
-                                        ...f!,
-                                        texture: event.target.value
-                                      }))
-                                    }
-                                  >
-                                    {[...new Set([face.texture, ...variables])].map((v) => (
-                                      <option key={v} value={v}>
-                                        {v}
-                                      </option>
-                                    ))}
-                                  </select>
-                                )}
-                              </td>
-                              <td className="model-uv">
-                                {face &&
-                                  ([0, 1, 2, 3] as const).map((k) => (
-                                    <input
-                                      key={k}
-                                      type="number"
-                                      step={0.5}
-                                      placeholder={tr('auto')}
-                                      value={face.uv?.[k] ?? ''}
-                                      aria-label={`UV ${FACE_LABELS[dir]()} ${k + 1}`}
-                                      onChange={(event) =>
-                                        updateFace(dir, (f) => {
-                                          const raw = event.target.value
-                                          const { uv: old, ...rest } = f!
-                                          if (raw === '') return rest
-                                          const uv = [...(old ?? [0, 0, 16, 16])] as [
-                                            number,
-                                            number,
-                                            number,
-                                            number
-                                          ]
-                                          uv[k] = Number(raw)
-                                          return { ...rest, uv }
-                                        })
-                                      }
-                                    />
-                                  ))}
-                              </td>
-                              <td>
-                                {face && (
-                                  <select
-                                    value={face.cullface ?? ''}
-                                    aria-label={tr('Nascosta da {0}', FACE_LABELS[dir]())}
-                                    onChange={(event) =>
-                                      updateFace(dir, (f) => {
-                                        const rest = without(f!, 'cullface')
-                                        const value = event.target.value as Direction | ''
-                                        return value === '' ? rest : { ...rest, cullface: value }
-                                      })
-                                    }
-                                  >
-                                    <option value="">{tr('Mai')}</option>
-                                    {DIRECTIONS.map((d) => (
-                                      <option key={d} value={d}>
-                                        {FACE_LABELS[d]()}
-                                      </option>
-                                    ))}
-                                  </select>
-                                )}
-                              </td>
-                              <td>
-                                {face && (
-                                  <input
-                                    type="checkbox"
-                                    checked={face.tintindex !== undefined && face.tintindex >= 0}
-                                    aria-label={tr('Tinta {0}', FACE_LABELS[dir]())}
-                                    onChange={(event) =>
-                                      updateFace(dir, (f) => {
-                                        const rest = without(f!, 'tintindex')
-                                        return event.target.checked
-                                          ? { ...rest, tintindex: 0 }
-                                          : rest
-                                      })
-                                    }
-                                  />
-                                )}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </>
-                ) : (
-                  <p className="muted">{tr('Nessun elemento: aggiungine uno.')}</p>
-                )}
-              </div>
-
-              <div className="model-side">
-                <ModelView
-                  id={id}
-                  json={model}
-                  sources={sources}
-                  selected={element ? selected : null}
-                  onMove={(index, from, to) =>
-                    setElements(elements.map((e, i) => (i === index ? { ...e, from, to } : e)))
-                  }
-                />
-                <p className="small" data-testid="model-cost">
-                  {tr('{0} elementi, {1} facce.', cost.elements, cost.faces)}
-                </p>
-                <div className="model-issues" data-testid="model-issues">
-                  {issues.length === 0 ? (
-                    <p className="small ok-text">
-                      <Glyph name="check" />
-                      {tr('Nessun problema per le versioni del pack.')}
-                    </p>
-                  ) : (
-                    issues.map((issue, i) => (
-                      <p
-                        key={i}
-                        className={issue.severity === 'error' ? 'field-error small' : 'small'}
-                      >
-                        {issue.element !== null && `${issue.element + 1}. `}
-                        {issue.message}
-                      </p>
-                    ))
-                  )}
-                </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Elementi del modello')}
+      className="card modal form model-editor"
+      dismissible={!saving}
+    >
+      <h2>
+        <Glyph name="gear" />
+        {tr('Elementi: {0}', id.replace(/^minecraft:/, ''))}
+      </h2>
+      {missing ? (
+        <p className="field-error small">{tr('Modello non trovato: {0}', file)}</p>
+      ) : !model ? (
+        <p className="muted">{tr('Leggo il modello…')}</p>
+      ) : (
+        <>
+          {loaded?.inherited && (
+            <p className="muted small">
+              {tr('Gli elementi venivano dal modello padre: salvando, il modello li avrà suoi.')}
+            </p>
+          )}
+          <div className="model-editor-body">
+            <div className="model-list">
+              <ol>
+                {elements.map((e, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      className={i === selected ? 'tab active' : 'tab'}
+                      aria-pressed={i === selected}
+                      onClick={() => setSelected(i)}
+                    >
+                      {i + 1}: {e.from.join(',')} / {e.to.join(',')}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              <div className="row wrap">
+                <button
+                  type="button"
+                  className="small-button"
+                  onClick={() => {
+                    setElements([...elements, cubeElement(firstVariable)])
+                    setSelected(elements.length)
+                  }}
+                >
+                  {tr('Aggiungi')}
+                </button>
+                <button
+                  type="button"
+                  className="small-button"
+                  disabled={!element}
+                  onClick={() => {
+                    if (!element) return
+                    setElements([...elements, structuredClone(element)])
+                    setSelected(elements.length)
+                  }}
+                >
+                  {tr('Duplica')}
+                </button>
+                <button
+                  type="button"
+                  className="small-button"
+                  disabled={!element}
+                  onClick={() => {
+                    setElements(elements.filter((_, i) => i !== selected))
+                    setSelected(Math.max(0, selected - 1))
+                  }}
+                >
+                  {tr('Elimina')}
+                </button>
               </div>
             </div>
-          </>
-        )}
-        <p className="muted small path">{file}</p>
-        {error && <p className="field-error small">{error}</p>}
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={!json || errors.length > 0 || saving}
-            onClick={() => save()}
-          >
-            {tr('Salva il modello')}
-          </button>
-          <button type="button" onClick={onClose} disabled={saving}>
-            {tr('Annulla')}
-          </button>
-        </div>
+
+            <div className="model-fields">
+              {element ? (
+                <>
+                  <NumberRow
+                    label={tr('Da')}
+                    value={element.from}
+                    step={0.5}
+                    onChange={(from) => updateElement((e) => ({ ...e, from }))}
+                  />
+                  <NumberRow
+                    label={tr('A')}
+                    value={element.to}
+                    step={0.5}
+                    onChange={(to) => updateElement((e) => ({ ...e, to }))}
+                  />
+                  <div className="model-row">
+                    <span className="lbl">{tr('Rotazione')}</span>
+                    <select
+                      aria-label={tr('Asse di rotazione')}
+                      value={element.rotation?.axis ?? ''}
+                      onChange={(event) => {
+                        const axis = event.target.value as 'x' | 'y' | 'z' | ''
+                        updateElement((e) => {
+                          const rest = without(e, 'rotation')
+                          return axis === ''
+                            ? rest
+                            : {
+                                ...rest,
+                                rotation: {
+                                  origin: e.rotation?.origin ?? [8, 8, 8],
+                                  axis,
+                                  angle: e.rotation?.angle ?? 22.5
+                                }
+                              }
+                        })
+                      }}
+                    >
+                      <option value="">{tr('Nessuna')}</option>
+                      <option value="x">X</option>
+                      <option value="y">Y</option>
+                      <option value="z">Z</option>
+                    </select>
+                    {element.rotation && (
+                      <input
+                        type="number"
+                        step={22.5}
+                        value={element.rotation.angle}
+                        aria-label={tr('Angolo')}
+                        onChange={(event) => {
+                          const angle = Number(event.target.value)
+                          if (!Number.isFinite(angle)) return
+                          updateElement((e) => ({
+                            ...e,
+                            rotation: { ...e.rotation!, angle }
+                          }))
+                        }}
+                      />
+                    )}
+                  </div>
+                  {element.rotation && (
+                    <NumberRow
+                      label={tr('Perno')}
+                      value={element.rotation.origin}
+                      step={0.5}
+                      onChange={(origin) =>
+                        updateElement((e) => ({ ...e, rotation: { ...e.rotation!, origin } }))
+                      }
+                    />
+                  )}
+                  <table className="model-faces">
+                    <thead>
+                      <tr>
+                        <th>{tr('Faccia')}</th>
+                        <th>{tr('Texture')}</th>
+                        <th>UV</th>
+                        <th>{tr('Nascosta da')}</th>
+                        <th>{tr('Tinta')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {FACE_ORDER.map((dir) => {
+                        const face = element.faces[dir] ?? null
+                        return (
+                          <tr key={dir}>
+                            <td>
+                              <label className="checkbox-inline">
+                                <input
+                                  type="checkbox"
+                                  checked={face !== null}
+                                  aria-label={tr('Faccia {0}', FACE_LABELS[dir]())}
+                                  onChange={(event) =>
+                                    updateFace(dir, () =>
+                                      event.target.checked ? { texture: firstVariable } : null
+                                    )
+                                  }
+                                />
+                                {FACE_LABELS[dir]()}
+                              </label>
+                            </td>
+                            <td>
+                              {face && (
+                                <select
+                                  value={face.texture}
+                                  aria-label={tr('Texture {0}', FACE_LABELS[dir]())}
+                                  onChange={(event) =>
+                                    updateFace(dir, (f) => ({
+                                      ...f!,
+                                      texture: event.target.value
+                                    }))
+                                  }
+                                >
+                                  {[...new Set([face.texture, ...variables])].map((v) => (
+                                    <option key={v} value={v}>
+                                      {v}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </td>
+                            <td className="model-uv">
+                              {face &&
+                                ([0, 1, 2, 3] as const).map((k) => (
+                                  <input
+                                    key={k}
+                                    type="number"
+                                    step={0.5}
+                                    placeholder={tr('auto')}
+                                    value={face.uv?.[k] ?? ''}
+                                    aria-label={`UV ${FACE_LABELS[dir]()} ${k + 1}`}
+                                    onChange={(event) =>
+                                      updateFace(dir, (f) => {
+                                        const raw = event.target.value
+                                        const { uv: old, ...rest } = f!
+                                        if (raw === '') return rest
+                                        const uv = [...(old ?? [0, 0, 16, 16])] as [
+                                          number,
+                                          number,
+                                          number,
+                                          number
+                                        ]
+                                        uv[k] = Number(raw)
+                                        return { ...rest, uv }
+                                      })
+                                    }
+                                  />
+                                ))}
+                            </td>
+                            <td>
+                              {face && (
+                                <select
+                                  value={face.cullface ?? ''}
+                                  aria-label={tr('Nascosta da {0}', FACE_LABELS[dir]())}
+                                  onChange={(event) =>
+                                    updateFace(dir, (f) => {
+                                      const rest = without(f!, 'cullface')
+                                      const value = event.target.value as Direction | ''
+                                      return value === '' ? rest : { ...rest, cullface: value }
+                                    })
+                                  }
+                                >
+                                  <option value="">{tr('Mai')}</option>
+                                  {DIRECTIONS.map((d) => (
+                                    <option key={d} value={d}>
+                                      {FACE_LABELS[d]()}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </td>
+                            <td>
+                              {face && (
+                                <input
+                                  type="checkbox"
+                                  checked={face.tintindex !== undefined && face.tintindex >= 0}
+                                  aria-label={tr('Tinta {0}', FACE_LABELS[dir]())}
+                                  onChange={(event) =>
+                                    updateFace(dir, (f) => {
+                                      const rest = without(f!, 'tintindex')
+                                      return event.target.checked ? { ...rest, tintindex: 0 } : rest
+                                    })
+                                  }
+                                />
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </>
+              ) : (
+                <p className="muted">{tr('Nessun elemento: aggiungine uno.')}</p>
+              )}
+            </div>
+
+            <div className="model-side">
+              <ModelView
+                id={id}
+                json={model}
+                sources={sources}
+                selected={element ? selected : null}
+                onMove={(index, from, to) =>
+                  setElements(elements.map((e, i) => (i === index ? { ...e, from, to } : e)))
+                }
+              />
+              <p className="small" data-testid="model-cost">
+                {tr('{0} elementi, {1} facce.', cost.elements, cost.faces)}
+              </p>
+              <div className="model-issues" data-testid="model-issues">
+                {issues.length === 0 ? (
+                  <p className="small ok-text">
+                    <Glyph name="check" />
+                    {tr('Nessun problema per le versioni del pack.')}
+                  </p>
+                ) : (
+                  issues.map((issue, i) => (
+                    <p
+                      key={i}
+                      className={issue.severity === 'error' ? 'field-error small' : 'small'}
+                    >
+                      {issue.element !== null && `${issue.element + 1}. `}
+                      {issue.message}
+                    </p>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      <p className="muted small path">{file}</p>
+      {error && <p className="field-error small">{error}</p>}
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={!json || errors.length > 0 || saving}
+          onClick={() => save()}
+        >
+          {tr('Salva il modello')}
+        </button>
+        <button type="button" onClick={onClose} disabled={saving}>
+          {tr('Annulla')}
+        </button>
       </div>
-    </div>
+    </Dialog>
   )
 }
 

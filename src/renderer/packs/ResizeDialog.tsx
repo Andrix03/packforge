@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import { readPngSize } from '../../shared/png'
 import {
@@ -199,154 +200,160 @@ export function ResizeDialog({
 
   if (phase.status !== 'setup') {
     return (
-      <div className="modal-backdrop" role="presentation">
-        <div className="card modal batch" role="dialog" aria-label={tr('Ridimensiona')}>
-          <h2>{tr('Ridimensiona')}</h2>
-          {phase.status === 'working' ? (
-            <ProgressBar label={phase.text} done={phase.done} total={phase.total} />
-          ) : (
-            <>
-              <p className="small" data-testid="resize-result">
-                <Glyph name="check" />
-                {phase.written === 1 ? '1 file riscritto' : `${phase.written} file riscritti`}
-                {phase.errors.length > 0 && tr(', {0} errori', phase.errors.length)}
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) onClose()
+        }}
+        label={tr('Ridimensiona')}
+        className="card modal batch"
+        dismissible={phase.status !== 'working'}
+      >
+        <h2>{tr('Ridimensiona')}</h2>
+        {phase.status === 'working' ? (
+          <ProgressBar label={phase.text} done={phase.done} total={phase.total} />
+        ) : (
+          <>
+            <p className="small" data-testid="resize-result">
+              <Glyph name="check" />
+              {phase.written === 1 ? '1 file riscritto' : `${phase.written} file riscritti`}
+              {phase.errors.length > 0 && tr(', {0} errori', phase.errors.length)}
+            </p>
+            {phase.errors.map((error) => (
+              <p key={error} className="field-error small">
+                {error}
               </p>
-              {phase.errors.map((error) => (
-                <p key={error} className="field-error small">
-                  {error}
-                </p>
-              ))}
-              <div className="row">
-                <button type="button" className="primary" onClick={onClose}>
-                  {tr('Chiudi')}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+            ))}
+            <div className="row">
+              <button type="button" className="primary" onClick={onClose}>
+                {tr('Chiudi')}
+              </button>
+            </div>
+          </>
+        )}
+      </Dialog>
     )
   }
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal batch"
-        role="dialog"
-        aria-label={tr('Ridimensiona')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>{tr('Ridimensiona (pixel netti)')}</h2>
-        <p className="muted small">
-          {tr(
-            'Porta le texture a una sola risoluzione, insieme a _n e _s: il gioco calcola le mipmap dell’atlante sulla texture più piccola, quindi un pack con risoluzioni miste perde qualità da lontano. Solo rapporti interi (×2, ×4, metà…), così i pixel restano netti.'
-          )}
-        </p>
-        {!sizes ? (
-          <p className="small">{tr('Leggo le dimensioni…')}</p>
-        ) : (
-          <p className="small" data-testid="resize-histogram">
-            {tr('Nel pack:')} {histogram.map((h) => `${h.resolution}× ${h.count}`).join(', ')}
-          </p>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Ridimensiona')}
+      className="card modal batch"
+    >
+      <h2>{tr('Ridimensiona (pixel netti)')}</h2>
+      <p className="muted small">
+        {tr(
+          'Porta le texture a una sola risoluzione, insieme a _n e _s: il gioco calcola le mipmap dell’atlante sulla texture più piccola, quindi un pack con risoluzioni miste perde qualità da lontano. Solo rapporti interi (×2, ×4, metà…), così i pixel restano netti.'
         )}
-        <div className="row">
-          <label className="small select-field">
-            {tr('Risoluzione')}{' '}
-            <select
-              aria-label={tr('Risoluzione')}
-              value={target}
-              onChange={(event) => setTarget(Number(event.target.value))}
-            >
-              {RESOLUTIONS.map((r) => (
-                <option key={r} value={r}>
-                  {r}×
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="small-button"
-            disabled={!sizes}
-            onClick={() =>
-              setSelected(
-                new Set(
-                  textures
-                    .filter((t) => sizes?.[t.albedo] && sizes[t.albedo]!.width !== target)
-                    .map((t) => t.albedo)
-                )
-              )
-            }
-          >
-            {tr('Seleziona quelle non a {0}×', target)}
-          </button>
-          <button type="button" className="small-button" onClick={() => setSelected(new Set())}>
-            {tr('Nessuna')}
-          </button>
-        </div>
-        <input
-          type="search"
-          aria-label={tr('Filtra texture')}
-          placeholder={tr('Filtra per nome o cartella')}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        <ul className="batch-list" aria-label={tr('Texture')}>
-          {visible.slice(0, MAX_ROWS).map((texture) => {
-            const size = sizes?.[texture.albedo]
-            const factor = factorOf(texture)
-            return (
-              <li key={texture.albedo}>
-                <label className="inline-check small">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(texture.albedo)}
-                    onChange={(event) =>
-                      setSelected((all) => {
-                        const next = new Set(all)
-                        if (event.target.checked) next.add(texture.albedo)
-                        else next.delete(texture.albedo)
-                        return next
-                      })
-                    }
-                  />
-                  {texture.name}
-                  <span className="muted">
-                    {size ? `${size.width}×${size.height}` : '…'}
-                    {size && !factor && tr(', non si può portare a questa risoluzione')}
-                    {factor && factor.up === 1 && factor.down === 1 && tr(', già così')}
-                  </span>
-                </label>
-              </li>
-            )
-          })}
-        </ul>
-        <label className="inline-check small">
-          <input
-            type="checkbox"
-            checked={withMaps}
-            onChange={(event) => setWithMaps(event.target.checked)}
-          />
-          {tr('Ridimensiona anche _n e _s (valori esatti, nessuna sfumatura)')}
-        </label>
-        <p className="small" data-testid="resize-summary">
-          {tr('Da ridimensionare: {0}', work.length)}
-          {incompatible.length > 0 && `, incompatibili: ${incompatible.length}`}
+      </p>
+      {!sizes ? (
+        <p className="small">{tr('Leggo le dimensioni…')}</p>
+      ) : (
+        <p className="small" data-testid="resize-histogram">
+          {tr('Nel pack:')} {histogram.map((h) => `${h.resolution}× ${h.count}`).join(', ')}
         </p>
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={work.length === 0}
-            onClick={() => apply()}
+      )}
+      <div className="row">
+        <label className="small select-field">
+          {tr('Risoluzione')}{' '}
+          <select
+            aria-label={tr('Risoluzione')}
+            value={target}
+            onChange={(event) => setTarget(Number(event.target.value))}
           >
-            {tr('Ridimensiona {0}', work.length === 1 ? '1 texture' : `${work.length} texture`)}
-          </button>
-          <button type="button" onClick={onClose}>
-            {tr('Annulla')}
-          </button>
-        </div>
+            {RESOLUTIONS.map((r) => (
+              <option key={r} value={r}>
+                {r}×
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="small-button"
+          disabled={!sizes}
+          onClick={() =>
+            setSelected(
+              new Set(
+                textures
+                  .filter((t) => sizes?.[t.albedo] && sizes[t.albedo]!.width !== target)
+                  .map((t) => t.albedo)
+              )
+            )
+          }
+        >
+          {tr('Seleziona quelle non a {0}×', target)}
+        </button>
+        <button type="button" className="small-button" onClick={() => setSelected(new Set())}>
+          {tr('Nessuna')}
+        </button>
       </div>
-    </div>
+      <input
+        type="search"
+        aria-label={tr('Filtra texture')}
+        placeholder={tr('Filtra per nome o cartella')}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+      <ul className="batch-list" aria-label={tr('Texture')}>
+        {visible.slice(0, MAX_ROWS).map((texture) => {
+          const size = sizes?.[texture.albedo]
+          const factor = factorOf(texture)
+          return (
+            <li key={texture.albedo}>
+              <label className="inline-check small">
+                <input
+                  type="checkbox"
+                  checked={selected.has(texture.albedo)}
+                  onChange={(event) =>
+                    setSelected((all) => {
+                      const next = new Set(all)
+                      if (event.target.checked) next.add(texture.albedo)
+                      else next.delete(texture.albedo)
+                      return next
+                    })
+                  }
+                />
+                {texture.name}
+                <span className="muted">
+                  {size ? `${size.width}×${size.height}` : '…'}
+                  {size && !factor && tr(', non si può portare a questa risoluzione')}
+                  {factor && factor.up === 1 && factor.down === 1 && tr(', già così')}
+                </span>
+              </label>
+            </li>
+          )
+        })}
+      </ul>
+      <label className="inline-check small">
+        <input
+          type="checkbox"
+          checked={withMaps}
+          onChange={(event) => setWithMaps(event.target.checked)}
+        />
+        {tr('Ridimensiona anche _n e _s (valori esatti, nessuna sfumatura)')}
+      </label>
+      <p className="small" data-testid="resize-summary">
+        {tr('Da ridimensionare: {0}', work.length)}
+        {incompatible.length > 0 && `, incompatibili: ${incompatible.length}`}
+      </p>
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={work.length === 0}
+          onClick={() => apply()}
+        >
+          {tr('Ridimensiona {0}', work.length === 1 ? '1 texture' : `${work.length} texture`)}
+        </button>
+        <button type="button" onClick={onClose}>
+          {tr('Annulla')}
+        </button>
+      </div>
+    </Dialog>
   )
 }

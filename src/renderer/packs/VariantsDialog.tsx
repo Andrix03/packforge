@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import {
   DEFAULT_RECOLOR,
@@ -221,164 +222,170 @@ export function VariantsDialog({
 
   if (phase.status !== 'setup') {
     return (
-      <div className="modal-backdrop" role="presentation">
-        <div className="card modal batch" role="dialog" aria-label={tr('Varianti di colore')}>
-          <h2>{tr('Varianti di colore')}</h2>
-          {phase.status === 'running' ? (
-            <ProgressBar label={tr('Creo le varianti')} done={phase.done} total={phase.total} />
-          ) : (
-            <>
-              <p className="small" data-testid="variants-result">
-                <Glyph name="check" />
-                {phase.written === 1
-                  ? tr('1 texture creata')
-                  : tr('{0} texture create', phase.written)}
-                {phase.errors.length > 0 && tr(', {0} errori', phase.errors.length)}
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) onClose()
+        }}
+        label={tr('Varianti di colore')}
+        className="card modal batch"
+        dismissible={phase.status !== 'running'}
+      >
+        <h2>{tr('Varianti di colore')}</h2>
+        {phase.status === 'running' ? (
+          <ProgressBar label={tr('Creo le varianti')} done={phase.done} total={phase.total} />
+        ) : (
+          <>
+            <p className="small" data-testid="variants-result">
+              <Glyph name="check" />
+              {phase.written === 1
+                ? tr('1 texture creata')
+                : tr('{0} texture create', phase.written)}
+              {phase.errors.length > 0 && tr(', {0} errori', phase.errors.length)}
+            </p>
+            {phase.errors.map((error) => (
+              <p key={error} className="field-error small">
+                {error}
               </p>
-              {phase.errors.map((error) => (
-                <p key={error} className="field-error small">
-                  {error}
-                </p>
-              ))}
-              <div className="row">
-                <button type="button" className="primary" onClick={onClose}>
-                  {tr('Chiudi')}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+            ))}
+            <div className="row">
+              <button type="button" className="primary" onClick={onClose}>
+                {tr('Chiudi')}
+              </button>
+            </div>
+          </>
+        )}
+      </Dialog>
     )
   }
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal batch"
-        role="dialog"
-        aria-label={tr('Varianti di colore')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>{tr('Varianti di colore di {0}', source.name)}</h2>
-        <p className="muted small">
-          {tr(
-            'Ricolora la texture con i 16 colori dei coloranti: ombre e dettagli restano, cambia il colore medio.'
-          )}
-        </p>
-        {image && 'error' in image && <p className="field-error small">{image.error}</p>}
-        <div className="row">
-          <label
-            className="inline-check small"
-            title={tr(
-              'Il colore medio della stessa texture nel gioco (lana, cemento, terracotta hanno toni diversi)'
-            )}
-          >
-            <input
-              type="radio"
-              name="variant-colors"
-              checked={mode === 'game'}
-              disabled={!vanilla}
-              onChange={() => setMode('game')}
-            />
-            {tr('Colori come nel gioco')}
-            {!vanilla && tr(' (carica il jar vanilla)')}
-          </label>
-          <label className="inline-check small" title={tr('I colori ufficiali dei coloranti')}>
-            <input
-              type="radio"
-              name="variant-colors"
-              checked={mode === 'dye' || !vanilla}
-              onChange={() => setMode('dye')}
-            />
-            {tr('Colori dei coloranti')}
-          </label>
-        </div>
-        <Range
-          label={tr('Contrasto')}
-          value={Math.round(options.contrast * 100)}
-          unit="%"
-          min={0}
-          max={150}
-          title={tr('Quanto restano le luci e le ombre della texture originale')}
-          onChange={(value) => setOptions({ ...options, contrast: value / 100 })}
-        />
-        <Range
-          label={tr('Sfumature di colore')}
-          value={Math.round(options.colorDetail * 100)}
-          unit="%"
-          min={0}
-          max={100}
-          title={tr('Quanto restano le variazioni di tinta dell’originale; 0 = un solo colore')}
-          onChange={(value) => setOptions({ ...options, colorDetail: value / 100 })}
-        />
-        <div className="variant-grid" aria-label={tr('Varianti')}>
-          {variants.map((variant) => (
-            <label
-              key={variant.dye.id}
-              className={variant.original ? 'variant original' : 'variant'}
-              title={`${variant.path}${variant.fromGame ? tr(', colore del gioco') : tr(', colore del colorante')} #${variant.hex}`}
-            >
-              {sample && (
-                <Thumb width={sample.width} height={sample.height} pixels={variant.pixels} />
-              )}
-              <span className="small">
-                <input
-                  type="checkbox"
-                  disabled={variant.original}
-                  checked={!variant.original && checked.has(variant.dye.id)}
-                  onChange={(event) =>
-                    setChecked((all) => {
-                      const next = new Set(all)
-                      if (event.target.checked) next.add(variant.dye.id)
-                      else next.delete(variant.dye.id)
-                      return next
-                    })
-                  }
-                />
-                {variant.name}
-              </span>
-              {variant.original ? (
-                <span className="badge">{tr('originale')}</span>
-              ) : (
-                variant.exists && <span className="badge unsaved">{tr('esiste già')}</span>
-              )}
-            </label>
-          ))}
-        </div>
-        {hasMaps && (
-          <label className="inline-check small">
-            <input
-              type="checkbox"
-              checked={copyMaps}
-              onChange={(event) => setCopyMaps(event.target.checked)}
-            />
-            {tr('Copia anche _n e _s (stesso rilievo e materiale)')}
-          </label>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Varianti di colore')}
+      className="card modal batch"
+    >
+      <h2>{tr('Varianti di colore di {0}', source.name)}</h2>
+      <p className="muted small">
+        {tr(
+          'Ricolora la texture con i 16 colori dei coloranti: ombre e dettagli restano, cambia il colore medio.'
         )}
+      </p>
+      {image && 'error' in image && <p className="field-error small">{image.error}</p>}
+      <div className="row">
+        <label
+          className="inline-check small"
+          title={tr(
+            'Il colore medio della stessa texture nel gioco (lana, cemento, terracotta hanno toni diversi)'
+          )}
+        >
+          <input
+            type="radio"
+            name="variant-colors"
+            checked={mode === 'game'}
+            disabled={!vanilla}
+            onChange={() => setMode('game')}
+          />
+          {tr('Colori come nel gioco')}
+          {!vanilla && tr(' (carica il jar vanilla)')}
+        </label>
+        <label className="inline-check small" title={tr('I colori ufficiali dei coloranti')}>
+          <input
+            type="radio"
+            name="variant-colors"
+            checked={mode === 'dye' || !vanilla}
+            onChange={() => setMode('dye')}
+          />
+          {tr('Colori dei coloranti')}
+        </label>
+      </div>
+      <Range
+        label={tr('Contrasto')}
+        value={Math.round(options.contrast * 100)}
+        unit="%"
+        min={0}
+        max={150}
+        title={tr('Quanto restano le luci e le ombre della texture originale')}
+        onChange={(value) => setOptions({ ...options, contrast: value / 100 })}
+      />
+      <Range
+        label={tr('Sfumature di colore')}
+        value={Math.round(options.colorDetail * 100)}
+        unit="%"
+        min={0}
+        max={100}
+        title={tr('Quanto restano le variazioni di tinta dell’originale; 0 = un solo colore')}
+        onChange={(value) => setOptions({ ...options, colorDetail: value / 100 })}
+      />
+      <div className="variant-grid" aria-label={tr('Varianti')}>
+        {variants.map((variant) => (
+          <label
+            key={variant.dye.id}
+            className={variant.original ? 'variant original' : 'variant'}
+            title={`${variant.path}${variant.fromGame ? tr(', colore del gioco') : tr(', colore del colorante')} #${variant.hex}`}
+          >
+            {sample && (
+              <Thumb width={sample.width} height={sample.height} pixels={variant.pixels} />
+            )}
+            <span className="small">
+              <input
+                type="checkbox"
+                disabled={variant.original}
+                checked={!variant.original && checked.has(variant.dye.id)}
+                onChange={(event) =>
+                  setChecked((all) => {
+                    const next = new Set(all)
+                    if (event.target.checked) next.add(variant.dye.id)
+                    else next.delete(variant.dye.id)
+                    return next
+                  })
+                }
+              />
+              {variant.name}
+            </span>
+            {variant.original ? (
+              <span className="badge">{tr('originale')}</span>
+            ) : (
+              variant.exists && <span className="badge unsaved">{tr('esiste già')}</span>
+            )}
+          </label>
+        ))}
+      </div>
+      {hasMaps && (
         <label className="inline-check small">
           <input
             type="checkbox"
-            checked={overwrite}
-            onChange={(event) => setOverwrite(event.target.checked)}
+            checked={copyMaps}
+            onChange={(event) => setCopyMaps(event.target.checked)}
           />
-          {tr('Sovrascrivi le texture che esistono già')}
+          {tr('Copia anche _n e _s (stesso rilievo e materiale)')}
         </label>
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={toWrite.length === 0 || !loaded}
-            onClick={() => create()}
-          >
-            {tr('Crea {0}', toWrite.length === 1 ? '1 texture' : `${toWrite.length} texture`)}
-          </button>
-          <button type="button" onClick={onClose}>
-            {tr('Annulla')}
-          </button>
-        </div>
+      )}
+      <label className="inline-check small">
+        <input
+          type="checkbox"
+          checked={overwrite}
+          onChange={(event) => setOverwrite(event.target.checked)}
+        />
+        {tr('Sovrascrivi le texture che esistono già')}
+      </label>
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={toWrite.length === 0 || !loaded}
+          onClick={() => create()}
+        >
+          {tr('Crea {0}', toWrite.length === 1 ? '1 texture' : `${toWrite.length} texture`)}
+        </button>
+        <button type="button" onClick={onClose}>
+          {tr('Annulla')}
+        </button>
       </div>
-    </div>
+    </Dialog>
   )
 }
 

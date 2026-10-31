@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import type { BackupInfo } from '../../shared/ipc'
 import { useEscape } from '../useEscape'
@@ -72,77 +73,78 @@ export function BackupsDialog({ onClose }: { onClose: () => void }): React.JSX.E
   }
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal batch"
-        role="dialog"
-        aria-label={tr('Backup')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>{tr('Backup del pack')}</h2>
-        <p className="muted small">
-          {tr(
-            'Prima di sovrascrivere file (salvataggi, Applica in blocco, Varianti, Ridimensiona, Texture connesse) PackForge ne copia lo stato. Restano fuori dal pack, gli ultimi 50.'
-          )}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Backup')}
+      className="card modal batch"
+      dismissible={!busy}
+    >
+      <h2>{tr('Backup del pack')}</h2>
+      <p className="muted small">
+        {tr(
+          'Prima di sovrascrivere file (salvataggi, Applica in blocco, Varianti, Ridimensiona, Texture connesse) PackForge ne copia lo stato. Restano fuori dal pack, gli ultimi 50.'
+        )}
+      </p>
+      {message && (
+        <p className={message.error ? 'field-error small' : 'small'} data-testid="backup-message">
+          {message.text}
         </p>
-        {message && (
-          <p className={message.error ? 'field-error small' : 'small'} data-testid="backup-message">
-            {message.text}
-          </p>
-        )}
-        {!backups ? (
-          <p className="small">…</p>
-        ) : backups.length === 0 ? (
-          <p className="small" data-testid="backup-empty">
-            {tr('Ancora nessun backup.')}
-          </p>
-        ) : (
-          <ul className="validator-issues" aria-label={tr('Backup')}>
-            {backups.map((backup) => (
-              <li key={backup.id} className="validator-issue info backup-row">
-                <span className="validator-icon">
-                  <Glyph name="clock" alone />
-                </span>
-                <div>
-                  <strong>{backup.label}</strong>
-                  <p className="small muted">
-                    {tr(
-                      '{0}, {1} file salvati',
-                      new Date(backup.at).toLocaleString(locale()),
-                      backup.saved
-                    )}
-                    {backup.created > 0 &&
-                      tr(', {0} file nuovi (tolti se ripristini)', backup.created)}
-                  </p>
-                </div>
-                <div className="row">
-                  <button
-                    type="button"
-                    className="small-button"
-                    disabled={busy}
-                    onClick={() => void restore(backup)}
-                  >
-                    {tr('Ripristina')}
-                  </button>
-                  <button
-                    type="button"
-                    className="small-button"
-                    disabled={busy}
-                    onClick={() => void remove(backup)}
-                  >
-                    {tr('Elimina')}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="row">
-          <button type="button" className="primary" onClick={onClose}>
-            {tr('Chiudi')}
-          </button>
-        </div>
+      )}
+      {!backups ? (
+        <p className="small">…</p>
+      ) : backups.length === 0 ? (
+        <p className="small" data-testid="backup-empty">
+          {tr('Ancora nessun backup.')}
+        </p>
+      ) : (
+        <ul className="validator-issues" aria-label={tr('Backup')}>
+          {backups.map((backup) => (
+            <li key={backup.id} className="validator-issue info backup-row">
+              <span className="validator-icon">
+                <Glyph name="clock" alone />
+              </span>
+              <div>
+                <strong>{backup.label}</strong>
+                <p className="small muted">
+                  {tr(
+                    '{0}, {1} file salvati',
+                    new Date(backup.at).toLocaleString(locale()),
+                    backup.saved
+                  )}
+                  {backup.created > 0 &&
+                    tr(', {0} file nuovi (tolti se ripristini)', backup.created)}
+                </p>
+              </div>
+              <div className="row">
+                <button
+                  type="button"
+                  className="small-button"
+                  disabled={busy}
+                  onClick={() => void restore(backup)}
+                >
+                  {tr('Ripristina')}
+                </button>
+                <button
+                  type="button"
+                  className="small-button"
+                  disabled={busy}
+                  onClick={() => void remove(backup)}
+                >
+                  {tr('Elimina')}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="row">
+        <button type="button" className="primary" onClick={onClose}>
+          {tr('Chiudi')}
+        </button>
       </div>
-    </div>
+    </Dialog>
   )
 }

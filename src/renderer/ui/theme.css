@@ -515,13 +515,9 @@
 .ore-on:active:not(:disabled) {
   transform: translateY(1px);
 }
-.modal {
-  animation: pf-rise 0.12s steps(3, end);
-}
 @media (prefers-reduced-motion: reduce) {
   .progress-sweep,
   .busy i,
-  .modal,
   .shell-slot.active {
     animation: none !important;
   }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { modelPath } from '../../shared/blockModel'
 import {
   bushyLeavesModel,
@@ -119,69 +120,70 @@ export function BlockShapesDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form"
-        role="dialog"
-        aria-label={tr('Forme 3D')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph icon={NAV_ICONS.cube} />
-          {tr('Forme 3D')}
-        </h2>
-        <p className="muted small">
-          {tr(
-            'Forme pronte, come i pack 3D più scaricati: scritte come modello del blocco nel pack, funzionano senza mod.'
-          )}
-        </p>
-        <div className="tabs small-tabs wrap" role="radiogroup" aria-label={tr('Forma')}>
-          {presets.map((option) => (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Forme 3D')}
+      className="card modal form"
+      dismissible={!working}
+    >
+      <h2>
+        <Glyph icon={NAV_ICONS.cube} />
+        {tr('Forme 3D')}
+      </h2>
+      <p className="muted small">
+        {tr(
+          'Forme pronte, come i pack 3D più scaricati: scritte come modello del blocco nel pack, funzionano senza mod.'
+        )}
+      </p>
+      <div className="tabs small-tabs wrap" role="radiogroup" aria-label={tr('Forma')}>
+        {presets.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            role="radio"
+            aria-checked={chosen === option.id}
+            className={chosen === option.id ? 'tab active' : 'tab'}
+            onClick={() => setChosen(option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+      {preset && <p className="small">{preset.hint}</p>}
+      {preset?.id === 'bushy_leaves' && (
+        <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Quanto escono')}>
+          {SPREADS.map((value) => (
             <button
-              key={option.id}
+              key={value}
               type="button"
               role="radio"
-              aria-checked={chosen === option.id}
-              className={chosen === option.id ? 'tab active' : 'tab'}
-              onClick={() => setChosen(option.id)}
+              aria-checked={spread === value}
+              className={spread === value ? 'tab active' : 'tab'}
+              onClick={() => setSpread(value)}
             >
-              {option.label}
+              {tr('{0} pixel', value)}
             </button>
           ))}
         </div>
-        {preset && <p className="small">{preset.hint}</p>}
-        {preset?.id === 'bushy_leaves' && (
-          <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Quanto escono')}>
-            {SPREADS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={spread === value}
-                className={spread === value ? 'tab active' : 'tab'}
-                onClick={() => setSpread(value)}
-              >
-                {tr('{0} pixel', value)}
-              </button>
-            ))}
-          </div>
-        )}
-        {preset && <p className="muted small path">{modelPath(preset.model)}</p>}
-        {error && <p className="field-error small">{error}</p>}
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={!preset || working}
-            onClick={() => apply()}
-          >
-            {tr('Scrivi il modello')}
-          </button>
-          <button type="button" onClick={onClose} disabled={working}>
-            {tr('Annulla')}
-          </button>
-        </div>
+      )}
+      {preset && <p className="muted small path">{modelPath(preset.model)}</p>}
+      {error && <p className="field-error small">{error}</p>}
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={!preset || working}
+          onClick={() => apply()}
+        >
+          {tr('Scrivi il modello')}
+        </button>
+        <button type="button" onClick={onClose} disabled={working}>
+          {tr('Annulla')}
+        </button>
       </div>
-    </div>
+    </Dialog>
   )
 }

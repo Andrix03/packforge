@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { modelPath, namespaced, type Vec3 } from '../../shared/blockModel'
 import { tr } from '../../shared/i18n'
 import type { DisplayTransform } from '../../shared/itemModel'
@@ -133,107 +134,108 @@ export function DisplayDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form display-dialog"
-        role="dialog"
-        aria-label={tr('Posizioni dell’oggetto')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="resize" />
-          {tr('Posizioni dell’oggetto')}
-        </h2>
-        <p className="muted small">
-          {tr(
-            'Come sta l’oggetto in ogni posto: ruotalo, spostalo, ingrandiscilo. In prima persona e nell’inventario lo vedi dove lo mette il gioco.'
-          )}
-        </p>
-        <div className="display-body">
-          <ItemPreview
-            path={path}
-            canvas={canvas}
-            revision={revision}
-            sources={sources}
-            range={range}
-            context={context}
-            onContext={setContext}
-            onDrawn={setDrawn}
-            displayOverride={target ? { model: target, slot: context, transform } : undefined}
-          />
-          <div className="display-fields">
-            <p className="small" data-testid="display-target">
-              {target
-                ? tr('Modello: {0}', target.replace(/^minecraft:/, ''))
-                : tr('Niente da disegnare in questo stato.')}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Posizioni dell’oggetto')}
+      className="card modal form display-dialog"
+      dismissible={!saving}
+    >
+      <h2>
+        <Glyph name="resize" />
+        {tr('Posizioni dell’oggetto')}
+      </h2>
+      <p className="muted small">
+        {tr(
+          'Come sta l’oggetto in ogni posto: ruotalo, spostalo, ingrandiscilo. In prima persona e nell’inventario lo vedi dove lo mette il gioco.'
+        )}
+      </p>
+      <div className="display-body">
+        <ItemPreview
+          path={path}
+          canvas={canvas}
+          revision={revision}
+          sources={sources}
+          range={range}
+          context={context}
+          onContext={setContext}
+          onDrawn={setDrawn}
+          displayOverride={target ? { model: target, slot: context, transform } : undefined}
+        />
+        <div className="display-fields">
+          <p className="small" data-testid="display-target">
+            {target
+              ? tr('Modello: {0}', target.replace(/^minecraft:/, ''))
+              : tr('Niente da disegnare in questo stato.')}
+          </p>
+          {context === 'firstperson_righthand' && (
+            <p className="muted small" data-testid="display-crop-note">
+              {tr(
+                'Come nel gioco: in prima persona l’oggetto esce dal bordo dello schermo (la spada mostra la punta a destra, l’impugnatura sotto).'
+              )}
             </p>
-            {context === 'firstperson_righthand' && (
-              <p className="muted small" data-testid="display-crop-note">
-                {tr(
-                  'Come nel gioco: in prima persona l’oggetto esce dal bordo dello schermo (la spada mostra la punta a destra, l’impugnatura sotto).'
-                )}
-              </p>
-            )}
-            {FIELDS.map((field) => (
-              <fieldset key={field.key} className="display-field">
-                <legend className="lbl">{field.label()}</legend>
-                {(['X', 'Y', 'Z'] as const).map((axis, i) => (
-                  <label key={axis} className="display-axis">
-                    <span>{axis}</span>
-                    <RangeInput
-                      min={field.min}
-                      max={field.max}
-                      step={field.step}
-                      value={transform[field.key][i]}
-                      aria-label={`${field.label()} ${axis}`}
-                      disabled={!target}
-                      onChange={(event) => set(field.key, i, Number(event.target.value))}
-                    />
-                    <input
-                      type="number"
-                      value={transform[field.key][i]}
-                      step={field.step}
-                      disabled={!target}
-                      aria-label={`${field.label()} ${axis}, ${tr('valore')}`}
-                      onChange={(event) => {
-                        const value = Number(event.target.value)
-                        if (Number.isFinite(value)) set(field.key, i, value)
-                      }}
-                    />
-                  </label>
-                ))}
-              </fieldset>
-            ))}
-            <div className="row">
-              <button
-                type="button"
-                disabled={!edits[key]}
-                onClick={() => {
-                  const next = { ...edits }
-                  delete next[key]
-                  setEdits(next)
-                }}
-              >
-                {tr('Annulla le modifiche di questa vista')}
-              </button>
-            </div>
+          )}
+          {FIELDS.map((field) => (
+            <fieldset key={field.key} className="display-field">
+              <legend className="lbl">{field.label()}</legend>
+              {(['X', 'Y', 'Z'] as const).map((axis, i) => (
+                <label key={axis} className="display-axis">
+                  <span>{axis}</span>
+                  <RangeInput
+                    min={field.min}
+                    max={field.max}
+                    step={field.step}
+                    value={transform[field.key][i]}
+                    aria-label={`${field.label()} ${axis}`}
+                    disabled={!target}
+                    onChange={(event) => set(field.key, i, Number(event.target.value))}
+                  />
+                  <input
+                    type="number"
+                    value={transform[field.key][i]}
+                    step={field.step}
+                    disabled={!target}
+                    aria-label={`${field.label()} ${axis}, ${tr('valore')}`}
+                    onChange={(event) => {
+                      const value = Number(event.target.value)
+                      if (Number.isFinite(value)) set(field.key, i, value)
+                    }}
+                  />
+                </label>
+              ))}
+            </fieldset>
+          ))}
+          <div className="row">
+            <button
+              type="button"
+              disabled={!edits[key]}
+              onClick={() => {
+                const next = { ...edits }
+                delete next[key]
+                setEdits(next)
+              }}
+            >
+              {tr('Annulla le modifiche di questa vista')}
+            </button>
           </div>
         </div>
-        {error && <p className="field-error small">{error}</p>}
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={editedModels.length === 0 || saving}
-            onClick={() => save()}
-          >
-            {tr('Salva le posizioni')}
-          </button>
-          <button type="button" onClick={onClose} disabled={saving}>
-            {tr('Annulla')}
-          </button>
-        </div>
       </div>
-    </div>
+      {error && <p className="field-error small">{error}</p>}
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={editedModels.length === 0 || saving}
+          onClick={() => save()}
+        >
+          {tr('Salva le posizioni')}
+        </button>
+        <button type="button" onClick={onClose} disabled={saving}>
+          {tr('Annulla')}
+        </button>
+      </div>
+    </Dialog>
   )
 }

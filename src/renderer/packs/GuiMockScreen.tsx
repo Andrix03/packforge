@@ -2,6 +2,7 @@
 // textures where it has them and vanilla's elsewhere. Like the game, a sprite's scaling comes from
 // the .png.mcmeta of the same source as its image: a pack button without one is stretched.
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { parseGuiScaling, type GuiScaling } from '../../shared/guiScaling'
 import {
   MOCK_SCREENS,
@@ -102,37 +103,37 @@ export function GuiMockScreen({
         )}
       </div>
       {big !== null && (
-        <div className="modal-backdrop" role="presentation" onClick={() => setBig(null)}>
-          <div
-            className="card modal gui-mock-big"
-            role="dialog"
-            aria-label={tr('Schermata di prova')}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="gui-preview-head">
-              <h2>{SCREEN_NAMES[kind]}</h2>
-              <div className="row" role="radiogroup" aria-label={tr('Scala GUI')}>
-                {[2, 3].map((s) => (
-                  <OreButton
-                    key={s}
-                    role="radio"
-                    aria-checked={big === s}
-                    on={big === s}
-                    onClick={() => setBig(s)}
-                  >
-                    {s}×
-                  </OreButton>
-                ))}
-                <button type="button" className="small-button" onClick={() => setBig(null)}>
-                  {tr('Chiudi')}
-                </button>
-              </div>
-            </div>
-            <div className="gui-mock-big-stage">
-              <MockCanvas screen={screen} loaded={loaded} scale={big} kind={kind} fit={false} />
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) (() => setBig(null))()
+          }}
+          label={tr('Schermata di prova')}
+          className="card modal gui-mock-big"
+        >
+          <div className="gui-preview-head">
+            <h2>{SCREEN_NAMES[kind]}</h2>
+            <div className="row" role="radiogroup" aria-label={tr('Scala GUI')}>
+              {[2, 3].map((s) => (
+                <OreButton
+                  key={s}
+                  role="radio"
+                  aria-checked={big === s}
+                  on={big === s}
+                  onClick={() => setBig(s)}
+                >
+                  {s}×
+                </OreButton>
+              ))}
+              <button type="button" className="small-button" onClick={() => setBig(null)}>
+                {tr('Chiudi')}
+              </button>
             </div>
           </div>
-        </div>
+          <div className="gui-mock-big-stage">
+            <MockCanvas screen={screen} loaded={loaded} scale={big} kind={kind} fit={false} />
+          </div>
+        </Dialog>
       )}
       <p className="muted small">
         {tr(

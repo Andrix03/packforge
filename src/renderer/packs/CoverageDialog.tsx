@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { coverageReport, type Missing } from '../../shared/coverage'
 import type { TextureEntry } from '../../shared/textures'
 import { useEscape } from '../useEscape'
@@ -47,140 +48,140 @@ export function CoverageDialog({
   const shown = report.missing.filter((m) => filter === 'all' || m.missing === filter)
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal batch"
-        role="dialog"
-        aria-label={tr('Copertura delle mappe')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>{tr('Copertura delle mappe _n / _s')}</h2>
-        <p className="small" data-testid="coverage-summary">
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Copertura delle mappe')}
+      className="card modal batch"
+    >
+      <h2>{tr('Copertura delle mappe _n / _s')}</h2>
+      <p className="small" data-testid="coverage-summary">
+        {tr(
+          'Mappe complete: {0} di {1} texture ({2})',
+          report.complete,
+          report.total,
+          percent(report.complete, report.total)
+        )}
+      </p>
+      <div className="coverage-bar" aria-hidden="true">
+        <span style={{ width: percent(report.complete, report.total).replace('—', '0%') }} />
+      </div>
+      {report.gameMaps > 0 && (
+        <p className="small muted">
           {tr(
-            'Mappe complete: {0} di {1} texture ({2})',
-            report.complete,
-            report.total,
-            percent(report.complete, report.total)
+            'Più {0} per texture del gioco (non contate qui).',
+            report.gameMaps === 1 ? tr('1 mappa') : tr('{0} mappe', report.gameMaps)
           )}
         </p>
-        <div className="coverage-bar" aria-hidden="true">
-          <span style={{ width: percent(report.complete, report.total).replace('—', '0%') }} />
-        </div>
-        {report.gameMaps > 0 && (
-          <p className="small muted">
-            {tr(
-              'Più {0} per texture del gioco (non contate qui).',
-              report.gameMaps === 1 ? tr('1 mappa') : tr('{0} mappe', report.gameMaps)
-            )}
-          </p>
-        )}
-        <table className="coverage-table small">
-          <thead>
-            <tr>
-              <th>{tr('Cartella')}</th>
-              <th>{tr('Texture')}</th>
-              <th>_n e _s</th>
-              <th>{tr('solo _n')}</th>
-              <th>{tr('solo _s')}</th>
-              <th>{tr('nessuna')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {report.folders.map((folder) => (
-              <tr
-                key={folder.folder}
-                className={folder.skipped ? 'muted' : undefined}
-                title={
-                  folder.skipped
-                    ? tr('Qui le mappe non servono: non è contata nel totale')
-                    : undefined
-                }
-              >
-                <td>
-                  {folder.folder}
-                  {folder.skipped && tr(' (non servono)')}
-                </td>
-                <td>{folder.total}</td>
-                <td>
-                  {folder.both} <span className="muted">{percent(folder.both, folder.total)}</span>
-                </td>
-                <td>{folder.normalOnly}</td>
-                <td>{folder.specularOnly}</td>
-                <td>{folder.none}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Mostra')}>
-          {FILTERS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              role="radio"
-              aria-checked={filter === option.id}
-              className={filter === option.id ? 'tab active' : 'tab'}
-              onClick={() => setFilter(option.id)}
-            >
-              {option.label} (
-              {option.id === 'all'
-                ? report.missing.length
-                : report.missing.filter((m) => m.missing === option.id).length}
-              )
-            </button>
-          ))}
-        </div>
-        {shown.length === 0 ? (
-          <p className="small">
-            <Glyph name="check" />
-            {tr('Niente da completare qui.')}
-          </p>
-        ) : (
-          <ul className="batch-list" aria-label={tr('Texture incomplete')}>
-            {shown.slice(0, MAX_ROWS).map(({ texture, missing }) => (
-              <li key={texture.albedo} className="coverage-row">
-                <span className="small">
-                  {texture.name}{' '}
-                  <span className="muted">
-                    {texture.folder.replace(/^assets\/minecraft\/textures\//, '')}:{' '}
-                    {MISSING_LABEL[missing]}
-                  </span>
-                </span>
-                <button type="button" className="small-button" onClick={() => onOpen(texture)}>
-                  {tr('Apri')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {shown.length > MAX_ROWS && (
-          <p className="small muted">{tr('Mostrate {0} di {1}.', MAX_ROWS, shown.length)}</p>
-        )}
-        <div className="row">
-          {canCreate && (
-            <button
-              type="button"
-              className="primary"
-              disabled={shown.length === 0}
-              title={tr('Apre “Applica in blocco” con queste texture già selezionate')}
-              onClick={() =>
-                onBatch(
-                  shown.map((m) => m.texture),
-                  {
-                    specular: filter !== 'normal',
-                    normal: filter !== 'specular'
-                  }
-                )
+      )}
+      <table className="coverage-table small">
+        <thead>
+          <tr>
+            <th>{tr('Cartella')}</th>
+            <th>{tr('Texture')}</th>
+            <th>_n e _s</th>
+            <th>{tr('solo _n')}</th>
+            <th>{tr('solo _s')}</th>
+            <th>{tr('nessuna')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {report.folders.map((folder) => (
+            <tr
+              key={folder.folder}
+              className={folder.skipped ? 'muted' : undefined}
+              title={
+                folder.skipped
+                  ? tr('Qui le mappe non servono: non è contata nel totale')
+                  : undefined
               }
             >
-              {tr('Crea le mappe mancanti ({0})…', shown.length)}
-            </button>
-          )}
-          <button type="button" onClick={onClose}>
-            {tr('Chiudi')}
+              <td>
+                {folder.folder}
+                {folder.skipped && tr(' (non servono)')}
+              </td>
+              <td>{folder.total}</td>
+              <td>
+                {folder.both} <span className="muted">{percent(folder.both, folder.total)}</span>
+              </td>
+              <td>{folder.normalOnly}</td>
+              <td>{folder.specularOnly}</td>
+              <td>{folder.none}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Mostra')}>
+        {FILTERS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            role="radio"
+            aria-checked={filter === option.id}
+            className={filter === option.id ? 'tab active' : 'tab'}
+            onClick={() => setFilter(option.id)}
+          >
+            {option.label} (
+            {option.id === 'all'
+              ? report.missing.length
+              : report.missing.filter((m) => m.missing === option.id).length}
+            )
           </button>
-        </div>
+        ))}
       </div>
-    </div>
+      {shown.length === 0 ? (
+        <p className="small">
+          <Glyph name="check" />
+          {tr('Niente da completare qui.')}
+        </p>
+      ) : (
+        <ul className="batch-list" aria-label={tr('Texture incomplete')}>
+          {shown.slice(0, MAX_ROWS).map(({ texture, missing }) => (
+            <li key={texture.albedo} className="coverage-row">
+              <span className="small">
+                {texture.name}{' '}
+                <span className="muted">
+                  {texture.folder.replace(/^assets\/minecraft\/textures\//, '')}:{' '}
+                  {MISSING_LABEL[missing]}
+                </span>
+              </span>
+              <button type="button" className="small-button" onClick={() => onOpen(texture)}>
+                {tr('Apri')}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {shown.length > MAX_ROWS && (
+        <p className="small muted">{tr('Mostrate {0} di {1}.', MAX_ROWS, shown.length)}</p>
+      )}
+      <div className="row">
+        {canCreate && (
+          <button
+            type="button"
+            className="primary"
+            disabled={shown.length === 0}
+            title={tr('Apre “Applica in blocco” con queste texture già selezionate')}
+            onClick={() =>
+              onBatch(
+                shown.map((m) => m.texture),
+                {
+                  specular: filter !== 'normal',
+                  normal: filter !== 'specular'
+                }
+              )
+            }
+          >
+            {tr('Crea le mappe mancanti ({0})…', shown.length)}
+          </button>
+        )}
+        <button type="button" onClick={onClose}>
+          {tr('Chiudi')}
+        </button>
+      </div>
+    </Dialog>
   )
 }

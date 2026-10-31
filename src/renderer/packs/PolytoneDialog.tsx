@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
 import {
   POLYTONE_GROUPS,
@@ -94,99 +95,98 @@ export function PolytoneDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form polytone-dialog"
-        role="dialog"
-        aria-label={tr('Colori dei biomi (Polytone)')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="leaf" />
-          {tr('Colori dei biomi (Polytone)')}
-        </h2>
-        <p className="muted small">
-          {tr(
-            'Con la mod Polytone i blocchi scelti prendono il colore da una colormap del tuo pack, bioma per bioma (anche abete e betulla). Senza la mod il pack resta com’è.'
-          )}
-        </p>
-        <label className="field">
-          {tr('Nome della colormap')}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Colori dei biomi (Polytone)')}
+      className="card modal form polytone-dialog"
+      dismissible={!working}
+    >
+      <h2>
+        <Glyph name="leaf" />
+        {tr('Colori dei biomi (Polytone)')}
+      </h2>
+      <p className="muted small">
+        {tr(
+          'Con la mod Polytone i blocchi scelti prendono il colore da una colormap del tuo pack, bioma per bioma (anche abete e betulla). Senza la mod il pack resta com’è.'
+        )}
+      </p>
+      <label className="field">
+        {tr('Nome della colormap')}
+        <input
+          value={name}
+          maxLength={40}
+          aria-label={tr('Nome della colormap')}
+          onChange={(event) => setName(event.target.value)}
+        />
+      </label>
+      {problem && <p className="field-error small">{problem}</p>}
+      {POLYTONE_GROUPS.map((group) => (
+        <label key={group.id} className="checkbox-inline small">
           <input
-            value={name}
-            maxLength={40}
-            aria-label={tr('Nome della colormap')}
-            onChange={(event) => setName(event.target.value)}
+            type="checkbox"
+            checked={groups.has(group.id)}
+            onChange={(event) => {
+              const next = new Set(groups)
+              if (event.target.checked) next.add(group.id)
+              else next.delete(group.id)
+              setGroups(next)
+            }}
           />
+          {group.label}
         </label>
-        {problem && <p className="field-error small">{problem}</p>}
-        {POLYTONE_GROUPS.map((group) => (
-          <label key={group.id} className="checkbox-inline small">
-            <input
-              type="checkbox"
-              checked={groups.has(group.id)}
-              onChange={(event) => {
-                const next = new Set(groups)
-                if (event.target.checked) next.add(group.id)
-                else next.delete(group.id)
-                setGroups(next)
-              }}
-            />
-            {group.label}
-          </label>
-        ))}
-        <div className="polytone-body">
-          <canvas
-            ref={ref}
-            width={256}
-            height={256}
-            className="polytone-map sunken"
-            aria-hidden="true"
-          />
-          <div className="polytone-colors">
-            {(
-              [
-                [tr('Caldo e secco'), hot, setHot],
-                [tr('Freddo'), cold, setCold],
-                [tr('Caldo e piovoso'), wet, setWet]
-              ] as const
-            ).map(([label, value, set]) => (
-              <label key={label} className="row small">
-                <input
-                  type="color"
-                  value={value}
-                  aria-label={label}
-                  disabled={exists}
-                  onChange={(event) => set(event.target.value)}
-                />
-                {label}
-              </label>
-            ))}
-            {exists && (
-              <p className="muted small">{tr('La colormap esiste già: la tengo com’è.')}</p>
-            )}
-          </div>
-        </div>
-        <p className="muted small path" data-testid="polytone-plan">
-          {png}
-          <br />
-          {tr('{0} blocchi in polytone/block_modifiers/', blocks.length)}
-        </p>
-        {error && <p className="field-error small">{error}</p>}
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={problem !== null || blocks.length === 0 || working}
-            onClick={() => create()}
-          >
-            {tr('Crea e disegna la colormap')}
-          </button>
-          <button type="button" onClick={onClose} disabled={working}>
-            {tr('Annulla')}
-          </button>
+      ))}
+      <div className="polytone-body">
+        <canvas
+          ref={ref}
+          width={256}
+          height={256}
+          className="polytone-map sunken"
+          aria-hidden="true"
+        />
+        <div className="polytone-colors">
+          {(
+            [
+              [tr('Caldo e secco'), hot, setHot],
+              [tr('Freddo'), cold, setCold],
+              [tr('Caldo e piovoso'), wet, setWet]
+            ] as const
+          ).map(([label, value, set]) => (
+            <label key={label} className="row small">
+              <input
+                type="color"
+                value={value}
+                aria-label={label}
+                disabled={exists}
+                onChange={(event) => set(event.target.value)}
+              />
+              {label}
+            </label>
+          ))}
+          {exists && <p className="muted small">{tr('La colormap esiste già: la tengo com’è.')}</p>}
         </div>
       </div>
-    </div>
+      <p className="muted small path" data-testid="polytone-plan">
+        {png}
+        <br />
+        {tr('{0} blocchi in polytone/block_modifiers/', blocks.length)}
+      </p>
+      {error && <p className="field-error small">{error}</p>}
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={problem !== null || blocks.length === 0 || working}
+          onClick={() => create()}
+        >
+          {tr('Crea e disegna la colormap')}
+        </button>
+        <button type="button" onClick={onClose} disabled={working}>
+          {tr('Annulla')}
+        </button>
+      </div>
+    </Dialog>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
 import { ITEM_FEATURES } from '../../shared/itemDefinition'
 import type { FormatRange } from '../../shared/modelRules'
@@ -106,84 +107,85 @@ export function OverridesDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form overrides-dialog"
-        role="dialog"
-        aria-label={tr('Overrides degli oggetti')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="swap" />
-          {tr('Overrides degli oggetti in items/')}
-        </h2>
-        <p className="muted small">
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Overrides degli oggetti')}
+      className="card modal form overrides-dialog"
+      dismissible={phase.status !== 'working'}
+    >
+      <h2>
+        <Glyph name="swap" />
+        {tr('Overrides degli oggetti in items/')}
+      </h2>
+      <p className="muted small">
+        {tr(
+          'Dalla 1.21.4 il gioco ignora gli "overrides" nei modelli degli oggetti (custom_model_data, arco che si tende…) e legge le definizioni in items/. Le creo dai tuoi overrides; i modelli restano come sono per le versioni vecchie.'
+        )}
+      </p>
+      {oldOnly && (
+        <p className="small">
+          <Glyph name="warning" />
           {tr(
-            'Dalla 1.21.4 il gioco ignora gli "overrides" nei modelli degli oggetti (custom_model_data, arco che si tende…) e legge le definizioni in items/. Le creo dai tuoi overrides; i modelli restano come sono per le versioni vecchie.'
+            'Il pack si ferma prima della 1.21.4: le definizioni servono quando allarghi le versioni.'
           )}
         </p>
-        {oldOnly && (
-          <p className="small">
-            <Glyph name="warning" />
-            {tr(
-              'Il pack si ferma prima della 1.21.4: le definizioni servono quando allarghi le versioni.'
-            )}
-          </p>
-        )}
-        {rows === null ? (
-          <p className="muted">{tr('Leggo i modelli degli oggetti…')}</p>
-        ) : rows.length === 0 ? (
-          <p data-testid="overrides-none">{tr('Nessun modello di oggetto con overrides.')}</p>
+      )}
+      {rows === null ? (
+        <p className="muted">{tr('Leggo i modelli degli oggetti…')}</p>
+      ) : rows.length === 0 ? (
+        <p data-testid="overrides-none">{tr('Nessun modello di oggetto con overrides.')}</p>
+      ) : (
+        <ul className="overrides-list" data-testid="overrides-list">
+          {rows.map((row) => (
+            <li key={row.item}>
+              <b>{row.item.replace(/^minecraft:/, '')}</b>{' '}
+              {row.exists
+                ? tr('ha già items/{0}.json: lo lascio com’è.', row.item.split(':')[1] ?? '')
+                : tr('{0} overrides convertiti.', row.result.converted)}
+              {row.result.skipped.map((note) => (
+                <span key={note} className="muted small">
+                  <br />
+                  {note}
+                </span>
+              ))}
+            </li>
+          ))}
+        </ul>
+      )}
+      {phase.status === 'done' && (
+        <>
+          <p data-testid="overrides-result">{tr('{0} definizioni scritte.', phase.written)}</p>
+          {phase.errors.map((error) => (
+            <p key={error} className="field-error small">
+              {error}
+            </p>
+          ))}
+        </>
+      )}
+      <div className="row">
+        {phase.status === 'done' ? (
+          <button type="button" className="primary" onClick={onDone}>
+            {tr('Fatto')}
+          </button>
         ) : (
-          <ul className="overrides-list" data-testid="overrides-list">
-            {rows.map((row) => (
-              <li key={row.item}>
-                <b>{row.item.replace(/^minecraft:/, '')}</b>{' '}
-                {row.exists
-                  ? tr('ha già items/{0}.json: lo lascio com’è.', row.item.split(':')[1] ?? '')
-                  : tr('{0} overrides convertiti.', row.result.converted)}
-                {row.result.skipped.map((note) => (
-                  <span key={note} className="muted small">
-                    <br />
-                    {note}
-                  </span>
-                ))}
-              </li>
-            ))}
-          </ul>
-        )}
-        {phase.status === 'done' && (
           <>
-            <p data-testid="overrides-result">{tr('{0} definizioni scritte.', phase.written)}</p>
-            {phase.errors.map((error) => (
-              <p key={error} className="field-error small">
-                {error}
-              </p>
-            ))}
+            <button
+              type="button"
+              className="primary"
+              disabled={writable.length === 0 || phase.status === 'working'}
+              onClick={() => apply()}
+            >
+              {tr('Scrivi {0} definizioni', writable.length)}
+            </button>
+            <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
+              {tr('Annulla')}
+            </button>
           </>
         )}
-        <div className="row">
-          {phase.status === 'done' ? (
-            <button type="button" className="primary" onClick={onDone}>
-              {tr('Fatto')}
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="primary"
-                disabled={writable.length === 0 || phase.status === 'working'}
-                onClick={() => apply()}
-              >
-                {tr('Scrivi {0} definizioni', writable.length)}
-              </button>
-              <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
-                {tr('Annulla')}
-              </button>
-            </>
-          )}
-        </div>
       </div>
-    </div>
+    </Dialog>
   )
 }

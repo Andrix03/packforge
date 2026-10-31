@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import { countPlan, planBatch } from '../../shared/batchMaps'
 import { mapPath } from '../../shared/labpbr'
@@ -170,331 +171,324 @@ export function BatchDialog({
   )
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={() => !running && onClose()}>
-      <div
-        className="card modal batch wizard"
-        role="dialog"
-        aria-label={tr('Applica in blocco')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className="wizard-head">
-          <h2>{tr('Applica in blocco')}</h2>
-          <ol className="wizard-steps" aria-label={tr('Passi')}>
-            {STEPS.map((label, index) => (
-              <li key={label}>
-                <button
-                  type="button"
-                  className={index === step ? 'ore-on' : 'ore'}
-                  aria-current={index === step ? 'step' : undefined}
-                  disabled={
-                    running ||
-                    (index === 3 && phase.status === 'setup') ||
-                    (index < 3 && phase.status !== 'setup')
-                  }
-                  onClick={() => setStep(index)}
-                >
-                  {index < step && <Glyph name="check" />}
-                  {index + 1}. {label}
-                </button>
-              </li>
-            ))}
-          </ol>
-          <span className="muted small">
-            {tr('{0} di {1} texture', chosen.length, textures.length)}
-          </span>
-        </header>
-
-        {/* 1 · Texture */}
-        <section className="wizard-step" hidden={step !== 0}>
-          <p className="muted small">
-            {tr(
-              'Crea le mappe di tante texture insieme: il materiale (_s) e/o il rilievo (_n), calcolati dai colori di ciascuna come nell’editor. Il segno _n o _s vuol dire che quella mappa esiste già.'
-            )}
-          </p>
-          <div className="row">
-            <input
-              type="search"
-              aria-label={tr('Filtra texture')}
-              placeholder={tr('Filtra per nome o cartella, es. planks')}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            <button
-              type="button"
-              className="small-button"
-              onClick={() =>
-                setSelected((all) => new Set([...all, ...visible.map((t) => t.albedo)]))
-              }
-            >
-              {tr('Seleziona visibili')}
-            </button>
-            <button type="button" className="small-button" onClick={() => setSelected(new Set())}>
-              {tr('Nessuna')}
-            </button>
-          </div>
-          <ul className="batch-list" aria-label={tr('Texture')}>
-            {visible.slice(0, MAX_ROWS).map((texture) => (
-              <li key={texture.albedo}>
-                <label className="batch-row small">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(texture.albedo)}
-                    onChange={(event) => toggle(texture.albedo, event.target.checked)}
-                  />
-                  {texture.name}
-                  <span className="muted">
-                    {texture.folder.replace(/^assets\/minecraft\/textures\//, '')}
-                  </span>
-                  {texture.normal && <span className="badge">_n</span>}
-                  {texture.specular && <span className="badge">_s</span>}
-                </label>
-              </li>
-            ))}
-          </ul>
-          {visible.length > MAX_ROWS && (
-            <p className="small muted">
-              {tr(
-                'Mostrate {0} di {1}: usa il filtro per trovare le altre.',
-                MAX_ROWS,
-                visible.length
-              )}
-            </p>
-          )}
-        </section>
-
-        {/* 2 · Cosa fare */}
-        <section className="wizard-step" hidden={step !== 1}>
-          <label className="inline-check">
-            <input
-              type="checkbox"
-              checked={doSpecular}
-              onChange={(event) => setDoSpecular(event.target.checked)}
-            />
-            {tr('Materiale (_s)')}
-          </label>
-          {doSpecular && (
-            <div className="generator-panel batch-section">
-              <MaterialFields options={material} onOptions={setMaterial} />
-            </div>
-          )}
-          <label className="inline-check">
-            <input
-              type="checkbox"
-              checked={doNormal}
-              onChange={(event) => setDoNormal(event.target.checked)}
-            />
-            {tr('Rilievo (_n): altezza dai colori, normali e occlusione')}
-          </label>
-          {doNormal && (
-            <div className="generator-panel batch-section">
-              <Range
-                label={tr('Profondità')}
-                value={Math.round(depth * 100)}
-                unit="%"
-                min={0}
-                max={100}
-                title={tr(
-                  'Quanto scende il pixel più scuro: 100% = il 25% del blocco previsto da LabPBR'
-                )}
-                onChange={(value) => setDepth(value / 100)}
-              />
-              <label className="inline-check small">
-                <input
-                  type="checkbox"
-                  checked={occlusion}
-                  onChange={(event) => setOcclusion(event.target.checked)}
-                />
-                {tr('Occlusione')}
-              </label>
-              <label
-                className="inline-check small"
-                title={tr('Togli la spunta per texture che non si ripetono')}
-              >
-                <input
-                  type="checkbox"
-                  checked={wrap}
-                  onChange={(event) => setWrap(event.target.checked)}
-                />
-                {tr('Bordi ripetibili')}
-              </label>
-            </div>
-          )}
-
-          <h3 className="panel-title">{tr('Mappe già presenti')}</h3>
-          <label className="inline-radio small">
-            <input
-              type="radio"
-              name="batch-existing"
-              checked={!overwrite}
-              onChange={() => setOverwrite(false)}
-            />
-            {tr('Lasciale come sono (consigliato)')}
-          </label>
-          <label className="inline-radio small">
-            <input
-              type="radio"
-              name="batch-existing"
-              checked={overwrite}
-              onChange={() => setOverwrite(true)}
-            />
-            {tr('Sovrascrivile (l’emissione di un _s esistente resta)')}
-          </label>
-        </section>
-
-        {/* 3 · Anteprima + what happens */}
-        <section className="wizard-step wizard-preview" hidden={step !== 2}>
-          <div className="wizard-preview-main">
-            {chosen.length > 1 && (
-              <label className="inline-select small">
-                {tr('Texture mostrata')}
-                <select
-                  value={sample?.albedo ?? ''}
-                  onChange={(event) => setPreviewed(event.target.value)}
-                >
-                  {chosen.slice(0, MAX_ROWS).map((t) => (
-                    <option key={t.albedo} value={t.albedo}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {step === 2 && sample && sources && sampleEntry ? (
-              <BatchPreview
-                pack={pack}
-                sources={sources}
-                texture={sample}
-                settings={settings}
-                maps={{
-                  normal: writes(sampleEntry.normal),
-                  specular: writes(sampleEntry.specular)
-                }}
-              />
-            ) : (
-              <p className="muted small">
-                {chosen.length === 0
-                  ? tr('Scegli almeno una texture al passo 1.')
-                  : tr('Anteprima non disponibile.')}
-              </p>
-            )}
-          </div>
-          <aside className="wizard-facts">
-            <h3 className="ph">{tr('Cosa succede')}</h3>
-            <div className="wizard-counts">
-              <span>
-                <strong className="count-new">{counts.create}</strong> {tr('nuove')}
-              </span>
-              <span>
-                <strong className={counts.overwrite > 0 ? 'count-over' : ''}>
-                  {counts.overwrite}
-                </strong>{' '}
-                {tr('riscritte')}
-              </span>
-              <span>
-                <strong>{counts.skip}</strong> {tr('saltate')}
-              </span>
-            </div>
-            <p className="small">
-              {tr(
-                '{0}: il colore (.png) non viene toccato. Prima di scrivere viene fatto un backup (Pack › Backup per tornare indietro).',
-                chosen.length === 1 ? '1 texture' : `${chosen.length} texture`
-              )}
-            </p>
-            <p className="small warning-text">
-              {tr('Si vede solo con uno shader LabPBR (Iris). Senza shader il gioco resta uguale.')}
-            </p>
-            <h3 className="ph">{tr('File che verranno scritti')}</h3>
-            <ul className="wizard-files">
-              {files.slice(0, 60).map((file) => (
-                <li key={file.path} className={`file-${file.action}`}>
-                  {file.action === 'create' ? '+' : file.action === 'overwrite' ? '~' : '='}{' '}
-                  {file.path.slice(file.path.lastIndexOf('/') + 1)}
-                </li>
-              ))}
-              {files.length > 60 && (
-                <li className="muted">{tr('… altri {0}', files.length - 60)}</li>
-              )}
-            </ul>
-          </aside>
-        </section>
-
-        {/* 4 · Applica */}
-        <section className="wizard-step" hidden={step !== 3}>
-          {phase.status === 'running' && (
-            <div data-testid="batch-progress">
-              <ProgressBar
-                label={tr('Applico alle texture')}
-                done={phase.done}
-                total={phase.total}
-              />
-            </div>
-          )}
-          {phase.status === 'done' && (
-            <>
-              <p className="small" data-testid="batch-result">
-                <Glyph name="check" />
-                {phase.result.written === 1
-                  ? tr('1 mappa scritta')
-                  : tr('{0} mappe scritte', phase.result.written)}
-                {phase.result.errors.length > 0 && tr(', {0} errori', phase.result.errors.length)}
-              </p>
-              {phase.result.errors.length > 0 && (
-                <ul className="validator-issues">
-                  {phase.result.errors.map((error) => (
-                    <li key={error.path} className="validator-issue error">
-                      <span className="validator-icon">
-                        <Glyph name="cross" alone />
-                      </span>
-                      <div>
-                        <strong>{error.path.split('/').pop()}</strong>
-                        <p className="small">{error.message}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="small muted">
-                {tr(
-                  'Un backup è stato preso prima di scrivere: Pack › Backup lo ripristina. In gioco: F3+T per ricaricare il pack, con uno shader LabPBR acceso.'
-                )}
-              </p>
-            </>
-          )}
-        </section>
-
-        <footer className="row wizard-foot">
-          {phase.status === 'done' ? (
-            <button type="button" className="primary" onClick={onClose}>
-              {tr('Chiudi')}
-            </button>
-          ) : (
-            <>
-              <button type="button" onClick={onClose} disabled={running}>
-                {tr('Annulla')}
-              </button>
-              {step > 0 && step < 3 && (
-                <button type="button" onClick={() => setStep(step - 1)}>
-                  {tr('‹ Indietro')}
-                </button>
-              )}
-              {step < 2 && (
-                <button type="button" className="primary" onClick={() => setStep(step + 1)}>
-                  {tr('Avanti: {0} ›', STEPS[step + 1]?.toLowerCase())}
-                </button>
-              )}
-              {summary}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) (() => !running && onClose())()
+      }}
+      label={tr('Applica in blocco')}
+      className="card modal batch wizard"
+      dismissible={phase.status !== 'running'}
+    >
+      <header className="wizard-head">
+        <h2>{tr('Applica in blocco')}</h2>
+        <ol className="wizard-steps" aria-label={tr('Passi')}>
+          {STEPS.map((label, index) => (
+            <li key={label}>
               <button
                 type="button"
-                className={step === 2 ? 'primary' : undefined}
-                disabled={work === 0 || running}
-                onClick={() => apply()}
+                className={index === step ? 'ore-on' : 'ore'}
+                aria-current={index === step ? 'step' : undefined}
+                disabled={
+                  running ||
+                  (index === 3 && phase.status === 'setup') ||
+                  (index < 3 && phase.status !== 'setup')
+                }
+                onClick={() => setStep(index)}
               >
-                {tr('Applica a {0}', work === 1 ? tr('1 mappa') : tr('{0} mappe', work))}
+                {index < step && <Glyph name="check" />}
+                {index + 1}. {label}
               </button>
-            </>
+            </li>
+          ))}
+        </ol>
+        <span className="muted small">
+          {tr('{0} di {1} texture', chosen.length, textures.length)}
+        </span>
+      </header>
+
+      {/* 1 · Texture */}
+      <section className="wizard-step" hidden={step !== 0}>
+        <p className="muted small">
+          {tr(
+            'Crea le mappe di tante texture insieme: il materiale (_s) e/o il rilievo (_n), calcolati dai colori di ciascuna come nell’editor. Il segno _n o _s vuol dire che quella mappa esiste già.'
           )}
-        </footer>
-      </div>
-    </div>
+        </p>
+        <div className="row">
+          <input
+            type="search"
+            aria-label={tr('Filtra texture')}
+            placeholder={tr('Filtra per nome o cartella, es. planks')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <button
+            type="button"
+            className="small-button"
+            onClick={() => setSelected((all) => new Set([...all, ...visible.map((t) => t.albedo)]))}
+          >
+            {tr('Seleziona visibili')}
+          </button>
+          <button type="button" className="small-button" onClick={() => setSelected(new Set())}>
+            {tr('Nessuna')}
+          </button>
+        </div>
+        <ul className="batch-list" aria-label={tr('Texture')}>
+          {visible.slice(0, MAX_ROWS).map((texture) => (
+            <li key={texture.albedo}>
+              <label className="batch-row small">
+                <input
+                  type="checkbox"
+                  checked={selected.has(texture.albedo)}
+                  onChange={(event) => toggle(texture.albedo, event.target.checked)}
+                />
+                {texture.name}
+                <span className="muted">
+                  {texture.folder.replace(/^assets\/minecraft\/textures\//, '')}
+                </span>
+                {texture.normal && <span className="badge">_n</span>}
+                {texture.specular && <span className="badge">_s</span>}
+              </label>
+            </li>
+          ))}
+        </ul>
+        {visible.length > MAX_ROWS && (
+          <p className="small muted">
+            {tr(
+              'Mostrate {0} di {1}: usa il filtro per trovare le altre.',
+              MAX_ROWS,
+              visible.length
+            )}
+          </p>
+        )}
+      </section>
+
+      {/* 2 · Cosa fare */}
+      <section className="wizard-step" hidden={step !== 1}>
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={doSpecular}
+            onChange={(event) => setDoSpecular(event.target.checked)}
+          />
+          {tr('Materiale (_s)')}
+        </label>
+        {doSpecular && (
+          <div className="generator-panel batch-section">
+            <MaterialFields options={material} onOptions={setMaterial} />
+          </div>
+        )}
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={doNormal}
+            onChange={(event) => setDoNormal(event.target.checked)}
+          />
+          {tr('Rilievo (_n): altezza dai colori, normali e occlusione')}
+        </label>
+        {doNormal && (
+          <div className="generator-panel batch-section">
+            <Range
+              label={tr('Profondità')}
+              value={Math.round(depth * 100)}
+              unit="%"
+              min={0}
+              max={100}
+              title={tr(
+                'Quanto scende il pixel più scuro: 100% = il 25% del blocco previsto da LabPBR'
+              )}
+              onChange={(value) => setDepth(value / 100)}
+            />
+            <label className="inline-check small">
+              <input
+                type="checkbox"
+                checked={occlusion}
+                onChange={(event) => setOcclusion(event.target.checked)}
+              />
+              {tr('Occlusione')}
+            </label>
+            <label
+              className="inline-check small"
+              title={tr('Togli la spunta per texture che non si ripetono')}
+            >
+              <input
+                type="checkbox"
+                checked={wrap}
+                onChange={(event) => setWrap(event.target.checked)}
+              />
+              {tr('Bordi ripetibili')}
+            </label>
+          </div>
+        )}
+
+        <h3 className="panel-title">{tr('Mappe già presenti')}</h3>
+        <label className="inline-radio small">
+          <input
+            type="radio"
+            name="batch-existing"
+            checked={!overwrite}
+            onChange={() => setOverwrite(false)}
+          />
+          {tr('Lasciale come sono (consigliato)')}
+        </label>
+        <label className="inline-radio small">
+          <input
+            type="radio"
+            name="batch-existing"
+            checked={overwrite}
+            onChange={() => setOverwrite(true)}
+          />
+          {tr('Sovrascrivile (l’emissione di un _s esistente resta)')}
+        </label>
+      </section>
+
+      {/* 3 · Anteprima + what happens */}
+      <section className="wizard-step wizard-preview" hidden={step !== 2}>
+        <div className="wizard-preview-main">
+          {chosen.length > 1 && (
+            <label className="inline-select small">
+              {tr('Texture mostrata')}
+              <select
+                value={sample?.albedo ?? ''}
+                onChange={(event) => setPreviewed(event.target.value)}
+              >
+                {chosen.slice(0, MAX_ROWS).map((t) => (
+                  <option key={t.albedo} value={t.albedo}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {step === 2 && sample && sources && sampleEntry ? (
+            <BatchPreview
+              pack={pack}
+              sources={sources}
+              texture={sample}
+              settings={settings}
+              maps={{
+                normal: writes(sampleEntry.normal),
+                specular: writes(sampleEntry.specular)
+              }}
+            />
+          ) : (
+            <p className="muted small">
+              {chosen.length === 0
+                ? tr('Scegli almeno una texture al passo 1.')
+                : tr('Anteprima non disponibile.')}
+            </p>
+          )}
+        </div>
+        <aside className="wizard-facts">
+          <h3 className="ph">{tr('Cosa succede')}</h3>
+          <div className="wizard-counts">
+            <span>
+              <strong className="count-new">{counts.create}</strong> {tr('nuove')}
+            </span>
+            <span>
+              <strong className={counts.overwrite > 0 ? 'count-over' : ''}>
+                {counts.overwrite}
+              </strong>{' '}
+              {tr('riscritte')}
+            </span>
+            <span>
+              <strong>{counts.skip}</strong> {tr('saltate')}
+            </span>
+          </div>
+          <p className="small">
+            {tr(
+              '{0}: il colore (.png) non viene toccato. Prima di scrivere viene fatto un backup (Pack › Backup per tornare indietro).',
+              chosen.length === 1 ? '1 texture' : `${chosen.length} texture`
+            )}
+          </p>
+          <p className="small warning-text">
+            {tr('Si vede solo con uno shader LabPBR (Iris). Senza shader il gioco resta uguale.')}
+          </p>
+          <h3 className="ph">{tr('File che verranno scritti')}</h3>
+          <ul className="wizard-files">
+            {files.slice(0, 60).map((file) => (
+              <li key={file.path} className={`file-${file.action}`}>
+                {file.action === 'create' ? '+' : file.action === 'overwrite' ? '~' : '='}{' '}
+                {file.path.slice(file.path.lastIndexOf('/') + 1)}
+              </li>
+            ))}
+            {files.length > 60 && <li className="muted">{tr('… altri {0}', files.length - 60)}</li>}
+          </ul>
+        </aside>
+      </section>
+
+      {/* 4 · Applica */}
+      <section className="wizard-step" hidden={step !== 3}>
+        {phase.status === 'running' && (
+          <div data-testid="batch-progress">
+            <ProgressBar label={tr('Applico alle texture')} done={phase.done} total={phase.total} />
+          </div>
+        )}
+        {phase.status === 'done' && (
+          <>
+            <p className="small" data-testid="batch-result">
+              <Glyph name="check" />
+              {phase.result.written === 1
+                ? tr('1 mappa scritta')
+                : tr('{0} mappe scritte', phase.result.written)}
+              {phase.result.errors.length > 0 && tr(', {0} errori', phase.result.errors.length)}
+            </p>
+            {phase.result.errors.length > 0 && (
+              <ul className="validator-issues">
+                {phase.result.errors.map((error) => (
+                  <li key={error.path} className="validator-issue error">
+                    <span className="validator-icon">
+                      <Glyph name="cross" alone />
+                    </span>
+                    <div>
+                      <strong>{error.path.split('/').pop()}</strong>
+                      <p className="small">{error.message}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="small muted">
+              {tr(
+                'Un backup è stato preso prima di scrivere: Pack › Backup lo ripristina. In gioco: F3+T per ricaricare il pack, con uno shader LabPBR acceso.'
+              )}
+            </p>
+          </>
+        )}
+      </section>
+
+      <footer className="row wizard-foot">
+        {phase.status === 'done' ? (
+          <button type="button" className="primary" onClick={onClose}>
+            {tr('Chiudi')}
+          </button>
+        ) : (
+          <>
+            <button type="button" onClick={onClose} disabled={running}>
+              {tr('Annulla')}
+            </button>
+            {step > 0 && step < 3 && (
+              <button type="button" onClick={() => setStep(step - 1)}>
+                {tr('‹ Indietro')}
+              </button>
+            )}
+            {step < 2 && (
+              <button type="button" className="primary" onClick={() => setStep(step + 1)}>
+                {tr('Avanti: {0} ›', STEPS[step + 1]?.toLowerCase())}
+              </button>
+            )}
+            {summary}
+            <button
+              type="button"
+              className={step === 2 ? 'primary' : undefined}
+              disabled={work === 0 || running}
+              onClick={() => apply()}
+            >
+              {tr('Applica a {0}', work === 1 ? tr('1 mappa') : tr('{0} mappe', work))}
+            </button>
+          </>
+        )}
+      </footer>
+    </Dialog>
   )
 }

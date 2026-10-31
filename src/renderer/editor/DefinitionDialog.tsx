@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
 import type { Item3dPlan } from '../../shared/item3d'
 import { parseItemDefinition } from '../../shared/itemDefinition'
@@ -100,76 +101,77 @@ export function DefinitionDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form definition-dialog"
-        role="dialog"
-        aria-label={tr('Definizione dell’oggetto')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="book" />
-          {tr('Definizione: {0}', plan.definitionPath)}
-        </h2>
-        <p className="muted small">
-          {inPack
-            ? tr('La definizione del pack. Cosa disegnare, quando: modelli, condizioni, stati.')
-            : tr('Parti da quella di vanilla: salvando il pack ne ha una sua copia.')}
-        </p>
-        <div className="definition-body">
-          <div className="definition-text">
-            {original === null ? (
-              <p className="muted">{tr('Leggo la definizione…')}</p>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Definizione dell’oggetto')}
+      className="card modal form definition-dialog"
+      dismissible={!saving}
+    >
+      <h2>
+        <Glyph name="book" />
+        {tr('Definizione: {0}', plan.definitionPath)}
+      </h2>
+      <p className="muted small">
+        {inPack
+          ? tr('La definizione del pack. Cosa disegnare, quando: modelli, condizioni, stati.')
+          : tr('Parti da quella di vanilla: salvando il pack ne ha una sua copia.')}
+      </p>
+      <div className="definition-body">
+        <div className="definition-text">
+          {original === null ? (
+            <p className="muted">{tr('Leggo la definizione…')}</p>
+          ) : (
+            <textarea
+              value={value}
+              spellCheck={false}
+              aria-label={tr('Testo della definizione')}
+              onChange={(event) => setText(event.target.value)}
+            />
+          )}
+          <div className="definition-issues" data-testid="definition-issues">
+            {syntax ? (
+              <p className="field-error small">{tr('JSON non valido: {0}', syntax)}</p>
+            ) : issues.length === 0 ? (
+              <p className="small ok-text">
+                <Glyph name="check" />
+                {tr('Nessun problema per le versioni del pack.')}
+              </p>
             ) : (
-              <textarea
-                value={value}
-                spellCheck={false}
-                aria-label={tr('Testo della definizione')}
-                onChange={(event) => setText(event.target.value)}
-              />
-            )}
-            <div className="definition-issues" data-testid="definition-issues">
-              {syntax ? (
-                <p className="field-error small">{tr('JSON non valido: {0}', syntax)}</p>
-              ) : issues.length === 0 ? (
-                <p className="small ok-text">
-                  <Glyph name="check" />
-                  {tr('Nessun problema per le versioni del pack.')}
+              issues.map((issue, i) => (
+                <p key={i} className={issue.severity === 'error' ? 'field-error small' : 'small'}>
+                  {issue.severity !== 'error' && <Glyph name="warning" />}
+                  {issue.message}
                 </p>
-              ) : (
-                issues.map((issue, i) => (
-                  <p key={i} className={issue.severity === 'error' ? 'field-error small' : 'small'}>
-                    {issue.severity !== 'error' && <Glyph name="warning" />}
-                    {issue.message}
-                  </p>
-                ))
-              )}
-            </div>
+              ))
+            )}
           </div>
-          <ItemPreview
-            path={path}
-            canvas={canvas}
-            revision={revision}
-            sources={sources}
-            range={range}
-            definition={parsed === undefined ? null : parsed}
-          />
         </div>
-        {error && <p className="field-error small">{error}</p>}
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={saving || syntax !== null || errors.length > 0 || (!changed && inPack)}
-            onClick={() => save()}
-          >
-            {tr('Salva la definizione')}
-          </button>
-          <button type="button" onClick={onClose} disabled={saving}>
-            {tr('Annulla')}
-          </button>
-        </div>
+        <ItemPreview
+          path={path}
+          canvas={canvas}
+          revision={revision}
+          sources={sources}
+          range={range}
+          definition={parsed === undefined ? null : parsed}
+        />
       </div>
-    </div>
+      {error && <p className="field-error small">{error}</p>}
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={saving || syntax !== null || errors.length > 0 || (!changed && inPack)}
+          onClick={() => save()}
+        >
+          {tr('Salva la definizione')}
+        </button>
+        <button type="button" onClick={onClose} disabled={saving}>
+          {tr('Annulla')}
+        </button>
+      </div>
+    </Dialog>
   )
 }

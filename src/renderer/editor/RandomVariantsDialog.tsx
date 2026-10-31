@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import {
   blockstatePath,
   blockstateVariants,
@@ -226,118 +227,119 @@ export function RandomVariantsDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form"
-        role="dialog"
-        aria-label={tr('Varianti casuali')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="dice" />
-          {tr('Varianti casuali di {0}', name)}
-        </h2>
-        {phase.status === 'done' ? (
-          <>
-            <p data-testid="variants-result">
-              {tr(
-                '{0} varianti create{1}. Ora ridisegnale: il gioco ne sceglie una a caso per ogni blocco.',
-                phase.created.length,
-                phase.errors.length > 0 ? tr(', {0} errori', phase.errors.length) : ''
-              )}
-            </p>
-            {phase.errors.map((error) => (
-              <p key={error} className="field-error small">
-                {error}
-              </p>
-            ))}
-            <div className="row">
-              {phase.created[0] && (
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => onCreated(phase.created[0]!, phase.written)}
-                >
-                  {tr('Apri {0}', phase.created[0].slice(folder.length + 1, -'.png'.length))}
-                </button>
-              )}
-              <button type="button" onClick={onClose}>
-                {tr('Chiudi')}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="muted small">
-              {tr(
-                'Più versioni della stessa texture: il gioco ne pesca una per ogni blocco, così un campo non sembra fatto con lo stampino (come Vanilla+ Crops sul raccolto maturo). Funziona senza mod.'
-              )}
-            </p>
-            {plan === null && <p className="muted">{tr('Cerco il blocco…')}</p>}
-            {typeof plan === 'string' && <p className="field-error small">{plan}</p>}
-            {typeof plan === 'object' && plan !== null && (
-              <>
-                <p className="small" data-testid="variants-plan">
-                  {plan.block}: {plan.keys.length === 1 ? tr('la variante') : tr('le varianti')}{' '}
-                  {plan.keys.map((k) => k || '(unica)').join(', ')}{' '}
-                  {tr(
-                    '{0} a caso {1} e {2}.',
-                    plan.keys.length === 1 ? tr('userà') : 'useranno',
-                    name,
-                    names.join(', ')
-                  )}
-                </p>
-                <label className="preview-control">
-                  <span>
-                    {tr('Versioni in più')} <strong>{count}</strong>
-                  </span>
-                  <RangeInput
-                    type="range"
-                    min={1}
-                    max={4}
-                    value={count}
-                    aria-label={tr('Versioni in più')}
-                    onChange={(event) => setCount(Number(event.target.value))}
-                  />
-                </label>
-                <label className="checkbox-inline">
-                  <input
-                    type="checkbox"
-                    checked={rotate}
-                    onChange={(event) => setRotate(event.target.checked)}
-                  />
-                  {tr('Ruota a caso (4 orientamenti per versione)')}
-                </label>
-                <p className="muted small">
-                  {tr(
-                    'Le copie partono uguali a {0} (con le sue mappe _n/_s): poi le ridisegni. Scrive anche {1} modelli e {2} nel pack; prima fa un backup.',
-                    name,
-                    names.length,
-                    plan.statePath.split('/').pop()
-                  )}
-                </p>
-              </>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Varianti casuali')}
+      className="card modal form"
+      dismissible={phase.status !== 'working'}
+    >
+      <h2>
+        <Glyph name="dice" />
+        {tr('Varianti casuali di {0}', name)}
+      </h2>
+      {phase.status === 'done' ? (
+        <>
+          <p data-testid="variants-result">
+            {tr(
+              '{0} varianti create{1}. Ora ridisegnale: il gioco ne sceglie una a caso per ogni blocco.',
+              phase.created.length,
+              phase.errors.length > 0 ? tr(', {0} errori', phase.errors.length) : ''
             )}
-            {phase.status === 'working' && <p className="muted">{phase.text}</p>}
-            <div className="row">
+          </p>
+          {phase.errors.map((error) => (
+            <p key={error} className="field-error small">
+              {error}
+            </p>
+          ))}
+          <div className="row">
+            {phase.created[0] && (
               <button
                 type="button"
                 className="primary"
-                disabled={
-                  typeof plan !== 'object' || plan === null || !inPack || phase.status === 'working'
-                }
-                title={inPack ? '' : tr('Salva prima la texture nel pack')}
-                onClick={() => create()}
+                onClick={() => onCreated(phase.created[0]!, phase.written)}
               >
-                {tr('Crea {0} varianti', names.length)}
+                {tr('Apri {0}', phase.created[0].slice(folder.length + 1, -'.png'.length))}
               </button>
-              <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
-                {tr('Annulla')}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+            )}
+            <button type="button" onClick={onClose}>
+              {tr('Chiudi')}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="muted small">
+            {tr(
+              'Più versioni della stessa texture: il gioco ne pesca una per ogni blocco, così un campo non sembra fatto con lo stampino (come Vanilla+ Crops sul raccolto maturo). Funziona senza mod.'
+            )}
+          </p>
+          {plan === null && <p className="muted">{tr('Cerco il blocco…')}</p>}
+          {typeof plan === 'string' && <p className="field-error small">{plan}</p>}
+          {typeof plan === 'object' && plan !== null && (
+            <>
+              <p className="small" data-testid="variants-plan">
+                {plan.block}: {plan.keys.length === 1 ? tr('la variante') : tr('le varianti')}{' '}
+                {plan.keys.map((k) => k || '(unica)').join(', ')}{' '}
+                {tr(
+                  '{0} a caso {1} e {2}.',
+                  plan.keys.length === 1 ? tr('userà') : 'useranno',
+                  name,
+                  names.join(', ')
+                )}
+              </p>
+              <label className="preview-control">
+                <span>
+                  {tr('Versioni in più')} <strong>{count}</strong>
+                </span>
+                <RangeInput
+                  type="range"
+                  min={1}
+                  max={4}
+                  value={count}
+                  aria-label={tr('Versioni in più')}
+                  onChange={(event) => setCount(Number(event.target.value))}
+                />
+              </label>
+              <label className="checkbox-inline">
+                <input
+                  type="checkbox"
+                  checked={rotate}
+                  onChange={(event) => setRotate(event.target.checked)}
+                />
+                {tr('Ruota a caso (4 orientamenti per versione)')}
+              </label>
+              <p className="muted small">
+                {tr(
+                  'Le copie partono uguali a {0} (con le sue mappe _n/_s): poi le ridisegni. Scrive anche {1} modelli e {2} nel pack; prima fa un backup.',
+                  name,
+                  names.length,
+                  plan.statePath.split('/').pop()
+                )}
+              </p>
+            </>
+          )}
+          {phase.status === 'working' && <p className="muted">{phase.text}</p>}
+          <div className="row">
+            <button
+              type="button"
+              className="primary"
+              disabled={
+                typeof plan !== 'object' || plan === null || !inPack || phase.status === 'working'
+              }
+              title={inPack ? '' : tr('Salva prima la texture nel pack')}
+              onClick={() => create()}
+            >
+              {tr('Crea {0} varianti', names.length)}
+            </button>
+            <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
+              {tr('Annulla')}
+            </button>
+          </div>
+        </>
+      )}
+    </Dialog>
   )
 }

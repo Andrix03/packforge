@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import type { Issue, Severity } from '../../shared/packValidator'
 import { runValidator, type ValidatorResult, type ValidatorSource } from './runValidator'
 import { useEscape } from '../useEscape'
@@ -68,47 +69,47 @@ export function ValidatorDialog({
   }, [pack, vanilla, run])
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal validator"
-        role="dialog"
-        aria-label={tr('Controllo delle mappe')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>{tr('Controllo delle mappe _n / _s')}</h2>
-        <p className="muted small">
-          {tr(
-            'Dimensioni e animazione rispetto alla texture (come le legge Iris), emissione, altezza e file orfani.'
-          )}
-          {!vanilla &&
-            tr(' Carica un jar vanilla per controllare anche le mappe delle texture del gioco.')}
-        </p>
-        {state.status === 'running' && (
-          <div data-testid="validator-progress">
-            <ProgressBar label={tr('Controllo le mappe')} done={state.done} total={state.total} />
-          </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Controllo delle mappe')}
+      className="card modal validator"
+    >
+      <h2>{tr('Controllo delle mappe _n / _s')}</h2>
+      <p className="muted small">
+        {tr(
+          'Dimensioni e animazione rispetto alla texture (come le legge Iris), emissione, altezza e file orfani.'
         )}
-        {state.status === 'error' && <p className="field-error small">{state.message}</p>}
-        {state.status === 'done' && (
-          <Results result={state.result} canOpen={canOpen} onOpen={onOpen} />
-        )}
-        <div className="row">
-          <button
-            type="button"
-            disabled={state.status === 'running'}
-            onClick={() => {
-              setState({ status: 'running', done: 0, total: 0 })
-              setRun((r) => r + 1)
-            }}
-          >
-            {tr('Ricontrolla')}
-          </button>
-          <button type="button" className="primary" onClick={onClose}>
-            {tr('Chiudi')}
-          </button>
+        {!vanilla &&
+          tr(' Carica un jar vanilla per controllare anche le mappe delle texture del gioco.')}
+      </p>
+      {state.status === 'running' && (
+        <div data-testid="validator-progress">
+          <ProgressBar label={tr('Controllo le mappe')} done={state.done} total={state.total} />
         </div>
+      )}
+      {state.status === 'error' && <p className="field-error small">{state.message}</p>}
+      {state.status === 'done' && (
+        <Results result={state.result} canOpen={canOpen} onOpen={onOpen} />
+      )}
+      <div className="row">
+        <button
+          type="button"
+          disabled={state.status === 'running'}
+          onClick={() => {
+            setState({ status: 'running', done: 0, total: 0 })
+            setRun((r) => r + 1)
+          }}
+        >
+          {tr('Ricontrolla')}
+        </button>
+        <button type="button" className="primary" onClick={onClose}>
+          {tr('Chiudi')}
+        </button>
       </div>
-    </div>
+    </Dialog>
   )
 }
 

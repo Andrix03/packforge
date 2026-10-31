@@ -2,6 +2,7 @@
 // grey, or by hand), with before/after and a backup first. Vanilla textures are never touched:
 // only what is already in the pack.
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
 import {
   isNeutral,
@@ -101,180 +102,177 @@ export function GuiRecolorDialog({
   }
 
   return (
-    <div
-      className="modal-backdrop"
-      role="presentation"
-      onClick={() => phase.status !== 'running' && onClose()}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) (() => phase.status !== 'running' && onClose())()
+      }}
+      label={gui ? tr('Ricolora GUI') : tr('Ricolora texture')}
+      className="card modal gui-recolor"
+      dismissible={phase.status !== 'running'}
     >
-      <div
-        className="card modal gui-recolor"
-        role="dialog"
-        aria-label={gui ? tr('Ricolora GUI') : tr('Ricolora texture')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>{gui ? tr('Ricolora GUI') : tr('Ricolora texture')}</h2>
-        <p className="muted small">
-          {gui
-            ? tr(
-                'Cambia insieme i colori delle texture GUI del tuo pack: le trasparenze restano, le sfumature si spostano tutte nello stesso modo. Le texture vanilla non si toccano.'
-              )
-            : tr(
-                'Cambia insieme i colori di tante texture del tuo pack: le trasparenze restano, le sfumature si spostano tutte nello stesso modo. Le mappe _n / _s e le texture vanilla non si toccano.'
-              )}
-        </p>
-        {anyArea && (
-          <label className="small select-field">
-            {tr('Quali texture')}{' '}
-            <select
-              value={area}
-              aria-label={tr('Quali texture')}
-              onChange={(event) => setArea(event.target.value)}
-            >
-              {areas.map(({ area: a, count }) => (
-                <option key={a} value={a}>
-                  {a} ({count})
-                </option>
-              ))}
-              <option value="">
-                {tr(
-                  'Tutte ({0})',
-                  areas.reduce((sum, a) => sum + a.count, 0)
-                )}
+      <h2>{gui ? tr('Ricolora GUI') : tr('Ricolora texture')}</h2>
+      <p className="muted small">
+        {gui
+          ? tr(
+              'Cambia insieme i colori delle texture GUI del tuo pack: le trasparenze restano, le sfumature si spostano tutte nello stesso modo. Le texture vanilla non si toccano.'
+            )
+          : tr(
+              'Cambia insieme i colori di tante texture del tuo pack: le trasparenze restano, le sfumature si spostano tutte nello stesso modo. Le mappe _n / _s e le texture vanilla non si toccano.'
+            )}
+      </p>
+      {anyArea && (
+        <label className="small select-field">
+          {tr('Quali texture')}{' '}
+          <select
+            value={area}
+            aria-label={tr('Quali texture')}
+            onChange={(event) => setArea(event.target.value)}
+          >
+            {areas.map(({ area: a, count }) => (
+              <option key={a} value={a}>
+                {a} ({count})
               </option>
-            </select>
-          </label>
-        )}
-        {textures.length === 0 ? (
-          <p className="small">
-            {gui
-              ? tr('Il pack non ha ancora texture GUI: creale dalla scheda GUI, poi torna qui.')
-              : tr('Nessuna texture del pack in questa cartella.')}
-          </p>
-        ) : (
-          <>
-            <div className="row wrap" role="radiogroup" aria-label={tr('Preimpostazioni')}>
-              {(Object.keys(RECOLOR_PRESETS) as RecolorPreset[]).map((preset) => {
-                const on = JSON.stringify(settings) === JSON.stringify(RECOLOR_PRESETS[preset])
-                return (
-                  <OreButton
-                    key={preset}
-                    role="radio"
-                    aria-checked={on}
-                    on={on}
-                    onClick={() => setSettings(RECOLOR_PRESETS[preset])}
-                  >
-                    {PRESET_NAMES[preset]}
-                  </OreButton>
-                )
-              })}
-              <OreButton
-                role="radio"
-                aria-checked={isNeutral(settings)}
-                on={isNeutral(settings)}
-                onClick={() => setSettings(NEUTRAL)}
-              >
-                {tr('Nessuna modifica')}
-              </OreButton>
-            </div>
-            <div className="gui-recolor-sliders">
-              <Slider
-                label={tr('Tinta')}
-                value={settings.hue}
-                min={-180}
-                max={180}
-                step={5}
-                unit="°"
-                onChange={(hue) => set({ hue })}
-              />
-              <Slider
-                label={tr('Saturazione')}
-                value={Math.round(settings.saturation * 100)}
-                min={0}
-                max={200}
-                step={5}
-                unit="%"
-                onChange={(v) => set({ saturation: v / 100 })}
-              />
-              <Slider
-                label={tr('Luminosità')}
-                value={Math.round(settings.lightness * 100)}
-                min={-60}
-                max={60}
-                step={2}
-                unit=""
-                onChange={(v) => set({ lightness: v / 100 })}
-              />
-              <Slider
-                label={tr('Contrasto')}
-                value={Math.round(settings.contrast * 100)}
-                min={40}
-                max={160}
-                step={5}
-                unit="%"
-                onChange={(v) => set({ contrast: v / 100 })}
-              />
-            </div>
-            <div className="gui-recolor-preview">
-              {sample.map((path) => (
-                <BeforeAfter key={path} pack={pack} path={path} settings={settings} />
-              ))}
-            </div>
-            <ul
-              className="batch-list gui-recolor-list"
-              aria-label={gui ? tr('Texture GUI del pack') : tr('Texture del pack')}
-            >
-              {textures.map((path) => (
-                <li key={path}>
-                  <label className="batch-row">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(path)}
-                      onChange={(event) => {
-                        const next = new Set(selected)
-                        if (event.target.checked) next.add(path)
-                        else next.delete(path)
-                        setSelected(next)
-                      }}
-                    />
-                    <span className="small">{path.replace(/^assets\/[^/]+\/textures\//, '')}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        {phase.status === 'running' && (
-          <ProgressBar label={tr('Ricoloro le texture')} done={phase.done} total={phase.total} />
-        )}
-        {phase.status === 'done' && (
-          <p className="small" data-testid="recolor-result">
-            <Glyph name="check" />
-            {tr('{0} texture ricolorate. Il backup è in Pack › Backup.', phase.written)}
-            {phase.errors.map((e) => (
-              <span key={e} className="field-error small">
-                <br />
-                {e}
-              </span>
             ))}
-          </p>
-        )}
-        <div className="row">
-          {phase.status !== 'done' && textures.length > 0 && (
-            <button
-              type="button"
-              className="primary"
-              disabled={phase.status === 'running' || chosen.length === 0 || isNeutral(settings)}
-              onClick={() => void apply()}
+            <option value="">
+              {tr(
+                'Tutte ({0})',
+                areas.reduce((sum, a) => sum + a.count, 0)
+              )}
+            </option>
+          </select>
+        </label>
+      )}
+      {textures.length === 0 ? (
+        <p className="small">
+          {gui
+            ? tr('Il pack non ha ancora texture GUI: creale dalla scheda GUI, poi torna qui.')
+            : tr('Nessuna texture del pack in questa cartella.')}
+        </p>
+      ) : (
+        <>
+          <div className="row wrap" role="radiogroup" aria-label={tr('Preimpostazioni')}>
+            {(Object.keys(RECOLOR_PRESETS) as RecolorPreset[]).map((preset) => {
+              const on = JSON.stringify(settings) === JSON.stringify(RECOLOR_PRESETS[preset])
+              return (
+                <OreButton
+                  key={preset}
+                  role="radio"
+                  aria-checked={on}
+                  on={on}
+                  onClick={() => setSettings(RECOLOR_PRESETS[preset])}
+                >
+                  {PRESET_NAMES[preset]}
+                </OreButton>
+              )
+            })}
+            <OreButton
+              role="radio"
+              aria-checked={isNeutral(settings)}
+              on={isNeutral(settings)}
+              onClick={() => setSettings(NEUTRAL)}
             >
-              {tr('Ricolora {0}', chosen.length)}
-            </button>
-          )}
-          <button type="button" disabled={phase.status === 'running'} onClick={onClose}>
-            {phase.status === 'done' ? tr('Chiudi') : tr('Annulla')}
+              {tr('Nessuna modifica')}
+            </OreButton>
+          </div>
+          <div className="gui-recolor-sliders">
+            <Slider
+              label={tr('Tinta')}
+              value={settings.hue}
+              min={-180}
+              max={180}
+              step={5}
+              unit="°"
+              onChange={(hue) => set({ hue })}
+            />
+            <Slider
+              label={tr('Saturazione')}
+              value={Math.round(settings.saturation * 100)}
+              min={0}
+              max={200}
+              step={5}
+              unit="%"
+              onChange={(v) => set({ saturation: v / 100 })}
+            />
+            <Slider
+              label={tr('Luminosità')}
+              value={Math.round(settings.lightness * 100)}
+              min={-60}
+              max={60}
+              step={2}
+              unit=""
+              onChange={(v) => set({ lightness: v / 100 })}
+            />
+            <Slider
+              label={tr('Contrasto')}
+              value={Math.round(settings.contrast * 100)}
+              min={40}
+              max={160}
+              step={5}
+              unit="%"
+              onChange={(v) => set({ contrast: v / 100 })}
+            />
+          </div>
+          <div className="gui-recolor-preview">
+            {sample.map((path) => (
+              <BeforeAfter key={path} pack={pack} path={path} settings={settings} />
+            ))}
+          </div>
+          <ul
+            className="batch-list gui-recolor-list"
+            aria-label={gui ? tr('Texture GUI del pack') : tr('Texture del pack')}
+          >
+            {textures.map((path) => (
+              <li key={path}>
+                <label className="batch-row">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(path)}
+                    onChange={(event) => {
+                      const next = new Set(selected)
+                      if (event.target.checked) next.add(path)
+                      else next.delete(path)
+                      setSelected(next)
+                    }}
+                  />
+                  <span className="small">{path.replace(/^assets\/[^/]+\/textures\//, '')}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {phase.status === 'running' && (
+        <ProgressBar label={tr('Ricoloro le texture')} done={phase.done} total={phase.total} />
+      )}
+      {phase.status === 'done' && (
+        <p className="small" data-testid="recolor-result">
+          <Glyph name="check" />
+          {tr('{0} texture ricolorate. Il backup è in Pack › Backup.', phase.written)}
+          {phase.errors.map((e) => (
+            <span key={e} className="field-error small">
+              <br />
+              {e}
+            </span>
+          ))}
+        </p>
+      )}
+      <div className="row">
+        {phase.status !== 'done' && textures.length > 0 && (
+          <button
+            type="button"
+            className="primary"
+            disabled={phase.status === 'running' || chosen.length === 0 || isNeutral(settings)}
+            onClick={() => void apply()}
+          >
+            {tr('Ricolora {0}', chosen.length)}
           </button>
-        </div>
+        )}
+        <button type="button" disabled={phase.status === 'running'} onClick={onClose}>
+          {phase.status === 'done' ? tr('Chiudi') : tr('Annulla')}
+        </button>
       </div>
-    </div>
+    </Dialog>
   )
 }
 

@@ -1,4 +1,5 @@
 // Building blocks of the 12b interface (style in theme.css, approved on the design canvas).
+import { Dialog } from 'packforge-ui'
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
@@ -413,15 +414,16 @@ export function DialogFrame({
     )
   }
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onBackdrop}>
-      <div
-        className="card modal batch"
-        role="dialog"
-        aria-label={label}
-        onClick={(event) => event.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onBackdrop?.()
+      }}
+      label={label}
+      className="card modal batch"
+      dismissible={onBackdrop !== undefined}
+    >
+      {children}
+    </Dialog>
   )
 }

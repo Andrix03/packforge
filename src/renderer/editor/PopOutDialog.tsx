@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { modelPath, resolveModel, type ResolvedModel } from '../../shared/blockModel'
 import { tr } from '../../shared/i18n'
 import type { RgbaImage } from '../../shared/pngCodec'
@@ -162,130 +163,131 @@ export function PopOutDialog({
           )
         : null
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form pop-out-dialog"
-        role="dialog"
-        aria-label={tr('Pixel in rilievo')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="up" />
-          {tr('Pixel in rilievo: {0}', texture.replace(/^minecraft:/, ''))}
-        </h2>
-        <p className="muted small">
-          {tr(
-            'I colori che scegli escono dal blocco come piccoli cubetti, su ogni faccia (minerali 3D). Contro un altro blocco non si vedono, come le facce. Modello vanilla, funziona senza mod.'
-          )}
-        </p>
-        {!loaded ? (
-          <p className="muted">{tr('Leggo la texture e il modello…')}</p>
-        ) : problem ? (
-          <p className="field-error small" data-testid="pop-problem">
-            {problem}
-          </p>
-        ) : (
-          <div className="pop-out-body">
-            <canvas ref={mapRef} className="pop-out-map sunken" aria-hidden="true" />
-            <div className="pop-out-options">
-              {selection && (
-                <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Cosa esce')}>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={bySelection}
-                    className={bySelection ? 'tab active' : 'tab'}
-                    onClick={() => setBySelection(true)}
-                  >
-                    {tr('La selezione')}
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={!bySelection}
-                    className={!bySelection ? 'tab active' : 'tab'}
-                    onClick={() => setBySelection(false)}
-                  >
-                    {tr('Per colore')}
-                  </button>
-                </div>
-              )}
-              {!mask && <span className="lbl">{tr('Colori che escono')}</span>}
-              <div
-                className="pop-out-colors"
-                role="group"
-                aria-label={tr('Colori che escono')}
-                hidden={mask !== null}
-              >
-                {palette.map(([hex, count]) => (
-                  <button
-                    key={hex}
-                    type="button"
-                    className="pop-color"
-                    aria-pressed={chosen.has(hex)}
-                    title={tr('{0}: {1} pixel', hex, count)}
-                    style={{ background: hex }}
-                    onClick={() => {
-                      const next = new Set(chosen)
-                      if (next.has(hex)) next.delete(hex)
-                      else next.add(hex)
-                      setChosen(next)
-                    }}
-                  />
-                ))}
-              </div>
-              <span className="lbl">{tr('Quanto escono')}</span>
-              <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Quanto escono')}>
-                {DEPTHS.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="radio"
-                    aria-checked={depth === value}
-                    className={depth === value ? 'tab active' : 'tab'}
-                    onClick={() => setDepth(value)}
-                  >
-                    {value === 0.5 ? tr('Mezzo pixel') : tr('{0} pixel', value)}
-                  </button>
-                ))}
-              </div>
-              <label className="checkbox-inline">
-                <input
-                  type="checkbox"
-                  checked={sidesOnly}
-                  onChange={(event) => setSidesOnly(event.target.checked)}
-                />
-                {tr('Solo sui lati (non sopra e sotto)')}
-              </label>
-              {result && !result.ok && <p className="field-error small">{result.error}</p>}
-              {result?.ok && (
-                <p className="small" data-testid="pop-plan">
-                  {tr('{0} elementi, {1} facce.', result.elements, result.faces)}{' '}
-                  {result.heavy &&
-                    tr(
-                      'Modello pesante: tanti blocchi così rallentano il gioco. Scegli meno colori.'
-                    )}
-                </p>
-              )}
-            </div>
-          </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Pixel in rilievo')}
+      className="card modal form pop-out-dialog"
+      dismissible={!working}
+    >
+      <h2>
+        <Glyph name="up" />
+        {tr('Pixel in rilievo: {0}', texture.replace(/^minecraft:/, ''))}
+      </h2>
+      <p className="muted small">
+        {tr(
+          'I colori che scegli escono dal blocco come piccoli cubetti, su ogni faccia (minerali 3D). Contro un altro blocco non si vedono, come le facce. Modello vanilla, funziona senza mod.'
         )}
-        <p className="muted small path">{file}</p>
-        {error && <p className="field-error small">{error}</p>}
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={!result?.ok || problem !== null || working}
-            onClick={() => save()}
-          >
-            {tr('Scrivi il modello')}
-          </button>
-          <button type="button" onClick={onClose} disabled={working}>
-            {tr('Annulla')}
-          </button>
+      </p>
+      {!loaded ? (
+        <p className="muted">{tr('Leggo la texture e il modello…')}</p>
+      ) : problem ? (
+        <p className="field-error small" data-testid="pop-problem">
+          {problem}
+        </p>
+      ) : (
+        <div className="pop-out-body">
+          <canvas ref={mapRef} className="pop-out-map sunken" aria-hidden="true" />
+          <div className="pop-out-options">
+            {selection && (
+              <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Cosa esce')}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={bySelection}
+                  className={bySelection ? 'tab active' : 'tab'}
+                  onClick={() => setBySelection(true)}
+                >
+                  {tr('La selezione')}
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!bySelection}
+                  className={!bySelection ? 'tab active' : 'tab'}
+                  onClick={() => setBySelection(false)}
+                >
+                  {tr('Per colore')}
+                </button>
+              </div>
+            )}
+            {!mask && <span className="lbl">{tr('Colori che escono')}</span>}
+            <div
+              className="pop-out-colors"
+              role="group"
+              aria-label={tr('Colori che escono')}
+              hidden={mask !== null}
+            >
+              {palette.map(([hex, count]) => (
+                <button
+                  key={hex}
+                  type="button"
+                  className="pop-color"
+                  aria-pressed={chosen.has(hex)}
+                  title={tr('{0}: {1} pixel', hex, count)}
+                  style={{ background: hex }}
+                  onClick={() => {
+                    const next = new Set(chosen)
+                    if (next.has(hex)) next.delete(hex)
+                    else next.add(hex)
+                    setChosen(next)
+                  }}
+                />
+              ))}
+            </div>
+            <span className="lbl">{tr('Quanto escono')}</span>
+            <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Quanto escono')}>
+              {DEPTHS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={depth === value}
+                  className={depth === value ? 'tab active' : 'tab'}
+                  onClick={() => setDepth(value)}
+                >
+                  {value === 0.5 ? tr('Mezzo pixel') : tr('{0} pixel', value)}
+                </button>
+              ))}
+            </div>
+            <label className="checkbox-inline">
+              <input
+                type="checkbox"
+                checked={sidesOnly}
+                onChange={(event) => setSidesOnly(event.target.checked)}
+              />
+              {tr('Solo sui lati (non sopra e sotto)')}
+            </label>
+            {result && !result.ok && <p className="field-error small">{result.error}</p>}
+            {result?.ok && (
+              <p className="small" data-testid="pop-plan">
+                {tr('{0} elementi, {1} facce.', result.elements, result.faces)}{' '}
+                {result.heavy &&
+                  tr(
+                    'Modello pesante: tanti blocchi così rallentano il gioco. Scegli meno colori.'
+                  )}
+              </p>
+            )}
+          </div>
         </div>
+      )}
+      <p className="muted small path">{file}</p>
+      {error && <p className="field-error small">{error}</p>}
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={!result?.ok || problem !== null || working}
+          onClick={() => save()}
+        >
+          {tr('Scrivi il modello')}
+        </button>
+        <button type="button" onClick={onClose} disabled={working}>
+          {tr('Annulla')}
+        </button>
       </div>
-    </div>
+    </Dialog>
   )
 }

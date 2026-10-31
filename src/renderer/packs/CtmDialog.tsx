@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import {
   ctmTile,
@@ -226,317 +227,318 @@ export function CtmDialog({
   )
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={() => !busy && onClose()}>
-      <div
-        className="card modal batch wizard"
-        role="dialog"
-        aria-label={tr('Texture connesse')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className="wizard-head">
-          <h2>{tr('Texture connesse di {0}', source.name)}</h2>
-          <ol className="wizard-steps" aria-label={tr('Passi')}>
-            {CTM_STEPS.map((label, index) => (
-              <li key={label}>
-                <button
-                  type="button"
-                  className={index === step ? 'ore-on' : 'ore'}
-                  aria-current={index === step ? 'step' : undefined}
-                  disabled={
-                    busy ||
-                    (index === 3 && phase.status === 'setup') ||
-                    (index < 3 && phase.status !== 'setup')
-                  }
-                  onClick={() => setStep(index)}
-                >
-                  {index < step && <Glyph name="check" />}
-                  {index + 1}. {label}
-                </button>
-              </li>
-            ))}
-          </ol>
-          <span className="muted small">{loaded ? `${loaded.width}×${loaded.height}` : ''}</span>
-        </header>
-        {image && 'error' in image && <p className="field-error small">{image.error}</p>}
-        {problem && <p className="field-error small">{problem}</p>}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) (() => !busy && onClose())()
+      }}
+      label={tr('Texture connesse')}
+      className="card modal batch wizard"
+      dismissible={phase.status !== 'working'}
+    >
+      <header className="wizard-head">
+        <h2>{tr('Texture connesse di {0}', source.name)}</h2>
+        <ol className="wizard-steps" aria-label={tr('Passi')}>
+          {CTM_STEPS.map((label, index) => (
+            <li key={label}>
+              <button
+                type="button"
+                className={index === step ? 'ore-on' : 'ore'}
+                aria-current={index === step ? 'step' : undefined}
+                disabled={
+                  busy ||
+                  (index === 3 && phase.status === 'setup') ||
+                  (index < 3 && phase.status !== 'setup')
+                }
+                onClick={() => setStep(index)}
+              >
+                {index < step && <Glyph name="check" />}
+                {index + 1}. {label}
+              </button>
+            </li>
+          ))}
+        </ol>
+        <span className="muted small">{loaded ? `${loaded.width}×${loaded.height}` : ''}</span>
+      </header>
+      {image && 'error' in image && <p className="field-error small">{image.error}</p>}
+      {problem && <p className="field-error small">{problem}</p>}
 
-        {/* 1 · Texture */}
-        <section className="wizard-step" hidden={step !== 0}>
-          <p className="muted small">
-            {tr(
-              'Blocchi uguali vicini si uniscono e il bordo resta solo sui lati liberi (vetro, mattoni, pannelli). La cornice è il bordo della texture: dove due blocchi si toccano sparisce.'
+      {/* 1 · Texture */}
+      <section className="wizard-step" hidden={step !== 0}>
+        <p className="muted small">
+          {tr(
+            'Blocchi uguali vicini si uniscono e il bordo resta solo sui lati liberi (vetro, mattoni, pannelli). La cornice è il bordo della texture: dove due blocchi si toccano sparisce.'
+          )}
+        </p>
+        {loaded && (
+          <div className="ctm-source">
+            <Canvas
+              className="ctm-source-image"
+              width={loaded.width}
+              height={loaded.height}
+              data={Uint8ClampedArray.from(loaded.data)}
+            />
+            <div className="ctm-source-facts">
+              <strong>{tr('{0}.png', source.name)}</strong>
+              <span className="muted small">
+                {loaded.width}×{loaded.height}
+                {problem ? '' : tr(', va bene per il metodo completo')}
+              </span>
+              <label
+                className="small select-field"
+                title={tr(
+                  'Facoltativa: la texture senza cornice, usata dove i blocchi si uniscono'
+                )}
+              >
+                {tr('Interno')}{' '}
+                <select
+                  aria-label={tr('Interno')}
+                  value={centerPath}
+                  onChange={(event) => setCenterPath(event.target.value)}
+                >
+                  <option value="">{tr('l’interno della texture stessa')}</option>
+                  {centers.map((t) => (
+                    <option key={t.albedo} value={t.albedo}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* 2 · Metodo */}
+      <section className="wizard-step" hidden={step !== 1}>
+        <div className="ctm-methods" role="radiogroup" aria-label={tr('Metodo')}>
+          {CTM_METHODS.map((method) => (
+            <button
+              key={method.id}
+              type="button"
+              role="radio"
+              aria-checked={method.id === chosen}
+              className={method.id === chosen ? 'ctm-method active' : 'ctm-method'}
+              onClick={() => setMethod(method.id)}
+              title={
+                method.ready
+                  ? undefined
+                  : tr('In arrivo: per ora PackForge crea il metodo completo')
+              }
+            >
+              <Picture picture={method.picture} size={40} />
+              <strong>{method.label}</strong>
+              <span className="muted small">{method.note}</span>
+              <span className="small">{method.ready ? method.tiles : tr('in arrivo')}</span>
+            </button>
+          ))}
+        </div>
+        {loaded && !problem && (
+          <Range
+            label={tr('Spessore del bordo')}
+            value={border}
+            unit=" px"
+            min={1}
+            max={maxBorder(loaded.width)}
+            title={tr(
+              'Quanti pixel dal bordo formano la cornice che sparisce dove i blocchi si toccano'
             )}
-          </p>
-          {loaded && (
-            <div className="ctm-source">
-              <Canvas
-                className="ctm-source-image"
-                width={loaded.width}
-                height={loaded.height}
-                data={Uint8ClampedArray.from(loaded.data)}
-              />
-              <div className="ctm-source-facts">
-                <strong>{tr('{0}.png', source.name)}</strong>
-                <span className="muted small">
-                  {loaded.width}×{loaded.height}
-                  {problem ? '' : tr(', va bene per il metodo completo')}
+            onChange={setBorder}
+          />
+        )}
+        {(source.normal || source.specular) && (
+          <label className="inline-check small">
+            <input
+              type="checkbox"
+              checked={withMaps}
+              onChange={(event) => setWithMaps(event.target.checked)}
+            />
+            {tr('Crea anche i tile di _n e _s (rilievo e materiale seguono le connessioni)')}
+          </label>
+        )}
+        <p className="small muted">
+          {tr('Funziona con Continuity (Fabric, anche con Iris) e con OptiFine.')}
+        </p>
+      </section>
+
+      {/* 3 · Anteprima: the wall before (every block framed) and after (connected) */}
+      <section className="wizard-step wizard-preview" hidden={step !== 2}>
+        <div className="wizard-preview-main">
+          {loaded && !problem && (
+            <>
+              <div className="before-after-bar">
+                <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
+                  {tr('Prima')}
+                </span>
+                <Switch
+                  checked={showAfter}
+                  onChange={setShowAfter}
+                  label={tr('Mostra il risultato')}
+                  disabled={both}
+                />
+                <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
+                  {tr('Dopo')}
                 </span>
                 <label
-                  className="small select-field"
-                  title={tr(
-                    'Facoltativa: la texture senza cornice, usata dove i blocchi si uniscono'
-                  )}
+                  className="inline-check small"
+                  title={tr('Prima e dopo uno accanto all’altro')}
                 >
-                  {tr('Interno')}{' '}
-                  <select
-                    aria-label={tr('Interno')}
-                    value={centerPath}
-                    onChange={(event) => setCenterPath(event.target.value)}
-                  >
-                    <option value="">{tr('l’interno della texture stessa')}</option>
-                    {centers.map((t) => (
-                      <option key={t.albedo} value={t.albedo}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    type="checkbox"
+                    checked={both}
+                    onChange={(event) => setBoth(event.target.checked)}
+                  />
+                  {tr('Affiancati')}
                 </label>
               </div>
-            </div>
-          )}
-        </section>
-
-        {/* 2 · Metodo */}
-        <section className="wizard-step" hidden={step !== 1}>
-          <div className="ctm-methods" role="radiogroup" aria-label={tr('Metodo')}>
-            {CTM_METHODS.map((method) => (
-              <button
-                key={method.id}
-                type="button"
-                role="radio"
-                aria-checked={method.id === chosen}
-                className={method.id === chosen ? 'ctm-method active' : 'ctm-method'}
-                onClick={() => setMethod(method.id)}
-                title={
-                  method.ready
-                    ? undefined
-                    : tr('In arrivo: per ora PackForge crea il metodo completo')
-                }
-              >
-                <Picture picture={method.picture} size={40} />
-                <strong>{method.label}</strong>
-                <span className="muted small">{method.note}</span>
-                <span className="small">{method.ready ? method.tiles : tr('in arrivo')}</span>
-              </button>
-            ))}
-          </div>
-          {loaded && !problem && (
-            <Range
-              label={tr('Spessore del bordo')}
-              value={border}
-              unit=" px"
-              min={1}
-              max={maxBorder(loaded.width)}
-              title={tr(
-                'Quanti pixel dal bordo formano la cornice che sparisce dove i blocchi si toccano'
-              )}
-              onChange={setBorder}
-            />
-          )}
-          {(source.normal || source.specular) && (
-            <label className="inline-check small">
-              <input
-                type="checkbox"
-                checked={withMaps}
-                onChange={(event) => setWithMaps(event.target.checked)}
-              />
-              {tr('Crea anche i tile di _n e _s (rilievo e materiale seguono le connessioni)')}
-            </label>
-          )}
-          <p className="small muted">
-            {tr('Funziona con Continuity (Fabric, anche con Iris) e con OptiFine.')}
-          </p>
-        </section>
-
-        {/* 3 · Anteprima: the wall before (every block framed) and after (connected) */}
-        <section className="wizard-step wizard-preview" hidden={step !== 2}>
-          <div className="wizard-preview-main">
-            {loaded && !problem && (
-              <>
-                <div className="before-after-bar">
-                  <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
-                    {tr('Prima')}
-                  </span>
-                  <Switch
-                    checked={showAfter}
-                    onChange={setShowAfter}
-                    label={tr('Mostra il risultato')}
-                    disabled={both}
-                  />
-                  <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
-                    {tr('Dopo')}
-                  </span>
-                  <label
-                    className="inline-check small"
-                    title={tr('Prima e dopo uno accanto all’altro')}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={both}
-                      onChange={(event) => setBoth(event.target.checked)}
-                    />
-                    {tr('Affiancati')}
-                  </label>
-                </div>
-                <div className={both ? 'before-after-views both' : 'before-after-views'}>
-                  <figure className="before-after-view" hidden={!both && showAfter}>
-                    <figcaption className="ph">{tr('Prima')}</figcaption>
-                    <Canvas className="ctm-wall-before" {...plainWall(loaded)} />
-                    <figcaption className="small muted">
-                      {tr('Ogni blocco ha la sua cornice: il muro sembra una griglia.')}
-                    </figcaption>
-                  </figure>
-                  <figure className="before-after-view" hidden={!both && !showAfter}>
-                    <figcaption className="ph after">{tr('Dopo')}</figcaption>
-                    <Canvas className="ctm-wall" {...wallPreview(loaded, tiles, method)} />
-                    <figcaption className="small muted">
-                      {method === 'horizontal'
-                        ? tr('Si uniscono solo i blocchi affiancati: righe continue.')
-                        : method === 'vertical'
-                          ? tr('Si uniscono solo i blocchi impilati: colonne continue.')
-                          : tr('Le cornici interne spariscono: una sola superficie.')}
-                    </figcaption>
-                  </figure>
-                </div>
-                <figure className="compare-figure">
-                  <Canvas className="ctm-sheet" {...sheetPreview(loaded, tiles)} />
+              <div className={both ? 'before-after-views both' : 'before-after-views'}>
+                <figure className="before-after-view" hidden={!both && showAfter}>
+                  <figcaption className="ph">{tr('Prima')}</figcaption>
+                  <Canvas className="ctm-wall-before" {...plainWall(loaded)} />
                   <figcaption className="small muted">
-                    {method === 'ctm'
-                      ? tr('I 47 tile (come il template di OptiFine)')
-                      : tr('I 4 tile: inizio, mezzo, fine, da solo')}
+                    {tr('Ogni blocco ha la sua cornice: il muro sembra una griglia.')}
                   </figcaption>
                 </figure>
-              </>
-            )}
+                <figure className="before-after-view" hidden={!both && !showAfter}>
+                  <figcaption className="ph after">{tr('Dopo')}</figcaption>
+                  <Canvas className="ctm-wall" {...wallPreview(loaded, tiles, method)} />
+                  <figcaption className="small muted">
+                    {method === 'horizontal'
+                      ? tr('Si uniscono solo i blocchi affiancati: righe continue.')
+                      : method === 'vertical'
+                        ? tr('Si uniscono solo i blocchi impilati: colonne continue.')
+                        : tr('Le cornici interne spariscono: una sola superficie.')}
+                  </figcaption>
+                </figure>
+              </div>
+              <figure className="compare-figure">
+                <Canvas className="ctm-sheet" {...sheetPreview(loaded, tiles)} />
+                <figcaption className="small muted">
+                  {method === 'ctm'
+                    ? tr('I 47 tile (come il template di OptiFine)')
+                    : tr('I 4 tile: inizio, mezzo, fine, da solo')}
+                </figcaption>
+              </figure>
+            </>
+          )}
+        </div>
+        <aside className="wizard-facts">
+          <h3 className="ph">{tr('Cosa succede')}</h3>
+          <div className="wizard-counts">
+            <span>
+              <strong className={exists ? 'count-over' : 'count-new'}>{fileCount}</strong>
+              {exists ? 'riscritti' : 'nuovi'}
+            </span>
+            <span>
+              <strong>1</strong> {tr('invariato')}
+            </span>
           </div>
-          <aside className="wizard-facts">
-            <h3 className="ph">{tr('Cosa succede')}</h3>
-            <div className="wizard-counts">
-              <span>
-                <strong className={exists ? 'count-over' : 'count-new'}>{fileCount}</strong>
-                {exists ? 'riscritti' : 'nuovi'}
-              </span>
-              <span>
-                <strong>1</strong> {tr('invariato')}
-              </span>
-            </div>
-            <p className="small">
+          <p className="small">
+            {tr(
+              '{0}.png non viene toccata: i tile sono file nuovi accanto. Prima di scrivere viene fatto un backup.',
+              source.name
+            )}
+          </p>
+          <p className="small warning-text">
+            {tr(
+              'Serve Continuity o OptiFine. Senza, il gioco mostra la texture normale: niente si rompe.'
+            )}
+          </p>
+          <h3 className="ph">{tr('File che verranno scritti')}</h3>
+          <ul className="wizard-files">
+            <li className={exists ? 'file-overwrite' : 'file-create'}>
               {tr(
-                '{0}.png non viene toccata: i tile sono file nuovi accanto. Prima di scrivere viene fatto un backup.',
-                source.name
+                '{0} {1}/0.png … {2}.png',
+                exists ? '~' : '+',
+                folder.replace(/^assets\/minecraft\//, ''),
+                tileCount - 1
               )}
-            </p>
-            <p className="small warning-text">
-              {tr(
-                'Serve Continuity o OptiFine. Senza, il gioco mostra la texture normale: niente si rompe.'
-              )}
-            </p>
-            <h3 className="ph">{tr('File che verranno scritti')}</h3>
-            <ul className="wizard-files">
-              <li className={exists ? 'file-overwrite' : 'file-create'}>
-                {tr(
-                  '{0} {1}/0.png … {2}.png',
-                  exists ? '~' : '+',
-                  folder.replace(/^assets\/minecraft\//, ''),
-                  tileCount - 1
-                )}
-              </li>
-              {withMaps &&
-                mapKinds.map((kind) => (
-                  <li key={kind} className={exists ? 'file-overwrite' : 'file-create'}>
-                    {tr(
-                      '{0} i {1} tile {2}',
-                      exists ? '~' : '+',
-                      tileCount,
-                      kind === 'normal' ? '_n' : '_s'
-                    )}
-                  </li>
-                ))}
-              <li className={exists ? 'file-overwrite' : 'file-create'}>
-                {tr(
-                  '{0} {1}.properties',
-                  exists ? '~' : '+',
-                  folder.slice(folder.lastIndexOf('/') + 1)
-                )}
-              </li>
-              <li className="file-skip">
-                = {source.albedo.slice(source.albedo.lastIndexOf('/') + 1)}
-              </li>
-            </ul>
-            <p className="small muted">
-              {tr('Cartella: {0}/', folder)}
-              {exists && tr(', esiste già')}
-            </p>
-          </aside>
-        </section>
-
-        {/* 4 · Applica */}
-        <section className="wizard-step" hidden={step !== 3}>
-          {phase.status === 'working' && (
-            <ProgressBar label={phase.text} done={phase.done} total={phase.total} />
-          )}
-          {phase.status === 'done' && (
-            <>
-              <p className="small" data-testid="ctm-result">
-                <Glyph name="check" />
-                {tr('{0} tile scritti in {1}', phase.written, phase.folder)}
-                {phase.errors.length > 0 && tr(', {0} errori', phase.errors.length)}
-              </p>
-              {phase.errors.map((error) => (
-                <p key={error} className="field-error small">
-                  {error}
-                </p>
+            </li>
+            {withMaps &&
+              mapKinds.map((kind) => (
+                <li key={kind} className={exists ? 'file-overwrite' : 'file-create'}>
+                  {tr(
+                    '{0} i {1} tile {2}',
+                    exists ? '~' : '+',
+                    tileCount,
+                    kind === 'normal' ? '_n' : '_s'
+                  )}
+                </li>
               ))}
-              <p className="small muted">
-                {tr(
-                  'In gioco servono Continuity (Fabric, anche con Iris) oppure OptiFine: metti due blocchi vicini e la cornice in mezzo sparisce. Il backup è in Pack › Backup.'
-                )}
-              </p>
-            </>
-          )}
-        </section>
+            <li className={exists ? 'file-overwrite' : 'file-create'}>
+              {tr(
+                '{0} {1}.properties',
+                exists ? '~' : '+',
+                folder.slice(folder.lastIndexOf('/') + 1)
+              )}
+            </li>
+            <li className="file-skip">
+              = {source.albedo.slice(source.albedo.lastIndexOf('/') + 1)}
+            </li>
+          </ul>
+          <p className="small muted">
+            {tr('Cartella: {0}/', folder)}
+            {exists && tr(', esiste già')}
+          </p>
+        </aside>
+      </section>
 
-        <footer className="row wizard-foot">
-          {phase.status === 'done' ? (
-            <button type="button" className="primary" onClick={onClose}>
-              {tr('Chiudi')}
+      {/* 4 · Applica */}
+      <section className="wizard-step" hidden={step !== 3}>
+        {phase.status === 'working' && (
+          <ProgressBar label={phase.text} done={phase.done} total={phase.total} />
+        )}
+        {phase.status === 'done' && (
+          <>
+            <p className="small" data-testid="ctm-result">
+              <Glyph name="check" />
+              {tr('{0} tile scritti in {1}', phase.written, phase.folder)}
+              {phase.errors.length > 0 && tr(', {0} errori', phase.errors.length)}
+            </p>
+            {phase.errors.map((error) => (
+              <p key={error} className="field-error small">
+                {error}
+              </p>
+            ))}
+            <p className="small muted">
+              {tr(
+                'In gioco servono Continuity (Fabric, anche con Iris) oppure OptiFine: metti due blocchi vicini e la cornice in mezzo sparisce. Il backup è in Pack › Backup.'
+              )}
+            </p>
+          </>
+        )}
+      </section>
+
+      <footer className="row wizard-foot">
+        {phase.status === 'done' ? (
+          <button type="button" className="primary" onClick={onClose}>
+            {tr('Chiudi')}
+          </button>
+        ) : (
+          <>
+            <button type="button" onClick={onClose} disabled={busy}>
+              {tr('Annulla')}
             </button>
-          ) : (
-            <>
-              <button type="button" onClick={onClose} disabled={busy}>
-                {tr('Annulla')}
+            {step > 0 && step < 3 && (
+              <button type="button" onClick={() => setStep(step - 1)}>
+                {tr('‹ Indietro')}
               </button>
-              {step > 0 && step < 3 && (
-                <button type="button" onClick={() => setStep(step - 1)}>
-                  {tr('‹ Indietro')}
-                </button>
-              )}
-              {step < 2 && (
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={!ready}
-                  onClick={() => setStep(step + 1)}
-                >
-                  {tr('Avanti: {0} ›', CTM_STEPS[step + 1]?.toLowerCase())}
-                </button>
-              )}
-              {create47}
-            </>
-          )}
-        </footer>
-      </div>
-    </div>
+            )}
+            {step < 2 && (
+              <button
+                type="button"
+                className="primary"
+                disabled={!ready}
+                onClick={() => setStep(step + 1)}
+              >
+                {tr('Avanti: {0} ›', CTM_STEPS[step + 1]?.toLowerCase())}
+              </button>
+            )}
+            {create47}
+          </>
+        )}
+      </footer>
+    </Dialog>
   )
 }
 

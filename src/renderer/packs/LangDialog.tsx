@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { language, tr } from '../../shared/i18n'
 import { mergeLang, parseLang, searchLang } from '../../shared/langFile'
 import { backupBefore } from './backup'
@@ -206,15 +207,16 @@ export function LangDialog({
     )
   }
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form lang-dialog"
-        role="dialog"
-        aria-label={tr('Testi del gioco')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        {body}
-      </div>
-    </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Testi del gioco')}
+      className="card modal form lang-dialog"
+      dismissible={!embedded}
+    >
+      {body}
+    </Dialog>
   )
 }

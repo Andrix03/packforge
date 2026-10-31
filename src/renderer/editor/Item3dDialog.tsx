@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { DEFAULT_EXTRUDE, extrudeModel } from '../../shared/extrude'
 import { canSplit, splitDefinition, type Item3dPlan } from '../../shared/item3d'
 import type { FormatRange } from '../../shared/modelRules'
@@ -131,101 +132,102 @@ export function Item3dDialog({
           ? tr('Salva la texture nel pack prima.')
           : null
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form"
-        role="dialog"
-        aria-label={tr('3D in mano')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph icon={NAV_ICONS.cube} />
-          {tr('3D in mano: {0}', plan.flatModel.replace(/^minecraft:/, ''))}
-        </h2>
-        {phase.status === 'done' ? (
-          <>
-            <p data-testid="item3d-result">
-              {tr(
-                '{0} file scritti{1}.',
-                phase.written.length,
-                phase.errors.length > 0 ? tr(', {0} errori', phase.errors.length) : ''
-              )}{' '}
-              {tr('Ricarica le risorse nel gioco (F3+T) e prendi l’oggetto in mano.')}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('3D in mano')}
+      className="card modal form"
+      dismissible={phase.status !== 'working'}
+    >
+      <h2>
+        <Glyph icon={NAV_ICONS.cube} />
+        {tr('3D in mano: {0}', plan.flatModel.replace(/^minecraft:/, ''))}
+      </h2>
+      {phase.status === 'done' ? (
+        <>
+          <p data-testid="item3d-result">
+            {tr(
+              '{0} file scritti{1}.',
+              phase.written.length,
+              phase.errors.length > 0 ? tr(', {0} errori', phase.errors.length) : ''
+            )}{' '}
+            {tr('Ricarica le risorse nel gioco (F3+T) e prendi l’oggetto in mano.')}
+          </p>
+          {phase.errors.map((error) => (
+            <p key={error} className="field-error small">
+              {error}
             </p>
-            {phase.errors.map((error) => (
-              <p key={error} className="field-error small">
-                {error}
-              </p>
-            ))}
-            <div className="row">
-              <button type="button" className="primary" onClick={() => onDone(phase.written)}>
-                {tr('Fatto')}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="muted small">
-              {tr(
-                'Nell’inventario, a terra e nelle cornici resta piatto; in mano e in testa diventa un modello 3D fatto dai suoi pixel. Modelli vanilla, funziona senza mod.'
-              )}
-            </p>
-            <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Spessore')}>
-              {THICKNESSES.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={thickness === value}
-                  className={thickness === value ? 'tab active' : 'tab'}
-                  onClick={() => setThickness(value)}
-                >
-                  {value === 1 ? tr('Sottile (come vanilla)') : tr('Spessore {0}', value)}
-                </button>
-              ))}
-            </div>
-            {!loaded ? (
-              <p className="muted">{tr('Leggo la texture e la definizione…')}</p>
-            ) : problem ? (
-              <p className="field-error small" data-testid="item3d-problem">
-                {problem}
-              </p>
-            ) : (
-              model?.ok && (
-                <p className="small" data-testid="item3d-plan">
-                  {tr('{0} elementi, {1} facce.', model.elements, model.faces)}{' '}
-                  {model.heavy && tr('Modello pesante: con tanti oggetti così il gioco rallenta.')}
-                </p>
-              )
+          ))}
+          <div className="row">
+            <button type="button" className="primary" onClick={() => onDone(phase.written)}>
+              {tr('Fatto')}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="muted small">
+            {tr(
+              'Nell’inventario, a terra e nelle cornici resta piatto; in mano e in testa diventa un modello 3D fatto dai suoi pixel. Modelli vanilla, funziona senza mod.'
             )}
-            <p className="muted small path">
-              {plan.model3dPath}
-              <br />
-              {plan.definitionPath}
-            </p>
-            {replaced.length > 0 && (
-              <p className="small">
-                <Glyph name="warning" />
-                {tr('Sostituisce {0} file del pack (prima ne faccio il backup).', replaced.length)}
-              </p>
-            )}
-            {phase.status === 'working' && <p className="muted">{tr('Scrivo i modelli…')}</p>}
-            <div className="row">
+          </p>
+          <div className="tabs small-tabs" role="radiogroup" aria-label={tr('Spessore')}>
+            {THICKNESSES.map((value) => (
               <button
+                key={value}
                 type="button"
-                className="primary"
-                disabled={problem !== null || !model?.ok || phase.status === 'working'}
-                onClick={() => apply()}
+                role="radio"
+                aria-checked={thickness === value}
+                className={thickness === value ? 'tab active' : 'tab'}
+                onClick={() => setThickness(value)}
               >
-                {tr('Crea il modello 3D')}
+                {value === 1 ? tr('Sottile (come vanilla)') : tr('Spessore {0}', value)}
               </button>
-              <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
-                {tr('Annulla')}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+            ))}
+          </div>
+          {!loaded ? (
+            <p className="muted">{tr('Leggo la texture e la definizione…')}</p>
+          ) : problem ? (
+            <p className="field-error small" data-testid="item3d-problem">
+              {problem}
+            </p>
+          ) : (
+            model?.ok && (
+              <p className="small" data-testid="item3d-plan">
+                {tr('{0} elementi, {1} facce.', model.elements, model.faces)}{' '}
+                {model.heavy && tr('Modello pesante: con tanti oggetti così il gioco rallenta.')}
+              </p>
+            )
+          )}
+          <p className="muted small path">
+            {plan.model3dPath}
+            <br />
+            {plan.definitionPath}
+          </p>
+          {replaced.length > 0 && (
+            <p className="small">
+              <Glyph name="warning" />
+              {tr('Sostituisce {0} file del pack (prima ne faccio il backup).', replaced.length)}
+            </p>
+          )}
+          {phase.status === 'working' && <p className="muted">{tr('Scrivo i modelli…')}</p>}
+          <div className="row">
+            <button
+              type="button"
+              className="primary"
+              disabled={problem !== null || !model?.ok || phase.status === 'working'}
+              onClick={() => apply()}
+            >
+              {tr('Crea il modello 3D')}
+            </button>
+            <button type="button" onClick={onClose} disabled={phase.status === 'working'}>
+              {tr('Annulla')}
+            </button>
+          </div>
+        </>
+      )}
+    </Dialog>
   )
 }

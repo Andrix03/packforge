@@ -436,13 +436,32 @@ function createApp(send) {
       },
       /** Types a hex color into the color panel (selected slot). */
       async setHex(hex) {
-        await ev(`(() => {
-          const input = document.querySelector('.color-fields input')
-          input.focus()
-          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(hex)})
-          input.dispatchEvent(new Event('input', { bubbles: true }))
-          input.blur()
-        })()`)
+        // An editor still settling can put its own colour back: set it again until it stays.
+        const want = `#${hex.replace('#', '').toLowerCase()}`
+        for (let attempt = 0; attempt < 10; attempt++) {
+          await ev(`(() => {
+            const input = document.querySelector('.color-fields input')
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(hex)})
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+          })()`)
+          // The panel commits on blur, but an unfocused window (parallel runs) fires no blur from
+          // focus()/blur(): dispatch focusout (what React's onBlur listens to) after the draft rendered.
+          await sleep(30)
+          await ev(
+            `document.querySelector('.color-fields input').dispatchEvent(new FocusEvent('focusout', { bubbles: true }))`
+          )
+          // It must still hold a moment later (a settling editor resets it after a render).
+          let held = 0
+          for (let i = 0; i < 10; i++) {
+            await sleep(60)
+            const value = await ev(
+              `document.querySelector('.color-fields input')?.value.toLowerCase()`
+            )
+            held = value === want ? held + 1 : 0
+            if (held >= 3) return
+          }
+        }
+        throw new Error(`the primary colour did not stay ${want}`)
       },
       header: () => ev(`document.querySelector('.editor-header').textContent`)
     }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { modelPath } from '../../shared/blockModel'
 import { tr } from '../../shared/i18n'
 import type { Item3dPlan } from '../../shared/item3d'
@@ -121,12 +122,17 @@ export function NameVariantDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Variante per nome')}
+      className="card modal form"
+      dismissible={!working}
+    >
       <form
-        className="card modal form"
-        role="dialog"
-        aria-label={tr('Variante per nome')}
-        onClick={(event) => event.stopPropagation()}
+        className="dialog-form"
         onSubmit={(event) => {
           event.preventDefault()
           create()
@@ -189,6 +195,6 @@ export function NameVariantDialog({
           </button>
         </div>
       </form>
-    </div>
+    </Dialog>
   )
 }

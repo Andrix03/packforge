@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { panoramaMissing } from '../../shared/panorama'
 import { tr } from '../../shared/i18n'
 import type { VanillaVersionInfo } from '../../shared/ipc'
@@ -45,47 +46,48 @@ export function PackDoctorDialog({
   useEscape(onClose, !busy)
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form doctor-dialog"
-        role="dialog"
-        aria-label={tr('Diagnosi del pack')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph icon={NAV_ICONS.search} />
-          {tr('Diagnosi del pack')}
-        </h2>
-        <div className="tabs small-tabs" role="tablist">
-          {(
-            [
-              ['problems', tr('Problemi')],
-              ['missing', tr('Cosa manca')],
-              ['porting', tr('Cambio di versione')]
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              className={tab === id ? 'tab active' : 'tab'}
-              onClick={() => setTab(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {tab === 'problems' && <Problems sources={sources} />}
-        {tab === 'missing' && <Missing sources={sources} versionId={versionId} />}
-        {tab === 'porting' && <Porting sources={sources} canWrite={canWrite} onBusy={setBusy} />}
-        <div className="row">
-          <button type="button" onClick={onClose} disabled={busy}>
-            {tr('Chiudi')}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Diagnosi del pack')}
+      className="card modal form doctor-dialog"
+      dismissible={!busy}
+    >
+      <h2>
+        <Glyph icon={NAV_ICONS.search} />
+        {tr('Diagnosi del pack')}
+      </h2>
+      <div className="tabs small-tabs" role="tablist">
+        {(
+          [
+            ['problems', tr('Problemi')],
+            ['missing', tr('Cosa manca')],
+            ['porting', tr('Cambio di versione')]
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            className={tab === id ? 'tab active' : 'tab'}
+            onClick={() => setTab(id)}
+          >
+            {label}
           </button>
-        </div>
+        ))}
       </div>
-    </div>
+      {tab === 'problems' && <Problems sources={sources} />}
+      {tab === 'missing' && <Missing sources={sources} versionId={versionId} />}
+      {tab === 'porting' && <Porting sources={sources} canWrite={canWrite} onBusy={setBusy} />}
+      <div className="row">
+        <button type="button" onClick={onClose} disabled={busy}>
+          {tr('Chiudi')}
+        </button>
+      </div>
+    </Dialog>
   )
 }
 

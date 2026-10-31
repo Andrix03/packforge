@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import {
   NEUTRAL_ADJUSTMENTS,
   adjustPixels,
@@ -131,73 +132,73 @@ export function AdjustDialog({
   const after = adjustPixels(before, adjustments, mask)
   const neutral = isNeutralAdjustments(adjustments)
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form adjust-dialog"
-        role="dialog"
-        aria-label={tr('Regola colori')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="gear" />
-          {tr('Regola colori')}
-        </h2>
-        <p className="muted small">
-          {mask
-            ? tr('Solo i pixel selezionati. La trasparenza non cambia.')
-            : tr('Tutta la texture. La trasparenza non cambia.')}
-        </p>
-        <div className="adjust-previews">
-          <figure>
-            <Preview data={before} width={pixels.width} height={pixels.height} />
-            <figcaption className="muted small">{tr('Prima')}</figcaption>
-          </figure>
-          <figure>
-            <Preview data={after} width={pixels.width} height={pixels.height} />
-            <figcaption className="muted small">{tr('Dopo')}</figcaption>
-          </figure>
-        </div>
-        {FIELDS.map((field) => {
-          const value = field.get(adjustments)
-          return (
-            <label key={field.label()} className="item-number small">
-              <span>
-                {field.label()} <b>{field.show(value)}</b>
-              </span>
-              <RangeInput
-                min={field.min}
-                max={field.max}
-                step={field.step}
-                value={value}
-                aria-label={field.label()}
-                onChange={(event) =>
-                  setAdjustments(field.set(adjustments, Number(event.target.value)))
-                }
-              />
-            </label>
-          )
-        })}
-        <div className="row">
-          <button
-            type="button"
-            className="primary"
-            disabled={neutral}
-            onClick={() => onApply(adjustments)}
-          >
-            {tr('Applica')}
-          </button>
-          <button
-            type="button"
-            disabled={neutral}
-            onClick={() => setAdjustments(NEUTRAL_ADJUSTMENTS)}
-          >
-            {tr('Azzera')}
-          </button>
-          <button type="button" onClick={onClose}>
-            {tr('Annulla')}
-          </button>
-        </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Regola colori')}
+      className="card modal form adjust-dialog"
+    >
+      <h2>
+        <Glyph name="gear" />
+        {tr('Regola colori')}
+      </h2>
+      <p className="muted small">
+        {mask
+          ? tr('Solo i pixel selezionati. La trasparenza non cambia.')
+          : tr('Tutta la texture. La trasparenza non cambia.')}
+      </p>
+      <div className="adjust-previews">
+        <figure>
+          <Preview data={before} width={pixels.width} height={pixels.height} />
+          <figcaption className="muted small">{tr('Prima')}</figcaption>
+        </figure>
+        <figure>
+          <Preview data={after} width={pixels.width} height={pixels.height} />
+          <figcaption className="muted small">{tr('Dopo')}</figcaption>
+        </figure>
       </div>
-    </div>
+      {FIELDS.map((field) => {
+        const value = field.get(adjustments)
+        return (
+          <label key={field.label()} className="item-number small">
+            <span>
+              {field.label()} <b>{field.show(value)}</b>
+            </span>
+            <RangeInput
+              min={field.min}
+              max={field.max}
+              step={field.step}
+              value={value}
+              aria-label={field.label()}
+              onChange={(event) =>
+                setAdjustments(field.set(adjustments, Number(event.target.value)))
+              }
+            />
+          </label>
+        )
+      })}
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          disabled={neutral}
+          onClick={() => onApply(adjustments)}
+        >
+          {tr('Applica')}
+        </button>
+        <button
+          type="button"
+          disabled={neutral}
+          onClick={() => setAdjustments(NEUTRAL_ADJUSTMENTS)}
+        >
+          {tr('Azzera')}
+        </button>
+        <button type="button" onClick={onClose}>
+          {tr('Annulla')}
+        </button>
+      </div>
+    </Dialog>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import {
   createTexturePixels,
   sizeOptions,
@@ -113,12 +114,17 @@ export function NewTextureDialog({
   })
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onCancel}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onCancel()
+      }}
+      label={tr('Nuova texture')}
+      className="card modal form"
+      dismissible={!busy}
+    >
       <form
-        className="card modal form"
-        role="dialog"
-        aria-label={tr('Nuova texture')}
-        onClick={(event) => event.stopPropagation()}
+        className="dialog-form"
         onSubmit={(event) => {
           event.preventDefault()
           create()
@@ -238,7 +244,7 @@ export function NewTextureDialog({
           </button>
         </div>
       </form>
-    </div>
+    </Dialog>
   )
 }
 

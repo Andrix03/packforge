@@ -203,10 +203,10 @@ export function formatColor([r, g, b, a]: Rgba): string {
 /** Shortcuts are ignored while typing in a text field (checkboxes and color inputs don't count). */
 /**
  * A dialog covers the editor: its shortcuts must not act on the canvas underneath. The editor's
- * own shortcuts help (marked `editor-help`) does not count, the editor handles its keys itself.
+ * own shortcuts help (`shortcuts-help`) does not count, the editor handles its keys itself.
  */
 export function dialogOpen(): boolean {
-  return document.querySelector('.modal-backdrop:not(.editor-help)') !== null
+  return document.querySelector('.pf-dialog:not(.shortcuts-help)') !== null
 }
 
 export function isTyping(event: KeyboardEvent): boolean {

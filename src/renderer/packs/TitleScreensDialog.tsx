@@ -3,6 +3,7 @@
 // logo of the loading screen on its fixed background, and the splashes of the title screen.
 // Vanilla's are shown as a reference only: "Create yours" starts a new texture of the same size.
 import { useEffect, useRef, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
 import { assetUrl } from '../../shared/ipc'
 import type { AssetSources } from '../preview/modelSource'
@@ -130,16 +131,17 @@ export function TitleScreensDialog({
     )
   }
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal title-screens"
-        role="dialog"
-        aria-label={tr('Titolo e caricamento')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        {body}
-      </div>
-    </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Titolo e caricamento')}
+      className="card modal title-screens"
+      dismissible={!embedded}
+    >
+      {body}
+    </Dialog>
   )
 }
 

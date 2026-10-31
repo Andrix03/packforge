@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Dialog } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
 import { assetUrl } from '../../shared/ipc'
 import {
@@ -123,171 +124,167 @@ export function MobVariantsDialog({
   const blocked = (rules ?? []).some((rule) => ruleProblems(rule, highest).length > 0)
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="card modal form mob-variants"
-        role="dialog"
-        aria-label={tr('Varianti del mob')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>
-          <Glyph name="dice" />
-          {tr('Varianti del mob')}
-        </h2>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      label={tr('Varianti del mob')}
+      className="card modal form mob-variants"
+    >
+      <h2>
+        <Glyph name="dice" />
+        {tr('Varianti del mob')}
+      </h2>
+      <p className="muted small">
+        {tr(
+          'Con OptiFine o Entity Texture Features ogni mob prende a caso una di queste texture. La 1 è questa; le altre stanno in optifine/random/entity/.'
+        )}
+      </p>
+      <ul className="mob-variant-list" data-testid="mob-variants">
+        {all.map((n) => {
+          const variant = n === 1 ? path : randomVariantPath(path, n)!
+          const url = thumb(variant)
+          return (
+            <li key={n}>
+              {url && <img src={url} alt="" className="mob-variant-thumb sunken" />}
+              <span className="small">{n}</span>
+              {n > 1 && (
+                <button type="button" className="small-button" onClick={() => onOpen(variant, [])}>
+                  {tr('Apri')}
+                </button>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      <div className="row">
+        <button type="button" onClick={() => add()}>
+          {tr('Aggiungi la variante {0}', nextVariant(files, path))}
+        </button>
+      </div>
+
+      <h3 className="lbl">{tr('Regole (facoltative)')}</h3>
+      {rules === null ? (
+        <p className="muted">{tr('Leggo le regole…')}</p>
+      ) : rules.length === 0 ? (
         <p className="muted small">
-          {tr(
-            'Con OptiFine o Entity Texture Features ogni mob prende a caso una di queste texture. La 1 è questa; le altre stanno in optifine/random/entity/.'
-          )}
+          {tr('Nessuna regola: ogni variante ha la stessa probabilità ovunque.')}
         </p>
-        <ul className="mob-variant-list" data-testid="mob-variants">
-          {all.map((n) => {
-            const variant = n === 1 ? path : randomVariantPath(path, n)!
-            const url = thumb(variant)
+      ) : (
+        <ol className="mob-rules">
+          {rules.map((rule, i) => {
+            const problems = ruleProblems(rule, highest)
             return (
-              <li key={n}>
-                {url && <img src={url} alt="" className="mob-variant-thumb sunken" />}
-                <span className="small">{n}</span>
-                {n > 1 && (
-                  <button
-                    type="button"
-                    className="small-button"
-                    onClick={() => onOpen(variant, [])}
-                  >
-                    {tr('Apri')}
-                  </button>
-                )}
+              <li key={i} className="mob-rule">
+                <label className="small">
+                  {tr('Texture')}
+                  <input
+                    value={rule.textures.join(' ')}
+                    aria-label={tr('Texture della regola {0}', i + 1)}
+                    onChange={(event) => update(i, { textures: numbers(event.target.value) })}
+                  />
+                </label>
+                <label className="small">
+                  {tr('Pesi')}
+                  <input
+                    value={rule.weights.join(' ')}
+                    placeholder={tr('uguali')}
+                    onChange={(event) => update(i, { weights: numbers(event.target.value) })}
+                  />
+                </label>
+                <label className="small">
+                  {tr('Biomi')}
+                  <input
+                    value={rule.biomes.join(' ')}
+                    placeholder={tr('ovunque (es. desert badlands)')}
+                    onChange={(event) =>
+                      update(i, { biomes: event.target.value.split(/\s+/).filter(Boolean) })
+                    }
+                  />
+                </label>
+                <label className="checkbox-inline small">
+                  <input
+                    type="checkbox"
+                    checked={rule.invertBiomes}
+                    onChange={(event) => update(i, { invertBiomes: event.target.checked })}
+                  />
+                  {tr('tranne questi')}
+                </label>
+                <label className="small">
+                  {tr('Altezza')}
+                  <input
+                    value={rule.heights}
+                    placeholder={tr('es. 0-64')}
+                    onChange={(event) => update(i, { heights: event.target.value })}
+                  />
+                </label>
+                <label className="small">
+                  {tr('Nome')}
+                  <input
+                    value={rule.name}
+                    placeholder={tr('nome dato col cartellino')}
+                    onChange={(event) => update(i, { name: event.target.value })}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="small-button"
+                  onClick={() => {
+                    setRules(rules.filter((_, j) => j !== i))
+                    setEdited(true)
+                  }}
+                >
+                  {tr('Elimina')}
+                </button>
+                {problems.map((p) => (
+                  <p key={p} className="field-error small">
+                    {PROBLEMS[p]()}
+                  </p>
+                ))}
               </li>
             )
           })}
-        </ul>
-        <div className="row">
-          <button type="button" onClick={() => add()}>
-            {tr('Aggiungi la variante {0}', nextVariant(files, path))}
+        </ol>
+      )}
+      {rules && (
+        <div className="row wrap">
+          <button
+            type="button"
+            className="small-button"
+            onClick={() => {
+              setRules([...rules, emptyRule(all)])
+              setEdited(true)
+            }}
+          >
+            {tr('Aggiungi una regola')}
+          </button>
+          <button
+            type="button"
+            className="primary"
+            disabled={!edited || blocked}
+            onClick={() => saveRules()}
+          >
+            {tr('Salva le regole')}
           </button>
         </div>
-
-        <h3 className="lbl">{tr('Regole (facoltative)')}</h3>
-        {rules === null ? (
-          <p className="muted">{tr('Leggo le regole…')}</p>
-        ) : rules.length === 0 ? (
-          <p className="muted small">
-            {tr('Nessuna regola: ogni variante ha la stessa probabilità ovunque.')}
-          </p>
-        ) : (
-          <ol className="mob-rules">
-            {rules.map((rule, i) => {
-              const problems = ruleProblems(rule, highest)
-              return (
-                <li key={i} className="mob-rule">
-                  <label className="small">
-                    {tr('Texture')}
-                    <input
-                      value={rule.textures.join(' ')}
-                      aria-label={tr('Texture della regola {0}', i + 1)}
-                      onChange={(event) => update(i, { textures: numbers(event.target.value) })}
-                    />
-                  </label>
-                  <label className="small">
-                    {tr('Pesi')}
-                    <input
-                      value={rule.weights.join(' ')}
-                      placeholder={tr('uguali')}
-                      onChange={(event) => update(i, { weights: numbers(event.target.value) })}
-                    />
-                  </label>
-                  <label className="small">
-                    {tr('Biomi')}
-                    <input
-                      value={rule.biomes.join(' ')}
-                      placeholder={tr('ovunque (es. desert badlands)')}
-                      onChange={(event) =>
-                        update(i, { biomes: event.target.value.split(/\s+/).filter(Boolean) })
-                      }
-                    />
-                  </label>
-                  <label className="checkbox-inline small">
-                    <input
-                      type="checkbox"
-                      checked={rule.invertBiomes}
-                      onChange={(event) => update(i, { invertBiomes: event.target.checked })}
-                    />
-                    {tr('tranne questi')}
-                  </label>
-                  <label className="small">
-                    {tr('Altezza')}
-                    <input
-                      value={rule.heights}
-                      placeholder={tr('es. 0-64')}
-                      onChange={(event) => update(i, { heights: event.target.value })}
-                    />
-                  </label>
-                  <label className="small">
-                    {tr('Nome')}
-                    <input
-                      value={rule.name}
-                      placeholder={tr('nome dato col cartellino')}
-                      onChange={(event) => update(i, { name: event.target.value })}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="small-button"
-                    onClick={() => {
-                      setRules(rules.filter((_, j) => j !== i))
-                      setEdited(true)
-                    }}
-                  >
-                    {tr('Elimina')}
-                  </button>
-                  {problems.map((p) => (
-                    <p key={p} className="field-error small">
-                      {PROBLEMS[p]()}
-                    </p>
-                  ))}
-                </li>
-              )
-            })}
-          </ol>
-        )}
-        {rules && (
-          <div className="row wrap">
-            <button
-              type="button"
-              className="small-button"
-              onClick={() => {
-                setRules([...rules, emptyRule(all)])
-                setEdited(true)
-              }}
-            >
-              {tr('Aggiungi una regola')}
-            </button>
-            <button
-              type="button"
-              className="primary"
-              disabled={!edited || blocked}
-              onClick={() => saveRules()}
-            >
-              {tr('Salva le regole')}
-            </button>
-          </div>
-        )}
-        {rules && rules.length > 0 && (
-          <p className="muted small">
-            {tr('Le regole si provano in ordine: vale la prima che va bene.')}
-          </p>
-        )}
-        {message && (
-          <p className="small ok-text" data-testid="mob-message">
-            {message}
-          </p>
-        )}
-        {error && <p className="field-error small">{error}</p>}
-        <div className="row">
-          <button type="button" onClick={onClose}>
-            {tr('Chiudi')}
-          </button>
-        </div>
+      )}
+      {rules && rules.length > 0 && (
+        <p className="muted small">
+          {tr('Le regole si provano in ordine: vale la prima che va bene.')}
+        </p>
+      )}
+      {message && (
+        <p className="small ok-text" data-testid="mob-message">
+          {message}
+        </p>
+      )}
+      {error && <p className="field-error small">{error}</p>}
+      <div className="row">
+        <button type="button" onClick={onClose}>
+          {tr('Chiudi')}
+        </button>
       </div>
-    </div>
+    </Dialog>
   )
 }

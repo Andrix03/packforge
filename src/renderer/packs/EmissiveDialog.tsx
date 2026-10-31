@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Dialog } from 'packforge-ui'
+import { Dialog, Toggle } from 'packforge-ui'
 import {
   DEFAULT_EMISSIVE_SUFFIX,
   EMISSIVE_PROPERTIES_PATH,
@@ -12,7 +12,7 @@ import { backupBefore } from './backup'
 import { errorMessage, fetchText, loadPng, type FileSource } from './packFetch'
 import { useEscape } from '../useEscape'
 import { useSingleFlight } from '../useSingleFlight'
-import { Glyph, RangeInput, SwitchRow } from '../ui/components'
+import { Glyph, RangeInput } from '../ui/components'
 
 interface Candidate {
   albedo: string
@@ -153,11 +153,13 @@ export function EmissiveDialog({
               onChange={(event) => setCutoff(Number(event.target.value))}
             />
           </label>
-          <SwitchRow
+          <Toggle
             checked={full}
-            onChange={setFull}
+            onCheckedChange={setFull}
             label={tr('Luce piena')}
-            note={tr('Ogni pixel che brilla a piena luminosità, invece di seguire la mappa.')}
+            description={tr(
+              'Ogni pixel che brilla a piena luminosità, invece di seguire la mappa.'
+            )}
           />
           <div className="emissive-previews">
             {glowing.slice(0, PREVIEW).map((r) => (
@@ -173,9 +175,9 @@ export function EmissiveDialog({
             {tr('{0} texture con luce, {1} file _e da scrivere.', glowing.length, toWrite.length)}
           </p>
           {kept.length > 0 && (
-            <SwitchRow
+            <Toggle
               checked={replace}
-              onChange={setReplace}
+              onCheckedChange={setReplace}
               label={tr('Sostituisci i _e che esistono già ({0})', kept.length)}
             />
           )}

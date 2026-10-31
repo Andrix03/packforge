@@ -67,7 +67,9 @@ export default async function definition(app) {
     }
   }
   await app.setValue('[aria-label="Testo della definizione"]', JSON.stringify(edited, null, 2))
-  await app.waitFor(`document.querySelector('[role=dialog] [aria-label="using_item"]')`)
+  await app.waitFor(
+    `[...document.querySelectorAll('[role=switch]')].find((s) => s.closest('.pf-toggle')?.querySelector('label')?.textContent === 'using_item')`
+  )
   app.check(true, 'the preview in the dialog follows the text (using_item switch)')
   app.check((await issues(app)).includes('Nessun problema'), 'a valid definition has no problems')
   await app.shot('definition-dialog')

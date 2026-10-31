@@ -195,43 +195,6 @@ export function OreButton({
   )
 }
 
-/** I/O switch (green "I" on the left when on, grey "O" on the right when off). */
-export function Switch({
-  checked,
-  onChange,
-  label,
-  disabled
-}: {
-  checked: boolean
-  onChange: (next: boolean) => void
-  label: string
-  disabled?: boolean | undefined
-}) {
-  return (
-    <button
-      type="button"
-      className="sw"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-    >
-      {checked ? (
-        <>
-          <span className="sw-i" />
-          <span className="knob" />
-        </>
-      ) : (
-        <>
-          <span className="knob" />
-          <span className="sw-o" />
-        </>
-      )}
-    </button>
-  )
-}
-
 /** Label with the small info marker: the note shows on hover or keyboard focus. */
 export function InfoLabel({
   label,
@@ -251,28 +214,6 @@ export function InfoLabel({
         {note}
       </span>
     </span>
-  )
-}
-
-/** Switch + label (+ hover note): the standard settings row. */
-export function SwitchRow({
-  checked,
-  onChange,
-  label,
-  note,
-  disabled
-}: {
-  checked: boolean
-  onChange: (next: boolean) => void
-  label: string
-  note?: string
-  disabled?: boolean
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <Switch checked={checked} onChange={onChange} label={label} disabled={disabled} />
-      <InfoLabel label={label} note={note} />
-    </div>
   )
 }
 

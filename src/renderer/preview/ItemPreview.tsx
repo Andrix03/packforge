@@ -3,6 +3,7 @@
 // context (inventory, hand, ground, head, frame) and a state of its properties (a bow being
 // pulled, the compass angle, a loaded crossbow…). The painted texture shows live. Without a
 // definition (before 1.21.4, or a new item) the texture's own `item/<name>` model is drawn.
+import { Toggle } from 'packforge-ui'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { buildQuads, type Quad } from '../../shared/blockGeometry'
@@ -24,7 +25,7 @@ import {
 import type { FormatRange } from '../../shared/modelRules'
 import type { RgbaImage } from '../../shared/pngCodec'
 import { loadPng } from '../packs/packFetch'
-import { OreButton, RangeInput, SwitchRow } from '../ui/components'
+import { OreButton, RangeInput } from '../ui/components'
 import { resolveAssetUrl, type AssetSources } from './modelSource'
 import { frameHeight, geometryOf } from './quadMesh'
 import { loadColormaps, type ColormapPixels } from './colormaps'
@@ -473,11 +474,11 @@ export function ItemPreview(props: Props): React.JSX.Element {
         </p>
       )}
       {properties.conditions.map((property) => (
-        <SwitchRow
+        <Toggle
           key={property}
           label={property}
           checked={state.conditions.includes(property)}
-          onChange={(on) =>
+          onCheckedChange={(on) =>
             update({
               conditions: on
                 ? [...state.conditions, property]

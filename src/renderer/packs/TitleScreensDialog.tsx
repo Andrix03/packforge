@@ -3,11 +3,10 @@
 // logo of the loading screen on its fixed background, and the splashes of the title screen.
 // Vanilla's are shown as a reference only: "Create yours" starts a new texture of the same size.
 import { useEffect, useRef, useState } from 'react'
-import { Dialog } from 'packforge-ui'
+import { Dialog, Toggle } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
 import { assetUrl } from '../../shared/ipc'
 import type { AssetSources } from '../preview/modelSource'
-import { Switch } from '../ui/components'
 import { useEscape } from '../useEscape'
 import { PanoramaView } from './PanoramaView'
 import { panoramaMissing } from '../../shared/panorama'
@@ -221,10 +220,11 @@ function LoadingPreview({ url }: { url: string | null }): React.JSX.Element {
   return (
     <div className="title-loading">
       <canvas ref={ref} className="title-loading-canvas" width={427} height={240} />
-      <div className="row">
-        <Switch checked={dark} onChange={setDark} label={tr('Sfondo nero (logo monocromatico)')} />
-        <span className="small">{tr('Sfondo nero (logo monocromatico)')}</span>
-      </div>
+      <Toggle
+        checked={dark}
+        onCheckedChange={setDark}
+        label={tr('Sfondo nero (logo monocromatico)')}
+      />
     </div>
   )
 }

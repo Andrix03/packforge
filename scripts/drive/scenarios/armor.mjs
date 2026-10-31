@@ -68,7 +68,9 @@ export default async function armorPreview(app) {
   await app.sleep(800)
   await app.shot('armor-both-layers')
 
-  await app.ev(`document.querySelector('[aria-label="Mostra anche i gambali"]').click()`)
+  await app.ev(
+    `[...document.querySelectorAll('[role=switch]')].find((s) => s.closest('.pf-toggle')?.querySelector('label')?.textContent === 'Mostra anche i gambali').click()`
+  )
   await app.sleep(400)
   await app.shot('armor-outer-only')
 

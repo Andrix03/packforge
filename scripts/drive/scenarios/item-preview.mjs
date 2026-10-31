@@ -57,7 +57,7 @@ export default async function itemPreview(app) {
   )
   app.check(
     await app.ev(
-      `document.querySelector('[aria-label="using_item"]')?.getAttribute('aria-checked') === 'true'`
+      `[...document.querySelectorAll('[role=switch]')].find((s) => s.closest('.pf-toggle')?.querySelector('label')?.textContent === 'using_item')?.getAttribute('aria-checked') === 'true'`
     ),
     'it opens on the bow being used'
   )
@@ -69,7 +69,9 @@ export default async function itemPreview(app) {
     `document.querySelector('[data-testid=item-models]').textContent.includes('bow_pulling_2')`
   )
   app.check(true, 'sliding the use time to 20 ticks draws bow_pulling_2')
-  await app.ev(`document.querySelector('[aria-label="using_item"]').click()`)
+  await app.ev(
+    `[...document.querySelectorAll('[role=switch]')].find((s) => s.closest('.pf-toggle')?.querySelector('label')?.textContent === 'using_item').click()`
+  )
   await app.waitFor(
     `/Modelli: item\\/bow$/.test(document.querySelector('[data-testid=item-models]').textContent)`
   )
@@ -80,7 +82,9 @@ export default async function itemPreview(app) {
   await app.shot('item-bow-first-person')
 
   // Painting shows live: back to the stage, paint a pixel.
-  await app.ev(`document.querySelector('[aria-label="using_item"]').click()`)
+  await app.ev(
+    `[...document.querySelectorAll('[role=switch]')].find((s) => s.closest('.pf-toggle')?.querySelector('label')?.textContent === 'using_item').click()`
+  )
   await app.setValue('[aria-label="use_duration"]', '14')
   await app.click('Inventario', '.item-preview button')
   await app.editor.setHex('#20c0f0')

@@ -72,7 +72,6 @@
 .ore,
 .ore-on,
 .ore-select,
-.sw,
 .seg-cell,
 .ui-field,
 .panel-head {
@@ -241,62 +240,6 @@
 .picture {
   flex: none;
   outline: 2px solid var(--ui-edge-dark);
-}
-
-/* I/O switch. */
-.sw {
-  display: flex;
-  padding: 0;
-  border: 2px solid var(--ui-edge-dark);
-  background: var(--ui-edge-dark);
-  cursor: pointer;
-}
-.sw .knob,
-.sw .sw-i,
-.sw .sw-o {
-  width: 20px;
-  height: 18px;
-}
-.sw .knob {
-  background: var(--ui-light);
-  box-shadow:
-    inset 0 2px 0 #f4f4f4,
-    inset 0 -3px 0 #8f8f8f;
-}
-.sw .sw-i,
-.sw .sw-o {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.sw .sw-i {
-  background: var(--ui-green);
-  box-shadow:
-    inset 0 2px 0 var(--ui-green-light),
-    inset 0 -2px 0 var(--ui-green-dark);
-}
-.sw .sw-i::after {
-  content: '';
-  width: 2px;
-  height: 10px;
-  background: #f4f4f4;
-}
-.sw .sw-o {
-  background: #6e6e6e;
-  box-shadow:
-    inset 0 2px 0 #8a8a8a,
-    inset 0 -2px 0 #454545;
-}
-.sw .sw-o::after {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border: 2px solid var(--ui-light);
-  box-sizing: border-box;
-}
-.sw:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 
 /* Segmented slider. */

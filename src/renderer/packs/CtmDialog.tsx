@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Dialog } from 'packforge-ui'
+import { Dialog, Toggle } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import {
   ctmTile,
@@ -27,7 +27,7 @@ import { mapPath, type MapKind } from '../../shared/labpbr'
 import type { DecodedPng } from '../../shared/pngCodec'
 import type { TextureEntry } from '../../shared/textures'
 import { Range } from '../editor/GeneratorPanel'
-import { Glyph, Picture, ProgressBar, Switch } from '../ui/components'
+import { Glyph, Picture, ProgressBar } from '../ui/components'
 import { CTM_PICTURES } from '../ui/pictures'
 import { backupBefore } from './backup'
 import { errorMessage, loadPng, type FileSource } from './packFetch'
@@ -367,18 +367,12 @@ export function CtmDialog({
           {loaded && !problem && (
             <>
               <div className="before-after-bar">
-                <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
-                  {tr('Prima')}
-                </span>
-                <Switch
+                <Toggle
                   checked={showAfter}
-                  onChange={setShowAfter}
+                  onCheckedChange={setShowAfter}
                   label={tr('Mostra il risultato')}
                   disabled={both}
                 />
-                <span className="lbl" style={{ opacity: both ? 0.4 : 1 }}>
-                  {tr('Dopo')}
-                </span>
                 <label
                   className="inline-check small"
                   title={tr('Prima e dopo uno accanto all’altro')}

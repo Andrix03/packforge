@@ -1,6 +1,7 @@
 // The editor's preview for GUI textures (in place of the 3D block): the texture at GUI scale 1–4
 // as the game draws it, and for sprites their `gui.scaling` (stretch, tile, nine-slice) with the
 // sizes the game stretches them to, plus an editor for that section of the .png.mcmeta.
+import { Toggle } from 'packforge-ui'
 import { useEffect, useRef, useState } from 'react'
 import { tr } from '../../shared/i18n'
 import {
@@ -15,7 +16,7 @@ import {
   type GuiScaling
 } from '../../shared/guiScaling'
 import { assetUrl } from '../../shared/ipc'
-import { Glyph, OreButton, Switch } from '../ui/components'
+import { Glyph, OreButton } from '../ui/components'
 import { drawPiece } from './guiDraw'
 import type { AssetSources } from './modelSource'
 
@@ -335,14 +336,11 @@ function ScalingEditor(props: {
               </label>
             ))}
           </div>
-          <div className="row">
-            <Switch
-              checked={value.stretchInner}
-              label={tr('Centro allungato invece che ripetuto')}
-              onChange={(stretchInner) => props.onChange({ ...value, stretchInner })}
-            />
-            <span className="small">{tr('Centro allungato invece che ripetuto')}</span>
-          </div>
+          <Toggle
+            checked={value.stretchInner}
+            label={tr('Centro allungato invece che ripetuto')}
+            onCheckedChange={(stretchInner) => props.onChange({ ...value, stretchInner })}
+          />
           <p className="muted small">
             {tr(
               'Le linee arancioni sul primo sprite sono i bordi: trascinale, o scrivi i numeri. Gli angoli restano fissi.'

@@ -4,6 +4,7 @@
 // the armor (`entity/equipment/humanoid(_leggings)/…`, 64×32), a trim pattern
 // (`trims/entity/…`, grey shades) or a trim material palette (8×1): the other two pieces are picked
 // from the pack or vanilla and the trim is coloured as the game does (shared/equipment applyPalette).
+import { Toggle } from 'packforge-ui'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { tr } from '../../shared/i18n'
@@ -27,7 +28,6 @@ import {
   trimPalette,
   trimPatternOf
 } from '../../shared/trims'
-import { SwitchRow } from '../ui/components'
 import { loadPng } from '../packs/packFetch'
 import { resolveAssetUrl, type AssetSources } from './modelSource'
 
@@ -377,9 +377,9 @@ export function ArmorPreview(props: Props): React.JSX.Element {
         </p>
       )}
       {companionUrl && (
-        <SwitchRow
+        <Toggle
           checked={showCompanion}
-          onChange={setShowCompanion}
+          onCheckedChange={setShowCompanion}
           label={
             layer === 'humanoid' ? tr('Mostra anche i gambali') : tr('Mostra anche elmo e corazza')
           }

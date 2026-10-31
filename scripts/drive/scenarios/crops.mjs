@@ -78,9 +78,10 @@ export default async function crops(app) {
   // Growth playback steps through the stages.
   await app.click('Crescita', '.growth-bar button')
   const seen = new Set()
-  for (let i = 0; i < 12; i++) {
+  const deadline = Date.now() + 12000
+  while (seen.size < 4 && Date.now() < deadline) {
     seen.add(/Stadio (\d+)/.exec(await stageText(app))?.[1])
-    await app.sleep(400)
+    if (seen.size < 4) await app.sleep(300)
   }
   app.check(seen.size >= 4, `growth plays (${[...seen].join(',')})`)
   await app.shot('02-growing')
@@ -119,6 +120,14 @@ export default async function crops(app) {
     `[...document.querySelectorAll('[aria-label="Stadi di crescita"] [role=tab]')].some((t) => t.textContent.includes('wheat_stage1_v3'))`,
     10000
   )
+  try {
+    await app.waitFor(
+      `[...document.querySelectorAll('[aria-label="Stadi di crescita"] [role=tab]')].slice(0, 4).map((t) => t.textContent.trim().split(' ')[0]).join(' ') === '1 2 2-v2 2-v3'`,
+      15000
+    )
+  } catch {
+    // Report the current labels through the check even if they never settle.
+  }
   const labels = (await tabs(app)).map((t) => t.split(' ')[0])
   app.check(
     labels.slice(0, 4).join(' ') === '1 2 2-v2 2-v3',

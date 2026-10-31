@@ -19,6 +19,26 @@ const target: EditorTarget = {
 }
 
 describe('withSources', () => {
+  it('keeps confirmed writes through stale listings until the watcher lists them', () => {
+    const written = documentSourcesFor(sources, 'v2.png', ['v2.png', 'v3.png'], 123)
+    const opened = { ...target, sources: written, pendingWrites: ['v2.png', 'v3.png'] }
+    const stale = withSources(opened, sources)!
+    expect(stale.sources.pack.files.has('v2.png')).toBe(true)
+    expect(stale.sources.pack.files.has('v3.png')).toBe(true)
+    expect(stale.sources.pack.versions['v3.png']).toBe(123)
+    const partial = withSources(stale, {
+      ...sources,
+      pack: { ...sources.pack, files: new Set(['v2.png']) }
+    })!
+    expect(partial.pendingWrites).toEqual(['v3.png'])
+    expect(partial.sources.pack.files.has('v3.png')).toBe(true)
+    expect(partial.documentSources).toBe(written)
+    const listed = { ...sources, pack: { ...sources.pack, files: new Set(['v2.png', 'v3.png']) } }
+    const caughtUp = withSources(stale, listed)!
+    expect(caughtUp.pendingWrites).toEqual([])
+    expect(withSources(caughtUp, sources)!.sources.pack.files.has('v3.png')).toBe(false)
+  })
+
   it('preserves identity for identical sources and absent targets', () => {
     expect(withSources(target, sources)).toBe(target)
     expect(withSources(null, sources)).toBeNull()

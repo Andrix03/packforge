@@ -7,7 +7,25 @@ export function withSources(
   sources: AssetSources
 ): EditorTarget | null {
   if (!target || target.sources === sources) return target
-  return { ...target, sources, documentSources: target.documentSources ?? target.sources }
+  const pendingWrites = target.pendingWrites?.filter((path) => !sources.pack.files.has(path))
+  const versions = { ...sources.pack.versions }
+  for (const path of pendingWrites ?? []) versions[path] = target.sources.pack.versions[path] ?? 0
+  const liveSources = pendingWrites?.length
+    ? {
+        ...sources,
+        pack: {
+          ...sources.pack,
+          files: new Set([...sources.pack.files, ...pendingWrites]),
+          versions
+        }
+      }
+    : sources
+  return {
+    ...target,
+    sources: liveSources,
+    ...(pendingWrites ? { pendingWrites } : {}),
+    documentSources: target.documentSources ?? target.sources
+  }
 }
 
 /** Capture document inputs at open time, including writes not yet reported by the watcher. */

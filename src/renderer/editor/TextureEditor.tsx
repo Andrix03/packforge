@@ -125,6 +125,8 @@ export interface EditorTarget {
   sources: AssetSources
   /** Pixel-loading sources stay stable while preview assets update. */
   documentSources?: AssetSources
+  /** Confirmed new writes retained until the workspace listing catches up. */
+  pendingWrites?: readonly string[]
   /** Asset URL prefix of the open pack. */
   packBase: string
   /** Zip packs are opened read-only. */
@@ -176,6 +178,10 @@ export function TextureEditor({
   /** Opens another texture of the pack in the editor (block tabs). */
   onSwitch: (target: EditorTarget) => void
 }): React.JSX.Element {
+  const targetRef = useRef(target)
+  useEffect(() => {
+    targetRef.current = target
+  })
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' })
   const [tools, setTools] = useState<Omit<Tools, 'ramp'>>({
     tool: 'pencil',
@@ -850,7 +856,7 @@ export function TextureEditor({
               : (map?.matchesSaved(bytes) ?? true)
           if (ours) continue
           if (modifiedRef.current) setExternalChange(path)
-          else onSwitch(reloadedTarget(target, watched))
+          else onSwitch(reloadedTarget(targetRef.current, watched))
           return
         }
       })()
@@ -859,7 +865,18 @@ export function TextureEditor({
       cancelled = true
       unsubscribe()
     }
-  }, [target, normalPath, specularPath, maps, onSwitch, tallCanvases, tall, doc])
+  }, [
+    target.path,
+    target.packBase,
+    target.readOnly,
+    normalPath,
+    specularPath,
+    maps,
+    onSwitch,
+    tallCanvases,
+    tall,
+    doc
+  ])
 
   useEffect(() => {
     if (suspended) return
@@ -2380,6 +2397,12 @@ function targetFor(
   return {
     ...current,
     documentSources: sources,
+    pendingWrites: [
+      ...new Set([
+        ...(current.pendingWrites ?? []),
+        ...added.filter((file) => !current.sources.pack.files.has(file))
+      ])
+    ],
     path,
     textureKey: path.slice(0, -'.png'.length),
     name: path.slice(path.lastIndexOf('/') + 1, -'.png'.length),

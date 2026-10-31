@@ -31,6 +31,7 @@ import {
   type Viewport
 } from './viewport'
 import { tr } from '../../shared/i18n'
+import { observeCanvasSize } from './canvasSize'
 
 /** How long a canvas notice stays visible. */
 const NOTICE_MS = 3500
@@ -103,7 +104,6 @@ interface PixelCanvasProps {
 
 export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
   const { doc, source, tools } = props
-  const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [viewSize, setViewSize] = useState<{ width: number; height: number } | null>(null)
   /** Null until the user zooms or pans: then the texture is fitted to the view. */
@@ -143,18 +143,9 @@ export function PixelCanvas(props: PixelCanvasProps): React.JSX.Element {
   )
 
   // The canvas backing store follows the container size in device pixels.
-  useEffect(() => {
-    const container = containerRef.current
+  const containerRef = useCallback((container: HTMLDivElement | null) => {
     if (!container) return
-    const observer = new ResizeObserver(() => {
-      const ratio = window.devicePixelRatio || 1
-      setViewSize({
-        width: Math.max(1, Math.round(container.clientWidth * ratio)),
-        height: Math.max(1, Math.round(container.clientHeight * ratio))
-      })
-    })
-    observer.observe(container)
-    return () => observer.disconnect()
+    return observeCanvasSize(container, setViewSize)
   }, [])
 
   // Fitted until the user zooms or pans; re-clamped on every render so a window resize can't

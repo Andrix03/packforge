@@ -70,7 +70,7 @@ export default async function backups(app) {
   await app.click('Nessuna', '.modal.batch button')
   for (const name of ['glowstone', 'grass_block_top']) {
     await app.ev(
-      `[...document.querySelectorAll('.batch-list label')].find((l) => l.textContent.startsWith(${JSON.stringify(name + 'block')})).querySelector('input').click()`
+      `[...document.querySelectorAll('.batch-list .pf-checkbox')].find((l) => l.textContent.startsWith(${JSON.stringify(name + 'block')})).querySelector('[role=checkbox]').click()`
     )
   }
   await app.click('Pietra', '.modal.batch .material-presets button')

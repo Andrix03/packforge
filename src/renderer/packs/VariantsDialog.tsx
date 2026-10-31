@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { Dialog } from 'packforge-ui'
+import { Checkbox, Dialog } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import {
   DEFAULT_RECOLOR,
@@ -321,57 +321,59 @@ export function VariantsDialog({
         onChange={(value) => setOptions({ ...options, colorDetail: value / 100 })}
       />
       <div className="variant-grid" aria-label={tr('Varianti')}>
-        {variants.map((variant) => (
-          <label
-            key={variant.dye.id}
-            className={variant.original ? 'variant original' : 'variant'}
-            title={`${variant.path}${variant.fromGame ? tr(', colore del gioco') : tr(', colore del colorante')} #${variant.hex}`}
-          >
-            {sample && (
-              <Thumb width={sample.width} height={sample.height} pixels={variant.pixels} />
-            )}
-            <span className="small">
-              <input
-                type="checkbox"
-                disabled={variant.original}
-                checked={!variant.original && checked.has(variant.dye.id)}
-                onChange={(event) =>
-                  setChecked((all) => {
-                    const next = new Set(all)
-                    if (event.target.checked) next.add(variant.dye.id)
-                    else next.delete(variant.dye.id)
-                    return next
-                  })
-                }
-              />
-              {variant.name}
-            </span>
-            {variant.original ? (
-              <span className="badge">{tr('originale')}</span>
-            ) : (
-              variant.exists && <span className="badge unsaved">{tr('esiste già')}</span>
-            )}
-          </label>
-        ))}
+        {variants.map((variant) => {
+          const on = !variant.original && checked.has(variant.dye.id)
+          const choose = (next: boolean): void =>
+            setChecked((all) => {
+              const chosen = new Set(all)
+              if (next) chosen.add(variant.dye.id)
+              else chosen.delete(variant.dye.id)
+              return chosen
+            })
+          return (
+            // A click anywhere on the tile (thumbnail, badge) toggles it too, like the old label.
+            <div
+              key={variant.dye.id}
+              className={variant.original ? 'variant original' : 'variant'}
+              title={`${variant.path}${variant.fromGame ? tr(', colore del gioco') : tr(', colore del colorante')} #${variant.hex}`}
+              onClick={(event) => {
+                if (variant.original || (event.target as HTMLElement).closest('.pf-checkbox'))
+                  return
+                choose(!on)
+              }}
+            >
+              {sample && (
+                <Thumb width={sample.width} height={sample.height} pixels={variant.pixels} />
+              )}
+              <span className="small">
+                <Checkbox
+                  disabled={variant.original}
+                  checked={on}
+                  onCheckedChange={choose}
+                  label={variant.name}
+                />
+              </span>
+              {variant.original ? (
+                <span className="badge">{tr('originale')}</span>
+              ) : (
+                variant.exists && <span className="badge unsaved">{tr('esiste già')}</span>
+              )}
+            </div>
+          )
+        })}
       </div>
       {hasMaps && (
-        <label className="inline-check small">
-          <input
-            type="checkbox"
-            checked={copyMaps}
-            onChange={(event) => setCopyMaps(event.target.checked)}
-          />
-          {tr('Copia anche _n e _s (stesso rilievo e materiale)')}
-        </label>
-      )}
-      <label className="inline-check small">
-        <input
-          type="checkbox"
-          checked={overwrite}
-          onChange={(event) => setOverwrite(event.target.checked)}
+        <Checkbox
+          checked={copyMaps}
+          onCheckedChange={setCopyMaps}
+          label={tr('Copia anche _n e _s (stesso rilievo e materiale)')}
         />
-        {tr('Sovrascrivi le texture che esistono già')}
-      </label>
+      )}
+      <Checkbox
+        checked={overwrite}
+        onCheckedChange={setOverwrite}
+        label={tr('Sovrascrivi le texture che esistono già')}
+      />
       <div className="row">
         <button
           type="button"

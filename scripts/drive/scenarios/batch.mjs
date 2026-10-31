@@ -20,11 +20,11 @@ async function summary(app) {
 /** Ticks the texture whose row starts with `name` (the folder follows the name). */
 async function tick(app, name, on = true) {
   const done = await app.ev(`(() => {
-    const row = [...document.querySelectorAll('.batch-list label')]
+    const row = [...document.querySelectorAll('.batch-list .pf-checkbox')]
       .find((l) => l.textContent.startsWith(${JSON.stringify(name + 'block')}))
     if (!row) return false
-    const box = row.querySelector('input')
-    if (box.checked !== ${on}) box.click()
+    const box = row.querySelector('[role=checkbox]')
+    if (box.getAttribute('aria-checked') === 'true' !== ${on}) box.click()
     return true
   })()`)
   if (!done) throw new Error(`no texture row ${name}`)
@@ -89,7 +89,7 @@ export default async function batch(app) {
   await app.click('Seleziona visibili', '.modal.batch button')
   await app.click('Legno', '.modal.batch .material-presets button')
   await app.ev(
-    `[...document.querySelectorAll('.modal.batch label')].find((l) => l.textContent.startsWith('Rilievo')).querySelector('input').click()`
+    `[...document.querySelectorAll('.modal.batch .pf-checkbox')].find((l) => l.textContent.startsWith('Rilievo')).querySelector('[role=checkbox]').click()`
   )
   await app.sleep(150)
   app.check(

@@ -56,7 +56,7 @@ export default async function ingame(app) {
 
   // Automatic copy after changes made outside the app.
   await app.ev(
-    `[...document.querySelectorAll('[aria-label="Prova in gioco"] label')].find((l) => l.textContent.includes('da sola')).querySelector('input').click()`
+    `[...document.querySelectorAll('[aria-label="Prova in gioco"] .pf-checkbox')].find((l) => l.textContent.includes('da sola')).querySelector('[role=checkbox]').click()`
   )
   await app.sleep(300)
   const block = join(app.paths.pack, 'assets', 'minecraft', 'textures', 'block')

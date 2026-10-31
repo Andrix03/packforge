@@ -287,12 +287,12 @@ export default async function fullpack(app) {
     await app.click('Nessuna', '.modal.batch button')
     for (const name of names) {
       await app.ev(
-        `[...document.querySelectorAll('.batch-list label')].find((l) => l.textContent.startsWith('${name}block'))?.querySelector('input').click()`
+        `[...document.querySelectorAll('.batch-list .pf-checkbox')].find((l) => l.textContent.startsWith('${name}block'))?.querySelector('[role=checkbox]').click()`
       )
     }
     await app.click(preset, '.modal.batch .material-presets button')
     await app.ev(
-      `(() => { const box = [...document.querySelectorAll('.modal.batch label')].find((l) => l.textContent.startsWith('Rilievo'))?.querySelector('input'); if (box && !box.checked) box.click() })()`
+      `(() => { const box = [...document.querySelectorAll('.modal.batch .pf-checkbox')].find((l) => l.textContent.startsWith('Rilievo'))?.querySelector('[role=checkbox]'); if (box && box.getAttribute('aria-checked') !== 'true') box.click() })()`
     )
     await app.sleep(200)
     const plan = await app.ev(`document.querySelector('[data-testid=batch-summary]').textContent`)
@@ -452,7 +452,7 @@ export default async function fullpack(app) {
     'Prima versione: pietra, assi, vetro connesso, diamante luminoso, magma animato.'
   )
   await app.ev(
-    `[...document.querySelectorAll('[aria-label=Esporta] label')].find((l) => l.textContent.startsWith('Senza PBR')).querySelector('input').click()`
+    `[...document.querySelectorAll('[aria-label=Esporta] .pf-checkbox')].find((l) => l.textContent.startsWith('Senza PBR')).querySelector('[role=checkbox]').click()`
   )
   await app.sleep(300)
   await app.shot('17-export')

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Checkbox } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import {
   DEFAULT_PROJECT,
@@ -288,53 +289,49 @@ export function ExportDialog({
       )}
 
       <h3 className="panel-title">{tr('3. Varianti')}</h3>
-      <label className="inline-check small">
-        <input type="checkbox" checked={full} onChange={(event) => setFull(event.target.checked)} />
-        {tr('Completo')}
-      </label>
-      <label className="inline-check small" title={tr('Senza _n e _s: per chi non usa shader')}>
-        <input type="checkbox" checked={base} onChange={(event) => setBase(event.target.checked)} />
-        {tr('Senza PBR (file «-base»)')}
-      </label>
-      <label
-        className="inline-check small"
+      <Checkbox checked={full} onCheckedChange={setFull} label={tr('Completo')} />
+      <span title={tr('Senza _n e _s: per chi non usa shader')}>
+        <Checkbox checked={base} onCheckedChange={setBase} label={tr('Senza PBR (file «-base»)')} />
+      </span>
+      <span
         title={tr(
           'Texture di blocchi, oggetti ed entità a un’altra risoluzione (pixel netti); le GUI restano com’erano'
         )}
       >
-        <input
-          type="checkbox"
+        <Checkbox
           checked={resolution !== null}
-          onChange={(event) => setResolution(event.target.checked ? 16 : null)}
+          onCheckedChange={(on) => setResolution(on ? 16 : null)}
+          label={
+            <>
+              {tr('Anche a')}
+              <select
+                aria-label={tr('Risoluzione export')}
+                value={resolution ?? 16}
+                disabled={resolution === null}
+                onChange={(event) => setResolution(Number(event.target.value))}
+              >
+                {RESOLUTIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}×
+                  </option>
+                ))}
+              </select>
+            </>
+          }
         />
-        {tr('Anche a')}
-        <select
-          aria-label={tr('Risoluzione export')}
-          value={resolution ?? 16}
-          disabled={resolution === null}
-          onChange={(event) => setResolution(Number(event.target.value))}
-        >
-          {RESOLUTIONS.map((r) => (
-            <option key={r} value={r}>
-              {r}×
-            </option>
-          ))}
-        </select>
-      </label>
+      </span>
 
-      <label
-        className="inline-check small"
+      <span
         title={tr(
           'description-en.md, description-it.md e listing.txt con riassunto, versioni del gioco e tag consigliati'
         )}
       >
-        <input
-          type="checkbox"
+        <Checkbox
           checked={withListing}
-          onChange={(event) => setWithListing(event.target.checked)}
+          onCheckedChange={setWithListing}
+          label={tr('Prepara anche la scheda per Modrinth / CurseForge')}
         />
-        {tr('Prepara anche la scheda per Modrinth / CurseForge')}
-      </label>
+      </span>
 
       <h3 className="panel-title">{tr('4. Destinazione')}</h3>
       <p className="small" data-testid="export-dir">

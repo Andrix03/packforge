@@ -21,9 +21,9 @@ async function open(app) {
 
 async function untick(app, name) {
   await app.ev(`(() => {
-    const row = [...document.querySelectorAll('.batch-list label')].find((l) => l.textContent.startsWith(${JSON.stringify(name)}))
-    const box = row.querySelector('input')
-    if (box.checked) box.click()
+    const row = [...document.querySelectorAll('.batch-list .pf-checkbox')].find((l) => l.textContent.startsWith(${JSON.stringify(name)}))
+    const box = row.querySelector('[role=checkbox]')
+    if (box.getAttribute('aria-checked') === 'true') box.click()
   })()`)
   await app.sleep(100)
 }
@@ -67,7 +67,7 @@ export default async function resize(app) {
     `selection: ${await summary(app)}`
   )
   const oddNote = await app.ev(
-    `[...document.querySelectorAll('.batch-list label')].find((l) => l.textContent.startsWith('odd')).textContent`
+    `[...document.querySelectorAll('.batch-list .pf-checkbox')].find((l) => l.textContent.startsWith('odd')).textContent`
   )
   app.check(oddNote.includes('non si può portare'), `24 px is incompatible with 32× (${oddNote})`)
   await untick(app, 'big')
@@ -127,7 +127,7 @@ export default async function resize(app) {
   await app.sleep(100)
   await app.setValue('input[aria-label="Filtra texture"]', 'oak_planks')
   await app.sleep(100)
-  await app.ev(`document.querySelector('.batch-list input').click()`)
+  await app.ev(`document.querySelector('.batch-list [role=checkbox]').click()`)
   await app.sleep(100)
   const lossy = await run(app, false)
   app.check(

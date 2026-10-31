@@ -2,7 +2,7 @@
 // grey, or by hand), with before/after and a backup first. Vanilla textures are never touched:
 // only what is already in the pack.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Dialog } from 'packforge-ui'
+import { Checkbox, Dialog } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
 import {
   isNeutral,
@@ -224,19 +224,22 @@ export function GuiRecolorDialog({
           >
             {textures.map((path) => (
               <li key={path}>
-                <label className="batch-row">
-                  <input
-                    type="checkbox"
+                <div className="batch-row">
+                  <Checkbox
                     checked={selected.has(path)}
-                    onChange={(event) => {
+                    onCheckedChange={(on) => {
                       const next = new Set(selected)
-                      if (event.target.checked) next.add(path)
+                      if (on) next.add(path)
                       else next.delete(path)
                       setSelected(next)
                     }}
+                    label={
+                      <span className="small">
+                        {path.replace(/^assets\/[^/]+\/textures\//, '')}
+                      </span>
+                    }
                   />
-                  <span className="small">{path.replace(/^assets\/[^/]+\/textures\//, '')}</span>
-                </label>
+                </div>
               </li>
             ))}
           </ul>

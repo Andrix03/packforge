@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Dialog, Toggle } from 'packforge-ui'
+import { Checkbox, Dialog, Toggle } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import {
   ctmTile,
@@ -347,14 +347,11 @@ export function CtmDialog({
           />
         )}
         {(source.normal || source.specular) && (
-          <label className="inline-check small">
-            <input
-              type="checkbox"
-              checked={withMaps}
-              onChange={(event) => setWithMaps(event.target.checked)}
-            />
-            {tr('Crea anche i tile di _n e _s (rilievo e materiale seguono le connessioni)')}
-          </label>
+          <Checkbox
+            checked={withMaps}
+            onCheckedChange={setWithMaps}
+            label={tr('Crea anche i tile di _n e _s (rilievo e materiale seguono le connessioni)')}
+          />
         )}
         <p className="small muted">
           {tr('Funziona con Continuity (Fabric, anche con Iris) e con OptiFine.')}
@@ -373,17 +370,9 @@ export function CtmDialog({
                   label={tr('Mostra il risultato')}
                   disabled={both}
                 />
-                <label
-                  className="inline-check small"
-                  title={tr('Prima e dopo uno accanto all’altro')}
-                >
-                  <input
-                    type="checkbox"
-                    checked={both}
-                    onChange={(event) => setBoth(event.target.checked)}
-                  />
-                  {tr('Affiancati')}
-                </label>
+                <span title={tr('Prima e dopo uno accanto all’altro')}>
+                  <Checkbox checked={both} onCheckedChange={setBoth} label={tr('Affiancati')} />
+                </span>
               </div>
               <div className={both ? 'before-after-views both' : 'before-after-views'}>
                 <figure className="before-after-view" hidden={!both && showAfter}>

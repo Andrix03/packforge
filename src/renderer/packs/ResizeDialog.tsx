@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Dialog } from 'packforge-ui'
+import { Checkbox, Dialog } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import { readPngSize } from '../../shared/png'
 import {
@@ -305,38 +305,38 @@ export function ResizeDialog({
           const factor = factorOf(texture)
           return (
             <li key={texture.albedo}>
-              <label className="inline-check small">
-                <input
-                  type="checkbox"
+              <span className="small">
+                <Checkbox
                   checked={selected.has(texture.albedo)}
-                  onChange={(event) =>
+                  onCheckedChange={(on) =>
                     setSelected((all) => {
                       const next = new Set(all)
-                      if (event.target.checked) next.add(texture.albedo)
+                      if (on) next.add(texture.albedo)
                       else next.delete(texture.albedo)
                       return next
                     })
                   }
+                  label={
+                    <>
+                      {texture.name}
+                      <span className="muted">
+                        {size ? `${size.width}×${size.height}` : '…'}
+                        {size && !factor && tr(', non si può portare a questa risoluzione')}
+                        {factor && factor.up === 1 && factor.down === 1 && tr(', già così')}
+                      </span>
+                    </>
+                  }
                 />
-                {texture.name}
-                <span className="muted">
-                  {size ? `${size.width}×${size.height}` : '…'}
-                  {size && !factor && tr(', non si può portare a questa risoluzione')}
-                  {factor && factor.up === 1 && factor.down === 1 && tr(', già così')}
-                </span>
-              </label>
+              </span>
             </li>
           )
         })}
       </ul>
-      <label className="inline-check small">
-        <input
-          type="checkbox"
-          checked={withMaps}
-          onChange={(event) => setWithMaps(event.target.checked)}
-        />
-        {tr('Ridimensiona anche _n e _s (valori esatti, nessuna sfumatura)')}
-      </label>
+      <Checkbox
+        checked={withMaps}
+        onCheckedChange={setWithMaps}
+        label={tr('Ridimensiona anche _n e _s (valori esatti, nessuna sfumatura)')}
+      />
       <p className="small" data-testid="resize-summary">
         {tr('Da ridimensionare: {0}', work.length)}
         {incompatible.length > 0 && `, incompatibili: ${incompatible.length}`}

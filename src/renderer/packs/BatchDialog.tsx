@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Dialog } from 'packforge-ui'
+import { Checkbox, Dialog } from 'packforge-ui'
 import { confirmAction } from '../ui/ask'
 import { countPlan, planBatch } from '../../shared/batchMaps'
 import { mapPath } from '../../shared/labpbr'
@@ -236,19 +236,22 @@ export function BatchDialog({
         <ul className="batch-list" aria-label={tr('Texture')}>
           {visible.slice(0, MAX_ROWS).map((texture) => (
             <li key={texture.albedo}>
-              <label className="batch-row small">
-                <input
-                  type="checkbox"
+              <div className="batch-row small">
+                <Checkbox
                   checked={selected.has(texture.albedo)}
-                  onChange={(event) => toggle(texture.albedo, event.target.checked)}
+                  onCheckedChange={(on) => toggle(texture.albedo, on)}
+                  label={
+                    <>
+                      {texture.name}
+                      <span className="muted">
+                        {texture.folder.replace(/^assets\/minecraft\/textures\//, '')}
+                      </span>
+                      {texture.normal && <span className="badge">_n</span>}
+                      {texture.specular && <span className="badge">_s</span>}
+                    </>
+                  }
                 />
-                {texture.name}
-                <span className="muted">
-                  {texture.folder.replace(/^assets\/minecraft\/textures\//, '')}
-                </span>
-                {texture.normal && <span className="badge">_n</span>}
-                {texture.specular && <span className="badge">_s</span>}
-              </label>
+              </div>
             </li>
           ))}
         </ul>
@@ -265,27 +268,21 @@ export function BatchDialog({
 
       {/* 2 · Cosa fare */}
       <section className="wizard-step" hidden={step !== 1}>
-        <label className="inline-check">
-          <input
-            type="checkbox"
-            checked={doSpecular}
-            onChange={(event) => setDoSpecular(event.target.checked)}
-          />
-          {tr('Materiale (_s)')}
-        </label>
+        <Checkbox
+          checked={doSpecular}
+          onCheckedChange={setDoSpecular}
+          label={tr('Materiale (_s)')}
+        />
         {doSpecular && (
           <div className="generator-panel batch-section">
             <MaterialFields options={material} onOptions={setMaterial} />
           </div>
         )}
-        <label className="inline-check">
-          <input
-            type="checkbox"
-            checked={doNormal}
-            onChange={(event) => setDoNormal(event.target.checked)}
-          />
-          {tr('Rilievo (_n): altezza dai colori, normali e occlusione')}
-        </label>
+        <Checkbox
+          checked={doNormal}
+          onCheckedChange={setDoNormal}
+          label={tr('Rilievo (_n): altezza dai colori, normali e occlusione')}
+        />
         {doNormal && (
           <div className="generator-panel batch-section">
             <Range
@@ -299,25 +296,10 @@ export function BatchDialog({
               )}
               onChange={(value) => setDepth(value / 100)}
             />
-            <label className="inline-check small">
-              <input
-                type="checkbox"
-                checked={occlusion}
-                onChange={(event) => setOcclusion(event.target.checked)}
-              />
-              {tr('Occlusione')}
-            </label>
-            <label
-              className="inline-check small"
-              title={tr('Togli la spunta per texture che non si ripetono')}
-            >
-              <input
-                type="checkbox"
-                checked={wrap}
-                onChange={(event) => setWrap(event.target.checked)}
-              />
-              {tr('Bordi ripetibili')}
-            </label>
+            <Checkbox checked={occlusion} onCheckedChange={setOcclusion} label={tr('Occlusione')} />
+            <span title={tr('Togli la spunta per texture che non si ripetono')}>
+              <Checkbox checked={wrap} onCheckedChange={setWrap} label={tr('Bordi ripetibili')} />
+            </span>
           </div>
         )}
 

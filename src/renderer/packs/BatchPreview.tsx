@@ -1,6 +1,6 @@
 // "Anteprima" step of Applica in blocco: one texture before (colour only, no shader) and after
 // (the maps the batch would write, LabPBR effects on), as 3D blocks. Nothing is written here.
-import { Toggle } from 'packforge-ui'
+import { Checkbox, Toggle } from 'packforge-ui'
 import { useEffect, useState } from 'react'
 import { buildNormal, buildSpecular } from '../../shared/batchMaps'
 import { assetUrl } from '../../shared/ipc'
@@ -123,14 +123,9 @@ export function BatchPreview({
           label={tr('Mostra il risultato')}
           disabled={both}
         />
-        <label className="inline-check small" title={tr('Prima e dopo uno accanto all’altro')}>
-          <input
-            type="checkbox"
-            checked={both}
-            onChange={(event) => setBoth(event.target.checked)}
-          />
-          {tr('Affiancati')}
-        </label>
+        <span title={tr('Prima e dopo uno accanto all’altro')}>
+          <Checkbox checked={both} onCheckedChange={setBoth} label={tr('Affiancati')} />
+        </span>
       </div>
       <div className={both ? 'before-after-views both' : 'before-after-views'}>
         {(both || !showAfter) && beforeView}

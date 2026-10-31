@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Checkbox } from 'packforge-ui'
 import type { SyncStatus } from '../../shared/ipc'
 import { announceStep } from '../tutorialEvents'
 import { DialogFrame, Glyph } from '../ui/components'
@@ -99,22 +100,18 @@ export function InGameDialog({
               {tr('Apri la cartella resourcepacks')}
             </button>
           </div>
-          <label
-            className="inline-check small"
+          <span
             title={tr(
               'Ogni volta che salvi (o un file del pack cambia), la copia si aggiorna da sola: in gioco basta F3 + T'
             )}
           >
-            <input
-              type="checkbox"
+            <Checkbox
               checked={status.auto}
               disabled={status.state !== 'ours'}
-              onChange={(event) =>
-                void window.api.invoke('sync:setAuto', event.target.checked).then(setStatus)
-              }
+              onCheckedChange={(on) => void window.api.invoke('sync:setAuto', on).then(setStatus)}
+              label={tr('Aggiorna la copia da sola dopo ogni modifica')}
             />
-            {tr('Aggiorna la copia da sola dopo ogni modifica')}
-          </label>
+          </span>
           {last && (
             <p className={last.error ? 'field-error small' : 'small muted'} data-testid="sync-last">
               {last.error ??

@@ -79,8 +79,8 @@ export default async function variants(app) {
   await app.shot('01-wool-dialog')
   const tiles = await app.ev(`[...document.querySelectorAll('.variant')].map((v) => ({
     name: v.querySelector('span.small').textContent,
-    checked: v.querySelector('input').checked,
-    disabled: v.querySelector('input').disabled,
+    checked: v.querySelector('[role=checkbox]').getAttribute('aria-checked') === 'true',
+    disabled: v.querySelector('[role=checkbox]').matches('[data-disabled],[aria-disabled=true],:disabled'),
     badge: v.querySelector('.badge')?.textContent ?? '',
     title: v.title
   }))`)
@@ -135,10 +135,10 @@ export default async function variants(app) {
   await openDialog(app)
   app.check((await createLabel(app)) === 'Crea 0 texture', 'everything exists: nothing to create')
   await app.ev(
-    `[...document.querySelectorAll('.variant')].find((v) => v.textContent.includes('red_wool')).querySelector('input').click()`
+    `[...document.querySelectorAll('.variant')].find((v) => v.textContent.includes('red_wool')).querySelector('[role=checkbox]').click()`
   )
   await app.ev(
-    `[...document.querySelectorAll('.modal.batch label')].find((l) => l.textContent.includes('Sovrascrivi')).querySelector('input').click()`
+    `[...document.querySelectorAll('.modal.batch .pf-checkbox')].find((l) => l.textContent.includes('Sovrascrivi')).querySelector('[role=checkbox]').click()`
   )
   await app.sleep(150)
   app.check((await createLabel(app)) === 'Crea 1 texture', 'overwrite red_wool: 1')

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Checkbox } from 'packforge-ui'
 import {
   clampCrop,
   cropRect,
@@ -164,14 +165,11 @@ export function IconEditor({ onCancel, onSaved }: IconEditorProps): React.JSX.El
                 ))}
               </select>
             </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={pixelArt}
-                onChange={(event) => setPixelArt(event.target.checked)}
-              />
-              {tr('Pixel art (pixel nitidi, senza sfumature)')}
-            </label>
+            <Checkbox
+              checked={pixelArt}
+              onCheckedChange={setPixelArt}
+              label={tr('Pixel art (pixel nitidi, senza sfumature)')}
+            />
 
             {output && (
               <div className="icon-previews">

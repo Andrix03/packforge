@@ -13,8 +13,8 @@ export default async function wizard(app) {
   app.check((await current(app)).includes('1. Texture'), 'opens on step 1 (Texture)')
   await app.click('Nessuna', '.modal.batch button')
   await app.ev(`(() => {
-    const row = [...document.querySelectorAll('.batch-list label')].find((l) => l.textContent.startsWith('glassblock'))
-    row.querySelector('input').click()
+    const row = [...document.querySelectorAll('.batch-list .pf-checkbox')].find((l) => l.textContent.startsWith('glassblock'))
+    row.querySelector('[role=checkbox]').click()
   })()`)
   await app.shot('wizard-1-texture')
 
@@ -22,9 +22,9 @@ export default async function wizard(app) {
   app.check((await current(app)).includes('2. Cosa fare'), 'Avanti: step 2 (Cosa fare)')
   // Material (_s) and relief (_n) both.
   await app.ev(`(() => {
-    const box = [...document.querySelectorAll('.wizard-step label.inline-check')]
-      .find((l) => l.textContent.startsWith('Rilievo'))?.querySelector('input')
-    if (box && !box.checked) box.click()
+    const box = [...document.querySelectorAll('.wizard-step .pf-checkbox')]
+      .find((l) => l.textContent.startsWith('Rilievo'))?.querySelector('[role=checkbox]')
+    if (box && box.getAttribute('aria-checked') !== 'true') box.click()
   })()`)
   await app.shot('wizard-2-what')
 
@@ -35,8 +35,8 @@ export default async function wizard(app) {
   const after = await app.ev(`document.querySelector('.before-after-view figcaption').textContent`)
   app.check(after === 'Dopo', `the result is shown first (${after})`)
   await app.ev(`(() => {
-    const box = [...document.querySelectorAll('.before-after-bar label')]
-      .find((l) => l.textContent.includes('Affiancati'))?.querySelector('input')
+    const box = [...document.querySelectorAll('.before-after-bar .pf-checkbox')]
+      .find((l) => l.textContent.includes('Affiancati'))?.querySelector('[role=checkbox]')
     box?.click()
   })()`)
   await app.waitFor(
@@ -96,8 +96,8 @@ export default async function wizard(app) {
     )
   app.check((await shown()) === 'ctm-wall', 'CTM: the connected wall first')
   await app.ev(`(() => {
-    const box = [...document.querySelectorAll('[aria-label="Texture connesse"] .before-after-bar label')]
-      .find((l) => l.textContent.includes('Affiancati'))?.querySelector('input')
+    const box = [...document.querySelectorAll('[aria-label="Texture connesse"] .before-after-bar .pf-checkbox')]
+      .find((l) => l.textContent.includes('Affiancati'))?.querySelector('[role=checkbox]')
     box?.click()
   })()`)
   await app.sleep(200)

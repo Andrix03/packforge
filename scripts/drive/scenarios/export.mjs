@@ -57,10 +57,10 @@ export default async function exporting(app) {
   await app.setValue('[aria-label=Esporta] input[aria-label="Nome 1"]', 'Amico')
   await app.setValue('[aria-label=Esporta] input[aria-label="Contributo 1"]', 'idee')
   await app.ev(
-    `[...document.querySelectorAll('[aria-label=Esporta] label')].find((l) => l.textContent.startsWith('Senza PBR')).querySelector('input').click()`
+    `[...document.querySelectorAll('[aria-label=Esporta] .pf-checkbox')].find((l) => l.textContent.startsWith('Senza PBR')).querySelector('[role=checkbox]').click()`
   )
   await app.ev(
-    `[...document.querySelectorAll('[aria-label=Esporta] label')].find((l) => l.textContent.startsWith('Anche a')).querySelector('input').click()`
+    `[...document.querySelectorAll('[aria-label=Esporta] .pf-checkbox')].find((l) => l.textContent.startsWith('Anche a')).querySelector('[role=checkbox]').click()`
   )
   await app.setValue('[aria-label=Esporta] select[aria-label="Risoluzione export"]', 32)
   await app.sleep(200)

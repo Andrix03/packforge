@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Dialog } from 'packforge-ui'
+import { Checkbox, Dialog } from 'packforge-ui'
 import { tr } from '../../shared/i18n'
 import {
   POLYTONE_GROUPS,
@@ -124,19 +124,18 @@ export function PolytoneDialog({
       </label>
       {problem && <p className="field-error small">{problem}</p>}
       {POLYTONE_GROUPS.map((group) => (
-        <label key={group.id} className="checkbox-inline small">
-          <input
-            type="checkbox"
+        <span key={group.id} className="small">
+          <Checkbox
             checked={groups.has(group.id)}
-            onChange={(event) => {
+            onCheckedChange={(on) => {
               const next = new Set(groups)
-              if (event.target.checked) next.add(group.id)
+              if (on) next.add(group.id)
               else next.delete(group.id)
               setGroups(next)
             }}
+            label={group.label}
           />
-          {group.label}
-        </label>
+        </span>
       ))}
       <div className="polytone-body">
         <canvas

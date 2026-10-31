@@ -156,7 +156,7 @@ export default async function ctm(app) {
   await openDialog(app)
   app.check(
     await app.ev(
-      `[...document.querySelectorAll('[aria-label="Texture connesse"] label')].find((l) => l.textContent.includes('_n e _s'))?.querySelector('input').checked`
+      `[...document.querySelectorAll('[aria-label="Texture connesse"] .pf-checkbox')].find((l) => l.textContent.includes('_n e _s'))?.querySelector('[role=checkbox]').getAttribute('aria-checked') === 'true'`
     ),
     'maps option on for a texture with maps'
   )
